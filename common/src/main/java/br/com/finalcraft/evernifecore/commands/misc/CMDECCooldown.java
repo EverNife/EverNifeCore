@@ -13,11 +13,12 @@ import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.cooldown.CooldownBucket;
 import br.com.finalcraft.evernifecore.cooldown.CooldownEntry;
-import br.com.finalcraft.evernifecore.cooldown.player.PlayerCooldown;
+import br.com.finalcraft.evernifecore.cooldown.Cooldowns;
 import br.com.finalcraft.evernifecore.cooldown.player.PlayerCooldownsLocal;
 import br.com.finalcraft.evernifecore.cooldown.player.PlayerCooldownsNetwork;
 import br.com.finalcraft.evernifecore.cooldown.server.ServerCooldownRow;
 import br.com.finalcraft.evernifecore.cooldown.server.ServerCooldowns;
+import br.com.finalcraft.evernifecore.time.ECClock;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
@@ -25,6 +26,7 @@ import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import br.com.finalcraft.everylibs.util.FCTimeUtil;
 
+import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -60,12 +62,12 @@ public class CMDECCooldown {
         }
 
         Cooldown cooldown = Cooldown.of(argumentos.getStringArg(0));
-        if (!cooldown.isInCooldown()){
+        if (!isHolding(cooldown)){
             COOLDOWN_NOT_IN_COOLDOWN.addPlaceholder("cooldown", cooldown.getIdentifier()).send(sender);
             return;
         }
 
-        cooldown.stop();
+        cooldown.reset();
         COOLDOWN_REMOVED.addPlaceholder("cooldown", cooldown.getIdentifier()).send(sender);
     }
 
@@ -98,11 +100,11 @@ public class CMDECCooldown {
                 EverNifeCore.getLog().severe("Failed to read the cooldowns of {}", playerData.getName(), error);
                 return;
             }
-            if (!cooldown.isInCooldown()){
+            if (!isHolding(cooldown)){
                 COOLDOWN_NOT_IN_COOLDOWN.addPlaceholder("cooldown", cooldown.getIdentifier()).send(sender);
                 return;
             }
-            cooldown.stop();
+            cooldown.reset();
             COOLDOWN_REMOVED.addPlaceholder("cooldown", cooldown.getIdentifier()).send(sender);
         });
     }
@@ -186,7 +188,7 @@ public class CMDECCooldown {
 
         sender.sendMessage("§7 §oLOCAL§7:");
         boolean anyLocal = false;
-        for (Cooldown cooldown : Cooldown.getMapOfCooldowns().values()){
+        for (Cooldown cooldown : Cooldowns.getMapOfCooldowns().values()){
             sender.sendMessage(describeCooldown(cooldown.getIdentifier(), cooldown.getEntry()));
             anyLocal = true;
         }
@@ -220,17 +222,32 @@ public class CMDECCooldown {
         }
     }
 
+    //A cooldown still holds something back while its gap runs or a limit counted uses; reset clears both.
+    private static boolean isHolding(Cooldown cooldown) {
+        return cooldown.isInCooldown() || cooldown.getEntry().getUses() > 0;
+    }
+
     //One diagnostic line for a stored cooldown: a zeroed anchor is a stop tombstone, a past deadline is
-    //an entry still kept by the retention horizon, otherwise the remaining time.
+    //an entry still kept by the retention horizon, otherwise the remaining time; then the uses a limit
+    //counted and the end of the window they count in.
     private static String describeCooldown(String identifier, CooldownEntry entry) {
+        long now = ECClock.now().toEpochMilli();
         String status;
         if (entry.getTimeStart() == 0){
             status = "§8stopped";
         } else {
-            long timeLeft = entry.getTimeStart() + entry.getTimeDuration() - System.currentTimeMillis();
+            long timeLeft = entry.getTimeStart() + entry.getTimeDuration() - now;
             status = timeLeft >= 1
                     ? "§e" + FCTimeFrame.of(timeLeft).getFormattedDiscursive("§6", "§e")
                     : "§8expired";
+        }
+        if (entry.getUses() > 0){
+            status += " §7uses §b" + entry.getUses();
+            if (entry.getWindowEnd() != 0){
+                status += entry.getWindowEnd() > now
+                        ? " §7until §b" + Instant.ofEpochMilli(entry.getWindowEnd())
+                        : " §8(window over)";
+            }
         }
         String kind = entry.isPersist() ? "§2persistent" : "§8memory";
         return "§7   - §a" + identifier + " §7» " + status + " §7[" + kind + "§7]";
@@ -295,7 +312,7 @@ public class CMDECCooldown {
         }
 
         //the target may be offline, so the bucket may have to be read from the backend: resolve async
-        CompletableFuture<PlayerCooldown> cooldownFuture = network ? playerData.getNetworkCooldown(cooldownId) : playerData.getCooldown(cooldownId);
+        CompletableFuture<Cooldown> cooldownFuture = network ? playerData.getNetworkCooldown(cooldownId) : playerData.getCooldown(cooldownId);
         PlayerController.whenCompleteOnMainThread(cooldownFuture, (cooldown, error) -> {
             if (error != null){
                 EverNifeCore.getLog().severe("Failed to read the cooldowns of {}", playerData.getName(), error);

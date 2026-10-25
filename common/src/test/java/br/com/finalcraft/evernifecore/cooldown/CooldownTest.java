@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.cooldown;
 
+import br.com.finalcraft.evernifecore.logic.RepeatPolicy;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
@@ -25,8 +26,8 @@ class CooldownTest {
     void aCustomDurationReadReinterpretsTheAnchor() {
         long now = System.currentTimeMillis();
         // started 200s ago, nominally lasting 300s
-        Cooldown cooldown = new GenericCooldown("vip",
-                now - TimeUnit.SECONDS.toMillis(200), TimeUnit.SECONDS.toMillis(300), false);
+        long start = now - TimeUnit.SECONDS.toMillis(200);
+        Cooldown cooldown = handle("vip", new CooldownEntry(start, TimeUnit.SECONDS.toMillis(300), start, false), null);
 
         assertFalse(cooldown.isInCooldown(150), "a 150s reading of the same anchor is already free");
         assertTrue(cooldown.isInCooldown(), "the nominal 300s reading still waits");
@@ -66,12 +67,12 @@ class CooldownTest {
 
     @Test
     void theConfigFormCarriesTheMutationClock() {
-        Cooldown cooldown = new GenericCooldown("mycd", new CooldownEntry(1000L, 5000L, 7777L, true));
+        Cooldown cooldown = handle("mycd", new CooldownEntry(1000L, 5000L, 7777L, true), null);
 
-        Map<String, Object> map = cooldown.toConfigMap();
+        Map<String, Object> map = Cooldowns.toConfigMap(cooldown);
         assertEquals(7777L, map.get("updatedAt"));
 
-        Cooldown reread = Cooldown.fromConfigMap(map);
+        Cooldown reread = Cooldowns.fromConfigMap(map);
         assertEquals("mycd", reread.getIdentifier());
         assertEquals(1000L, reread.getStart());
         assertEquals(5000L, reread.getDuration());
@@ -86,7 +87,7 @@ class CooldownTest {
         written.put("timeStart", 4242L);
         written.put("timeDuration", 5000L);
 
-        Cooldown restored = Cooldown.fromConfigMap(written);
+        Cooldown restored = Cooldowns.fromConfigMap(written);
 
         assertEquals(4242L, restored.getEntry().getUpdatedAt());
         assertEquals(4242L, restored.getStart());
@@ -96,45 +97,48 @@ class CooldownTest {
 
     @Test
     void aCooldownThatIsNeverPersistentNeverReachesItsRoute() {
-        RecordingCooldown cooldown = new RecordingCooldown("throwaway");
+        RecordingRoute route = new RecordingRoute();
+        Cooldown cooldown = route.handle("throwaway");
 
         cooldown.setDuration(1200);
         cooldown.startWith(60);
         cooldown.stop();
 
-        assertEquals(0, cooldown.routeCalls, "a memory-only cooldown has no row to keep in agreement");
+        assertEquals(0, route.calls, "a memory-only cooldown has no row to keep in agreement");
     }
 
     @Test
     void everyMutationOfAPersistentCooldownReachesItsRoute() {
-        RecordingCooldown cooldown = new RecordingCooldown("kept");
+        RecordingRoute route = new RecordingRoute();
+        Cooldown cooldown = route.handle("kept");
 
         cooldown.setPersist(true);
-        assertEquals(1, cooldown.routeCalls);
+        assertEquals(1, route.calls);
 
         cooldown.startWith(60);
-        assertEquals(2, cooldown.routeCalls, "startWith is one mutation, so one call");
+        assertEquals(2, route.calls, "startWith is one mutation, so one call");
 
         cooldown.setDuration(TimeUnit.SECONDS.toMillis(30));
-        assertEquals(3, cooldown.routeCalls);
+        assertEquals(3, route.calls);
     }
 
     @Test
     void stoppingStillReachesTheRouteOfACooldownThatJustLostItsPersistFlag() {
-        RecordingCooldown cooldown = new RecordingCooldown("kept");
+        RecordingRoute route = new RecordingRoute();
+        Cooldown cooldown = route.handle("kept");
         cooldown.setPersist(true).startWith(60);
-        int callsBeforeStop = cooldown.routeCalls;
+        int callsBeforeStop = route.calls;
 
         cooldown.stop();
 
-        assertEquals(callsBeforeStop + 1, cooldown.routeCalls, "the stored row still has to be dropped");
+        assertEquals(callsBeforeStop + 1, route.calls, "the stored row still has to be dropped");
         assertFalse(cooldown.isPersistent());
         assertEquals(0L, cooldown.getStart());
     }
 
     @Test
     void everyMutationStampsTheMutationClock() {
-        RecordingCooldown cooldown = new RecordingCooldown("kept");
+        Cooldown cooldown = new RecordingRoute().handle("kept");
         assertEquals(0L, cooldown.getEntry().getUpdatedAt());
 
         cooldown.startWith(60);
@@ -170,47 +174,40 @@ class CooldownTest {
     void aHandleOverABucketFilesItsEntryOnceItIsPersistent() {
         TestBucket bucket = new TestBucket();
 
-        new BucketCooldown("vip", bucket).setPersist(true).startWith(60);
+        bucketHandle("vip", bucket).setPersist(true).startWith(60);
 
         CooldownEntry stored = bucket.getPersistedCooldowns().get("vip");
         assertNotNull(stored, "a persistent cooldown must reach the row");
         assertTrue(stored.getUpdatedAt() > 0);
 
-        assertTrue(new BucketCooldown("vip", bucket).isInCooldown(),
+        assertTrue(bucketHandle("vip", bucket).isInCooldown(),
                 "a later handle over the same bucket reads the state the first one left");
     }
 
     // ==================== fixtures ====================
 
+    static Cooldown handle(String identifier, CooldownEntry entry, Cooldown.Route route) {
+        return new Cooldown(identifier, entry, RepeatPolicy.unlimited(), route);
+    }
+
     /** A route that only counts how often it was told to keep storage in agreement. */
-    private static class RecordingCooldown extends Cooldown {
+    private static class RecordingRoute implements Cooldown.Route {
 
-        private int routeCalls = 0;
+        private int calls = 0;
 
-        RecordingCooldown(String identifier) {
-            super(identifier);
+        Cooldown handle(String identifier) {
+            return CooldownTest.handle(identifier, new CooldownEntry(), this);
         }
 
         @Override
-        protected void onMutated() {
-            routeCalls++;
+        public void store(Cooldown cooldown) {
+            calls++;
         }
     }
 
     /** The shape a stored route takes: a handle over an entry of a bucket, filed on every mutation. */
-    private static class BucketCooldown extends Cooldown {
-
-        private final CooldownBucket bucket;
-
-        BucketCooldown(String identifier, CooldownBucket bucket) {
-            super(identifier, bucket.resolveCooldown(identifier));
-            this.bucket = bucket;
-        }
-
-        @Override
-        protected void onMutated() {
-            bucket.fileCooldown(getIdentifier(), getEntry());
-        }
+    private static Cooldown bucketHandle(String identifier, CooldownBucket bucket) {
+        return handle(identifier, bucket.resolveCooldown(identifier), cooldown -> bucket.fileCooldown(cooldown.getIdentifier(), cooldown.getEntry()));
     }
 
     private static class TestBucket implements CooldownBucket {

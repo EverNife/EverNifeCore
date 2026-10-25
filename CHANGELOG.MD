@@ -50,6 +50,16 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `StateHolder` (`HoldableEffect.HOLDER_ATTRIBUTE`) and the slot is given back when it lets go or on quit; `scope: held`
   on an effect that cannot be held fails the parse. `IPlayerStateAccess` gains the capabilities `EXPERIENCE`
   (`getLevel`/`setLevel`/`getExp`/`setExp`) and `STATISTICS` (`getStatistic`); Bukkit has both, Hytale neither yet.
+- **`RepeatPolicy` and plugin variables**: `RepeatPolicy` (`once`/`limited(n)`/`unlimited`, a minimum gap with
+  `cooldown(Duration)`, a count that resets each `window(Window)`, `reach(LOCAL|NETWORK)`, `persistent`) reads
+  `{limit: 3, cooldown: 10m, window: "daily at 04:00", reach: network}` and becomes a gate cost with `asCost(id)` - the
+  use is given back when a later cost does not come out. `Cooldowns.resolve(caller, owner, id, policy)` routes the
+  counter by owner: a player's row, the server's, or, for a region, a world or a group, the `ec_cooldowns` collection of
+  the plugin's own storage (`Cooldowns.of(plugin, storage)`; without one only a non-persistent policy is accepted), pruned
+  by retention once a minute. `Variables.custom(plugin, storage).define(name, type, initial)` gives a plugin its own
+  variable, one value per owner, stored in `ec_variables` and read as `{plugin:name}` or `{type: custom, id: ...}`;
+  `.window(Window)` makes it an accumulator that starts over each window. `LogicWorld` gains `cooldowns()` and
+  `customVariables()`.
 - **`RegionCrossedEvent`**: posted once a crossing took effect, with the regions left, the regions entered, the
   player, from/to, the `MoveCause` and the native event; never cancellable. `RegionEnterEvent`/`RegionLeaveEvent`
   keep their "before the crossing, cancellable" role.
@@ -95,6 +105,17 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `scheduler.FCScheduler` and `RegionScheduler` with the same static methods (`runAsync`, `scheduleAsync`,
   `runAsyncFuture`, `supplyAsyncFuture`, `getScheduler`, `getMinecraftScheduler`, `getHytaleScheduler`; the test
   seam `RegionScheduler.set` is `ECScheduler.set`). No alias is kept; `McFCScheduler`/`HyFCScheduler` are unchanged.
+- **Cooldowns learn repeat policies.** `GenericCooldown`, `PlayerCooldown` and `NetworkCooldown` are gone: the one
+  handle is `Cooldown`, built from a `RepeatPolicy` over the same storage (`CooldownEntry` now carries `uses` and the
+  window it counts in; `PlayerCooldownsLocal`/`PlayerCooldownsNetwork`, `Cooldowns.yml` and `ServerCooldowns` keep their
+  rows and files, and an old row reads no uses). `isInCooldown`, `startWith`, `warnPlayer` and the other verbs keep
+  working; `canUse`, `tryUse`/`tryUse(n)` (all or nothing), `giveBack`, `getUsesLeft`, `getRemaining`, `getLastUseAt`,
+  `seed`, `reset` and `explain` join them. `IPlayerData.getCooldown(id)` and `getNetworkCooldown(id)` stay, return
+  `CompletableFuture<Cooldown>` and gain a `RepeatPolicy` overload; `PlayerCooldown.of(uuid, id)` is
+  `Cooldown.of(uuid, id)` (`network` alike); `new GenericCooldown("")` is `Cooldown.inMemory(id)`, never stored nor
+  listed; `Cooldown.initialize()`, `getMapOfCooldowns()` and `fromConfigMap` moved to `Cooldowns` (`loadServerFile()`).
+  A player cooldown that is not persistent is now shared by every handle over it until it expires, instead of living
+  only in the handle that started it. `/eccooldown` keeps its verbs, shows the uses and window, and `reset` clears them.
 - **`HeldPlayerState` is one per player** (`HeldPlayerState.of(uuid)`, no public constructor) and is held by any
   `StateHolder` - `Flag` and `FlagKey` are holders - instead of a region flag: `hold`/`release` take a `StateHolder` and
   `getHolders` answers by holder id. What is still held when the player quits is given back (`HeldPlayerState.forget`).

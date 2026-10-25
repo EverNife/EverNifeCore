@@ -2,7 +2,8 @@ package br.com.finalcraft.evernifecore.config;
 
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
-import br.com.finalcraft.evernifecore.cooldown.GenericCooldown;
+import br.com.finalcraft.evernifecore.cooldown.CooldownEntry;
+import br.com.finalcraft.evernifecore.logic.RepeatPolicy;
 import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
 import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
 import br.com.finalcraft.evernifecore.fancytext.FancySegment;
@@ -169,7 +170,7 @@ class ECBuiltinTypesTest {
 
     @Test
     void cooldownRoundTrips(@TempDir Path dir) {
-        GenericCooldown cooldown = new GenericCooldown("mycd", 1000L, 5000L, true);
+        Cooldown cooldown = new Cooldown("mycd", new CooldownEntry(1000L, 5000L, 1000L, true), RepeatPolicy.unlimited(), null);
 
         Config cfg = open(dir);
         cfg.setValue("cd", cooldown);

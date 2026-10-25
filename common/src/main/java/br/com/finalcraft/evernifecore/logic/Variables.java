@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.logic;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.storage.ECStorage;
 import br.com.finalcraft.evernifecore.types.TypeRegistry;
 import br.com.finalcraft.evernifecore.types.TypeRegistryException;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -19,6 +20,19 @@ public final class Variables {
 
     public static TypeRegistry<Variable<?>> registry() {
         return REGISTRY;
+    }
+
+    /**
+     * {@code owner}'s own variables, one value per {@link ProgressOwner}, kept in {@code storage}: the same instance for
+     * the same plugin and storage.
+     */
+    public static CustomVariables custom(ECPluginData owner, ECStorage storage) {
+        return CustomVariables.of(owner, storage);
+    }
+
+    /** {@code owner}'s own variables kept in memory only - they start over with the process. */
+    public static CustomVariables custom(ECPluginData owner) {
+        return CustomVariables.of(owner, null);
     }
 
     /**

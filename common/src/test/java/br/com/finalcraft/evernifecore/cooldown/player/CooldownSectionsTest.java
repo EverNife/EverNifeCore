@@ -5,7 +5,7 @@ import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.cooldown.CooldownEntry;
 import br.com.finalcraft.evernifecore.cooldown.CooldownRetention;
-import br.com.finalcraft.evernifecore.cooldown.GenericCooldown;
+import br.com.finalcraft.evernifecore.logic.RepeatPolicy;
 import br.com.finalcraft.evernifecore.playerdata.AccountSection;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
@@ -63,7 +63,7 @@ class CooldownSectionsTest {
 
         //network: absence is ambiguous, so a stop is kept as a zeroed anchor in the STORED map
         PlayerCooldownsNetwork network = new PlayerCooldownsNetwork();
-        Cooldown networkHandle = network.cooldown(uuid, "vip").setPersist(true).startWith(60);
+        Cooldown networkHandle = network.cooldown("vip", RepeatPolicy.unlimited()).setPersist(true).startWith(60);
         assertTrue(network.getPersistedCooldowns().containsKey("vip"));
         networkHandle.stop();
         CooldownEntry tombstone = network.getPersistedCooldowns().get("vip");
@@ -73,7 +73,7 @@ class CooldownSectionsTest {
 
         //local: absence means free here, so a stop is simply dropped from the stored map
         PlayerCooldownsLocal local = new PlayerCooldownsLocal();
-        Cooldown localHandle = local.cooldown("vip").setPersist(true).startWith(60);
+        Cooldown localHandle = local.cooldown("vip", RepeatPolicy.unlimited()).setPersist(true).startWith(60);
         assertTrue(local.getPersistedCooldowns().containsKey("vip"));
         localHandle.stop();
         assertNull(local.getPersistedCooldowns().get("vip"), "a local stop is forgotten from storage");
@@ -91,7 +91,7 @@ class CooldownSectionsTest {
         UUID uuid = UUID.randomUUID();
         PlayerData playerData = PlayerController.handleLogin(uuid, "Vip").join();
         PlayerCooldownsNetwork started = playerData.getAccountSection(PlayerCooldownsNetwork.class).join();
-        started.cooldown(uuid, "vip").setPersist(true).startWith(60);
+        started.cooldown("vip", RepeatPolicy.unlimited()).setPersist(true).startWith(60);
         PlayerController.get().flushAll().join();
 
         //a second server reads the started row back from the backend and stops the cooldown there
@@ -101,7 +101,7 @@ class CooldownSectionsTest {
         //the stop is a later event than the start; make its mutation clock observably newer even on a
         //coarse (~15ms) system clock, so the merge decides by the clock and not by the expiry fallback
         Thread.sleep(40);
-        peer.cooldown(uuid, "vip").stop();
+        peer.cooldown("vip", RepeatPolicy.unlimited()).stop();
         assertEquals(0L, peer.getPersistedCooldowns().get("vip").getTimeStart(),
                 "the stop must land in the STORED map - otherwise it never reaches the backend");
         assertNull(peer.getTransientCooldowns().get("vip"));
@@ -109,12 +109,12 @@ class CooldownSectionsTest {
 
         //the first server's still-started replica merges the peer's stopped state
         PlayerCooldownsNetwork merged = started.merge(Collections.singletonList(peer), AccountSection.MergeReason.WRITE_CONFLICT);
-        assertFalse(merged.cooldown(uuid, "vip").isInCooldown(), "the newer stop must win the merge");
+        assertFalse(merged.cooldown("vip", RepeatPolicy.unlimited()).isInCooldown(), "the newer stop must win the merge");
 
         //and a prune inside the retention horizon keeps the tombstone: it is not resurrected
         merged.pruneExpired(System.currentTimeMillis());
         assertNotNull(merged.getPersistedCooldowns().get("vip"), "a fresh tombstone survives the prune");
-        assertFalse(merged.cooldown(uuid, "vip").isInCooldown(), "and stays stopped after the prune");
+        assertFalse(merged.cooldown("vip", RepeatPolicy.unlimited()).isInCooldown(), "and stays stopped after the prune");
     }
 
     // ================================================================================================
@@ -132,7 +132,7 @@ class CooldownSectionsTest {
         CooldownEntry within = new CooldownEntry(now - TimeUnit.SECONDS.toMillis(400), duration,
                 now - TimeUnit.SECONDS.toMillis(400), true);
         assertFalse(CooldownRetention.isExpired(within, now, retention), "still inside the retention horizon");
-        assertTrue(new GenericCooldown("vip", within).isInCooldown(600),
+        assertTrue(new Cooldown("vip", within, RepeatPolicy.unlimited(), null).isInCooldown(600),
                 "a 600s reading still sees it, so GC must not drop it");
 
         //started far enough back to be past its end PLUS the retention window
@@ -176,14 +176,14 @@ class CooldownSectionsTest {
         UUID uuid = UUID.randomUUID();
         PlayerData playerData = PlayerController.handleLogin(uuid, "Vip").join();
         playerData.getAccountSection(PlayerCooldownsNetwork.class).join()
-                .cooldown(uuid, "vip").setPersist(true).startWith(300);
+                .cooldown("vip", RepeatPolicy.unlimited()).setPersist(true).startWith(300);
         PlayerController.get().flushAll().join();
 
         //a fresh controller over the same durable backend stands in for the other server
         PlayerController.initialize(storageYml);
         PlayerCooldownsNetwork serverB = PlayerController
                 .getAccountSectionByAccountId(uuid, PlayerCooldownsNetwork.class).join();
-        assertTrue(serverB.cooldown(uuid, "vip").isInCooldown(),
+        assertTrue(serverB.cooldown("vip", RepeatPolicy.unlimited()).isInCooldown(),
                 "the other server must see the network cooldown this one started");
     }
 
@@ -198,7 +198,7 @@ class CooldownSectionsTest {
         UUID memberUuid = UUID.randomUUID();
         PlayerData member = PlayerController.handleLogin(memberUuid, "Alt").join();
         member.getAccountSection(PlayerCooldownsNetwork.class).join()
-                .cooldown(memberUuid, "vip").setPersist(true).startWith(600);
+                .cooldown("vip", RepeatPolicy.unlimited()).setPersist(true).startWith(600);
         PlayerController.get().flushAll().join();
 
         //the identity is now linked into a canonical account: its old key becomes a former key
@@ -208,7 +208,7 @@ class CooldownSectionsTest {
         PlayerData relogged = PlayerController.handleLogin(memberUuid, "Alt").join();
         PlayerCooldownsNetwork canonical = relogged.getAccountSection(PlayerCooldownsNetwork.class).join();
         assertEquals(canonicalId, canonical.getAccountId(), "the row now keys by the canonical account id");
-        assertTrue(canonical.cooldown(memberUuid, "vip").isInCooldown(),
+        assertTrue(canonical.cooldown("vip", RepeatPolicy.unlimited()).isInCooldown(),
                 "the network cooldown must follow the identity into the account");
     }
 
@@ -224,12 +224,12 @@ class CooldownSectionsTest {
         UUID uuid = UUID.randomUUID();
         PlayerData player = PlayerController.handleLogin(uuid, "Vip").join();
         player.getPDSection(PlayerCooldownsLocal.class).join()
-                .cooldown("kit").setPersist(true).startWith(300);
+                .cooldown("kit", RepeatPolicy.unlimited()).setPersist(true).startWith(300);
         PlayerController.get().flushAll().join();
 
         //a fresh server with a cold cache over the same backend: the bucket is not loaded
         PlayerController.initialize(storageYml);
-        PlayerCooldown fromBackend = PlayerCooldown.of(uuid, "kit").join();
+        Cooldown fromBackend = Cooldown.of(uuid, "kit").join();
         assertTrue(fromBackend.isInCooldown(),
                 "a cold bucket must read the stored cooldown, never report an empty one as free");
     }
@@ -247,7 +247,7 @@ class CooldownSectionsTest {
         UUID uuid = UUID.randomUUID();
         PlayerData player = PlayerController.handleLogin(uuid, "Vip").join();
         //getCooldown used to throw UnsupportedOperationException - now it resolves a real handle
-        PlayerCooldown cooldown = player.getCooldown("daily").join();
+        Cooldown cooldown = player.getCooldown("daily").join();
         assertNotNull(cooldown, "getCooldown must resolve a handle, not throw");
         cooldown.setPersist(true).startWith(600);
         PlayerController.get().flushAll().join();
@@ -255,7 +255,7 @@ class CooldownSectionsTest {
         //reboot: a persistent player cooldown must still be in effect
         PlayerController.initialize(storageYml);
         PlayerData relogged = PlayerController.handleLogin(uuid, "Vip").join();
-        PlayerCooldown afterReboot = relogged.getCooldown("daily").join();
+        Cooldown afterReboot = relogged.getCooldown("daily").join();
         assertTrue(afterReboot.isInCooldown(), "a persistent player cooldown must survive a reboot");
 
         //the /cooldown resetplayer core (resolve async, then stop) must not blow up and must clear it

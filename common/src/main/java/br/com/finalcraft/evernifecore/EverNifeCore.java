@@ -4,7 +4,7 @@ import br.com.finalcraft.evernifecore.api.common.providers.ECProviders;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.commands.CommandRegisterer;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
-import br.com.finalcraft.evernifecore.cooldown.Cooldown;
+import br.com.finalcraft.evernifecore.cooldown.Cooldowns;
 import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
@@ -66,7 +66,7 @@ public class EverNifeCore {
         ConfigManager.initialize(getEcPluginData());
 
         getLog().info("§aLoading up Cooldown System!");
-        Cooldown.initialize();
+        Cooldowns.loadServerFile();
 
         CoreFlags.registerAll(getEcPluginData());
         CoreLogic.registerAll(getEcPluginData());

@@ -2,7 +2,6 @@ package br.com.finalcraft.evernifecore.dynamiccommand;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
-import br.com.finalcraft.evernifecore.cooldown.GenericCooldown;
 import org.apache.commons.lang3.Validate;
 
 import java.util.UUID;
@@ -80,7 +79,7 @@ public class DynamicCommand {
         protected Builder() {
             this.uuid = UUID.randomUUID();
             this.identifier = "";
-            this.cooldown = new GenericCooldown("");
+            this.cooldown = Cooldown.inMemory("");
             this.cooldown.setDuration(1200);//20 min
             this.action = null;
             this.shouldRun = context -> true; //By Default, run for anyone

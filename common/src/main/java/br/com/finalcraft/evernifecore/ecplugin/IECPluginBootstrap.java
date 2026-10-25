@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.ecplugin;
 
+import br.com.finalcraft.evernifecore.cooldown.Cooldowns;
+import br.com.finalcraft.evernifecore.logic.CustomVariables;
 import br.com.finalcraft.evernifecore.logic.Multipliers;
 import br.com.finalcraft.evernifecore.types.TypeRegistries;
 import br.com.finalcraft.evernifecore.EverNifeCore;
@@ -121,6 +123,8 @@ public interface IECPluginBootstrap {
     public default void onECPluginShutdownPre() {
         //regions first: their write needs the plugin's storage, which the plugin closes right after this hook
         RegionManager.closeOwnedBy(getPluginData());
+        Cooldowns.closeOwnedBy(getPluginData());
+        CustomVariables.closeOwnedBy(getPluginData());
         FlagRegistry.get().unregisterAll(getPluginData());
         TypeRegistries.unregisterAll(getPluginData());
         Multipliers.unregisterAll(getPluginData());

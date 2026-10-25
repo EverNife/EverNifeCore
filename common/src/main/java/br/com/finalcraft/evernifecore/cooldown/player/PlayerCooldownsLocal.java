@@ -1,8 +1,11 @@
 package br.com.finalcraft.evernifecore.cooldown.player;
 
+import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.cooldown.CooldownBucket;
 import br.com.finalcraft.evernifecore.cooldown.CooldownEntry;
 import br.com.finalcraft.evernifecore.cooldown.CooldownRetention;
+import br.com.finalcraft.evernifecore.logic.RepeatPolicy;
+import br.com.finalcraft.evernifecore.time.ECClock;
 import br.com.finalcraft.evernifecore.playerdata.PDSection;
 import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -45,12 +48,16 @@ public class PlayerCooldownsLocal extends PDSection implements CooldownBucket {
     }
 
     /**
-     * A handle over this player's {@code identifier} cooldown, routed to this row: every mutation
-     * files the entry here and dirties the row. The seam the player-cooldown factory binds to.
+     * Internal: a handle over this player's {@code identifier} counter under {@code policy}, routed to
+     * this row - every mutation files the entry here and dirties the row. The seam of
+     * {@link Cooldown#of(java.util.UUID, String, RepeatPolicy)}.
      */
-    PlayerCooldown cooldown(String identifier) {
-        pruneExpired(System.currentTimeMillis());
-        return new PlayerCooldown(identifier, getUniqueId(), this, this);
+    public Cooldown cooldown(String identifier, RepeatPolicy policy) {
+        pruneExpired(ECClock.now().toEpochMilli());
+        return new Cooldown(identifier, sharedEntry(identifier), policy, cooldown -> {
+            fileCooldown(cooldown.getIdentifier(), cooldown.getEntry());
+            markDirty();
+        });
     }
 
     /** Drops every cooldown past its retention horizon and dirties the row when any went away. */

@@ -7,9 +7,12 @@ import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
+import br.com.finalcraft.evernifecore.cooldown.Cooldowns;
 import br.com.finalcraft.evernifecore.logic.Caller;
 import br.com.finalcraft.evernifecore.logic.Conditions;
+import br.com.finalcraft.evernifecore.logic.CustomVariables;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
+import br.com.finalcraft.evernifecore.logic.Variables;
 import br.com.finalcraft.evernifecore.logic.core.CoreLogic;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
 import br.com.finalcraft.everydatabase.Storages;
@@ -86,6 +89,16 @@ public final class LogicWorld implements AutoCloseable {
     /** The backend under {@link #getStorage()}, for {@code callsTo("save")}. */
     public ScriptedStorage getBackend() {
         return backend;
+    }
+
+    /** The owner's own variables, kept in {@link #getStorage()}: {@code Variables.custom(owner, storage)}. */
+    public CustomVariables customVariables() {
+        return Variables.custom(owner, storage);
+    }
+
+    /** The owner's counters of region, world and group owners, kept in {@link #getStorage()}: {@code Cooldowns.of(owner, storage)}. */
+    public Cooldowns cooldowns() {
+        return Cooldowns.of(owner, storage);
     }
 
     /** A caller of this world's plugin at {@code origin}. */
@@ -169,6 +182,8 @@ public final class LogicWorld implements AutoCloseable {
             players.clear();
             refreshOnline();
         }
+        Cooldowns.closeOwnedBy(owner);
+        CustomVariables.closeOwnedBy(owner);
         storage.close().join();
         Plugins.forget(ownerName);
         releaseStock();

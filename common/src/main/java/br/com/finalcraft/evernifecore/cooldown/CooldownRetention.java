@@ -9,7 +9,9 @@ import java.util.concurrent.TimeUnit;
 /**
  * The retention horizon a stored cooldown is pruned by, and the pruning itself. A stored map of
  * cooldowns only ever grows as new ids are used, so entries are dropped once they can no longer
- * affect any read: pruning runs when a bucket is read or converged, never on a timer.
+ * affect any read: a player's bucket is pruned when read or converged, the rows of
+ * {@link Cooldowns#of(br.com.finalcraft.evernifecore.ecplugin.ECPluginData, br.com.finalcraft.evernifecore.storage.ECStorage)}
+ * once a minute.
  *
  * <p>The horizon is deliberately drawn PAST the nominal end. A read may reinterpret a cooldown's
  * anchor against a longer duration of its own, so an entry has to outlive its own duration by the
@@ -53,10 +55,18 @@ public final class CooldownRetention {
     }
 
     /**
-     * Whether {@code entry} is past its retention horizon at {@code now}: a stopped cooldown (zero
-     * anchor) by its mutation clock, any other by its nominal end - each plus {@code retentionMillis}.
+     * Whether {@code entry} is past its retention horizon at {@code now}: a windowed count by the window's
+     * end, a count without a window never, a stopped cooldown (zero anchor) by its mutation clock, any
+     * other by its nominal end - each plus {@code retentionMillis}.
      */
     public static boolean isExpired(CooldownEntry entry, long now, long retentionMillis) {
+        if (entry.getWindowEnd() != 0) {
+            //the uses count only until the window turns: past it the entry answers nothing the gap does not
+            return now > Math.max(entry.getWindowEnd(), entry.getTimeStart() + entry.getTimeDuration()) + retentionMillis;
+        }
+        if (entry.getUses() > 0) {
+            return false; //a limit without a window counts forever: dropping it would hand the uses back
+        }
         if (entry.getTimeStart() == 0) {
             return now > entry.getUpdatedAt() + retentionMillis;
         }

@@ -42,6 +42,20 @@ public class CooldownEntry {
     /** Whether this entry outlives the process. A non-persistent entry never reaches storage. */
     private boolean persist;
 
+    /** The uses counted by a limited policy; {@code 0} for a bare cooldown, which counts nothing. */
+    private int uses;
+
+    /** Epoch millis the window {@link #uses} were counted in started; {@code 0} when the policy has no window. */
+    private long windowStart;
+
+    /** Epoch millis that window ends; {@code 0} when there is none. What the retention counts from instead of the gap. */
+    private long windowEnd;
+
+    /** The state of a bare cooldown: no uses counted, no window. */
+    public CooldownEntry(long timeStart, long timeDuration, long updatedAt, boolean persist) {
+        this(timeStart, timeDuration, updatedAt, persist, 0, 0L, 0L);
+    }
+
     /**
      * When this cooldown nominally ends. Only a merge tiebreak and a retention bound read it - never a
      * cooldown check, which has to re-derive the end from the anchor and the duration the CALLER asks
@@ -53,7 +67,7 @@ public class CooldownEntry {
 
     /** An independent copy of this state. */
     public CooldownEntry copy() {
-        return new CooldownEntry(timeStart, timeDuration, updatedAt, persist);
+        return new CooldownEntry(timeStart, timeDuration, updatedAt, persist, uses, windowStart, windowEnd);
     }
 
     /**
@@ -70,6 +84,9 @@ public class CooldownEntry {
         this.timeDuration = winner.timeDuration;
         this.updatedAt = winner.updatedAt;
         this.persist = winner.persist;
+        this.uses = winner.uses;
+        this.windowStart = winner.windowStart;
+        this.windowEnd = winner.windowEnd;
     }
 
     /**
@@ -89,6 +106,9 @@ public class CooldownEntry {
         if (a.expiry() != b.expiry()) return a.expiry() > b.expiry() ? a : b;
         if (a.timeStart != b.timeStart) return a.timeStart > b.timeStart ? a : b;
         if (a.persist != b.persist) return a.persist ? a : b;
+        if (a.windowStart != b.windowStart) return a.windowStart > b.windowStart ? a : b;
+        if (a.uses != b.uses) return a.uses > b.uses ? a : b;
+        if (a.windowEnd != b.windowEnd) return a.windowEnd > b.windowEnd ? a : b;
         return a;
     }
 }

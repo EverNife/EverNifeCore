@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.cooldown.server;
 
+import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.cooldown.CooldownEntry;
+import br.com.finalcraft.evernifecore.logic.RepeatPolicy;
 import br.com.finalcraft.evernifecore.playerdata.storage.BindingResolver;
 import br.com.finalcraft.evernifecore.playerdata.storage.PdSyncBindGuard;
 import br.com.finalcraft.evernifecore.storage.StorageConfigException;
@@ -239,12 +241,27 @@ public final class ServerCooldowns {
      * live instance every later handle over that id shares, which is what lets them accumulate onto the
      * same state. It reaches the backend only once something mutates it.</p>
      */
-    public NetworkCooldown resolve(String identifier) {
+    public Cooldown resolve(String identifier, RepeatPolicy policy) {
         ServerCooldownRow row = manager.peek(identifier)
                 .orElseGet(() -> manager.resolve(identifier).join()
                         .orElseGet(() -> manager.seedIfAbsent(identifier, new ServerCooldownRow(identifier))));
-        //the handle marks the shared entry born-persistent by construction - see NetworkCooldown
-        return new NetworkCooldown(identifier, row, this);
+        return new Cooldown(identifier, row.getEntry(), policy, new Cooldown.Route() {
+            /*
+             * A stop does NOT drop the row, unlike the local route: on a replicated store an absence only
+             * means "this replica has no opinion", and a peer still holding the old start would win by
+             * omission. The zeroed entry carries "stopped at T" until the retention horizon drops it.
+             */
+            @Override
+            public void store(Cooldown cooldown) {
+                ServerCooldowns.this.store(row);
+            }
+
+            //born persistent: a network cooldown only means anything if it replicates
+            @Override
+            public boolean isReplicated() {
+                return true;
+            }
+        });
     }
 
     // ------------------------------------------------------------------

@@ -37,6 +37,21 @@ public interface CooldownBucket {
     }
 
     /**
+     * The entry every handle over {@code identifier} shares: the filed one, or a blank one put in the memory-only map
+     * (never encoded, so the row does not grow) - a memory-only cooldown is then seen by the next handle too. A blank
+     * entry left unused is pruned by its zero mutation clock.
+     */
+    default CooldownEntry sharedEntry(String identifier) {
+        CooldownEntry existing = findCooldown(identifier);
+        if (existing != null) {
+            return existing;
+        }
+        CooldownEntry fresh = new CooldownEntry();
+        getTransientCooldowns().put(identifier, fresh);
+        return fresh;
+    }
+
+    /**
      * Files {@code entry} under {@code identifier} in the map its persist flag calls for, taking it out
      * of the other one - the single place an entry crosses the storage filter.
      */

@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.integration.placeholders.PAPIIntegration;
+import br.com.finalcraft.evernifecore.logic.CustomVariables;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 import br.com.finalcraft.evernifecore.logic.MutableVariable;
 import br.com.finalcraft.evernifecore.logic.Variable;
@@ -59,6 +60,15 @@ final class StockVariables {
                 .factory(params -> {
                     String text = params.getString("text");
                     return new Readable<>("placeholder", String.class, player -> PAPIIntegration.parse(player, text));
+                })
+                .build());
+        Variables.registry().register(core, TypeDescriptor.<Variable<?>>of("evernifecore:custom")
+                .describe("A plugin's own variable, one value per owner, by the id it was defined with (plugin:name).")
+                .param(ParamSpec.required("id", ParamSpec.Kind.ID, "The variable's id, e.g. fakeshop:daily-money-earned."))
+                .factory(params -> {
+                    String id = params.getString("id");
+                    return CustomVariables.find(id).orElseThrow(() -> new IllegalArgumentException("No plugin defined the custom variable '"
+                            + id + "': define it with Variables.custom(plugin, storage).define(name, type, initial), and write its id as plugin:name."));
                 })
                 .build());
         Variables.registry().register(core, TypeDescriptor.<Variable<?>>of("evernifecore:stat")

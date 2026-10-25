@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.config.factory;
 
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
-import br.com.finalcraft.evernifecore.cooldown.GenericCooldown;
+import br.com.finalcraft.evernifecore.cooldown.Cooldowns;
 import br.com.finalcraft.evernifecore.fancytext.FancyTextConfigCodec;
 import br.com.finalcraft.everylibs.util.numberwrapper.NumberWrapper;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -67,27 +67,12 @@ public final class ECBuiltinTypes {
 
     // ==================== cooldown ====================
 
-    private static final TypeReference<Map<String, Object>> COOLDOWN_MAP_TYPE =
-            new TypeReference<Map<String, Object>>() {
-            };
-
     /**
-     * The standalone, config-backed cooldown ({@link GenericCooldown}) persists as a compact map that omits the
-     * implicit persist flag (a stored cooldown is always persistent). The map serializer is keyed to the leaf
-     * {@link GenericCooldown} so a future sibling subclass serialized elsewhere is never intercepted by the
-     * hierarchy walk. A deserializer keyed to the EXACT abstract {@link Cooldown} type lets
-     * {@code getValue(path, Cooldown.class)} rebuild a GenericCooldown (deserialization matches the exact class).
+     * A server cooldown in {@code Cooldowns.yml} is a compact map of its {@code CooldownEntry} - identifier, start,
+     * duration, mutation clock, and uses/window once a limit counted any - without the persist flag (a stored cooldown
+     * is always persistent); read back, it is routed to that file again.
      */
     private static void registerCooldown() {
-        ConfigFactory.register(GenericCooldown.class).asMap(
-                GenericCooldown::toConfigMap,
-                map -> (GenericCooldown) Cooldown.fromConfigMap(map));
-
-        ConfigFactory.register(Cooldown.class).jackson(null, new JsonDeserializer<Cooldown>() {
-            @Override
-            public Cooldown deserialize(JsonParser parser, DeserializationContext context) throws IOException {
-                return Cooldown.fromConfigMap(parser.readValueAs(COOLDOWN_MAP_TYPE));
-            }
-        });
+        ConfigFactory.register(Cooldown.class).asMap(Cooldowns::toConfigMap, Cooldowns::fromConfigMap);
     }
 }

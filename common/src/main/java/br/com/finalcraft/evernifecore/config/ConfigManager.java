@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
+import br.com.finalcraft.evernifecore.cooldown.Cooldowns;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
@@ -58,7 +59,7 @@ public class ConfigManager {
 
     public static void reloadCooldownConfig(){
         cooldowns = ConfigFactory.open(EverNifeCore.instance.getEcPluginData(), "Cooldowns.yml");
-        Cooldown.initialize();
+        Cooldowns.loadServerFile();
     }
 
 }

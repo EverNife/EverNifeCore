@@ -1,7 +1,8 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.cooldown.player.PlayerCooldown;
+import br.com.finalcraft.evernifecore.cooldown.Cooldown;
+import br.com.finalcraft.evernifecore.logic.RepeatPolicy;
 import br.com.finalcraft.everydatabase.manager.cache.IDirtyable;
 
 import java.util.Optional;
@@ -28,15 +29,20 @@ public interface IPlayerData extends IDirtyable {
 
     /**
      * This player's LOCAL (this-server-only) cooldown for {@code identifier}, resolved through the
-     * player's {@link PlayerCooldown} route. Async because the cooldown bucket may have to be read from
+     * player's local cooldown row. Async because the cooldown bucket may have to be read from
      * the backend when it is not cached (an offline target, or a cache miss); for an online player the
      * bucket is hot-loaded, so {@code .join()} is a cache hit and the safe pattern on the main thread.
      * For an offline target, bridge the result back with
      * {@link PlayerController#whenCompleteOnMainThread(CompletableFuture, java.util.function.BiConsumer)}
      * instead of blocking.
      */
-    default CompletableFuture<PlayerCooldown> getCooldown(String identifier) {
-        return PlayerCooldown.of(getUniqueId(), identifier);
+    default CompletableFuture<Cooldown> getCooldown(String identifier) {
+        return Cooldown.of(getUniqueId(), identifier);
+    }
+
+    /** This player's LOCAL counter {@code identifier} under {@code policy}; the async contract of {@link #getCooldown(String)}. */
+    default CompletableFuture<Cooldown> getCooldown(String identifier, RepeatPolicy policy) {
+        return Cooldown.of(getUniqueId(), identifier, policy);
     }
 
     /**
@@ -44,10 +50,15 @@ public interface IPlayerData extends IDirtyable {
      * account-shared row, seen by every server of the network - the counterpart of
      * {@link #getCooldown(String)}, with the same async contract. Unlike the local one it is born
      * PERSISTENT (a network cooldown only means anything if it replicates); see
-     * {@link PlayerCooldown#network(UUID, String)}.
+     * {@link Cooldown#network(UUID, String)}.
      */
-    default CompletableFuture<PlayerCooldown> getNetworkCooldown(String identifier) {
-        return PlayerCooldown.network(getUniqueId(), identifier);
+    default CompletableFuture<Cooldown> getNetworkCooldown(String identifier) {
+        return Cooldown.network(getUniqueId(), identifier);
+    }
+
+    /** This player's NETWORK counter {@code identifier} under {@code policy}; the async contract of {@link #getCooldown(String)}. */
+    default CompletableFuture<Cooldown> getNetworkCooldown(String identifier, RepeatPolicy policy) {
+        return Cooldown.network(getUniqueId(), identifier, policy);
     }
 
     /**

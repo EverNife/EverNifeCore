@@ -1,15 +1,17 @@
 package br.com.finalcraft.evernifecore.cooldown.player;
 
+import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.cooldown.CooldownBucket;
 import br.com.finalcraft.evernifecore.cooldown.CooldownEntry;
 import br.com.finalcraft.evernifecore.cooldown.CooldownRetention;
+import br.com.finalcraft.evernifecore.logic.RepeatPolicy;
+import br.com.finalcraft.evernifecore.time.ECClock;
 import br.com.finalcraft.evernifecore.playerdata.AccountSection;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * One human's cooldowns as they exist across the WHOLE interconnected network: an account-keyed row,
@@ -81,13 +83,25 @@ public class PlayerCooldownsNetwork extends AccountSection<PlayerCooldownsNetwor
     }
 
     /**
-     * A handle over {@code playerUuid}'s network cooldown {@code identifier}, routed to this row:
-     * every mutation files the entry here and dirties the row. The seam the player-cooldown factory
-     * binds to; the uuid comes from the caller, since the row itself is account-shared.
+     * Internal: a handle over the account's network counter {@code identifier} under {@code policy},
+     * routed to this row - every mutation files the entry here and dirties the row. Born persistent,
+     * since a network counter only means anything if it replicates. The seam of
+     * {@link Cooldown#network(java.util.UUID, String, RepeatPolicy)}.
      */
-    PlayerCooldown cooldown(UUID playerUuid, String identifier) {
-        pruneExpired(System.currentTimeMillis());
-        return new PlayerCooldown(identifier, playerUuid, this, this);
+    public Cooldown cooldown(String identifier, RepeatPolicy policy) {
+        pruneExpired(ECClock.now().toEpochMilli());
+        return new Cooldown(identifier, sharedEntry(identifier), policy, new Cooldown.Route() {
+            @Override
+            public void store(Cooldown cooldown) {
+                fileCooldown(cooldown.getIdentifier(), cooldown.getEntry());
+                markDirty();
+            }
+
+            @Override
+            public boolean isReplicated() {
+                return true;
+            }
+        });
     }
 
     /** Drops every cooldown past its retention horizon and dirties the row when any went away. */
