@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.region;
 
+import br.com.finalcraft.evernifecore.action.ActionSupport;
 import br.com.finalcraft.evernifecore.action.Actor;
 import br.com.finalcraft.evernifecore.action.DamageContext;
 import br.com.finalcraft.evernifecore.action.ECEntityType;
@@ -63,7 +64,7 @@ class ProtectionCatalogTest {
 
     @AfterEach
     void tearDown() {
-        FlagRegistry.get().setServedSources(null);
+        ActionSupport.declare("an undeclared platform", null, null, true);
         TestRegions.unindex(RegionLookup.get(), region);
         FlagRegistry.get().unregisterAll(core);
         Plugins.forget(OWNER);
@@ -179,7 +180,7 @@ class ProtectionCatalogTest {
     void aFlagWhoseCoreSourceThePlatformNeverRaisesSaysSoOneLineEach() {
         assertNull(FlagRegistry.get().describeWithoutEffect(CoreFlags.DENY_FLUID_FLOW), "nothing declared: every source is raised");
 
-        FlagRegistry.get().setServedSources(Arrays.asList(EventSource.BREAK, EventSource.PLACE));
+        ActionSupport.declare("Hytale 0.7.2", Arrays.asList(EventSource.BREAK, EventSource.PLACE), null, false);
 
         String fluid = FlagRegistry.get().describeWithoutEffect(CoreFlags.DENY_FLUID_FLOW);
         assertNotNull(fluid);

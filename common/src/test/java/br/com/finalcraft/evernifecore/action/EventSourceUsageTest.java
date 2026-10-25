@@ -1,5 +1,8 @@
 package br.com.finalcraft.evernifecore.action;
 
+import br.com.finalcraft.evernifecore.action.event.ActionEvent;
+import br.com.finalcraft.evernifecore.action.event.ActionEvents;
+import br.com.finalcraft.evernifecore.action.event.BreakActionEvent;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
@@ -138,6 +141,52 @@ class EventSourceUsageTest {
         nativeSide.setHasListeners(true);
         bus.refreshListenerWatches();
         assertTrue(usage.isNeeded(EventSource.MOVE), "a native listener counts as one");
+    }
+
+    @Test
+    void aSubscriberOfBreakPostNeedsBreakWithoutAnyRegion() {
+        watchBreak();
+        assertFalse(usage.isNeeded(EventSource.BREAK));
+
+        ECEventSubscription<BreakActionEvent.Post> subscription = bus.subscribe(BreakActionEvent.Post.class, event -> {
+        });
+
+        assertTrue(usage.isNeeded(EventSource.BREAK));
+        assertEquals(1, needed.get(), "the subscriber alone switched the source on");
+        assertFalse(usage.isNeeded(EventSource.PLACE), "only the source listened to");
+        subscription.unsubscribe();
+    }
+
+    @Test
+    void theLastSubscriberGoneBreakGoesIdleOnceAfterTheIdleTime() {
+        watchBreak();
+        ECEventSubscription<BreakActionEvent.Pre> pre = bus.subscribe(BreakActionEvent.Pre.class, event -> {
+        });
+        ECEventSubscription<BreakActionEvent.Post> post = bus.subscribe(BreakActionEvent.Post.class, event -> {
+        });
+
+        pre.unsubscribe();
+        assertTrue(usage.isNeeded(EventSource.BREAK), "the Post subscriber still listens");
+        post.unsubscribe();
+        assertEquals(0, idle.get(), "unneeded is not idle until the delay passes");
+        assertEquals(Long.valueOf(EventSourceUsage.DEFAULT_IDLE_TIME.toMillis()), agenda.getDelays().get(0));
+        agenda.runQueued();
+
+        assertEquals(1, needed.get());
+        assertEquals(1, idle.get());
+        assertFalse(usage.isNeeded(EventSource.BREAK));
+    }
+
+    @Test
+    void aSubscriberOfActionEventNeedsEverySource() {
+        ECEventSubscription<ActionEvent> everything = bus.subscribe(ActionEvent.class, event -> {
+        });
+
+        for (EventSource source : ActionEvents.all()) {
+            assertTrue(usage.isNeeded(source), source + " is held by the subscriber of the base");
+        }
+        assertFalse(usage.isNeeded(EventSource.TICK), "TICK has no action event");
+        everything.unsubscribe();
     }
 
     @Test

@@ -2,6 +2,8 @@ package br.com.finalcraft.evernifecore.hytale.action;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.action.ActionContext;
+import br.com.finalcraft.evernifecore.action.ActionSupport;
+import com.hypixel.hytale.common.util.java.ManifestUtil;
 import br.com.finalcraft.evernifecore.action.Actor;
 import br.com.finalcraft.evernifecore.action.BlockContext;
 import br.com.finalcraft.evernifecore.action.DamageContext;
@@ -104,9 +106,18 @@ public final class HyActionSystems {
     public static final Set<EventSource> SERVED_SOURCES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(EventSource.MOVE,
             EventSource.BREAK, EventSource.PLACE, EventSource.INTERACT, EventSource.DAMAGE, EventSource.SPAWN, EventSource.ITEM_DROP,
             EventSource.ITEM_PICKUP, EventSource.TICK)));
+    /** The served sources whose System posts a cancellable {@code Pre}: the ones the game asks before the outcome. */
+    public static final Set<EventSource> PRE_SOURCES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(EventSource.BREAK,
+            EventSource.PLACE, EventSource.INTERACT, EventSource.DAMAGE, EventSource.SPAWN, EventSource.ITEM_DROP, EventSource.ITEM_PICKUP)));
     static final HyRegionMoveSystem MOVE = new HyRegionMoveSystem(RegionMovementTracker::get);
 
     private HyActionSystems() {
+    }
+
+    /** How a message names this server: {@code Hytale 0.7.2}. */
+    static String platformName() {
+        String version = ManifestUtil.getImplementationVersion();
+        return version == null ? "Hytale" : "Hytale " + version;
     }
 
     /**
@@ -139,7 +150,7 @@ public final class HyActionSystems {
         registry.registerSystem(new TerrainDamageSystem());
         registry.registerSystem(new TerrainPlaceSystem());
         registry.registerSystem(new TerrainExplosionSystem());
-        FlagRegistry.get().setServedSources(SERVED_SOURCES);
+        ActionSupport.declare(platformName(), SERVED_SOURCES, PRE_SOURCES, false);
         FlagRegistry.get().setMissingCapabilities(HyPlatform.PLAYER_STATE.getUnsupported());
         return true;
     }

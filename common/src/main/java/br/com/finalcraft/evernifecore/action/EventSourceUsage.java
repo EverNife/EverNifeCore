@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.action;
 
+import br.com.finalcraft.evernifecore.action.event.ActionEvents;
+import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
@@ -31,7 +33,9 @@ import java.util.function.Consumer;
 /**
  * Which kinds of game event some region needs heard, so a platform listens to a kind only while it matters. A
  * source is needed while an indexed region holds a value - its own or a group's - of a flag that needs it, or while
- * something else holds it ({@link #acquire}); MOVE is also held while anyone listens to region enter or leave events.
+ * something else holds it ({@link #acquire}). A source is also held while anyone listens to its
+ * {@link br.com.finalcraft.evernifecore.action.event.ActionEvent} ({@link ActionEvents}), and MOVE while anyone listens to
+ * region enter or leave events - so a plugin's listener switches the platform's native listener on by itself.
  *
  * <p>The answer is an action, not only a question: {@link #watch} runs {@code onNeeded} when a source becomes needed
  * and {@code onIdle} once it has stayed unneeded for {@link #getIdleTime()} - a source that comes back in the
@@ -51,9 +55,9 @@ public final class EventSourceUsage {
     private final Consumer<String> publishListener = world -> recount();
     private final Runnable registryListener = this::recount;
     private final ECEventSubscription<RegionFlagChangedEvent> flagSubscription;
-    private final ECListenerWatch moveWatch;
+    private final List<ECListenerWatch> busWatches = new ArrayList<>();
+    private final ConcurrentHashMap<EventSource, UsageHold> listenedHolds = new ConcurrentHashMap<>();
     private volatile Duration idleTime = DEFAULT_IDLE_TIME;
-    private volatile @Nullable UsageHold moveHold;
 
     /** A count over {@code lookup}'s regions that follows the listeners of {@code bus}. */
     EventSourceUsage(RegionLookup lookup, ECEventBus bus) {
@@ -63,13 +67,22 @@ public final class EventSourceUsage {
         FlagRegistry.get().addChangeListener(registryListener);
         recount();
         //last: the bus fires the first callback at once when someone already listens, and every field must be ready
-        moveWatch = bus.watchListeners(() -> moveHold = acquire(EventSource.MOVE), () -> {
-            UsageHold hold = moveHold;
-            moveHold = null;
+        busWatches.add(holdWhileListened(bus, EventSource.MOVE, RegionEnterEvent.class, RegionLeaveEvent.class));
+        for (EventSource source : ActionEvents.all()) {
+            ActionEvents.Pair pair = ActionEvents.of(source);
+            busWatches.add(holdWhileListened(bus, source, pair.getPre(), pair.getPost()));
+        }
+    }
+
+    /** Holds {@code source} while anyone - on the bus or natively - listens to one of {@code eventTypes}. */
+    @SafeVarargs
+    private final ECListenerWatch holdWhileListened(ECEventBus bus, EventSource source, Class<? extends IECEvent>... eventTypes) {
+        return bus.watchListeners(() -> listenedHolds.put(source, acquire(source)), () -> {
+            UsageHold hold = listenedHolds.remove(source);
             if (hold != null) {
                 hold.release();
             }
-        }, RegionEnterEvent.class, RegionLeaveEvent.class);
+        }, eventTypes);
     }
 
     /** The count of every indexed region, following the global bus; created on first use. */
@@ -278,7 +291,7 @@ public final class EventSourceUsage {
         lookup.removePublishListener(publishListener);
         flagSubscription.unsubscribe();
         FlagRegistry.get().removeChangeListener(registryListener);
-        moveWatch.stop();
+        busWatches.forEach(ECListenerWatch::stop);
         for (UsageWatch watch : new ArrayList<>(watches)) {
             watch.stop();
         }

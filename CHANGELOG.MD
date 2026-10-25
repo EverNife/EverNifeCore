@@ -83,6 +83,17 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   replaces it with `setProvider`/`removeProvider`. On Bukkit the core installs `ECBukkitConsoleFilter` on the Log4j root
   logger at enable and removes it at shutdown - the hook it never installed before. `ECBukkitConsoleFilter.applyFilter()`
   is gone (`install()` is the core's).
+- **Public action events** (`action.event`): every game event the core translates posts a `<Source>ActionEvent` on the
+  `ECEventBus` - `.Pre` (cancellable, posted after the regions allowed the action, where the platform has a point before
+  the outcome) and `.Post` (after it, never for a cancelled native event): `Break`, `Place`, `Interact`, `Damage`,
+  `Spawn`, `Explosion`, `Fluid`, `Respawn`, `Pickup`, `Drop`, `Vehicle`, `FireSpread`, `FlightToggle`. Built only while
+  somebody listens, and the native listener or System of the source is on the server only while somebody listens
+  (`EventSourceUsage` holds the source for each listened pair, 3 min idle); subscribing to the base `ActionEvent`
+  switches every source on. `ActionEvents` is the catalog (`of(source).getPre()/getPost()`, `all()`), `Actions` what a
+  platform listener does (`denied`, `cancelled`, `post`), `SimpleContext` the context of a source with no detail.
+  `ActionSupport` says which sources a platform raises and where a `.Pre` exists (`declare`, `isServed`, `hasPre`,
+  `isNativeCommandSource`); `ActionSupport.requireServed` is the loud failure (`UnsupportedSourceException`, naming the
+  definition, the source and the server) a definition raises at load on a platform without the source.
 
 ### Fixed
 
@@ -101,6 +112,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- `FlagRegistry.setServedSources` is gone: a platform declares what it raises with `ActionSupport.declare(platform, post,
+  pre, nativeCommandSource)`, and `FlagRegistry.getUnservedSources` reads `ActionSupport.isServed`.
 - **EveryConfig 1.4.3**: `getOrMergeValue(path, bean)` keeps an unreadable value in the file (reported as a
   `COERCION` `LoadIssue`) instead of writing the field default over it.
 - **The region engine's shared pieces leave `region`**: the action contexts, `Actor`/`TypeKey`/`ECEntityType`,

@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.action.ActionContext;
 import br.com.finalcraft.evernifecore.action.Actor;
 import br.com.finalcraft.evernifecore.action.BlockContext;
 import br.com.finalcraft.evernifecore.action.ECEntityType;
+import br.com.finalcraft.evernifecore.action.ActionSupport;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.EventSourceUsage;
 import br.com.finalcraft.evernifecore.action.ItemContext;
@@ -306,7 +307,7 @@ class HyActionSystemsTest {
             }
         }
         try {
-            FlagRegistry.get().setServedSources(HyActionSystems.SERVED_SOURCES);
+            ActionSupport.declare("Hytale", HyActionSystems.SERVED_SOURCES, HyActionSystems.PRE_SOURCES, false);
             FlagRegistry.get().setMissingCapabilities(HyPlatform.PLAYER_STATE.getUnsupported());
             List<String> lines = new ArrayList<>();
             Set<String> lackingCapability = new TreeSet<>();
@@ -336,7 +337,7 @@ class HyActionSystemsTest {
             assertTrue(lines.stream().anyMatch(line -> line.startsWith("Flag evernifecore:force-fly ") && line.contains("flight-toggle")),
                     "force-fly cannot keep a player from landing here: " + lines);
         } finally {
-            FlagRegistry.get().setServedSources(null);
+            ActionSupport.declare("an undeclared platform", null, null, true);
             FlagRegistry.get().setMissingCapabilities(Collections.emptyList());
         }
     }

@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.flag;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.action.ActionSupport;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.api.events.reload.ECPluginReloadEvent;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
@@ -51,7 +52,6 @@ public final class FlagRegistry {
     private final ConcurrentHashMap<FlagKey, Flag<?>> flags = new ConcurrentHashMap<>();
     private final List<Runnable> changeListeners = new CopyOnWriteArrayList<>();
     private volatile Map<FlagKey, List<Flag<?>>> childrenByParent = Collections.emptyMap();
-    private volatile @Nullable Set<EventSource> servedSources; //null: the platform raises every core source
     private volatile Set<IPlayerStateAccess.Capability> missingCapabilities = Collections.emptySet();
 
     private FlagRegistry() {
@@ -162,13 +162,11 @@ public final class FlagRegistry {
     }
 
     /**
-     * Platform: the core event sources this platform raises. From now on each flag that needs a core source outside them -
-     * registered already or registering later, a plugin's included - has no effect here, and its owner's log says so,
-     * one line per flag. Null takes it back: every source is raised. A plugin's own sources are its to raise, never
-     * judged here.
+     * Internal: after the platform declared what it raises ({@link ActionSupport#declare}), each flag that needs a core
+     * source outside it says in its owner's log that it has no effect here, one line per flag; a flag registering later
+     * says so on registering.
      */
-    public synchronized void setServedSources(@Nullable Collection<EventSource> served) {
-        servedSources = served == null ? null : Collections.unmodifiableSet(new HashSet<>(served));
+    public synchronized void warnFlagsWithoutEffect() {
         for (Flag<?> flag : flags.values()) {
             warnIfWithoutEffect(flag);
         }
@@ -198,15 +196,11 @@ public final class FlagRegistry {
         return lacking;
     }
 
-    /** The core sources {@code flag} needs that the platform does not raise; empty when it raises them all. */
+    /** The core sources {@code flag} needs that the platform does not raise ({@link ActionSupport#isServed}); empty when it raises them all. */
     public List<EventSource> getUnservedSources(Flag<?> flag) {
-        Set<EventSource> served = servedSources;
-        if (served == null) {
-            return Collections.emptyList();
-        }
         List<EventSource> unserved = new ArrayList<>();
         for (EventSource source : flag.getNeeds()) {
-            if (source.getOwner().equals(CoreFlags.OWNER) && !source.equals(EventSource.NONE) && !served.contains(source)) {
+            if (!source.equals(EventSource.NONE) && !ActionSupport.isServed(source)) {
                 unserved.add(source);
             }
         }
