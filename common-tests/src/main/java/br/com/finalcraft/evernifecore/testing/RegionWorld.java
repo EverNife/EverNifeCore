@@ -13,19 +13,13 @@ import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
-import br.com.finalcraft.evernifecore.time.ECClock;
-import br.com.finalcraft.evernifecore.time.ECScheduler;
 import br.com.finalcraft.everydatabase.Storages;
 
 import java.nio.file.Path;
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -33,7 +27,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * One plugin that owns regions, for a test: its plugin data, an in-memory storage that counts calls, its
- * {@link RegionManager}, and - shared by every {@code RegionWorld} open at once - a clock that only moves when told
+ * {@link RegionManager}, and - shared with every test world open at once ({@link TestClock}) - a clock that only moves when told
  * and a scheduler that only runs when told. Needs a platform with {@code mainThreadInline()} and {@code worldEvents()}.
  *
  * <pre>{@code
@@ -48,9 +42,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public final class RegionWorld implements AutoCloseable {
 
-    private static final Object SHARED_LOCK = new Object();
-    private static Shared shared;
-
     private final ECPluginData owner;
     private final String ownerName;
     private final ScriptedStorage backend;
@@ -62,7 +53,7 @@ public final class RegionWorld implements AutoCloseable {
 
     private RegionWorld(String ownerName, Path dataFolder, boolean load) {
         this.ownerName = ownerName;
-        acquireShared();
+        TestClock.acquire();
         IECPluginExtractor previous = EverNifeCore.getProviders().getBaseProvider().provideOrNull(IECPluginExtractor.class);
         this.owner = Plugins.fakePluginData(ownerName, dataFolder.toFile());
         if (previous != null) {
@@ -129,14 +120,14 @@ public final class RegionWorld implements AutoCloseable {
         return result.getRegion();
     }
 
-    /** What {@link ECClock#now()} answers - fixed until {@link #advance(Duration)}. */
+    /** What {@link TestClock#now()} answers - fixed until {@link #advance(Duration)}. */
     public Instant now() {
-        return shared.clock.instant();
+        return TestClock.now();
     }
 
     /** Moves the region clock forward; nothing runs until {@link #runDue()}. */
     public void advance(Duration by) {
-        shared.clock.now = shared.clock.now.plus(by);
+        TestClock.advance(by);
     }
 
     /**
@@ -146,28 +137,12 @@ public final class RegionWorld implements AutoCloseable {
      * @return how many tasks ran
      */
     public int runDue() {
-        List<Scheduled> due = new ArrayList<>();
-        synchronized (shared.pending) {
-            Instant now = now();
-            for (Iterator<Scheduled> it = shared.pending.iterator(); it.hasNext(); ) {
-                Scheduled scheduled = it.next();
-                if (!scheduled.dueAt.isAfter(now)) {
-                    due.add(scheduled);
-                    it.remove();
-                }
-            }
-        }
-        for (Scheduled scheduled : due) {
-            scheduled.task.run();
-        }
-        return due.size();
+        return TestClock.runDue();
     }
 
     /** How many tasks wait on the scheduler, due or not. */
     public int getPendingTasks() {
-        synchronized (shared.pending) {
-            return shared.pending.size();
-        }
+        return TestClock.getPendingTasks();
     }
 
     /** Writes every pending change of this owner now, running the scheduler for it. */
@@ -207,72 +182,6 @@ public final class RegionWorld implements AutoCloseable {
         closing.join();
         storage.close().join();
         Plugins.forget(ownerName);
-        releaseShared();
-    }
-
-    private static void acquireShared() {
-        synchronized (SHARED_LOCK) {
-            if (shared == null) {
-                shared = new Shared();
-                ECClock.setClock(shared.clock);
-                ECScheduler.set((task, delayMillis) -> {
-                    synchronized (shared.pending) {
-                        shared.pending.add(new Scheduled(task, shared.clock.now.plusMillis(Math.max(0, delayMillis))));
-                    }
-                });
-            }
-            shared.users++;
-        }
-    }
-
-    private static void releaseShared() {
-        synchronized (SHARED_LOCK) {
-            if (--shared.users == 0) {
-                //stopped while the scheduler is still this one: whatever they schedule on the way out never reaches a real thread
-                RegionManager.closeAll();
-                ECScheduler.set(null);
-                ECClock.setClock(null);
-                shared = null;
-            }
-        }
-    }
-
-    private static final class Shared {
-        final MovableClock clock = new MovableClock(Instant.parse("2026-10-06T12:00:00Z"));
-        final List<Scheduled> pending = new ArrayList<>();
-        int users;
-    }
-
-    private static final class Scheduled {
-        final Runnable task;
-        final Instant dueAt;
-
-        Scheduled(Runnable task, Instant dueAt) {
-            this.task = task;
-            this.dueAt = dueAt;
-        }
-    }
-
-    private static final class MovableClock extends Clock {
-        volatile Instant now;
-
-        MovableClock(Instant now) {
-            this.now = now;
-        }
-
-        @Override
-        public ZoneId getZone() {
-            return ZoneOffset.UTC;
-        }
-
-        @Override
-        public Clock withZone(ZoneId zone) {
-            return this;
-        }
-
-        @Override
-        public Instant instant() {
-            return now;
-        }
+        TestClock.release();
     }
 }

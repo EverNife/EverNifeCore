@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.ecplugin;
 
+import br.com.finalcraft.evernifecore.logic.Multipliers;
 import br.com.finalcraft.evernifecore.types.TypeRegistries;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.action.EventSource;
@@ -122,6 +123,7 @@ public interface IECPluginBootstrap {
         RegionManager.closeOwnedBy(getPluginData());
         FlagRegistry.get().unregisterAll(getPluginData());
         TypeRegistries.unregisterAll(getPluginData());
+        Multipliers.unregisterAll(getPluginData());
         EventSource.unregisterAll(getPluginData());
         EventSourceUsage.stopAll(getPluginData());
         ECListener.unregisterAll(getPluginData());

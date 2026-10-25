@@ -31,6 +31,18 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   moves forward, one in the autumn overlap takes the first occurrence). `Window.parse` reads `daily at 04:00`,
   `weekly on monday at 18:00 zone Europe/Lisbon`, `monthly on 1`, `cron 0 4 * * 1` and `{season: {id, from, to, zone}}`;
   a cron that can never match is a parse error.
+- **The operations engine (`logic`)**: `ExecutionContext` (built with a mandatory `Caller` - plugin + readable origin -
+  and a `ProgressOwner`: `player`, `global`, `region`, `world`, or a kind a plugin answers through a
+  `ProgressOwnerProvider`), `Condition`/`Cost`/`Effect`/`Variable`/`MutableVariable`, and `Gate`: `check` lists every
+  failure, `pay` takes the costs in order and refunds the taken ones in reverse when one does not come out (a refund
+  that throws is audited and logged severe). The compositions `all`/`any`/`none`/`at-least`/`optional` are condition
+  types; effects take the modifiers `delay`, `chance`, `if`, `repeat`+`every`, `as` and `target`, and `Effects.apply`
+  runs each on its target's thread (a delayed effect whose player left goes to a `DeferredEffectSink`, never to an
+  offline player). `ctx.resolve(text)` fills `{variables}` and `%placeholders%`; `getMultiplier` multiplies the
+  registered `MultiplierProvider`s. Every step is written to the context's `AuditTrail` and posted as `GateCheckEvent`,
+  `GatePrePayEvent` (cancellable), `CostTakeEvent`, `CostRefundEvent`, `EffectApplyEvent` (cancellable, the effect
+  replaceable), `GatePaidEvent` and `GateDeniedEvent`. `common-tests` gains `LogicWorld` and `TestClock`, the clock and
+  scheduler `RegionWorld` now shares with it.
 - **`RegionCrossedEvent`**: posted once a crossing took effect, with the regions left, the regions entered, the
   player, from/to, the `MoveCause` and the native event; never cancellable. `RegionEnterEvent`/`RegionLeaveEvent`
   keep their "before the crossing, cancellable" role.
