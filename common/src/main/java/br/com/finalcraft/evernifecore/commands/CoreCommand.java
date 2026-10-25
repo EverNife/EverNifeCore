@@ -16,6 +16,7 @@ import br.com.finalcraft.evernifecore.eventbus.ECNativeAudience;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
+import br.com.finalcraft.evernifecore.locale.command.CoreI18nCommands;
 import br.com.finalcraft.evernifecore.pageviewer.PageViewer;
 import br.com.finalcraft.evernifecore.pageviewer.theme.PageTheme;
 import br.com.finalcraft.evernifecore.ranking.RankedList;
@@ -54,6 +55,12 @@ public class CoreCommand {
             @FCLocale(lang = LocaleType.PT_BR, text = "Os tipos registrados de condição, custo, efeito, variável e dono: export")
     })
     private final CoreTypesCommands types = new CoreTypesCommands();
+
+    @FinalCMD.Node(subcmd = "i18n", permission = PermissionNodes.EVERNIFECORE_COMMAND_I18N, locales = {
+            @FCLocale(lang = LocaleType.EN_US, text = "Translate the definitions of a plugin: export"),
+            @FCLocale(lang = LocaleType.PT_BR, text = "Traduz as definições de um plugin: export")
+    })
+    private final CoreI18nCommands i18n = new CoreI18nCommands();
 
     /**
      * Built on the first {@code /ecore info}: the executor is instantiated before its locale fields

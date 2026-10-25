@@ -34,6 +34,13 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   multi-server cache-sync before the cell goes stale; never for this server's own writes), `getLockVersion()` and
   `readStoredVersion()` (one key+version read of the backend). The remote hook needs EveryDatabase 1.5.1
   (`CacheSync.onRemoteChange`); a throw from either hook is logged and swallowed.
+- **`LocaleOverlay`**: per-locale translation files for the text of a plugin's YAML definitions
+  (`localization/overlay/<LOCALE>.yml`, flat keys on the stable path `<definitionId>.<path in the definition>`).
+  `LocaleOverlay.of(plugin).register(id, root[, textKeys])` marks the text leaves (`DEFAULT_TEXT_KEYS` by default);
+  `text(id, path, locale)` answers the overlay file, then an inline language map on the leaf (`{EN_US: ..., PT_BR: ...}`),
+  then the plugin's language, then the author's text. `/ecore i18n export <plugin> <locale>` (`OverlayExporter`,
+  permission `evernifecore.command.i18n`) writes the missing paths with today's text for a translator and never
+  overwrites a translated one. A plugin's overlay is dropped at its shutdown.
 - **Self-describing type registries (`types`)**: a `TypeRegistry<T>` holds the types of one kind by `owner:name` key,
   each described by a `TypeDescriptor` (aliases, one-sentence description, `ParamSpec` parameters, platforms, needed
   player capabilities, event sources, factory). A definition node (`{type: compare, amount: 3}`, or `permission: shop.vip`
