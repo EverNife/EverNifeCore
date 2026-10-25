@@ -14,6 +14,7 @@ import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.pageviewer.PageViewer;
 import br.com.finalcraft.evernifecore.pageviewer.PageVisualization;
 import br.com.finalcraft.evernifecore.pageviewer.theme.PageTheme;
+import br.com.finalcraft.evernifecore.ranking.RankedList;
 import jakarta.annotation.Nonnull;
 
 public class CMDList implements ICustomFinalCMD {
@@ -29,11 +30,12 @@ public class CMDList implements ICustomFinalCMD {
      */
     private static final class Page {
 
-        static final PageViewer<FPlayer> ONLINE_PLAYERS = PageViewer.of(FPlayer.class)
-                .id("evernifecore:list")
-                .source(() -> EverNifeCore.getPlatform().getOnlinePlayers())
-                .unlimitedEntries()                                 //the online list fits whole, by definition
-                .orderBy(FPlayer::getName).ascending()
+        static final PageViewer<FPlayer> ONLINE_PLAYERS = PageViewer.of(
+                        RankedList.of(EverNifeCore.getEcPluginData(), "list", FPlayer.class)
+                        .source(() -> EverNifeCore.getPlatform().getOnlinePlayers())
+                        .unlimitedEntries()                         //the online list fits whole, by definition
+                        .orderBy(FPlayer::getName).ascending()
+                        .build())
                 .setFormatLine(LINE)
                 .theme(PageTheme.classic().withTotalCount())
                 .build();

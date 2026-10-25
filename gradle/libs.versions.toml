@@ -6,7 +6,7 @@ evernifecore = "3.0.1"
 shadow = "9.4.2"
 
 # FinalCraft libraries
-everydatabase = "1.5.0"
+everydatabase = "1.5.1"
 everyconfig = "1.4.3"
 everylibs = "1.2.0"
 ecnmsutils = "2.1.0"

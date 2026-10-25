@@ -10,6 +10,8 @@ import br.com.finalcraft.evernifecore.pageviewer.nav.PageNavigation;
 import br.com.finalcraft.evernifecore.pageviewer.nav.PageSessionManager;
 import br.com.finalcraft.evernifecore.pageviewer.theme.ClassicPageTheme;
 import br.com.finalcraft.evernifecore.pageviewer.theme.PageTheme;
+import br.com.finalcraft.evernifecore.ranking.RankedList;
+import br.com.finalcraft.evernifecore.ranking.RankedLists;
 import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
@@ -22,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,7 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @ECoreTest
 class PageNavigationTest {
 
-    private static final String PAGE_ID = "pagenavigationtest:page";
+    private static final String PAGE_NAME = "page";
 
     @TempDirNobodyCleans
     Path tempDir;
@@ -55,21 +58,25 @@ class PageNavigationTest {
     @AfterEach
     void teardown() {
         PageSessionManager.clear();
-        PageRegistry.unregister(PAGE_ID);
+        RankedLists.clear();
         if (harness != null) harness.close();
     }
 
-    private static PageViewer.IBuilder<String> pageOf(@Nullable String pageId, List<String> entries) {
-        PageViewer.IStepSource<String> step = PageViewer.of(String.class);
-        if (pageId != null) {
-            step = step.id(pageId);
-        }
-        return step.source(() -> entries)
-                .unlimitedEntries()
+    private PageViewer.Builder<String> pageOf(@Nullable String listName, List<String> entries) {
+        RankedList.Builder<String> list = listName == null
+                ? RankedList.anonymous(String.class)
+                : RankedList.of(harness.ecPluginData, listName, String.class);
+        return PageViewer.of(list.source(() -> entries)
+                        .unlimitedEntries()
+                        .addValue("entry", entry -> entry)
+                        .build())
                 .setPageSize(1)
                 .theme(PageTheme.none())
-                .setFormatLine("${entry}")
-                .addRowPlaceholder("entry", entry -> entry);
+                .setFormatLine("${entry}");
+    }
+
+    private String pageId() {
+        return harness.ecPluginData.getMetaInfo().getName().toLowerCase(Locale.ROOT) + ":" + PAGE_NAME;
     }
 
     /** The command a page button runs, taken off the page indicator - the only button always present. */
@@ -83,13 +90,13 @@ class PageNavigationTest {
     void aNamedPageNavigatesByItsNameAndOpensNoSessionAtAll() {
         TestFPlayerSender reader = new TestFPlayerSender("Steve");
 
-        pageOf(PAGE_ID, Arrays.asList("a", "b", "c", "d", "e")).build().send(reader);
+        pageOf(PAGE_NAME, Arrays.asList("a", "b", "c", "d", "e")).build().send(reader);
 
-        assertEquals("/ecpage " + PAGE_ID + " 1", linkOfTheIndicator(reader));
+        assertEquals("/ecpage " + pageId() + " 1", linkOfTheIndicator(reader));
 
         for (int page = 1; page <= 5; page++) {
             reader.clearMessages();
-            harness.dispatch(ecpage, reader, PAGE_ID + " " + page);
+            harness.dispatch(ecpage, reader, pageId() + " " + page);
             assertTrue(reader.anyMessageContains("Page [" + page + "/5]"),
                     "page " + page + " was not delivered: " + reader.getMessages());
         }
@@ -151,9 +158,11 @@ class PageNavigationTest {
     void aLineCitingLabelStillNamesTheCommandThatProducedThePageOnPageTwo() {
         TestFPlayerSender reader = new TestFPlayerSender("Steve");
 
-        PageViewer<String> viewer = PageViewer.of(String.class)
-                .source(() -> Arrays.asList("a", "b", "c"))
-                .unlimitedEntries()
+        PageViewer<String> viewer = PageViewer.of(
+                        RankedList.anonymous(String.class)
+                        .source(() -> Arrays.asList("a", "b", "c"))
+                        .unlimitedEntries()
+                        .build())
                 .setPageSize(1)
                 .theme(PageTheme.none())
                 .setFormatLine("/${label} entry ${number}")

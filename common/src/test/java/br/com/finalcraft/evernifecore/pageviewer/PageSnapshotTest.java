@@ -5,6 +5,8 @@ import br.com.finalcraft.evernifecore.pageviewer.nav.PVExtraMessages;
 import br.com.finalcraft.evernifecore.pageviewer.nav.PageNavigation;
 import br.com.finalcraft.evernifecore.pageviewer.theme.ClassicPageTheme;
 import br.com.finalcraft.evernifecore.pageviewer.theme.PageTheme;
+import br.com.finalcraft.evernifecore.ranking.CachePolicy;
+import br.com.finalcraft.evernifecore.ranking.RankedList;
 import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.testing.TestCommandSender;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
@@ -28,8 +30,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * What one read of the source is worth: how long it is reused, how much of it a page keeps, in which
- * order, and how the page owns up to what it had to leave out.
+ * What one read of the list is worth on the chat page: how long it is reused, how much of it a page shows, in which
+ * order, and how the page owns up to what the list had to leave out.
  */
 @ECoreTest
 class PageSnapshotTest {
@@ -66,13 +68,15 @@ class PageSnapshotTest {
     void twoSendsWithinTheTtlConsultTheSourceOnce() {
         AtomicInteger reads = new AtomicInteger();
 
-        PageViewer<String> viewer = PageViewer.of(String.class)
-                .source(() -> {
-                    reads.incrementAndGet();
-                    return Arrays.asList("alpha", "beta");
-                })
-                .unlimitedEntries()
-                .cache(CachePolicy.ttl(Duration.ofMinutes(10)))
+        PageViewer<String> viewer = PageViewer.of(
+                        RankedList.anonymous(String.class)
+                        .source(() -> {
+                            reads.incrementAndGet();
+                            return Arrays.asList("alpha", "beta");
+                        })
+                        .unlimitedEntries()
+                        .cache(CachePolicy.ttl(Duration.ofMinutes(10)))
+                        .build())
                 .theme(PageTheme.none())
                 .navigation(PageNavigation.none())
                 .setFormatLine("${number}")
@@ -88,20 +92,22 @@ class PageSnapshotTest {
     void invalidateForcesTheSourceToBeConsultedAgain() {
         AtomicInteger reads = new AtomicInteger();
 
-        PageViewer<String> viewer = PageViewer.of(String.class)
+        RankedList<String> list = RankedList.anonymous(String.class)
                 .source(() -> {
                     reads.incrementAndGet();
                     return Arrays.asList("alpha", "beta");
                 })
                 .unlimitedEntries()
                 .cache(CachePolicy.manual())
+                .build();
+        PageViewer<String> viewer = PageViewer.of(list)
                 .theme(PageTheme.none())
                 .navigation(PageNavigation.none())
                 .setFormatLine("${number}")
                 .build();
 
         viewer.send(new TestCommandSender("FIRST"));
-        viewer.invalidate();
+        list.invalidate();
         viewer.send(new TestCommandSender("SECOND"));
 
         assertEquals(2, reads.get(), "invalidate() has to make the next send read the source again");
@@ -115,9 +121,8 @@ class PageSnapshotTest {
     void whatMaxEntriesCutIsAnnouncedInTheHoverOfTheTotalAndCostsNoLineOfChat() {
         TestCommandSender console = new TestCommandSender("CONSOLE");
 
-        PageViewer.of(String.class)
-                .source(() -> entries(60))
-                .maxEntries(50)
+        PageViewer.of(
+                        RankedList.anonymous(String.class).source(() -> entries(60)).maxEntries(50).build())
                 .setPageSize(100)
                 .theme(PageTheme.classic().withTotalCount())
                 .navigation(PageNavigation.none())
@@ -138,9 +143,8 @@ class PageSnapshotTest {
     void unlimitedEntriesKeepsEveryEntryAndTheHoverAnnouncesNoTruncation() {
         TestCommandSender console = new TestCommandSender("CONSOLE");
 
-        PageViewer.of(String.class)
-                .source(() -> entries(60))
-                .unlimitedEntries()
+        PageViewer.of(
+                        RankedList.anonymous(String.class).source(() -> entries(60)).unlimitedEntries().build())
                 .setPageSize(100)
                 .theme(PageTheme.classic().withTotalCount())
                 .navigation(PageNavigation.none())
@@ -162,13 +166,15 @@ class PageSnapshotTest {
         AtomicInteger ceilingCalls = new AtomicInteger();
         AtomicReference<Integer> rawSizeSeen = new AtomicReference<>();
 
-        PageViewer.of(String.class)
-                .source(() -> entries(10))
-                .maxEntries(raw -> {
-                    ceilingCalls.incrementAndGet();
-                    rawSizeSeen.set(raw.size());
-                    return 3;
-                })
+        PageViewer.of(
+                        RankedList.anonymous(String.class)
+                        .source(() -> entries(10))
+                        .maxEntries(raw -> {
+                            ceilingCalls.incrementAndGet();
+                            rawSizeSeen.set(raw.size());
+                            return 3;
+                        })
+                        .build())
                 .theme(PageTheme.none())
                 .navigation(PageNavigation.none())
                 .setFormatLine("${number}")
@@ -187,10 +193,12 @@ class PageSnapshotTest {
     void descendingIsTheOrderThatWasAskedForWithNoHiddenReversal() {
         TestCommandSender console = new TestCommandSender("CONSOLE");
 
-        PageViewer.of(String.class)
-                .source(() -> Arrays.asList("beta", "alpha", "gamma"))
-                .unlimitedEntries()
-                .orderBy(entry -> entry).descending()
+        PageViewer.of(
+                        RankedList.anonymous(String.class)
+                        .source(() -> Arrays.asList("beta", "alpha", "gamma"))
+                        .unlimitedEntries()
+                        .orderBy(entry -> entry).descending()
+                        .build())
                 .theme(PageTheme.none())
                 .navigation(PageNavigation.none())
                 .setFormatLine("${value}")
@@ -204,14 +212,16 @@ class PageSnapshotTest {
     void ascendingOnNumbersComparesNumericallyAndNotAsText() {
         TestCommandSender console = new TestCommandSender("CONSOLE");
 
-        PageViewer.of(String.class)
-                .source(() -> Arrays.asList("e2", "e10", "e1"))
-                .unlimitedEntries()
-                .orderBy(entry -> Integer.valueOf(entry.substring(1))).ascending()
+        PageViewer.of(
+                        RankedList.anonymous(String.class)
+                        .source(() -> Arrays.asList("e2", "e10", "e1"))
+                        .unlimitedEntries()
+                        .orderBy(entry -> Integer.valueOf(entry.substring(1))).ascending()
+                        .addValue("entry", entry -> entry)
+                        .build())
                 .theme(PageTheme.none())
                 .navigation(PageNavigation.none())
                 .setFormatLine("${entry}")
-                .addRowPlaceholder("entry", entry -> entry)
                 .build()
                 .send(console);
 
@@ -222,13 +232,15 @@ class PageSnapshotTest {
     void withNoOrderTheOutputIsExactlyWhatTheSourceReturned() {
         TestCommandSender console = new TestCommandSender("CONSOLE");
 
-        PageViewer.of(String.class)
-                .source(() -> Arrays.asList("gamma", "alpha", "beta"))
-                .unlimitedEntries()
+        PageViewer.of(
+                        RankedList.anonymous(String.class)
+                        .source(() -> Arrays.asList("gamma", "alpha", "beta"))
+                        .unlimitedEntries()
+                        .addValue("entry", entry -> entry)
+                        .build())
                 .theme(PageTheme.none())
                 .navigation(PageNavigation.none())
                 .setFormatLine("${entry}")
-                .addRowPlaceholder("entry", entry -> entry)
                 .build()
                 .send(console);
 
@@ -243,9 +255,8 @@ class PageSnapshotTest {
     void anEmptyListProducesTheEmptyStateAndNoButtons() {
         TestCommandSender console = new TestCommandSender("CONSOLE");
 
-        PageViewer.of(String.class)
-                .source(() -> Collections.<String>emptyList())
-                .unlimitedEntries()
+        PageViewer.of(
+                        RankedList.anonymous(String.class).source(() -> Collections.<String>emptyList()).unlimitedEntries().build())
                 .theme(PageTheme.classic())
                 .setFormatLine("${number}")
                 .build()

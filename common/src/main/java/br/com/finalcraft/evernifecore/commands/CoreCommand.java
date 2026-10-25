@@ -18,6 +18,7 @@ import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.pageviewer.PageViewer;
 import br.com.finalcraft.evernifecore.pageviewer.theme.PageTheme;
+import br.com.finalcraft.evernifecore.ranking.RankedList;
 import br.com.finalcraft.evernifecore.logic.command.CoreLogicCommands;
 import br.com.finalcraft.evernifecore.region.command.CoreRegionCommands;
 import br.com.finalcraft.evernifecore.types.command.CoreTypesCommands;
@@ -60,26 +61,27 @@ public class CoreCommand {
      */
     private static final class Page {
 
-        static final PageViewer<ECPluginData> INSTALLED_PLUGINS = PageViewer.of(ECPluginData.class)
-                .id("evernifecore:info")
-                .source(() -> new ArrayList<>(ECPluginManager.getECPluginsMap().values()))
-                .unlimitedEntries()
-                .orderBy(ecPluginData -> ecPluginData.getMetaInfo().getName()).ascending()
+        static final PageViewer<ECPluginData> INSTALLED_PLUGINS = PageViewer.of(
+                        RankedList.of(EverNifeCore.getEcPluginData(), "info", ECPluginData.class)
+                        .source(() -> new ArrayList<>(ECPluginManager.getECPluginsMap().values()))
+                        .unlimitedEntries()
+                        .orderBy(ecPluginData -> ecPluginData.getMetaInfo().getName()).ascending()
+                        .addValue("version", ecPlugin -> ecPlugin.getMetaInfo().getVersion())
+                        .addValue("can_update", ecPlugin -> ecPlugin.hasUpdate() ? "§b  [Update]" : "")
+                        .addValue("update_link", ecPlugin -> ecPlugin.hasUpdate() ? ecPlugin.getUpdateLink() : "")
+                        .addValue("plugin_info", ecPlugin -> {
+                            StringBuilder stringBuilder = new StringBuilder();
+                            stringBuilder.append("\n§d ▲ Name: §a" + ecPlugin.getMetaInfo().getName());
+                            stringBuilder.append("\n§d ▲ Version: §a" + ecPlugin.getMetaInfo().getVersion());
+                            stringBuilder.append("\n\n§d ▲ Is Up To Date: " + (ecPlugin.hasUpdate() ? "§c" : "§b") + !ecPlugin.hasUpdate());
+                            stringBuilder.append("\n");
+                            return stringBuilder.toString();
+                        })
+                        .build())
                 .setFormatLine(
                         FancyText.of("§7# ${number}: §e§l◆ §a ${value} §7§o(${version})").setHover("${plugin_info}")
                                 .append("${can_update}").setHover("§aClique to go to DownloadLink").setClickLink("${update_link}")
                 )
-                .addRowPlaceholder("version", ecPlugin -> ecPlugin.getMetaInfo().getVersion())
-                .addRowPlaceholder("can_update", ecPlugin -> ecPlugin.hasUpdate() ? "§b  [Update]" : "")
-                .addRowPlaceholder("update_link", ecPlugin -> ecPlugin.hasUpdate() ? ecPlugin.getUpdateLink() : "")
-                .addRowPlaceholder("plugin_info", ecPlugin -> {
-                    StringBuilder stringBuilder = new StringBuilder();
-                    stringBuilder.append("\n§d ▲ Name: §a" + ecPlugin.getMetaInfo().getName());
-                    stringBuilder.append("\n§d ▲ Version: §a" + ecPlugin.getMetaInfo().getVersion());
-                    stringBuilder.append("\n\n§d ▲ Is Up To Date: " + (ecPlugin.hasUpdate() ? "§c" : "§b") + !ecPlugin.hasUpdate());
-                    stringBuilder.append("\n");
-                    return stringBuilder.toString();
-                })
                 .theme(PageTheme.classic().withTotalCount())
                 .build();
     }

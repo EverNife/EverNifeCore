@@ -18,6 +18,7 @@ import br.com.finalcraft.evernifecore.logger.ECLogger;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
+import br.com.finalcraft.evernifecore.ranking.RankedPlaceholders;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.region.placeholder.RegionPlaceholders;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
@@ -80,6 +81,7 @@ public class EverNifeCore {
         CoreFlags.registerAll(getEcPluginData());
         CoreLogic.registerAll(getEcPluginData());
         RegionPlaceholders.registerCore(getEcPluginData());
+        RankedPlaceholders.registerCore(getEcPluginData());
 
         getLog().info("§aRegistering Commands!");
         CommandRegisterer.registerCommands(this.getEcPluginData());

@@ -6,10 +6,11 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.pageviewer.PageRegistry;
 import br.com.finalcraft.evernifecore.pageviewer.PageViewer;
 import br.com.finalcraft.evernifecore.pageviewer.nav.PageSession;
 import br.com.finalcraft.evernifecore.pageviewer.nav.PageSessionManager;
+import br.com.finalcraft.evernifecore.ranking.RankedList;
+import br.com.finalcraft.evernifecore.ranking.RankedLists;
 
 /** What every page button of the core runs: turn the page named by {@code page-ref} to {@code page}. */
 public class CMDECPage {
@@ -23,7 +24,8 @@ public class CMDECPage {
     )
     public void onCommand(FCommandSender sender, @Arg("<page-ref>") String pageRef, @Arg("<page>") Integer page) {
 
-        PageViewer<?> viewer = PageRegistry.find(pageRef);
+        RankedList<?> list = RankedLists.find(pageRef);
+        PageViewer<?> viewer = list == null ? null : list.getPageViewer();
         if (viewer != null) {
             //A registered page is reachable by anyone who may run the command that shows it: the id
             //carries no reader, so there is nothing here that could belong to somebody else.

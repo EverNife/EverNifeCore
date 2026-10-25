@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.pageviewer.nav.PVExtraMessages;
 import br.com.finalcraft.evernifecore.pageviewer.nav.PageNavigation;
 import br.com.finalcraft.evernifecore.pageviewer.theme.ClassicPageTheme;
 import br.com.finalcraft.evernifecore.pageviewer.theme.PageTheme;
+import br.com.finalcraft.evernifecore.ranking.RankedList;
 import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.testing.TestCommandSender;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
@@ -46,9 +47,8 @@ class PageThemeTest {
     private static String ruleSentBy(PageTheme theme) {
         TestCommandSender console = new TestCommandSender("CONSOLE");
 
-        PageViewer.of(String.class)
-                .source(() -> Collections.singletonList("alpha"))
-                .unlimitedEntries()
+        PageViewer.of(
+                        RankedList.anonymous(String.class).source(() -> Collections.singletonList("alpha")).unlimitedEntries().build())
                 .theme(theme)
                 .navigation(PageNavigation.none())
                 .setFormatLine("line")

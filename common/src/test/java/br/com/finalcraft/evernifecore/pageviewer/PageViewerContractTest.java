@@ -9,6 +9,9 @@ import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.pageviewer.nav.PageNavigation;
 import br.com.finalcraft.evernifecore.pageviewer.theme.PageTheme;
+import br.com.finalcraft.evernifecore.ranking.CachePolicy;
+import br.com.finalcraft.evernifecore.ranking.RankedList;
+import br.com.finalcraft.evernifecore.ranking.RankedSnapshot;
 import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.testing.Locales;
 import br.com.finalcraft.evernifecore.testing.TestCommandSender;
@@ -26,6 +29,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,14 +39,13 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * What a page owes its recipients, asserted on the rendered text that reaches them rather than on any
- * key, map or token shape: a substitution reaches the hover and the click as well as the text, it
- * descends into every piece of a chain, and a value carrying regex or closure characters lands
- * literally.
+ * What a page owes its recipients, asserted on the rendered text that reaches them rather than on any key, map or
+ * token shape: a substitution reaches the hover and the click as well as the text, it descends into every piece of a
+ * chain, and a value carrying regex or closure characters lands literally.
  *
- * <p>It also pins where each of the two levels is paid for: a {@code row} key costs one call per
- * line however many people read it, and a {@code viewer} key costs one per line per reader - and
- * neither costs anything at all where the line does not cite it.</p>
+ * <p>It also pins where each of the two levels is paid for: a list value costs one call per entry however many people
+ * read it, and a {@code viewer} key costs one per line per reader - and neither costs anything at all where the line
+ * does not cite it.</p>
  */
 @ECoreTest
 class PageViewerContractTest {
@@ -62,25 +65,33 @@ class PageViewerContractTest {
         if (harness != null) harness.close();
     }
 
+    /** A list of plain entries in the source's order. */
+    private static RankedList.StepOrder<String> listOf(List<String> entries) {
+        return RankedList.anonymous(String.class).source(() -> entries).unlimitedEntries();
+    }
+
     /** A page with no chrome and no navigation: what reaches the sender is the entries and nothing else. */
-    private static PageViewer.IBuilder<String> bareOf(List<String> entries) {
-        return PageViewer.of(String.class)
-                .source(() -> entries)
-                .unlimitedEntries()
+    private static PageViewer.Builder<String> bare(RankedList<String> list) {
+        return PageViewer.of(list)
                 .theme(PageTheme.none())
                 .navigation(PageNavigation.none());
+    }
+
+    private static PageViewer.Builder<String> bareOf(List<String> entries) {
+        return bare(listOf(entries).build());
     }
 
     @Test
     void aPlaceholderIsResolvedInTheHoverAndInTheClickToo() {
         TestCommandSender console = new TestCommandSender("CONSOLE");
 
-        bareOf(Collections.singletonList("alpha"))
+        bare(listOf(Collections.singletonList("alpha"))
+                .addValue("hover_value", entry -> "HOVERED-" + entry)
+                .addValue("click_value", entry -> "CLICKED-" + entry)
+                .build())
                 .setFormatLine(new FancySegment("§aline")
                         .setHover("§7tip: ${hover_value}")
                         .setClickSuggest("/say ${click_value}"))
-                .addRowPlaceholder("hover_value", entry -> "HOVERED-" + entry)
-                .addRowPlaceholder("click_value", entry -> "CLICKED-" + entry)
                 .build()
                 .send(console);
 
@@ -97,9 +108,8 @@ class PageViewerContractTest {
     void aKeyCitedOnlyInTheSecondPieceOfAChainIsResolved() {
         TestCommandSender console = new TestCommandSender("CONSOLE");
 
-        bareOf(Collections.singletonList("alpha"))
+        bare(listOf(Collections.singletonList("alpha")).addValue("deep", entry -> "DEEP-" + entry).build())
                 .setFormatLine(FancyText.of("§7first ").append("§asecond ${deep}"))
-                .addRowPlaceholder("deep", entry -> "DEEP-" + entry)
                 .build()
                 .send(console);
 
@@ -114,13 +124,10 @@ class PageViewerContractTest {
     void theLineNumberIsOneBasedAndTheValueComesFromTheOrder() {
         TestCommandSender console = new TestCommandSender("CONSOLE");
 
-        PageViewer.of(String.class)
-                .source(() -> Arrays.asList("alpha", "beta", "gamma"))
-                .unlimitedEntries()
+        bare(listOf(Arrays.asList("alpha", "beta", "gamma"))
                 .orderBy(entry -> entry.toUpperCase(Locale.ROOT)).ascending()
+                .build())
                 .setFormatLine("#${number}:${value}")
-                .theme(PageTheme.none())
-                .navigation(PageNavigation.none())
                 .build()
                 .send(console);
 
@@ -132,9 +139,8 @@ class PageViewerContractTest {
         TestCommandSender console = new TestCommandSender("CONSOLE");
         String hostile = "a$b\\c%pct%d${unknown}e";
 
-        bareOf(Collections.singletonList("alpha"))
+        bare(listOf(Collections.singletonList("alpha")).addValue("raw", entry -> hostile).build())
                 .setFormatLine("[${raw}]")
-                .addRowPlaceholder("raw", entry -> hostile)
                 .build()
                 .send(console);
 
@@ -145,12 +151,13 @@ class PageViewerContractTest {
     void anInjectedValueIsNotScannedAgainForOtherKeys() {
         TestCommandSender console = new TestCommandSender("CONSOLE");
 
-        bareOf(Collections.singletonList("alpha"))
+        bare(listOf(Collections.singletonList("alpha"))
+                //what "outer" resolves to happens to spell another declared key: it is a value, not text to be
+                //substituted again, so it must survive verbatim whatever the key order is
+                .addValue("outer", entry -> "${inner}")
+                .addValue("inner", entry -> "SHOULD-NOT-APPEAR")
+                .build())
                 .setFormatLine("[${outer}]")
-                //what "outer" resolves to happens to spell another declared key: it is a value, not
-                //text to be substituted again, so it must survive verbatim whatever the key order is
-                .addRowPlaceholder("outer", entry -> "${inner}")
-                .addRowPlaceholder("inner", entry -> "SHOULD-NOT-APPEAR")
                 .build()
                 .send(console);
 
@@ -161,13 +168,14 @@ class PageViewerContractTest {
     void aKeyDeclaredOnThePageWinsOverTheFrameworkWideOne() {
         TestCommandSender console = new TestCommandSender("CONSOLE");
 
-        PageViewer<String> viewer = bareOf(Collections.singletonList("alpha"))
+        PageViewer<String> viewer = bare(listOf(Collections.singletonList("alpha"))
+                .addValue("label", entry -> "pagelabel")
+                .build())
                 .setFormatLine("/${label} entry")
-                .addRowPlaceholder("label", entry -> "pagelabel")
                 .build();
 
-        //A page can be re-sent later, from another command's scope, and must still say what it was
-        //built to say - which is why the page's own declaration is baked in before any render.
+        //A page can be re-sent later, from another command's scope, and must still say what it was built to say -
+        //which is why the list's own declaration is baked in before any render.
         try (MessageScope scope = MessageScope.open(CommandPath.ofRoot("scopelabel"))) {
             viewer.send(console);
         }
@@ -179,46 +187,44 @@ class PageViewerContractTest {
     void aValueKeyTheCallerDeclaredWinsOverTheOrder() {
         TestCommandSender console = new TestCommandSender("CONSOLE");
 
-        PageViewer.of(String.class)
-                .source(() -> Collections.singletonList("alpha"))
-                .unlimitedEntries()
+        bare(listOf(Collections.singletonList("alpha"))
                 .orderBy(entry -> "FROM-ORDER").ascending()
+                .addValue("value", entry -> "FROM-CALLER")
+                .build())
                 .setFormatLine("${value}")
-                .theme(PageTheme.none())
-                .navigation(PageNavigation.none())
-                .addRowPlaceholder("value", entry -> "FROM-CALLER")
                 .build()
                 .send(console);
 
         assertEquals(Collections.singletonList("FROM-CALLER"), console.getMessages());
+    }
+
+    private static RankedList.StepOrder<FPlayer> steve() {
+        return RankedList.anonymous(FPlayer.class)
+                .source(() -> Collections.<FPlayer>singletonList(new TestFPlayerSender("Steve")))
+                .unlimitedEntries();
     }
 
     @Test
     void aPlayerKeyTheCallerDeclaredWinsOverTheAutomaticOne() {
         TestCommandSender console = new TestCommandSender("CONSOLE");
 
-        PageViewer.of(FPlayer.class)
-                .source(() -> Collections.<FPlayer>singletonList(new TestFPlayerSender("Steve")))
-                .unlimitedEntries()
+        PageViewer.of(steve().addValue("player", entry -> "FROM-CALLER").build())
                 .setFormatLine("${player}")
                 .theme(PageTheme.none())
                 .navigation(PageNavigation.none())
-                .addRowPlaceholder("player", entry -> "FROM-CALLER")
                 .build()
                 .send(console);
 
         assertEquals(Collections.singletonList("FROM-CALLER"), console.getMessages());
     }
 
-    // The page TARGETS players, so it answers for ${player} - and goes on answering for it when the
-    // list comes back empty, which is the whole point of asking the type instead of the first entry.
+    // The list TARGETS players, so it answers for ${player} - and goes on answering for it when the list comes back
+    // empty, which is the whole point of asking the type instead of the first entry.
     @Test
     void thePlayerKeyIsAnsweredForBecauseThePageTargetsPlayers() {
         TestCommandSender console = new TestCommandSender("CONSOLE");
 
-        PageViewer.of(FPlayer.class)
-                .source(() -> Collections.<FPlayer>singletonList(new TestFPlayerSender("Steve")))
-                .unlimitedEntries()
+        PageViewer.of(steve().build())
                 .setFormatLine("${player}")
                 .theme(PageTheme.none())
                 .navigation(PageNavigation.none())
@@ -232,9 +238,8 @@ class PageViewerContractTest {
     void pageSizeSlicesThePage() {
         TestCommandSender paged = new TestCommandSender("PAGED");
 
-        bareOf(Arrays.asList("e1", "e2", "e3", "e4", "e5"))
+        bare(listOf(Arrays.asList("e1", "e2", "e3", "e4", "e5")).addValue("entry", entry -> entry).build())
                 .setFormatLine("${entry}")
-                .addRowPlaceholder("entry", entry -> entry)
                 .setPageSize(2)
                 .build()
                 .send(Integer.valueOf(2), paged);
@@ -247,9 +252,8 @@ class PageViewerContractTest {
         TestCommandSender first = new TestCommandSender("FIRST");
         TestCommandSender second = new TestCommandSender("SECOND");
 
-        bareOf(Arrays.asList("alpha", "beta", "gamma"))
+        bare(listOf(Arrays.asList("alpha", "beta", "gamma")).addValue("entry", entry -> entry).build())
                 .setFormatLine("§7#  ${number}:   §a${entry}")
-                .addRowPlaceholder("entry", entry -> entry)
                 .build()
                 .send(first, second);
 
@@ -300,16 +304,17 @@ class PageViewerContractTest {
     void aLongPageOrderedByAnEnumWithBodiesComesOutInTheOrderItWasDeclaredIn() {
         TestCommandSender console = new TestCommandSender("CONSOLE");
 
-        //past 32 entries the sort merges runs, which is where a comparison that holds one way and
-        //not the other stops being a wrong order and becomes a refusal to sort at all
+        //past 32 entries the sort merges runs, which is where a comparison that holds one way and not the other stops
+        //being a wrong order and becomes a refusal to sort at all
         List<String> members = new ArrayList<>();
         for (int index = 0; index < 42; index++) {
             members.add("member-" + index);
         }
 
-        bareOf(members)
+        bare(listOf(members)
                 .orderBy(member -> Rank.values()[Integer.parseInt(member.substring("member-".length())) % 3])
                 .ascending()
+                .build())
                 .setFormatLine("${value}")
                 .setPageSize(members.size())
                 .build()
@@ -330,8 +335,7 @@ class PageViewerContractTest {
     void textOrdersTheWayAReaderReadsItWhateverTheCaseIs() {
         TestCommandSender console = new TestCommandSender("CONSOLE");
 
-        bareOf(Arrays.asList("Zoe", "alice", "Bob"))
-                .orderBy(entry -> entry).ascending()
+        bare(listOf(Arrays.asList("Zoe", "alice", "Bob")).orderBy(entry -> entry).ascending().build())
                 .setFormatLine("${value}")
                 .build()
                 .send(console);
@@ -341,46 +345,38 @@ class PageViewerContractTest {
     }
 
     // ------------------------------------------------------------------
-    //  what a page keeps, and what it draws under itself
+    //  what a list keeps, and what a page draws under itself
     // ------------------------------------------------------------------
 
     @Test
     void aReadThePolicyWillNotVouchForAgainIsNotKept() {
-        List<PageSnapshot<?>> asked = new ArrayList<>();
+        List<RankedSnapshot<?>> asked = new ArrayList<>();
         CachePolicy neverValid = snapshot -> {
             asked.add(snapshot);
             return false;
         };
 
-        PageViewer<String> viewer = bareOf(Collections.singletonList("alpha"))
-                .cache(neverValid)
-                .build();
+        RankedList<String> list = listOf(Collections.singletonList("alpha")).cache(neverValid).build();
 
-        viewer.snapshot();
+        list.snapshot();
         int afterTheFirstRead = asked.size();
-        viewer.snapshot();
+        list.snapshot();
 
         assertNull(asked.get(afterTheFirstRead),
-                "a read nobody may serve again must not be held: the second read found the first "
-                        + "one still in the page");
+                "a read nobody may serve again must not be held: the second read found the first one still in the list");
     }
 
     @Test
     void aPageThatNamesNoLineWritesOnlyWhatItCanAnswerFor() {
         TestCommandSender console = new TestCommandSender("CONSOLE");
 
-        PageViewer.of(String.class)
-                .source(() -> Arrays.asList("alpha", "beta"))
-                .unlimitedEntries()
-                .theme(PageTheme.none())
-                .navigation(PageNavigation.none())
+        bareOf(Arrays.asList("alpha", "beta"))
                 .build()
                 .send(console);
 
         for (String message : console.getMessages()) {
             assertFalse(message.contains("${"),
-                    "a page of plain entries has no player and no order, so the default line cannot "
-                            + "cite either: " + message);
+                    "a page of plain entries has no player and no order, so the default line cannot cite either: " + message);
         }
         assertTrue(console.getMessages().get(0).contains("alpha")
                         && console.getMessages().get(0).contains("1"),
@@ -392,18 +388,19 @@ class PageViewerContractTest {
     // ------------------------------------------------------------------
 
     @Test
-    void aRowPlaceholderIsResolvedOncePerLineAndNotOncePerRecipient() {
+    void aListValueIsResolvedOncePerLineAndNotOncePerRecipient() {
         AtomicInteger calls = new AtomicInteger();
         TestCommandSender first = new TestCommandSender("FIRST");
         TestCommandSender second = new TestCommandSender("SECOND");
 
-        bareOf(Arrays.asList("alpha", "beta"))
-                //cited twice on the same line on purpose: one line still costs one invocation
-                .setFormatLine(new FancySegment("§aline ${shared}").setHover("§7tip ${shared}"))
-                .addRowPlaceholder("shared", entry -> {
+        bare(listOf(Arrays.asList("alpha", "beta"))
+                .addValue("shared", entry -> {
                     calls.incrementAndGet();
                     return "V-" + entry;
                 })
+                .build())
+                //cited twice on the same line on purpose: one line still costs one invocation
+                .setFormatLine(new FancySegment("§aline ${shared}").setHover("§7tip ${shared}"))
                 .build()
                 .send(first, second);
 
@@ -446,17 +443,18 @@ class PageViewerContractTest {
         AtomicInteger shownCalls = new AtomicInteger();
         TestCommandSender console = new TestCommandSender("CONSOLE");
 
-        bareOf(Arrays.asList("alpha", "beta"))
+        bare(listOf(Arrays.asList("alpha", "beta"))
+                .addValue("hidden_row", entry -> { hiddenRowCalls.incrementAndGet(); return "hidden"; })
+                .addValue("shown", entry -> { shownCalls.incrementAndGet(); return String.valueOf(entry); })
+                .build())
                 //the format line cites ${shown} (and ${number}), but neither hidden key
                 .setFormatLine("§7#  ${number}:   §a${shown}")
-                .addRowPlaceholder("hidden_row", entry -> { hiddenRowCalls.incrementAndGet(); return "hidden"; })
                 .addViewerPlaceholder("hidden_viewer", (entry, reader) -> { hiddenViewerCalls.incrementAndGet(); return "hidden"; })
-                .addRowPlaceholder("shown", entry -> { shownCalls.incrementAndGet(); return String.valueOf(entry); })
                 .build()
                 .send(console);
 
         assertEquals(0, hiddenRowCalls.get(),
-                "a row placeholder the line never cites must never be invoked");
+                "a list value the line never cites must never be invoked");
         assertEquals(0, hiddenViewerCalls.get(),
                 "a viewer placeholder the line never cites must never be invoked");
         assertEquals(2, shownCalls.get(), "one call per line for the key the line does cite");
@@ -470,13 +468,12 @@ class PageViewerContractTest {
     void aFunctionThatHandsBackTheSameTextForEveryEntryStillGetsALinePerEntry() {
         TestCommandSender console = new TestCommandSender("CONSOLE");
 
-        //one text, handed back for every entry - what memoizing a template by type or by rank looks
-        //like. The row's values are baked in, so a shared instance would carry the first row forever
+        //one text, handed back for every entry - what memoizing a template by type or by rank looks like. The
+        //entry's values are baked in, so a shared instance would carry the first entry forever
         FancyText shared = new FancySegment("[${entry}]");
 
-        bareOf(Arrays.asList("alpha", "beta"))
+        bare(listOf(Arrays.asList("alpha", "beta")).addValue("entry", entry -> entry).build())
                 .setFormatLine(entry -> shared)
-                .addRowPlaceholder("entry", entry -> entry)
                 .build()
                 .send(console);
 
@@ -492,16 +489,15 @@ class PageViewerContractTest {
 
         TestFPlayerSender reader = new TestFPlayerSender("Steve");
 
-        bareOf(Arrays.asList("alpha", "beta"))
+        bare(listOf(Arrays.asList("alpha", "beta")).addValue("entry", entry -> entry).build())
                 .setFormatLine(title.custom()
                         .setHover("§7Click for details of ${entry}")
                         .append(suffix))
-                .addRowPlaceholder("entry", entry -> entry)
                 .build()
                 .send(reader);
 
         assertEquals(Arrays.asList("§ealpha§7 (#1)", "§ebeta§7 (#2)"), reader.getMessages(),
-                "both halves of the appended message are the line, each resolved for its own row");
+                "both halves of the appended message are the line, each resolved for its own entry");
 
         assertEquals("§7Click for details of alpha", reader.hoverTextOfMessageContaining("alpha"),
                 "the decoration the caller put on the message reaches the page");
@@ -525,18 +521,15 @@ class PageViewerContractTest {
             TestFPlayerSender english = locales.reader("Steve", LocaleType.EN_US);
             TestFPlayerSender brazilian = locales.reader("Petrus", LocaleType.PT_BR);
 
-            PageViewer.of(String.class)
-                    .source(() -> Arrays.asList("gamma", "alpha", "beta"))
-                    .unlimitedEntries()
+            bare(listOf(Arrays.asList("gamma", "alpha", "beta"))
                     .orderBy(entry -> entry).ascending()
-                    .setFormatLine(line)
-                    .theme(PageTheme.none())
-                    .navigation(PageNavigation.none())
-                    .addRowPlaceholder("entry", entry -> entry)
-                    .addRowPlaceholder("amount", entry -> {
+                    .addValue("entry", entry -> entry)
+                    .addValue("amount", entry -> {
                         amountCalls.incrementAndGet();
                         return entry.length() * 10;
                     })
+                    .build())
+                    .setFormatLine(line)
                     .build()
                     .send(english, brazilian);
 
@@ -551,7 +544,7 @@ class PageViewerContractTest {
                     "§7#3 saldo de gamma: 50"), brazilian.getMessages());
 
             assertEquals(3, amountCalls.get(),
-                    "the row values are shared: two readers of three lines still cost three calls");
+                    "the list values are shared: two readers of three lines still cost three calls");
         }
     }
 
@@ -563,24 +556,26 @@ class PageViewerContractTest {
     void twoConcurrentSendsNeverMixOneSnapshotWithAnother() throws Exception {
         AtomicInteger generation = new AtomicInteger();
 
-        //Every read of the source produces a whole new set of entries, all stamped with the same
-        //generation - so a page holding lines from two reads is visible as two stamps in one send.
-        PageViewer<String> viewer = PageViewer.of(String.class)
-                .source(() -> {
-                    int stamp = generation.incrementAndGet();
-                    List<String> entries = new ArrayList<>();
-                    for (int index = 0; index < 40; index++) {
-                        entries.add("g" + stamp);
-                    }
-                    return entries;
-                })
-                .unlimitedEntries()
+        //Every read of the source produces a whole new set of entries, all stamped with the same generation - so a
+        //page holding lines from two reads is visible as two stamps in one send.
+        PageViewer<String> viewer = PageViewer.of(
+                        RankedList.anonymous(String.class)
+                        .source(() -> {
+                            int stamp = generation.incrementAndGet();
+                            List<String> entries = new ArrayList<>();
+                            for (int index = 0; index < 40; index++) {
+                                entries.add("g" + stamp);
+                            }
+                            return entries;
+                        })
+                        .unlimitedEntries()
+                        .cache(CachePolicy.none())
+                        .addValue("entry", entry -> entry)
+                        .build())
                 .setPageSize(100)
                 .theme(PageTheme.none())
                 .navigation(PageNavigation.none())
-                .cache(CachePolicy.none())
                 .setFormatLine("${entry}")
-                .addRowPlaceholder("entry", entry -> entry)
                 .build();
 
         List<Thread> threads = new ArrayList<>();
@@ -599,5 +594,54 @@ class PageViewerContractTest {
                     "a single send must never mix two reads of the source: " + reader.getMessages());
             assertEquals(40, reader.getMessages().size(), "" + reader.getMessages());
         }
+    }
+
+    // ------------------------------------------------------------------
+    //  an async list
+    // ------------------------------------------------------------------
+
+    @Test
+    void anAsyncListIsDeliveredWhenItsReadLandsAndOnTheMainThread() {
+        CompletableFuture<List<String>> read = new CompletableFuture<>();
+        TestCommandSender console = new TestCommandSender("CONSOLE");
+
+        PageViewer<String> viewer = bare(RankedList.anonymous(String.class)
+                .sourceAsync(() -> read)
+                .unlimitedEntries()
+                .build())
+                .setFormatLine("${value}")
+                .build();
+
+        int mainThreadRunsBefore = harness.platform.getMainThreadRuns();
+        viewer.send(console);
+
+        assertTrue(console.getMessages().isEmpty(), "nothing can be delivered before the read lands: " + console.getMessages());
+
+        read.complete(Arrays.asList("alpha", "beta"));
+
+        assertEquals(Arrays.asList("alpha", "beta"), console.getMessages());
+        assertEquals(mainThreadRunsBefore + 1, harness.platform.getMainThreadRuns(),
+                "the delivery has to hop to the main thread, never run on the storage thread that completed the read");
+    }
+
+    @Test
+    void anAsyncPageStillNamesTheCommandItWasSentFrom() {
+        CompletableFuture<List<String>> read = new CompletableFuture<>();
+        TestCommandSender console = new TestCommandSender("CONSOLE");
+
+        PageViewer<String> viewer = bare(RankedList.anonymous(String.class)
+                .sourceAsync(() -> read)
+                .unlimitedEntries()
+                .build())
+                .setFormatLine("/${label} ${value}")
+                .build();
+
+        try (MessageScope scope = MessageScope.open(CommandPath.ofRoot("mytop"))) {
+            viewer.send(console);
+        }
+        //the read lands after the command returned: the scope it ran in is gone from every thread
+        read.complete(Collections.singletonList("alpha"));
+
+        assertEquals(Collections.singletonList("/mytop alpha"), console.getMessages());
     }
 }

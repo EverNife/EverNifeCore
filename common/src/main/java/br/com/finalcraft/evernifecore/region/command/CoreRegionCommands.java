@@ -17,9 +17,10 @@ import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
-import br.com.finalcraft.evernifecore.pageviewer.CachePolicy;
 import br.com.finalcraft.evernifecore.pageviewer.PageViewer;
 import br.com.finalcraft.evernifecore.pageviewer.theme.PageTheme;
+import br.com.finalcraft.evernifecore.ranking.CachePolicy;
+import br.com.finalcraft.evernifecore.ranking.RankedList;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
@@ -116,20 +117,22 @@ public class CoreRegionCommands {
         String ownerFilter = owner == null || owner.equals("*") ? null : owner;
         String worldFilter = world == null || world.equals("*") ? null : world;
         String key = (ownerFilter == null ? "*" : ownerFilter.toLowerCase()) + ":" + (worldFilter == null ? "*" : worldFilter);
-        return LIST_PAGES.computeIfAbsent(key, ignored -> PageViewer.of(Region.class)
-                .id("evernifecore:region:" + key)
-                .source(() -> RegionLookup.get().all().stream()
-                        .filter(region -> ownerFilter == null || region.getId().getOwner().equalsIgnoreCase(ownerFilter))
-                        .filter(region -> worldFilter == null || region.getWorld().equals(worldFilter))
-                        .collect(Collectors.toList()))
-                .unlimitedEntries()
-                .orderBy(region -> region.getId().toString()).ascending()
+        //anonymous: a world name is free text, so the filter cannot be a list id - the reader pages a session
+        return LIST_PAGES.computeIfAbsent(key, ignored -> PageViewer.of(
+                        RankedList.anonymous(Region.class)
+                        .source(() -> RegionLookup.get().all().stream()
+                                .filter(region -> ownerFilter == null || region.getId().getOwner().equalsIgnoreCase(ownerFilter))
+                                .filter(region -> worldFilter == null || region.getWorld().equals(worldFilter))
+                                .collect(Collectors.toList()))
+                        .unlimitedEntries()
+                        .orderBy(region -> region.getId().toString()).ascending()
+                        .cache(CachePolicy.none())
+                        .addValue("region_id", region -> region.getId().toString())
+                        .addValue("priority", Region::getPriority)
+                        .addValue("world", Region::getWorld)
+                        .addValue("summary", CoreRegionCommands::summary)
+                        .build())
                 .setFormatLine(FancyText.of("§7# ${number}: §e${region_id} §7prio ${priority} §8${world}").setHover("${summary}"))
-                .addRowPlaceholder("region_id", region -> region.getId().toString())
-                .addRowPlaceholder("priority", Region::getPriority)
-                .addRowPlaceholder("world", Region::getWorld)
-                .addRowPlaceholder("summary", CoreRegionCommands::summary)
-                .cache(CachePolicy.none())
                 .theme(PageTheme.classic().withTotalCount())
                 .build());
     }

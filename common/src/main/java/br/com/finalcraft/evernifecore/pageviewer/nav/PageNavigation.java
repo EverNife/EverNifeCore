@@ -30,14 +30,14 @@ public interface PageNavigation {
     }
 
     /**
-     * A page carrying an {@code id}, navigated by {@code /ecpage <pageId> <page>}. Zero memory,
-     * survives a restart, and never re-runs the command that produced the page: the id resolves the
-     * viewer straight out of {@code PageRegistry}. Only for a page whose content does not depend on
-     * command arguments. The link stays readable ({@code /ecpage finaljobs:top 3}), which is what
+     * A page over a list carrying an {@code id}, navigated by {@code /ecpage <listId> <page>}. Zero
+     * memory, survives a restart, and never re-runs the command that produced the page: the id resolves
+     * the list out of {@code RankedLists}, and the list hands over its renderer. Only for a list whose
+     * content does not depend on command arguments. The link stays readable ({@code /ecpage finaljobs:top 3}), which is what
      * makes it worth anything in the client's command history.
      */
-    static PageNavigation registered(String pageId) {
-        return context -> PVExtraMessages.navigationBar(context, page -> "/ecpage " + pageId + " " + page);
+    static PageNavigation registered(String listId) {
+        return context -> PVExtraMessages.navigationBar(context, page -> "/ecpage " + listId + " " + page);
     }
 
     /**

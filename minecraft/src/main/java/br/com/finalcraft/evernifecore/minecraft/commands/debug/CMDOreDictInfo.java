@@ -18,6 +18,7 @@ import br.com.finalcraft.evernifecore.minecraft.util.FCItemUtils;
 import br.com.finalcraft.evernifecore.pageviewer.PageViewer;
 import br.com.finalcraft.evernifecore.pageviewer.PageVisualization;
 import br.com.finalcraft.evernifecore.pageviewer.theme.PageTheme;
+import br.com.finalcraft.evernifecore.ranking.RankedList;
 import br.com.finalcraft.evernifecore.util.FCStringUtil;
 import org.bukkit.inventory.ItemStack;
 
@@ -57,10 +58,12 @@ public class CMDOreDictInfo {
 
         //Anonymous on purpose: what this page holds depends on <oreDict>, so there is no name that
         //could mean the same thing tomorrow - it is paged through the reader's own session.
-        PageViewer.of(ItemStack.class)
-                .source(() -> itemStacks)
-                .unlimitedEntries()
-                .orderBy(itemStack -> FCItemUtils.getMinecraftIdentifier(itemStack)).ascending()
+        PageViewer.of(
+                        RankedList.anonymous(ItemStack.class)
+                        .source(() -> itemStacks)
+                        .unlimitedEntries()
+                        .orderBy(itemStack -> FCItemUtils.getMinecraftIdentifier(itemStack)).ascending()
+                        .build())
                 .setFormatLine(itemStack -> {
                     return new FancySegment("§7#  ${number}:   §a${value}").setClickSuggest("${value}");
                 })
@@ -83,18 +86,20 @@ public class CMDOreDictInfo {
             filteredEntries.removeIf(oreDictEntry -> !FCStringUtil.startsWithIgnoreCase(oreDictEntry.getOreName(), startsWith));
         }
 
-        PageViewer.of(OreDictEntry.class)
-                .source(() -> filteredEntries)
-                .unlimitedEntries()
-                .orderBy(oreDict -> oreDict.getOreName()).ascending()
+        PageViewer.of(
+                        RankedList.anonymous(OreDictEntry.class)
+                        .source(() -> filteredEntries)
+                        .unlimitedEntries()
+                        .orderBy(oreDict -> oreDict.getOreName()).ascending()
+                        .addValue("oredict_amount", entry -> entry.getItemStacks().size())
+                        .addValue("oredict_name", entry -> entry.getOreName())
+                        .addValue("label", oreDictEntry -> label)
+                        .build())
                 .setFormatLine(
                         new FancySegment("§7#  ${number}: (${oredict_amount})  §a${value}")
                         .setClickCommand(OREDICT_INFO.getFancyText(sender).getClickActionText())
                         .setHover(OREDICT_INFO.getFancyText(sender).getHoverText())
                 )
-                .addRowPlaceholder("oredict_amount", entry -> entry.getItemStacks().size())
-                .addRowPlaceholder("oredict_name", entry -> entry.getOreName())
-                .addRowPlaceholder("label", oreDictEntry -> label)
                 .theme(PageTheme.classic().withTotalCount())
                 .build()
                 .send(sender);

@@ -18,6 +18,14 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **`ranking`**: `RankedList<T>` is the data half of a ranked list - id `owner:name` (`RankedList.of(plugin, name, type)`,
+  or `anonymous(type)` for a list that depends on a command argument), a plain or `CompletableFuture` source
+  (`source`/`sourceAsync`), ceiling, order, `addValue` keys and a `CachePolicy` (`ttl`/`none`/`manual`), with one
+  `RankedSnapshot` shared by every reader. An async source never blocks the caller and keeps one read in flight; a failed
+  read keeps the previous snapshot and is retried once per policy lifetime, not once per reader.
+  `RankedPlaceholders.register(replacer, owner)` serves `%<prefix>_top_[list]_{n}_name|value|[key]%`, `_size`, `_total`,
+  `_position` and `_age`; the core serves `%evernifecore_top_[owner:name]_...%`. `RankedLists.find`/`ownedBy`/`closeOwnedBy`
+  (run at the owner's shutdown).
 - **Self-describing type registries (`types`)**: a `TypeRegistry<T>` holds the types of one kind by `owner:name` key,
   each described by a `TypeDescriptor` (aliases, one-sentence description, `ParamSpec` parameters, platforms, needed
   player capabilities, event sources, factory). A definition node (`{type: compare, amount: 3}`, or `permission: shop.vip`
@@ -147,6 +155,13 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **`PageViewer` is now the chat renderer of a `RankedList`**: `PageViewer.of(rankedList)` keeps the format, theme,
+  navigation, page size and viewer placeholders; `source`, `maxEntries`, `orderBy`, `cache`, `id` and `addRowPlaceholder`
+  moved to `RankedList` (`addRowPlaceholder` is `RankedList.Builder.addValue`). `PageViewer.of(Class)` and `PageRegistry`
+  are gone (`RankedLists` finds a list by id). `/ecpage <id> <page>` sends the list's renderer. A list with an async
+  source is delivered on the main thread when its read lands, still naming the command it was sent from.
+- The core's `/ecore region list` page is an anonymous list now (a world name is not an id): it pages by session.
+- Requires EveryDatabase 1.5.1.
 - `FlagRegistry.setServedSources` is gone: a platform declares what it raises with `ActionSupport.declare(platform, post,
   pre, nativeCommandSource)`, and `FlagRegistry.getUnservedSources` reads `ActionSupport.isServed`.
 - The Bukkit listeners of `minecraft.action.listener` are named for the action: `RegionListeners` is `ActionListeners`
@@ -192,6 +207,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Removed
 
+- `pageviewer.CachePolicy`, `PageSnapshot`, `Row`, `PageOrder`, `PageRegistry` (moved to `ranking` as `CachePolicy`,
+  `RankedSnapshot`, `RankedEntry`, internal, `RankedLists`).
 - **The Bukkit-only events** `ECPlayerCraftItemEvent`, `ECPlayerChangeChunkEvent` and the `ECPlayerdataDamagePlayerdata`
   family (`ECPlayerDamagedByPlayer`, `ECPlayerDamagedByPet`, `ECPetDamagedByPet`, `ECPetDamagedByPlayer`) no longer exist,
   nor do their producers `PlayerCraftListener`, `PlayerMoveListener` and `PlayerDamageByEntityListener`. Use
