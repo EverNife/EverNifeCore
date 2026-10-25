@@ -18,6 +18,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **`RegionCrossedEvent`**: posted once a crossing took effect, with the regions left, the regions entered, the
+  player, from/to, the `MoveCause` and the native event; never cancellable. `RegionEnterEvent`/`RegionLeaveEvent`
+  keep their "before the crossing, cancellable" role.
+- **`RegionManager.of(owner)`**: a manager without storage, for `TRANSIENT` regions only - creating a `PERSISTENT`
+  region there is a refusal in the `CreationResult` that says how to open the manager on a storage.
 - **`FancyText.raw(String)`**: a piece that renders its text as written - no `&` colour translation, no `${key}`
   resolution - for player-typed text inside a line with hover/click (`FancySegment.isRaw()`).
 - **`FCommandSender.canSee(FPlayer)`**: whether the platform hides that player from the sender (Bukkit `canSee`,

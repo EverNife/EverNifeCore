@@ -18,6 +18,7 @@ import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.TestRegions;
 import br.com.finalcraft.evernifecore.region.event.RegionBoundaryEvent;
+import br.com.finalcraft.evernifecore.region.event.RegionCrossedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionEnterEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionLeaveEvent;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
@@ -36,6 +37,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -146,6 +148,67 @@ class RegionMovementTrackerTest extends TrackerFixture {
         assertEquals(2, crossings.size());
         assertTrue(crossings.get(0) instanceof RegionLeaveEvent && crossings.get(0).getRegion() == a);
         assertTrue(crossings.get(1) instanceof RegionEnterEvent && crossings.get(1).getRegion() == b);
+    }
+
+    @Test
+    void anAcceptedCrossingPostsOneCrossedEventAfterTheLeavesAndEnters() {
+        Region a = region("a", 0, 10);
+        Region b = region("b", 11, 20);
+        tracker.onJoin(player, at(5.5));
+        List<Object> seen = new ArrayList<>();
+        bus.subscribe(RegionBoundaryEvent.class, seen::add);
+        bus.subscribe(RegionCrossedEvent.class, seen::add);
+
+        tracker.onMove(player, at(10.5), at(11.5), MoveCause.MOVE, null);
+
+        assertEquals(3, seen.size(), seen.toString());
+        RegionCrossedEvent crossed = assertInstanceOf(RegionCrossedEvent.class, seen.get(2), "the crossing is posted last");
+        assertEquals(Collections.singletonList(a), crossed.getLeft());
+        assertEquals(Collections.singletonList(b), crossed.getEntered());
+        assertEquals(MoveCause.MOVE, crossed.getCause());
+        assertEquals(at(10.5), crossed.getFrom());
+        assertEquals(at(11.5), crossed.getTo());
+        assertEquals(Collections.singletonList(b), session().getCurrent(), "the session already counts the player in b");
+    }
+
+    @Test
+    void aCancelledEnterPostsNoCrossedEvent() {
+        region("arena", 0, 10);
+        bus.subscribe(RegionEnterEvent.class, event -> event.setCancelled(true));
+        List<RegionCrossedEvent> crossed = record(RegionCrossedEvent.class);
+
+        walk(12.5, 9.5);
+
+        assertTrue(crossed.isEmpty(), crossed.toString());
+    }
+
+    @Test
+    void quittingPostsACrossedEventWithNoDestination() {
+        Region arena = region("arena", 0, 10);
+        tracker.onJoin(player, at(5.5));
+        List<RegionCrossedEvent> crossed = record(RegionCrossedEvent.class);
+
+        tracker.onQuit(player);
+
+        assertEquals(1, crossed.size());
+        assertEquals(MoveCause.QUIT, crossed.get(0).getCause());
+        assertNull(crossed.get(0).getTo());
+        assertEquals(Collections.singletonList(arena), crossed.get(0).getLeft());
+        assertTrue(crossed.get(0).getEntered().isEmpty());
+    }
+
+    @Test
+    void joiningInsideARegionPostsACrossedEventWithNoOrigin() {
+        Region arena = region("arena", 0, 10);
+        List<RegionCrossedEvent> crossed = record(RegionCrossedEvent.class);
+
+        tracker.onJoin(player, at(5.5));
+
+        assertEquals(1, crossed.size());
+        assertEquals(MoveCause.JOIN, crossed.get(0).getCause());
+        assertNull(crossed.get(0).getFrom());
+        assertTrue(crossed.get(0).getLeft().isEmpty());
+        assertEquals(Collections.singletonList(arena), crossed.get(0).getEntered());
     }
 
     @Test

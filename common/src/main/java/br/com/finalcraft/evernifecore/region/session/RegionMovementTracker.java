@@ -13,6 +13,7 @@ import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.event.RegionChangedEvent;
+import br.com.finalcraft.evernifecore.region.event.RegionCrossedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionEnterEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionFlagChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionGroupChangedEvent;
@@ -27,6 +28,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Follows every online player across region borders. The platform hands each move in with the position it already
@@ -157,6 +159,7 @@ public final class RegionMovementTracker {
             return MoveVerdict.revert(lastValid != null ? lastValid : from);   //a listener that cancels does not pick a strategy
         }
         session.commit(next, to, lookup.getSnapshotVersion(to.getWorldName()));
+        postCrossed(exited, entered, () -> new RegionCrossedEvent(player, from, to, cause, exited, entered, nativeEvent));
         sessionFlags.apply(player, session, SessionFlags.Trigger.BOUNDARY);
         return MoveVerdict.allowed();
     }
@@ -184,6 +187,8 @@ public final class RegionMovementTracker {
         List<Region> next = lookup.at(at);
         postCrossings(player, null, at, MoveCause.JOIN, Collections.emptyList(), next, null);
         session.commit(next, at, lookup.getSnapshotVersion(at.getWorldName()));
+        postCrossed(Collections.emptyList(), next,
+                () -> new RegionCrossedEvent(player, null, at, MoveCause.JOIN, Collections.emptyList(), next, null));
         sessionFlags.apply(player, session, SessionFlags.Trigger.BOUNDARY);
         session.getHeldState().restoreLeftovers(player); //what a server stop left applied, and no region here holds
         return expelFoundInside(player, session, at, MoveCause.JOIN, next);
@@ -206,8 +211,11 @@ public final class RegionMovementTracker {
                 WorldLocPos to = verdict.getRevertTo();
                 List<Region> there = lookup.at(to);
                 List<Region> here = session.getCurrent();
-                postCrossings(player, at, to, cause, minus(here, there), minus(there, here), null);   //nothing to cancel: the player is going
+                List<Region> left = minus(here, there);
+                List<Region> entered = minus(there, here);
+                postCrossings(player, at, to, cause, left, entered, null);   //nothing to cancel: the player is going
                 session.commit(there, to, lookup.getSnapshotVersion(to.getWorldName()));
+                postCrossed(left, entered, () -> new RegionCrossedEvent(player, at, to, cause, left, entered, null));
                 sessionFlags.apply(player, session, SessionFlags.Trigger.BOUNDARY);
                 return verdict;
             }
@@ -229,7 +237,11 @@ public final class RegionMovementTracker {
         ProtectionFlagGate.forget(uuid);
         FPlayer player = session.getOnlinePlayer();
         if (player != null) {
-            postCrossings(player, session.getPosition(), null, MoveCause.QUIT, session.getCurrent(), Collections.emptyList(), null);
+            WorldLocPos from = session.getPosition();
+            List<Region> left = session.getCurrent();
+            postCrossings(player, from, null, MoveCause.QUIT, left, Collections.emptyList(), null);
+            postCrossed(left, Collections.emptyList(),
+                    () -> new RegionCrossedEvent(player, from, null, MoveCause.QUIT, left, Collections.emptyList(), null));
             sessionFlags.leaveAll(player, session);
         }
     }
@@ -274,6 +286,10 @@ public final class RegionMovementTracker {
             bus.postIfListened(RegionEnterEvent.class, () -> new RegionEnterEvent(region, player, at, at, MoveCause.REGION_CREATED, null));
         }
         session.setCurrent(next, lookup.getSnapshotVersion(at.getWorldName()));
+        postCrossed(exited, Collections.emptyList(),
+                () -> new RegionCrossedEvent(player, at, at, MoveCause.REGION_REMOVED, exited, Collections.emptyList(), null));
+        postCrossed(Collections.emptyList(), entered,
+                () -> new RegionCrossedEvent(player, at, at, MoveCause.REGION_CREATED, Collections.emptyList(), entered, null));
         sessionFlags.apply(player, session, SessionFlags.Trigger.BOUNDARY);
         expelAndTeleport(player, session, at, MoveCause.REGION_CREATED, entered);
     }
@@ -345,6 +361,13 @@ public final class RegionMovementTracker {
             }
         }
         return false;
+    }
+
+    /** Posts a crossing that already took effect, when it crossed any border. */
+    private void postCrossed(List<Region> left, List<Region> entered, Supplier<RegionCrossedEvent> event) {
+        if (!left.isEmpty() || !entered.isEmpty()) {
+            bus.postIfListened(RegionCrossedEvent.class, event);
+        }
     }
 
     private void invalidateUnder(Region region) {

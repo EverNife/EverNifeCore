@@ -103,7 +103,7 @@ public final class RegionManager {
     private volatile boolean foreignAccess = true;
     private final RegionTerrain terrain = new RegionTerrain(this);
 
-    /** @param storage null for a manager that writes nothing - tests that only need regions to exist */
+    /** @param storage null for a manager that writes nothing: {@link #of(ECPluginData)}, and tests that only need regions to exist */
     RegionManager(ECPluginData owner, @Nullable ECStorage storage) {
         this.owner = Objects.requireNonNull(owner, "owner");
         this.storage = storage;
@@ -115,11 +115,31 @@ public final class RegionManager {
     }
 
     /**
+     * The manager of {@code owner} that writes nothing, created on first call: it keeps only
+     * {@link Persistence#TRANSIENT TRANSIENT} regions, which go when the owner shuts down or their world unloads, and
+     * refuses to create a {@link Persistence#PERSISTENT PERSISTENT} one. When the owner already has a manager, on a
+     * storage or not, that one is returned (a manager on a storage keeps transient regions too). Any thread.
+     */
+    public static RegionManager of(ECPluginData owner) {
+        Objects.requireNonNull(owner, "'owner' cannot be null when opening a RegionManager!");
+        followWorlds();
+        synchronized (MANAGERS) {
+            RegionManager existing = MANAGERS.get(owner);
+            if (existing != null) {
+                return existing;
+            }
+            RegionManager created = new RegionManager(owner, null);
+            MANAGERS.put(owner, created);
+            return created;
+        }
+    }
+
+    /**
      * The manager of {@code owner}, created on first call; later calls with the same storage return the same
      * manager. Any thread.
      *
-     * @throws IllegalStateException when {@code owner} already has a manager on another storage, or another plugin
-     *                               already keeps its regions in {@code storage}
+     * @throws IllegalStateException when {@code owner} already has a manager without storage ({@link #of(ECPluginData)})
+     *                               or on another storage, or another plugin already keeps its regions in {@code storage}
      */
     public static RegionManager of(ECPluginData owner, ECStorage storage) {
         Objects.requireNonNull(owner, "'owner' cannot be null when opening a RegionManager!");
@@ -130,6 +150,10 @@ public final class RegionManager {
             if (existing != null) {
                 if (existing.storage == storage) {
                     return existing;
+                }
+                if (existing.storage == null) {
+                    throw new IllegalStateException(nameOf(owner) + " already has a RegionManager without storage (TRANSIENT regions only) -"
+                            + " close() it before opening one on an ECStorage.");
                 }
                 throw new IllegalStateException(nameOf(owner) + " already has a RegionManager on another ECStorage - close() it before"
                         + " opening one on a new storage.");
@@ -417,8 +441,8 @@ public final class RegionManager {
 
     /**
      * Creates and indexes a region, then posts {@code RegionCreatedEvent}. A name in use, an invalid name, a parent
-     * of another owner or world, or a policy that refuses one of the overlaps is a refusal in the result, never an
-     * exception. Any thread; the event goes out on the caller's. Only once {@link #isLoaded() loaded}: before that
+     * of another owner or world, a policy that refuses one of the overlaps, or a {@code PERSISTENT} region in a
+     * manager without storage is a refusal in the result, never an exception. Any thread; the event goes out on the caller's. Only once {@link #isLoaded() loaded}: before that
      * the index lacks the stored regions, so the name check and the overlap policy would run against half the truth.
      *
      * @throws IllegalStateException when this manager is closed, or its regions are not loaded yet - create from
@@ -437,6 +461,12 @@ public final class RegionManager {
             id = RegionId.of(nameOf(owner), name);
         } catch (IllegalArgumentException invalid) {
             return CreationResult.refused(invalid.getMessage(), Collections.emptyList());
+        }
+        if (regionStorage == null && options.getPersistence() == Persistence.PERSISTENT) {
+            return CreationResult.refused("Region " + id + " cannot be PERSISTENT: the RegionManager of " + nameOf(owner) + " was opened"
+                    + " without storage (RegionManager.of(owner)), so it keeps only TRANSIENT regions - create it with"
+                    + " RegionOptions.defaults().withPersistence(Persistence.TRANSIENT), or open the manager with"
+                    + " RegionManager.of(owner, storage) to store regions.", Collections.emptyList());
         }
         Region parent = options.getParent();
         if (parent != null && (parent.getManager() != this || !parent.isAttached())) {
