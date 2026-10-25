@@ -1,6 +1,5 @@
 package br.com.finalcraft.evernifecore.minecraft.listeners;
 
-import br.com.finalcraft.evernifecore.actionbar.ActionBarAPI;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.events.player.ECPlayerFullyLoggedInEvent;
 import br.com.finalcraft.evernifecore.api.events.player.ECPlayerQuitEvent;
@@ -11,7 +10,6 @@ import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.notify.IHudAccess;
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
 import br.com.finalcraft.evernifecore.minecraft.notify.McHudAccess;
-import br.com.finalcraft.evernifecore.minecraft.title.TitleAPI;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import fr.xephi.authme.events.LoginEvent;
 import org.bukkit.entity.Player;
@@ -74,9 +72,6 @@ public class PlayerLoginListener implements ECListener {
             //Detach + durably flush this player off the quit thread (bounded async; retried on
             //a storage outage, never dropped). Working-set sections evict after a short grace.
             PlayerController.handlePlayerQuit(playerData.getUniqueId());
-
-            ActionBarAPI.clearReferences(playerData.getUniqueId());
-            TitleAPI.clearReferences(playerData.getUniqueId());
         }
 
         IHudAccess hud = EverNifeCore.getPlatform().getHud();

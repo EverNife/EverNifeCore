@@ -4,6 +4,10 @@ import br.com.finalcraft.evernifecore.action.EventSourceUsage;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpWords;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
 import br.com.finalcraft.evernifecore.cooldown.CooldownRetention;
+import br.com.finalcraft.evernifecore.notify.NotifyChain;
+import br.com.finalcraft.evernifecore.notify.NotifyException;
+import br.com.finalcraft.evernifecore.notify.NotifyKind;
+import br.com.finalcraft.evernifecore.notify.Notifier;
 import br.com.finalcraft.evernifecore.region.RegionIndex;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.RegionSweeper;
@@ -16,6 +20,8 @@ import br.com.finalcraft.everylibs.util.FCTimeUtil;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.Collections;
 import java.time.format.DateTimeFormatter;
@@ -70,6 +76,24 @@ public class ECSettings {
     public static boolean PROVENANCE_SHARED = false;
     public static boolean PROVENANCE_ALWAYS = false;
     public static Duration PROVENANCE_RETENTION_PLAYER_PLACED = Duration.ofDays(30);
+
+    //Notify - what a file without the key gets; the live values start as these
+    private static final Map<NotifyKind, NotifyChain> SHIPPED_NOTIFY_CHAINS = new EnumMap<>(NotifyKind.class);
+    private static final Map<NotifyKind, Duration> SHIPPED_NOTIFY_DURATIONS = new EnumMap<>(NotifyKind.class);
+    static {
+        SHIPPED_NOTIFY_CHAINS.put(NotifyKind.PROGRESS, NotifyChain.parse("action-bar", "chat"));
+        SHIPPED_NOTIFY_CHAINS.put(NotifyKind.COMPLETE, NotifyChain.parse("title+sound", "chat+sound", "chat"));
+        SHIPPED_NOTIFY_CHAINS.put(NotifyKind.TRACKED, NotifyChain.parse("boss-bar", "tracker", "action-bar", "chat"));
+        SHIPPED_NOTIFY_CHAINS.put(NotifyKind.INFO, NotifyChain.parse("chat"));
+        SHIPPED_NOTIFY_CHAINS.put(NotifyKind.DENY, NotifyChain.parse("action-bar", "chat"));
+        SHIPPED_NOTIFY_DURATIONS.put(NotifyKind.PROGRESS, Duration.ofSeconds(3));
+        SHIPPED_NOTIFY_DURATIONS.put(NotifyKind.COMPLETE, Duration.ofSeconds(5));
+        SHIPPED_NOTIFY_DURATIONS.put(NotifyKind.TRACKED, Duration.ZERO);
+        SHIPPED_NOTIFY_DURATIONS.put(NotifyKind.INFO, Duration.ofSeconds(3));
+        SHIPPED_NOTIFY_DURATIONS.put(NotifyKind.DENY, Duration.ofSeconds(3));
+    }
+    private static final Map<NotifyKind, NotifyChain> NOTIFY_CHAINS = new EnumMap<>(SHIPPED_NOTIFY_CHAINS);
+    private static final Map<NotifyKind, Duration> NOTIFY_DURATIONS = new EnumMap<>(SHIPPED_NOTIFY_DURATIONS);
 
     public static void initialize(){
         ZONE_ID_OF_DAY_OF_TODAY = ConfigManager.getMainConfig().getOrSetValueIfAbsent("Settings.Time.ZONE_ID_OF_DAY_OF_TODAY",
@@ -171,6 +195,7 @@ public class ECSettings {
         loadRegionSettings(ConfigManager.getMainConfig());
         applyRegionSettings();
         loadProvenanceSettings(ConfigManager.getMainConfig());
+        loadNotifySettings(ConfigManager.getMainConfig());
 
         if (ConfigManager.getMainConfig().hasNewSeededDefaults()){
             ConfigManager.getMainConfig().save();
@@ -276,6 +301,87 @@ public class ECSettings {
                 "Provenance.retention.player-placed", Duration.ofDays(30),
                 "How long a placed block remembers who placed it; an older record reads as natural and is dropped."
         );
+    }
+
+    /** The chain of {@code kind}: {@code Settings.Notify.chains.<kind>}, or its shipped default before the file is read. */
+    public static NotifyChain getNotifyChain(NotifyKind kind) {
+        synchronized (NOTIFY_CHAINS) {
+            return NOTIFY_CHAINS.get(kind);
+        }
+    }
+
+    /** How long a notification of {@code kind} without its own duration stays; zero is until cleared. */
+    public static Duration getNotifyDuration(NotifyKind kind) {
+        synchronized (NOTIFY_CHAINS) {
+            return NOTIFY_DURATIONS.get(kind);
+        }
+    }
+
+    /**
+     * Reads every {@code Settings.Notify.*} key of {@code config}, seeding what is absent.
+     *
+     * @throws NotifyException when a chain names a channel that is neither one of the core's nor written {@code <plugin>:<name>}
+     */
+    public static void loadNotifySettings(Config config){
+        String chainsComment = "\nEach step is tried in order and the first one this platform fully supports is shown; '+' joins channels"
+                + "\nshown together. Channels: " + Notifier.STOCK_CHANNELS + ", or a plugin's as <plugin>:<name>."
+                + "\nThe sidebar is opt-in: no default names it.";
+        Map<NotifyKind, NotifyChain> chains = new EnumMap<>(NotifyKind.class);
+        chains.put(NotifyKind.PROGRESS, readChain(config, "Settings.Notify.chains.progress", NotifyKind.PROGRESS,
+                "A step forward (a counter moved, an objective advanced)." + chainsComment));
+        chains.put(NotifyKind.COMPLETE, readChain(config, "Settings.Notify.chains.complete", NotifyKind.COMPLETE,
+                "Something finished (a quest, a goal)."));
+        chains.put(NotifyKind.TRACKED, readChain(config, "Settings.Notify.chains.tracked", NotifyKind.TRACKED,
+                "What a player keeps an eye on (the tracked quest)."));
+        chains.put(NotifyKind.INFO, readChain(config, "Settings.Notify.chains.info", NotifyKind.INFO,
+                "A plain message."));
+        chains.put(NotifyKind.DENY, readChain(config, "Settings.Notify.chains.deny", NotifyKind.DENY,
+                "An action was refused."));
+
+        Map<NotifyKind, Duration> durations = new EnumMap<>(NotifyKind.class);
+        for (NotifyKind kind : NotifyKind.values()) {
+            durations.put(kind, readDuration(config, "Settings.Notify.durations." + kind.getKey(), SHIPPED_NOTIFY_DURATIONS.get(kind),
+                    "How long a '" + kind.getKey() + "' notification stays on the action bar, the title and the boss bar when"
+                            + "\nthe plugin that sends it sets no duration. 0s stays until the plugin clears it."));
+        }
+        synchronized (NOTIFY_CHAINS) {
+            NOTIFY_CHAINS.putAll(chains);
+            NOTIFY_DURATIONS.putAll(durations);
+        }
+    }
+
+    private static NotifyChain readChain(Config config, String key, NotifyKind kind, String comment){
+        List<String> written = config.getOrSetValueIfAbsent(key, chainAsList(SHIPPED_NOTIFY_CHAINS.get(kind)), comment);
+        NotifyChain chain;
+        try {
+            chain = NotifyChain.parse(written);
+        } catch (IllegalArgumentException invalid) {
+            throw new NotifyException(key + ": " + written + " is not a chain. " + invalid.getMessage());
+        }
+        for (String name : chain.getChannelNames()) {
+            if (!isKnownChannel(name)) {
+                throw new NotifyException(key + ": " + written + " names the channel '" + name + "', which nobody registered."
+                        + " The channels are " + Notifier.STOCK_CHANNELS + "; a plugin's channel is written <plugin>:<name>.");
+            }
+        }
+        return chain;
+    }
+
+    //a <plugin>:<name> of another plugin resolves later, when that plugin registers it; a step it is in waits until then
+    private static boolean isKnownChannel(String name){
+        int colon = name.indexOf(':');
+        if (colon < 0) {
+            return Notifier.STOCK_CHANNELS.contains(name) || Notifier.get().find(name).isPresent();
+        }
+        return !name.substring(0, colon).equals("evernifecore") || Notifier.STOCK_CHANNELS.contains(name.substring(colon + 1));
+    }
+
+    private static List<String> chainAsList(NotifyChain chain){
+        List<String> steps = new ArrayList<>();
+        for (Set<String> step : chain.getSteps()) {
+            steps.add(String.join("+", step));
+        }
+        return steps;
     }
 
     /** A time key: written readable ({@code 3m}), read in that form or as ISO-8601. */

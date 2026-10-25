@@ -158,6 +158,13 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   sidebar, tracker, sound and compass everywhere), Hytale has title, toast, tracker and sound. `HudSounds` names four
   portable sound aliases. `common-tests`: `Platforms.hud()` / `hudWithout(...)` / `hudAccess(...)` and
   `TestPlatform.getTestHud()`; `PlatformConformance` checks that every unsupported capability refuses.
+- **Notifications**: `notify.Notifier` delivers a `Notification` through a chain of channels - chat, action bar,
+  title, sound, boss bar (with progress), sidebar, toast and the quest tracker - taking the first step the platform
+  supports (`Settings.Notify.chains.<kind>`; defaults: action bar for progress, title + sound for completion, boss bar
+  for the tracked quest; `Settings.Notify.durations.<kind>`). A chain with no supported step fails loud at load
+  (`Notifier.validate`), and a misspelled channel in the config fails the boot naming the key. Channels are a
+  `TypeRegistry` (`Notifier.register`); a player who quits is forgotten by every channel, and a queued channel writes
+  only to the platform it started on.
 
 ### Fixed
 
@@ -255,6 +262,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `getHud().supports(IHudAccess.Capability.ACTION_BAR)`. In `common-tests`, `Platforms.actionBarSupported(...)` and
   `TestPlatform.getActionBars()` gave way to `Platforms.hud()` / `hudWithout(ACTION_BAR)` and
   `getTestHud().getActionBarCalls()`.
+- **`actionbar.ActionBarAPI` / `ActionBarMessage` / `PlayerActionBarManager`** and the Bukkit-only
+  **`minecraft.title.TitleAPI` / `TitleMessage` / `PlayerTitleManager`**: send through
+  `Notifier.get().notify(player, Notification.of(NotifyKind.INFO).text(...).channels("action-bar").build())` (or
+  `"title"`; `priority`, `id` and `duration`/`ticks` keep the old queue's meaning). Plugins still on the old API
+  (EveryCommands, FinalHomesAndWarps, FinalRTP) migrate in the template round.
 
 ## [3.0.1-alpha.70] - 2026-10-19
 
