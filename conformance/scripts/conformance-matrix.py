@@ -56,9 +56,9 @@ BREAK_MESSAGE = "ECC break denied"
 SCREENS = ["basic", "hopper", "dispenser", "workbench", "nav", "storage", "prompt", "pager",
            "title-long", "layout", "confirm"]
 SUITE_ORDER = ["items", "nbt", "platform", "version", "commands", "gui", "scheduler", "playerdata",
-               "events", "selection-click", "particles", "text-metrics", "hooks", "nms", "regions", "logic", "actions"]
+               "events", "selection-click", "particles", "text-metrics", "hooks", "nms", "regions", "logic", "actions", "hud"]
 HALVES = ("run", "write", "read")
-EXPECTED_ENDS = {"run": 16, "write": 3, "read": 3}
+EXPECTED_ENDS = {"run": 17, "write": 3, "read": 3}
 WAIT_SECONDS = {"run": 900, "write": 180, "read": 180}
 TEXT_LINES = ("iiiiiiiiii", "WWWWWWWWWW")
 BOT = "EccBot"

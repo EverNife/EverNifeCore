@@ -152,6 +152,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   is dropped when read). A plugin's tracker closes in `onECPluginShutdownPre`, before its regions.
 - **`ActionWorld` in `common-tests`**: one plugin's actions against the test doubles - `pre`/`post` as a native listener
   does them, the contexts they carry, `isNeeded(source)` and the owner's `provenance()` on the world's storage.
+- **`IPlatform.getHud()`**: the `notify.IHudAccess` seam - action bar, title, boss bar (with progress), sidebar, toast,
+  quest tracker, sound and compass - with `supports(Capability)`; a call of a capability the platform lacks throws.
+  Bukkit answers by version (action bar and title above 1.7.10 or with NecroTempus, boss bar from 1.9, toast from 1.12;
+  sidebar, tracker, sound and compass everywhere), Hytale has title, toast, tracker and sound. `HudSounds` names four
+  portable sound aliases. `common-tests`: `Platforms.hud()` / `hudWithout(...)` / `hudAccess(...)` and
+  `TestPlatform.getTestHud()`; `PlatformConformance` checks that every unsupported capability refuses.
 
 ### Fixed
 
@@ -245,6 +251,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   enabled). The new name drops the "next tick" the old one never kept on Paper or Hytale - to pace work one tick at a
   time use `IPlatform.runOnWorldThreadNextTick`. In `common-tests`, `Platforms.mainThreadInline()` now also installs
   the in-place main thread on `ECScheduler` for the life of the `ECoreTestWorld`.
+- **`IPlatform.sendActionBarMessage` / `serverSupportsActionBar`**: `getHud().sendActionBar(...)` /
+  `getHud().supports(IHudAccess.Capability.ACTION_BAR)`. In `common-tests`, `Platforms.actionBarSupported(...)` and
+  `TestPlatform.getActionBars()` gave way to `Platforms.hud()` / `hudWithout(ACTION_BAR)` and
+  `getTestHud().getActionBarCalls()`.
 
 ## [3.0.1-alpha.70] - 2026-10-19
 

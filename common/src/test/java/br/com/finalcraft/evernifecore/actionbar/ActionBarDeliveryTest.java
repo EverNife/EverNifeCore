@@ -1,8 +1,10 @@
 package br.com.finalcraft.evernifecore.actionbar;
 
+import br.com.finalcraft.evernifecore.notify.IHudAccess;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
+import br.com.finalcraft.evernifecore.testing.TestHud;
 import br.com.finalcraft.evernifecore.testing.TestPlatform;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,13 +50,13 @@ class ActionBarDeliveryTest {
 
     /** @param supported whether this server can show an action bar at all - 1.7.10 without NecroTempus cannot. */
     private void serverWithActionBar(boolean supported) {
-        world = Platforms.strict().actionBarSupported(supported).install();
+        world = (supported ? Platforms.strict().hud() : Platforms.strict().hudWithout(IHudAccess.Capability.ACTION_BAR)).install();
         platform = world.platform();
     }
 
     private List<String> textsOnScreen() {
         List<String> texts = new ArrayList<>();
-        for (TestPlatform.ActionBarSend send : platform.getActionBars()) {
+        for (TestHud.HudCall send : platform.getTestHud().getActionBarCalls()) {
             texts.add(send.text);
         }
         return texts;
@@ -77,7 +79,7 @@ class ActionBarDeliveryTest {
         ActionBarAPI.send(player, lasting("greeting", "§ewelcome", 0));
         ActionBarAPI.send(player, lasting("greeting", "§ewelcome", 0));
 
-        assertTrue(platform.getActionBars().isEmpty(),
+        assertTrue(platform.getTestHud().getActionBarCalls().isEmpty(),
                 "a server that cannot show an action bar must not be handed one: " + textsOnScreen());
     }
 

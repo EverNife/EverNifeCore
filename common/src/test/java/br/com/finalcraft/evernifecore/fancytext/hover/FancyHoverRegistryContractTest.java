@@ -9,7 +9,6 @@ import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVec
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.fancytext.FancySegment;
-import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
@@ -22,6 +21,7 @@ import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.text.ITextMetrics;
+import br.com.finalcraft.evernifecore.notify.IHudAccess;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import net.kyori.adventure.text.Component;
@@ -246,8 +246,7 @@ public class FancyHoverRegistryContractTest {
         @Override public String parse(@Nullable FPlayer player, @Nonnull String text) { return delegate.parse(player, text); }
         @Override public <P extends IPlayerData> RegexReplacer<P> createPlaceholderIntegration(@Nonnull ECPluginData plugin, @Nonnull String pluginBaseID, @Nonnull Class<P> playerDataType) { return delegate.createPlaceholderIntegration(plugin, pluginBaseID, playerDataType); }
         @Override public ILogAdapter createLogAdapterFor(ECPluginData ecPluginData) { return delegate.createLogAdapterFor(ecPluginData); }
-        @Override public void sendActionBarMessage(FPlayer player, FancyText fancyText) { delegate.sendActionBarMessage(player, fancyText); }
-        @Override public boolean serverSupportsActionBar() { return delegate.serverSupportsActionBar(); }
+        @Override public IHudAccess getHud() { return delegate.getHud(); }
         @Override public IPlatformVecAdapter getVecAdapter() { return delegate.getVecAdapter(); }
         @Override public void registerConfigTypes() { delegate.registerConfigTypes(); }
         @Override public void registerArgParsers() { delegate.registerArgParsers(); }

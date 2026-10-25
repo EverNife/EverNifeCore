@@ -1,13 +1,16 @@
 package br.com.finalcraft.evernifecore.minecraft.listeners;
 
 import br.com.finalcraft.evernifecore.actionbar.ActionBarAPI;
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.events.player.ECPlayerFullyLoggedInEvent;
 import br.com.finalcraft.evernifecore.api.events.player.ECPlayerQuitEvent;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.notify.IHudAccess;
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
+import br.com.finalcraft.evernifecore.minecraft.notify.McHudAccess;
 import br.com.finalcraft.evernifecore.minecraft.title.TitleAPI;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import fr.xephi.authme.events.LoginEvent;
@@ -74,6 +77,11 @@ public class PlayerLoginListener implements ECListener {
 
             ActionBarAPI.clearReferences(playerData.getUniqueId());
             TitleAPI.clearReferences(playerData.getUniqueId());
+        }
+
+        IHudAccess hud = EverNifeCore.getPlatform().getHud();
+        if (hud instanceof McHudAccess) {
+            ((McHudAccess) hud).forget(event.getPlayer());
         }
     }
 

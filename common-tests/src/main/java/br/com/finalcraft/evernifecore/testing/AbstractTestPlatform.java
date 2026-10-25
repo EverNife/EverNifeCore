@@ -7,10 +7,10 @@ import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformCha
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVecAdapter;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
-import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.notify.IHudAccess;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
@@ -130,16 +130,6 @@ public abstract class AbstractTestPlatform implements IPlatform {
     }
 
     @Override
-    public void sendActionBarMessage(FPlayer player, FancyText fancyText) {
-        throw notConfigured("sendActionBarMessage", "Platforms.strict().actionBarSupported(true)");
-    }
-
-    @Override
-    public boolean serverSupportsActionBar() {
-        throw notConfigured("serverSupportsActionBar", "Platforms.strict().actionBarSupported(false)");
-    }
-
-    @Override
     public IPlatformVecAdapter getVecAdapter() {
         throw notConfigured("getVecAdapter", "Platforms.strict().vecAdapter(...)");
     }
@@ -197,6 +187,11 @@ public abstract class AbstractTestPlatform implements IPlatform {
     @Override
     public IPlayerStateAccess getPlayerState() {
         throw notConfigured("getPlayerState", "Platforms.strict().playerState()");
+    }
+
+    @Override
+    public IHudAccess getHud() {
+        throw notConfigured("getHud", "Platforms.strict().hud()");
     }
 
     @Override

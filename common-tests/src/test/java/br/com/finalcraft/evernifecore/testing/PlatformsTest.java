@@ -9,6 +9,9 @@ import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 import br.com.finalcraft.evernifecore.region.visual.VisualStyle;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
+import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.notify.BossBarColor;
+import br.com.finalcraft.evernifecore.notify.IHudAccess;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -78,7 +81,7 @@ class PlatformsTest {
         assertTrue(platform.getOnlinePlayers().isEmpty());
         assertFalse(platform.isPluginLoaded("anything"));
         assertFalse(platform.isPAPIPresent());
-        assertFalse(platform.serverSupportsActionBar());
+        assertTrue(platform.getHud().getUnsupported().isEmpty(), "a lenient screen shows everything");
         assertNull(platform.getChatAdapter());
         assertNull(platform.getVecAdapter());
         assertEquals("§atext", platform.parse(null, "§atext"));
@@ -199,5 +202,41 @@ class PlatformsTest {
 
         assertSame(IOutlineRenderer.NONE, platform.getOutlineRenderer());
         assertSame(ISelectionItems.NONE, platform.getSelectionItems());
+    }
+
+    @Test
+    void strictRefusesTheHudNamingTheBuilder() {
+        UnsupportedOperationException refused = assertThrows(UnsupportedOperationException.class,
+                () -> Platforms.strict().build().getHud());
+
+        assertTrue(refused.getMessage().contains("Platforms.strict().hud()"), refused.getMessage());
+    }
+
+    @Test
+    void theHudRecordsEachCallOnTheListOfItsCapability() {
+        TestPlatform platform = Platforms.strict().hud().build();
+        TestFPlayerSender steve = new TestFPlayerSender("Steve");
+
+        platform.getHud().sendActionBar(steve, FancyText.of("mana"));
+        platform.getHud().showBossBar(steve, "quest", FancyText.of("half"), 0.5f, BossBarColor.GREEN);
+
+        assertEquals(1, platform.getTestHud().getActionBarCalls().size());
+        assertEquals("mana", platform.getTestHud().getActionBarCalls().get(0).text);
+        assertEquals(0.5f, platform.getTestHud().getBossBar(steve, "quest").extras.get(1));
+        platform.getHud().hideBossBar(steve, "quest");
+        assertNull(platform.getTestHud().getBossBar(steve, "quest"), "a hidden bar has no last state");
+        assertEquals(2, platform.getTestHud().getBossBarCalls().size(), "the history keeps the show and the hide");
+    }
+
+    @Test
+    void aHudWithoutACapabilityDeniesItAndRefusesItsCalls() {
+        TestPlatform platform = Platforms.strict().hudWithout(IHudAccess.Capability.TITLE).build();
+        TestFPlayerSender steve = new TestFPlayerSender("Steve");
+
+        assertFalse(platform.getHud().supports(IHudAccess.Capability.TITLE));
+        assertTrue(platform.getHud().supports(IHudAccess.Capability.SOUND));
+        assertThrows(UnsupportedOperationException.class,
+                () -> platform.getHud().sendTitle(steve, FancyText.of("t"), FancyText.of("s"), 10, 40, 10));
+        assertTrue(platform.getTestHud().getTitleCalls().isEmpty());
     }
 }

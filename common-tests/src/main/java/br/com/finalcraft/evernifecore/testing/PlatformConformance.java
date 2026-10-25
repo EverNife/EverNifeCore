@@ -4,6 +4,10 @@ import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.PlatformId;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.notify.HudSounds;
+import br.com.finalcraft.evernifecore.notify.IHudAccess;
+import br.com.finalcraft.evernifecore.notify.ToastStyle;
 import br.com.finalcraft.evernifecore.version.FCPlatformType;
 
 import java.util.ArrayList;
@@ -196,7 +200,67 @@ public final class PlatformConformance {
             }
         });
 
+        IHudAccess hud = call(platform, "getHud", failures, new Call<IHudAccess>() {
+            @Override
+            public IHudAccess run(IPlatform target) {
+                IHudAccess answer = target.getHud();
+                if (answer == null) {
+                    throw new IllegalStateException("returned null; a platform that shows nothing but chat answers IHudAccess.UNSUPPORTED");
+                }
+                return answer;
+            }
+        });
+        if (hud != null) {
+            checkHud(hud, failures);
+        }
+
         return Collections.unmodifiableList(failures);
+    }
+
+    /**
+     * Every {@link IHudAccess.Capability} answers {@code supports} without throwing, and every one it does NOT support
+     * throws {@link UnsupportedOperationException} when called - an unsupported capability that quietly does nothing
+     * would let a notify chain believe it delivered. The probe hands a null player: an honest refusal comes before the
+     * player is read.
+     */
+    private static void checkHud(IHudAccess hud, List<String> failures) {
+        for (IHudAccess.Capability capability : IHudAccess.Capability.values()) {
+            boolean supported;
+            try {
+                supported = hud.supports(capability);
+            } catch (Throwable thrown) {
+                failures.add("getHud().supports(" + capability + ") threw " + thrown.getClass().getSimpleName() + ": " + thrown.getMessage());
+                continue;
+            }
+            if (supported) {
+                continue;
+            }
+            try {
+                probe(hud, capability);
+                failures.add("getHud() does not support " + capability + " but a call of it returned normally - it must throw"
+                        + " UnsupportedOperationException (the IHudAccess default does)");
+            } catch (UnsupportedOperationException expected) {
+                //the honest refusal
+            } catch (Throwable thrown) {
+                failures.add("getHud() does not support " + capability + " and a call of it threw " + thrown.getClass().getSimpleName()
+                        + " instead of UnsupportedOperationException: " + thrown.getMessage());
+            }
+        }
+    }
+
+    private static void probe(IHudAccess hud, IHudAccess.Capability capability) {
+        FancyText text = FancyText.of("conformance");
+        switch (capability) {
+            case ACTION_BAR: hud.sendActionBar(null, text); return;
+            case TITLE: hud.clearTitle(null); return;
+            case BOSS_BAR: hud.hideBossBar(null, "conformance"); return;
+            case SIDEBAR: hud.clearSidebar(null); return;
+            case TOAST: hud.showToast(null, text, text, ToastStyle.INFO); return;
+            case TRACKER: hud.hideTracker(null, "conformance"); return;
+            case SOUND: hud.playSound(null, HudSounds.CLICK, 1f, 1f); return;
+            case COMPASS: hud.resetCompassTarget(null); return;
+            default: throw new IllegalStateException("no probe for " + capability);
+        }
     }
 
     /**

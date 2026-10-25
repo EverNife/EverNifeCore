@@ -6,13 +6,13 @@ import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformCha
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVecAdapter;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
-import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ECLogLevel;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
+import br.com.finalcraft.evernifecore.notify.IHudAccess;
 import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
@@ -52,8 +52,6 @@ public class TestPlatform extends AbstractTestPlatform {
     private final List<String> unregisteredLabels = new ArrayList<>();
     private final List<String> consoleCommands = new ArrayList<>();
     private final List<DispatchedCommand> senderCommands = new ArrayList<>();
-    //appended by the action bar manager's repeating task while the test reads, so never a plain ArrayList
-    private final List<ActionBarSend> actionBars = new CopyOnWriteArrayList<>();
     private final List<String> infoMessages = new ArrayList<>();
     //appended from whatever thread logs (flusher, idle sweep, cache-sync), so never a plain ArrayList
     private final List<String> loggedMessages = new CopyOnWriteArrayList<>();
@@ -74,7 +72,6 @@ public class TestPlatform extends AbstractTestPlatform {
     List<String> loadedPlugins;
     List<String> disabledPlugins = new ArrayList<>();
     Boolean papiPresent;
-    Boolean actionBarSupported;
     Boolean listenersIgnored;
     Boolean configTypesIgnored;
     Boolean mainThreadInline;
@@ -101,6 +98,9 @@ public class TestPlatform extends AbstractTestPlatform {
     IPlayerStateAccess playerState;
     Boolean playerStateConfigured;
     final TestPlayerState testPlayerState = new TestPlayerState();
+    IHudAccess hud;
+    Boolean hudConfigured;
+    final TestHud testHud = new TestHud();
     ISelectionItems selectionItems;
 
     private boolean forceRegisterFailure = false;
@@ -138,11 +138,6 @@ public class TestPlatform extends AbstractTestPlatform {
     /** Every command handed to {@code makePlayerExecuteCommand}, in order, with the sender it was run as. */
     public List<DispatchedCommand> getSenderCommands() {
         return senderCommands;
-    }
-
-    /** Every action bar handed to this platform, in order - what a real one would have put on screen. */
-    public List<ActionBarSend> getActionBars() {
-        return actionBars;
     }
 
     /** Every {@code info}-level line logged through an adapter this platform created. */
@@ -259,7 +254,7 @@ public class TestPlatform extends AbstractTestPlatform {
         unregisteredLabels.clear();
         consoleCommands.clear();
         senderCommands.clear();
-        actionBars.clear();
+        testHud.reset();
         infoMessages.clear();
         loggedMessages.clear();
         shutdownReasons.clear();
@@ -447,20 +442,6 @@ public class TestPlatform extends AbstractTestPlatform {
     }
 
     @Override
-    public void sendActionBarMessage(FPlayer player, FancyText fancyText) {
-        if (actionBarSupported == null) {
-            super.sendActionBarMessage(player, fancyText);
-            return;
-        }
-        actionBars.add(new ActionBarSend(player, fancyText.getText()));
-    }
-
-    @Override
-    public boolean serverSupportsActionBar() {
-        return actionBarSupported != null ? actionBarSupported : super.serverSupportsActionBar();
-    }
-
-    @Override
     public IPlatformVecAdapter getVecAdapter() {
         //a configured null is an answer ("this platform has no vec adapter"); an unset one is not
         return vecAdapterConfigured != null ? vecAdapter : super.getVecAdapter();
@@ -563,6 +544,16 @@ public class TestPlatform extends AbstractTestPlatform {
         return playerStateConfigured != null ? playerState : super.getPlayerState();
     }
 
+    @Override
+    public IHudAccess getHud() {
+        return hudConfigured != null ? hud : super.getHud();
+    }
+
+    /** The in-memory screen {@link Platforms#hud()} put behind {@code getHud}: every call it received, by capability. */
+    public TestHud getTestHud() {
+        return testHud;
+    }
+
     /** The in-memory players {@link Platforms#playerState()} put behind {@code getPlayerState}. */
     public TestPlayerState getTestPlayerState() {
         return testPlayerState;
@@ -596,23 +587,6 @@ public class TestPlatform extends AbstractTestPlatform {
         @Override
         public String toString() {
             return (sender == null ? "?" : sender.getName()) + " -> /" + command;
-        }
-    }
-
-    /** One action bar this platform was handed: who it was for, and the text it carried. */
-    public static final class ActionBarSend {
-
-        public final FPlayer player;
-        public final String text;
-
-        ActionBarSend(FPlayer player, String text) {
-            this.player = player;
-            this.text = text;
-        }
-
-        @Override
-        public String toString() {
-            return (player == null ? "?" : player.getName()) + " <- [" + text + "]";
         }
     }
 

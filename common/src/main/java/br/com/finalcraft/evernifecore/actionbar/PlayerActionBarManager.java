@@ -98,6 +98,6 @@ public class PlayerActionBarManager implements Runnable {
     }
 
     public static void sendActionBarMessage(FPlayer player, FancyText fancyText){
-        EverNifeCore.getPlatform().sendActionBarMessage(player, fancyText);
+        EverNifeCore.getPlatform().getHud().sendActionBar(player, fancyText);
     }
 }

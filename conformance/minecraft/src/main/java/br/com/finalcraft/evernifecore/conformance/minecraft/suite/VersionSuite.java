@@ -19,16 +19,14 @@ import java.util.List;
 /**
  * What the core decided about the server it woke up in: the version (by package up to 1.20.4, by
  * {@code getBukkitVersion()} after), the software (by marker class), the NMS implementation of that era, the world
- * height (-64 from 1.18, per world from 1.17) and the action bar. Every answer is compared with what the server
- * itself reports.
+ * height (-64 from 1.18, per world from 1.17) and whether PlaceholderAPI is there. Every answer is compared with what
+ * the server itself reports; what the screen can show is the hud suite's.
  */
 public final class VersionSuite implements ConformanceSuite {
 
     // What this server must answer, per version.
     /** A loaded world reports its own floor. */
     private static final MCDetailedVersion WORLD_FLOOR_SINCE = MCDetailedVersion.v1_17_R1;
-    /** 1.7.10 has no action bar; NecroTempus brings one there. */
-    private static final MCVersion ACTION_BAR_ABOVE = MCVersion.v1_7_10;
 
     @Override
     public String getId() {
@@ -57,12 +55,6 @@ public final class VersionSuite implements ConformanceSuite {
                                 + " craftbukkit=" + Bukkit.getServer().getClass().getPackage().getName()
                                 + " getBukkitVersion=" + Bukkit.getBukkitVersion())),
                 ConformanceCase.of("world-height", VersionSuite::worldHeight),
-                ConformanceCase.of("action-bar", () -> {
-                    boolean expected = MCVersion.isHigher(ACTION_BAR_ABOVE) || Bukkit.getPluginManager().getPlugin("NecroTempus") != null;
-                    boolean answered = EverNifeCore.getPlatform().serverSupportsActionBar();
-                    return Verdict.of(answered == expected, "serverSupportsActionBar=" + answered + " expected=" + expected
-                            + " above=" + ACTION_BAR_ABOVE);
-                }),
                 ConformanceCase.of("papi-detection", () -> {
                     boolean present = EverNifeCore.getPlatform().isPAPIPresent();
                     boolean installed = Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null;

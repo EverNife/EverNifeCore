@@ -15,6 +15,7 @@ import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.hytale.action.HyActionSystems;
 import br.com.finalcraft.evernifecore.hytale.itemdatapart.datapart.ItemDataPartMetadata;
 import br.com.finalcraft.evernifecore.hytale.itemstack.ComparableItemComplex;
+import br.com.finalcraft.evernifecore.notify.IHudAccess;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 import br.com.finalcraft.evernifecore.version.FCPlatformType;
@@ -28,6 +29,7 @@ import org.bson.BsonDocument;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -73,6 +75,18 @@ public final class HyPlatformSuite implements ConformanceSuite {
                     IOutlineRenderer outlines = EverNifeCore.getPlatform().getOutlineRenderer();
                     return Verdict.of(items != ISelectionItems.NONE && outlines != IOutlineRenderer.NONE,
                             "selectionItems=" + items.getClass().getSimpleName() + " outlineRenderer=" + outlines.getClass().getSimpleName());
+                }),
+                //Hytale has title, toast, tracker and sound; no action bar, no sidebar, no progress boss bar, no compass seam
+                ConformanceCase.of("hud-capabilities", () -> {
+                    Set<IHudAccess.Capability> expected = EnumSet.of(IHudAccess.Capability.TITLE, IHudAccess.Capability.TOAST,
+                            IHudAccess.Capability.TRACKER, IHudAccess.Capability.SOUND);
+                    Set<IHudAccess.Capability> answered = EnumSet.noneOf(IHudAccess.Capability.class);
+                    for (IHudAccess.Capability capability : IHudAccess.Capability.values()) {
+                        if (EverNifeCore.getPlatform().getHud().supports(capability)) {
+                            answered.add(capability);
+                        }
+                    }
+                    return Verdict.of(answered.equals(expected), "supports=" + answered + " expected=" + expected);
                 }),
                 //the core registered them in its setup; a second registration has to be refused, never stacked
                 ConformanceCase.of("systems-registered-once", () -> {

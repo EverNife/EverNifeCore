@@ -1,8 +1,9 @@
 package br.com.finalcraft.evernifecore.minecraft.title;
 
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
-import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
-import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
+import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -106,14 +107,10 @@ public class PlayerTitleManager extends BukkitRunnable {
 
         // Packet writes (title/reset) are safe off the main thread; kept OUTSIDE the lock.
         if (doReset){
-            player.resetTitle();
+            EverNifeCore.getPlatform().getHud().clearTitle(FCBukkitUtil.adapt(player));
         } else if (doSend){
-            if (MCVersion.isLower(MCDetailedVersion.v1_11_R1)) {
-                //the timed form only arrived in 1.11; before that the server takes the pair alone
-                player.sendTitle(titleText, subTitleText);
-            } else {
-                player.sendTitle(titleText, subTitleText, fadeInTicks, stayTicks, fadeOutTicks);
-            }
+            EverNifeCore.getPlatform().getHud().sendTitle(FCBukkitUtil.adapt(player), FancyText.of(titleText), FancyText.of(subTitleText),
+                    fadeInTicks, stayTicks, fadeOutTicks);
         }
     }
 }

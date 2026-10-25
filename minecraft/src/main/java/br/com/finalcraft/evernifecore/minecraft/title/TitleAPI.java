@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.minecraft.title;
 
-import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
+import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
+import br.com.finalcraft.evernifecore.notify.IHudAccess;
 import org.bukkit.entity.Player;
 
 import java.util.Map;
@@ -16,7 +18,7 @@ public class TitleAPI {
     }
 
     public static void send(Player player, TitleMessage message){
-        if (MCVersion.isLowerEquals(MCVersion.v1_7_10)) return;//Title is not present on 1_7_10
+        if (!EverNifeCore.getPlatform().getHud().supports(IHudAccess.Capability.TITLE)) return;
 
         PlayerTitleManager playerTitleManager = MANAGER_MAP.get(player.getUniqueId());
 
@@ -29,7 +31,7 @@ public class TitleAPI {
     }
 
     public static void clear(Player player){
-        if (MCVersion.isLowerEquals(MCVersion.v1_7_10)) return;//Title is not present on 1_7_10
+        if (!EverNifeCore.getPlatform().getHud().supports(IHudAccess.Capability.TITLE)) return;
 
         PlayerTitleManager playerTitleManager = MANAGER_MAP.get(player.getUniqueId());
 
@@ -38,7 +40,7 @@ public class TitleAPI {
             MANAGER_MAP.remove(player.getUniqueId());
         }
 
-        player.resetTitle();
+        EverNifeCore.getPlatform().getHud().clearTitle(FCBukkitUtil.adapt(player));
     }
 
     public static TitleMessage.Builder message(String title, String subTitle){

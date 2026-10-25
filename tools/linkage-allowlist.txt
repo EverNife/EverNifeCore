@@ -97,7 +97,21 @@
 * method org/bukkit/entity/Entity.getCustomName()Ljava/lang/String; br.com.finalcraft.evernifecore.minecraft.listeners.PlayerInteractListener  # inside try/catch(NoSuchMethodError)
 * method org/bukkit/entity/Player$Spigot.sendMessage(Lnet/md_5/bungee/api/ChatMessageType;[Lnet/md_5/bungee/api/chat/BaseComponent;)V br.com.finalcraft.evernifecore.minecraft.util.FCMinecraftAdventureUtil  # inside try/catch(Throwable)
 * method org/bukkit/entity/Player.getTargetBlock(Ljava/util/Set;I)Lorg/bukkit/block/Block; br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil  # the else of isLowerEquals(v1_7_10)
-* method org/bukkit/entity/Player.sendTitle(Ljava/lang/String;Ljava/lang/String;III)V br.com.finalcraft.evernifecore.minecraft.title.PlayerTitleManager  # run() picks the pair form on isLower(v1_11_R1); the timed form only runs from 1.11 on
+* method org/bukkit/entity/Player.sendTitle(Ljava/lang/String;Ljava/lang/String;III)V br.com.finalcraft.evernifecore.minecraft.notify.McHudAccess$TimedTitle  # sendTitle picks the pair form on isLower(v1_11_R1); the nested class only runs from 1.11 on
+* class org/bukkit/boss/BossBar br.com.finalcraft.evernifecore.minecraft.notify.McHudAccess$BossBars  # arrived in 1.9. McHudAccess creates the nested class only when supports(BOSS_BAR), isHigherEquals(v1_9_R1)
+* class org/bukkit/boss/BarColor br.com.finalcraft.evernifecore.minecraft.notify.McHudAccess$BossBars  # same guard as above
+* class org/bukkit/boss/BarStyle br.com.finalcraft.evernifecore.minecraft.notify.McHudAccess$BossBars  # same guard as above
+* class org/bukkit/boss/BarFlag br.com.finalcraft.evernifecore.minecraft.notify.McHudAccess$BossBars  # same guard as above
+* method org/bukkit/Bukkit.createBossBar(Ljava/lang/String;Lorg/bukkit/boss/BarColor;Lorg/bukkit/boss/BarStyle;[Lorg/bukkit/boss/BarFlag;)Lorg/bukkit/boss/BossBar; br.com.finalcraft.evernifecore.minecraft.notify.McHudAccess$BossBars  # same guard as above
+* class org/bukkit/advancement/Advancement br.com.finalcraft.evernifecore.minecraft.notify.McHudAccess$Toasts  # arrived in 1.12. Reached only from showToast, behind require(TOAST) = isHigherEquals(v1_12_R1)
+* class org/bukkit/advancement/AdvancementProgress br.com.finalcraft.evernifecore.minecraft.notify.McHudAccess$Toasts  # same guard as above
+* class org/bukkit/NamespacedKey br.com.finalcraft.evernifecore.minecraft.notify.McHudAccess$Toasts  # same guard as above
+* method org/bukkit/UnsafeValues.loadAdvancement(Lorg/bukkit/NamespacedKey;Ljava/lang/String;)Lorg/bukkit/advancement/Advancement; br.com.finalcraft.evernifecore.minecraft.notify.McHudAccess$Toasts  # same guard as above
+* method org/bukkit/UnsafeValues.removeAdvancement(Lorg/bukkit/NamespacedKey;)Z br.com.finalcraft.evernifecore.minecraft.notify.McHudAccess$Toasts  # same guard as above
+* method org/bukkit/entity/Player.getAdvancementProgress(Lorg/bukkit/advancement/Advancement;)Lorg/bukkit/advancement/AdvancementProgress; br.com.finalcraft.evernifecore.minecraft.notify.McHudAccess$Toasts  # same guard as above
+* class org/bukkit/advancement/Advancement br.com.finalcraft.evernifecore.conformance.minecraft.suite.HudSuite$Toasts  # arrived in 1.12. The toast-delivers case reaches it only after supports(TOAST)
+* class org/bukkit/NamespacedKey br.com.finalcraft.evernifecore.conformance.minecraft.suite.HudSuite$Toasts  # same guard as above
+* method org/bukkit/Bukkit.advancementIterator()Ljava/util/Iterator; br.com.finalcraft.evernifecore.conformance.minecraft.suite.HudSuite$Toasts  # same guard as above
 * method org/bukkit/entity/Player.spawnParticle(Lorg/bukkit/Particle;Lorg/bukkit/Location;ILjava/lang/Object;)V br.com.finalcraft.evernifecore.minecraft.commands.debug.CMDProtectionTest$ParticleCompat  # loaded only when the isHigherEquals(v1_13) branch runs
 * method org/bukkit/inventory/PlayerInventory.getItemInMainHand()Lorg/bukkit/inventory/ItemStack; br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil  # getPlayersHeldItem, the else of isLower(v1_9_R1) - the main-hand pair arrived in 1.9
 * method org/bukkit/inventory/PlayerInventory.setItemInMainHand(Lorg/bukkit/inventory/ItemStack;)V br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil  # setPlayersHeldItem, the else of isLower(v1_9_R1)

@@ -23,6 +23,7 @@ import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
+import br.com.finalcraft.evernifecore.notify.IHudAccess;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.junit.jupiter.api.Test;
@@ -198,8 +199,7 @@ public class MessagePlaceholdersContractTest {
         @Override public boolean isPAPIPresent() { return delegate.isPAPIPresent(); }
         @Override public String parse(@Nullable FPlayer player, @Nonnull String text) { return delegate.parse(player, text); }
         @Override public <P extends IPlayerData> RegexReplacer<P> createPlaceholderIntegration(@Nonnull ECPluginData plugin, @Nonnull String pluginBaseID, @Nonnull Class<P> playerDataType) { return delegate.createPlaceholderIntegration(plugin, pluginBaseID, playerDataType); }
-        @Override public void sendActionBarMessage(FPlayer player, FancyText fancyText) { delegate.sendActionBarMessage(player, fancyText); }
-        @Override public boolean serverSupportsActionBar() { return delegate.serverSupportsActionBar(); }
+        @Override public IHudAccess getHud() { return delegate.getHud(); }
         @Override public IPlatformVecAdapter getVecAdapter() { return delegate.getVecAdapter(); }
         @Override public IPlatformChatAdapter getChatAdapter() { return delegate.getChatAdapter(); }
         @Override public void registerConfigTypes() { delegate.registerConfigTypes(); }

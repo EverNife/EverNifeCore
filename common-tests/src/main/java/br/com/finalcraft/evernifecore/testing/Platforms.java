@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformChatAdapter;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVecAdapter;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.notify.IHudAccess;
 import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
@@ -45,10 +46,11 @@ public final class Platforms {
     }
 
     /**
-     * A platform with the old no-op answers: no players, no plugins, no PAPI, no action bar, no
+     * A platform with the old no-op answers: no players, no plugins, no PAPI, no
      * chat/vec adapter, listeners and config types ignored, main thread inline (every world thread too),
      * world load/unload events kept for the test to fire, shutdown recorded, every world 0..255 high, no outline
-     * renderer and no selection item ({@code NONE} for both).
+     * renderer and no selection item ({@code NONE} for both), and a recording screen with every HUD capability
+     * ({@link #hud()}).
      */
     public static Platforms lenient() {
         return strict()
@@ -56,7 +58,6 @@ public final class Platforms {
                 .onlinePlayers(Collections.<FPlayer>emptyList())
                 .pluginsLoaded()
                 .papiPresent(false)
-                .actionBarSupported(false)
                 .parsingWith(new BiFunction<FPlayer, String, String>() {
                     @Override
                     public String apply(FPlayer player, String text) {
@@ -77,7 +78,8 @@ public final class Platforms {
                 .outlineRenderer(IOutlineRenderer.NONE)
                 .selectionItems(ISelectionItems.NONE)
                 .terrain()
-                .playerState();
+                .playerState()
+                .hud();
     }
 
     /**
@@ -117,19 +119,6 @@ public final class Platforms {
 
     public Platforms papiPresent(boolean papiPresent) {
         platform.papiPresent = papiPresent;
-        return this;
-    }
-
-    /**
-     * Whether this server can show an action bar at all - 1.7.10 without NecroTempus cannot, and the
-     * code that sends one asks before building anything.
-     *
-     * <p>It does not decide what is recorded: either way, an action bar that does reach this platform
-     * is kept for {@link TestPlatform#getActionBars()}, the same as a real one would have written the
-     * packet without asking again.</p>
-     */
-    public Platforms actionBarSupported(boolean actionBarSupported) {
-        platform.actionBarSupported = actionBarSupported;
         return this;
     }
 
@@ -216,6 +205,30 @@ public final class Platforms {
      */
     public Platforms playerState() {
         return playerStateAccess(platform.testPlayerState);
+    }
+
+    /** What {@code getHud} answers; {@code null} is kept, as the violation a conformance test needs. */
+    public Platforms hudAccess(IHudAccess hud) {
+        platform.hudConfigured = Boolean.TRUE;
+        platform.hud = hud;
+        return this;
+    }
+
+    /**
+     * An in-memory screen behind {@code getHud}, with every capability, each call kept for
+     * {@link TestPlatform#getTestHud()}.
+     */
+    public Platforms hud() {
+        return hudAccess(platform.testHud);
+    }
+
+    /**
+     * The in-memory screen of {@link #hud()} without {@code capabilities}: they answer false to {@code supports} and
+     * their calls throw - a 1.7.10 server is {@code hudWithout(ACTION_BAR, TITLE, BOSS_BAR, TOAST)}.
+     */
+    public Platforms hudWithout(IHudAccess.Capability... capabilities) {
+        platform.testHud.without(capabilities);
+        return hud();
     }
 
     /** Keeps every tool handed out for {@link TestPlatform#getSelectionItemsGiven()} instead of giving it. */

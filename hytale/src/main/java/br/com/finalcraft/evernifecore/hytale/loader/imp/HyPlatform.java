@@ -12,12 +12,12 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDP
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventHandler;
 import br.com.finalcraft.evernifecore.eventbus.ECEventPriority;
-import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.hytale.commands.finalcmd.HytaleArgParsers;
 import br.com.finalcraft.evernifecore.hytale.commands.finalcmd.implementation.HyFinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.hytale.integration.placeholders.HyPAPIIntegration;
 import br.com.finalcraft.evernifecore.hytale.region.HyParticleOutlineRenderer;
+import br.com.finalcraft.evernifecore.hytale.notify.HyHudAccess;
 import br.com.finalcraft.evernifecore.hytale.region.HyPlayerStateAccess;
 import br.com.finalcraft.evernifecore.hytale.region.HySelectionItems;
 import br.com.finalcraft.evernifecore.hytale.region.HyTerrainAccess;
@@ -27,6 +27,7 @@ import br.com.finalcraft.evernifecore.logger.ECLogLevel;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
+import br.com.finalcraft.evernifecore.notify.IHudAccess;
 import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
@@ -296,16 +297,6 @@ public class HyPlatform implements IPlatform {
     }
 
     @Override
-    public void sendActionBarMessage(FPlayer player, FancyText fancyText) {
-        // Hytale does not have action-bar messages yet
-    }
-
-    @Override
-    public boolean serverSupportsActionBar() {
-        return false; // Hytale does not have action-bar messages yet
-    }
-
-    @Override
     public IPlatformVecAdapter getVecAdapter() {
         return VEC_ADAPTER;
     }
@@ -356,6 +347,12 @@ public class HyPlatform implements IPlatform {
 
     private static final ITerrainAccess TERRAIN_ACCESS = new HyTerrainAccess();
     public static final HyPlayerStateAccess PLAYER_STATE = new HyPlayerStateAccess();
+    private static final HyHudAccess HUD = new HyHudAccess();
+
+    @Override
+    public IHudAccess getHud() {
+        return HUD;
+    }
 
     @Override
     public IPlayerStateAccess getPlayerState() {

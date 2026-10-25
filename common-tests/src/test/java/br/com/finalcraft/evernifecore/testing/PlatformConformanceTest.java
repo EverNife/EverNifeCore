@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.testing;
 
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.notify.IHudAccess;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -69,5 +71,38 @@ class PlatformConformanceTest {
 
         assertEquals(1, failures.size(), failures.toString());
         assertTrue(failures.get(0).startsWith("getOutlineRenderer"), failures.get(0));
+    }
+
+    @Test
+    void aNullHudIsAViolationNamingTheMethod() {
+        List<String> failures = PlatformConformance.check(Platforms.lenient().hudAccess(null).build());
+
+        assertEquals(1, failures.size(), failures.toString());
+        assertTrue(failures.get(0).startsWith("getHud"), failures.get(0));
+    }
+
+    @Test
+    void anUnsupportedHudCapabilityThatDoesNotThrowIsAViolation() {
+        //claims no sound, yet a sound call returns normally: a notify chain would think it delivered
+        IHudAccess quiet = new IHudAccess() {
+            @Override
+            public boolean supports(Capability capability) {
+                return capability != Capability.SOUND;
+            }
+
+            @Override
+            public void playSound(FPlayer player, String soundId, float volume, float pitch) {
+            }
+        };
+
+        List<String> failures = PlatformConformance.check(Platforms.lenient().hudAccess(quiet).build());
+
+        assertEquals(1, failures.size(), failures.toString());
+        assertTrue(failures.get(0).contains("SOUND") && failures.get(0).contains("returned normally"), failures.get(0));
+    }
+
+    @Test
+    void theUnsupportedHudConforms() {
+        assertTrue(PlatformConformance.check(Platforms.lenient().hudAccess(IHudAccess.UNSUPPORTED).build()).isEmpty());
     }
 }

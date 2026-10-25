@@ -9,7 +9,6 @@ import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVec
 import br.com.finalcraft.evernifecore.api.common.providers.platform.PlatformId;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
-import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ECLogLevel;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
@@ -20,17 +19,18 @@ import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.implementation
 import br.com.finalcraft.evernifecore.minecraft.eventbus.McECEventHandlers;
 import br.com.finalcraft.evernifecore.minecraft.integration.placeholders.McPAPIIntegration;
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
+import br.com.finalcraft.evernifecore.minecraft.notify.McHudAccess;
 import br.com.finalcraft.evernifecore.minecraft.region.McPlayerStateAccess;
 import br.com.finalcraft.evernifecore.minecraft.region.selection.McSelectionItems;
 import br.com.finalcraft.evernifecore.minecraft.region.terrain.McTerrainAccess;
 import br.com.finalcraft.evernifecore.minecraft.region.visual.McParticleOutlineRenderer;
 import br.com.finalcraft.evernifecore.minecraft.scheduler.McFCScheduler;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
-import br.com.finalcraft.evernifecore.minecraft.util.FCMinecraftAdventureUtil;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.ServerSoftware;
 import br.com.finalcraft.evernifecore.minecraft.world.WorldHeights;
+import br.com.finalcraft.evernifecore.notify.IHudAccess;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
@@ -276,20 +276,6 @@ public class McPlatform implements IPlatform {
         }
     }
 
-    @Override
-    public void sendActionBarMessage(FPlayer player, FancyText fancyText) {
-        FCMinecraftAdventureUtil.sendActionBar(player.getDelegate(Player.class), fancyText.toComponent());
-    }
-
-    private static final boolean THIS_SERVER_SUPPORTS_ACTIONBAR; static {
-        THIS_SERVER_SUPPORTS_ACTIONBAR = MCVersion.isHigher(MCVersion.v1_7_10) || FCBukkitUtil.isModLoaded("necrotempus");
-    }
-
-    @Override
-    public boolean serverSupportsActionBar() {
-        return THIS_SERVER_SUPPORTS_ACTIONBAR;
-    }
-
     private static CommandMap commandMap = null;
     public static CommandMap getCommandMap(){
         if (commandMap == null){
@@ -371,6 +357,13 @@ public class McPlatform implements IPlatform {
     }
 
     private ITerrainAccess terrainAccess;
+    private final McHudAccess hud = new McHudAccess();
+
+    @Override
+    public IHudAccess getHud() {
+        return hud;
+    }
+
     private final IPlayerStateAccess playerState = new McPlayerStateAccess();
 
     @Override

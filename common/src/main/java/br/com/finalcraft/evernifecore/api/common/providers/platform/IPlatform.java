@@ -4,10 +4,10 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
-import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.notify.IHudAccess;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
@@ -70,10 +70,6 @@ public interface IPlatform {
     public <P extends IPlayerData> RegexReplacer<P> createPlaceholderIntegration(@Nonnull ECPluginData plugin, @Nonnull String pluginBaseID, @Nonnull Class<P> playerDataType);
 
     public ILogAdapter createLogAdapterFor(ECPluginData ecPluginData);
-
-    public void sendActionBarMessage(FPlayer player, FancyText fancyText);
-
-    public boolean serverSupportsActionBar();
 
     public IPlatformVecAdapter getVecAdapter();
 
@@ -146,6 +142,13 @@ public interface IPlatform {
      * is the honest answer of a platform that can change nothing; {@code null} is a violation.
      */
     public IPlayerStateAccess getPlayerState();
+
+    /**
+     * What this platform can put on a player's screen besides chat: action bar, title, boss bar, sidebar, toast,
+     * tracker, sound and compass. {@link IHudAccess#UNSUPPORTED} is the honest answer of a platform that can show
+     * nothing; {@code null} is a violation.
+     */
+    public IHudAccess getHud();
 
     /**
      * Registers the platform's config types (Bukkit {@code ItemStack}/{@code Location}, Hytale vectors, ...)
