@@ -7,14 +7,14 @@ import br.com.finalcraft.evernifecore.action.SessionContext;
 import br.com.finalcraft.evernifecore.action.UsageWatch;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagKey;
+import br.com.finalcraft.evernifecore.flag.FlagRegistry;
+import br.com.finalcraft.evernifecore.flag.Resolution;
+import br.com.finalcraft.evernifecore.flag.TickingFlag;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
-import br.com.finalcraft.evernifecore.region.Resolution;
-import br.com.finalcraft.evernifecore.region.flag.FlagKey;
-import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
-import br.com.finalcraft.evernifecore.region.flag.TickingFlag;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 
@@ -113,7 +113,7 @@ public final class RegionTicker {
 
     private static boolean anyTicks(Iterable<FlagKey> keys) {
         for (FlagKey key : keys) {
-            RegionFlag<?> flag = FlagRegistry.get().get(key);
+            Flag<?> flag = FlagRegistry.get().get(key);
             if (flag instanceof TickingFlag && flag.getNeeds().contains(EventSource.TICK)) {
                 return true;
             }
@@ -126,7 +126,7 @@ public final class RegionTicker {
         if (player == null || lookup.getSessionIfPresent(session.getPlayer()) != session) {
             return; //left between the collection and the world thread
         }
-        for (RegionFlag<?> flag : FlagRegistry.get().getAll()) {
+        for (Flag<?> flag : FlagRegistry.get().getAll()) {
             if (flag instanceof TickingFlag) {
                 tickFlag(player, session, flag);
             }
@@ -134,7 +134,7 @@ public final class RegionTicker {
     }
 
     @SuppressWarnings("unchecked")
-    private <T> void tickFlag(FPlayer player, RegionPlayerSession session, RegionFlag<T> flag) {
+    private <T> void tickFlag(FPlayer player, RegionPlayerSession session, Flag<T> flag) {
         Resolution<T> resolution = lookup.resolution(flag, session.getCurrent(), player);
         if (resolution.getSource() != null && resolution.getValue() != null) {
             ((TickingFlag<T>) flag).onTick(new SessionContext(player, resolution.getSource(), session), resolution.getValue());

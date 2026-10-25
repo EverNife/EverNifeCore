@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.region;
 
 import br.com.finalcraft.evernifecore.action.ActionContext;
-import br.com.finalcraft.evernifecore.region.flag.Decision;
-import br.com.finalcraft.evernifecore.region.flag.ProtectionFlagGate;
+import br.com.finalcraft.evernifecore.flag.Decision;
+import br.com.finalcraft.evernifecore.flag.ProtectionFlagGate;
 
 import java.util.ArrayList;
 import java.util.List;

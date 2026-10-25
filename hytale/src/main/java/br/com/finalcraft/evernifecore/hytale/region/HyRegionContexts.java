@@ -82,7 +82,7 @@ public final class HyRegionContexts {
      * An actor from what the entity is: a player acts as itself, an NPC by its type id and {@link #npcType}, anything
      * else is {@link #ENTITY}. An NPC never has a player behind it.
      */
-    static Actor actor(@Nullable FPlayer player, @Nullable String npcTypeId, @Nullable Attitude towardsPlayers,
+    public static Actor actor(@Nullable FPlayer player, @Nullable String npcTypeId, @Nullable Attitude towardsPlayers,
                        @Nullable Supplier<NativeEntity> handle) {
         if (player != null) {
             return Actor.player(player, handle);

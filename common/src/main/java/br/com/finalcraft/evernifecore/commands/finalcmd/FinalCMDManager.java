@@ -1,9 +1,9 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd;
 
+import br.com.finalcraft.evernifecore.flag.Flag;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.command.ArgParserRegion;
 import br.com.finalcraft.evernifecore.region.command.ArgParserRegionFlag;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
@@ -13,18 +13,18 @@ import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.*;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.contextual.*;
-import br.com.finalcraft.evernifecore.commands.finalcmd.tree.CommandPath;
-import br.com.finalcraft.evernifecore.commands.finalcmd.tree.CommandTreeScanner;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpLine;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
+import br.com.finalcraft.evernifecore.commands.finalcmd.tree.CommandPath;
+import br.com.finalcraft.evernifecore.commands.finalcmd.tree.CommandTreeScanner;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
+import br.com.finalcraft.evernifecore.pageviewer.PageVisualization;
 import br.com.finalcraft.evernifecore.playerdata.AccountSection;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
-import br.com.finalcraft.evernifecore.pageviewer.PageVisualization;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.everylibs.util.numberwrapper.NumberWrapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -74,7 +74,7 @@ public class FinalCMDManager {
         ArgParserManager.addBuiltinParser(FCTimeFrame.class, ArgParserFCTimeFrame.class);
         ArgParserManager.addBuiltinParser(FPlayer.class, ArgParserFPlayer.class);
         ArgParserManager.addBuiltinParser(Region.class, ArgParserRegion.class);
-        ArgParserManager.addBuiltinParser(RegionFlag.class, ArgParserRegionFlag.class);
+        ArgParserManager.addBuiltinParser(Flag.class, ArgParserRegionFlag.class);
 
         ArgParserManager.addBuiltinContextualParser(FPlayer.class, ArgParserContextualFPlayer.class);
         ArgParserManager.addBuiltinContextualParser(FCommandSender.class, ArgParserContextualFCommandSender.class);

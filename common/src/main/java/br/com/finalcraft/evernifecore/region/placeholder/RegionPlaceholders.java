@@ -4,6 +4,10 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.cache.CacheableSupplier;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagKey;
+import br.com.finalcraft.evernifecore.flag.FlagRegistry;
+import br.com.finalcraft.evernifecore.flag.Tristate;
 import br.com.finalcraft.evernifecore.integration.placeholders.PAPIIntegration;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.placeholder.manipulation.ManipulationContext;
@@ -14,10 +18,6 @@ import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.command.FlagValues;
 import br.com.finalcraft.evernifecore.region.event.RegionRemovedEvent;
-import br.com.finalcraft.evernifecore.region.flag.FlagKey;
-import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
-import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.region.session.RegionPlayerSession;
 import br.com.finalcraft.evernifecore.region.shape.BoundingBox;
@@ -276,7 +276,7 @@ public final class RegionPlaceholders {
         return sorted;
     }
 
-    private static RegionFlag<?> flag(PlaceholderArgs args) {
+    private static Flag<?> flag(PlaceholderArgs args) {
         String name = args.getValue();
         return FlagRegistry.get().find(name).orElseThrow(() ->
                 new PlaceholderArgs.InvalidArgumentException(args.getBlock(), "no registered flag is called '" + name + "'"));
@@ -296,7 +296,7 @@ public final class RegionPlaceholders {
     }
 
     /** The region's own effective value - parents and the flag's default, no player - at most once a second. */
-    private static String flagValue(Region region, RegionFlag<?> flag) {
+    private static String flagValue(Region region, Flag<?> flag) {
         return FLAG_VALUES.computeIfAbsent(region, key -> new ConcurrentHashMap<>())
                 .computeIfAbsent(flag.getKey(), key -> CacheableSupplier.of(() -> format(flag, RegionLookup.get().resolve(flag, region, null)))
                         .withInterval(CACHE_MILLIS))
@@ -304,7 +304,7 @@ public final class RegionPlaceholders {
     }
 
     /** {@code true}/{@code false} for a yes/no flag ({@code ""} when undefined), {@code world x y z} for a place. */
-    static String format(RegionFlag<?> flag, @Nullable Object value) {
+    static String format(Flag<?> flag, @Nullable Object value) {
         if (value == null || value == Tristate.UNDEFINED) {
             return "";
         }

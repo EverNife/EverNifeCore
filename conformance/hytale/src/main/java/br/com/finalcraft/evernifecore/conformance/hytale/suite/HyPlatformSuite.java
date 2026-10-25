@@ -1,17 +1,17 @@
 package br.com.finalcraft.evernifecore.conformance.hytale.suite;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.conformance.ConformanceCase;
 import br.com.finalcraft.evernifecore.conformance.ConformanceContext;
 import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
 import br.com.finalcraft.evernifecore.conformance.Verdict;
+import br.com.finalcraft.evernifecore.hytale.action.HyActionSystems;
 import br.com.finalcraft.evernifecore.hytale.itemdatapart.datapart.ItemDataPartMetadata;
 import br.com.finalcraft.evernifecore.hytale.itemstack.ComparableItemComplex;
-import br.com.finalcraft.evernifecore.hytale.region.HyRegionSystems;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 import br.com.finalcraft.evernifecore.version.FCPlatformType;
-import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import com.hypixel.hytale.server.core.command.system.AbstractCommand;
 import com.hypixel.hytale.server.core.command.system.CommandManager;
 import com.hypixel.hytale.server.core.console.ConsoleSender;
@@ -70,7 +70,7 @@ public final class HyPlatformSuite implements ConformanceSuite {
                 }),
                 //the core registered them in its setup; a second registration has to be refused, never stacked
                 ConformanceCase.of("systems-registered-once", () -> {
-                    boolean again = HyRegionSystems.register(plugin);
+                    boolean again = HyActionSystems.register(plugin);
                     return Verdict.of(!again, "secondRegisterAccepted=" + again);
                 }),
                 //metadata goes through the server's BsonDocument; a relocated copy would die on NoSuchMethodError here

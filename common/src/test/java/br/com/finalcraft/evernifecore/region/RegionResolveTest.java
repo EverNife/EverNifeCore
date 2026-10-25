@@ -4,19 +4,20 @@ import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagKey;
+import br.com.finalcraft.evernifecore.flag.FlagRegistry;
+import br.com.finalcraft.evernifecore.flag.FlagSettings;
+import br.com.finalcraft.evernifecore.flag.Resolution;
+import br.com.finalcraft.evernifecore.flag.Resolution.Step;
+import br.com.finalcraft.evernifecore.flag.Tristate;
+import br.com.finalcraft.evernifecore.flag.TristateFlag;
+import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
+import br.com.finalcraft.evernifecore.flag.core.DenyEntryMessage;
+import br.com.finalcraft.evernifecore.flag.core.DenySettings;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
-import br.com.finalcraft.evernifecore.region.Resolution.Step;
-import br.com.finalcraft.evernifecore.region.flag.FlagKey;
-import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
-import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
-import br.com.finalcraft.evernifecore.region.flag.Tristate;
-import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
-import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
-import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryMessage;
-import br.com.finalcraft.evernifecore.region.flag.core.DenySettings;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
@@ -169,7 +170,7 @@ class RegionResolveTest {
     }
 
     /** resolve and explain at (5, 5, 5) agree with {@code expected}, and explain shows its work. */
-    private <T> void assertResolves(@Nullable T expected, RegionFlag<T> which, @Nullable FPlayer subject) {
+    private <T> void assertResolves(@Nullable T expected, Flag<T> which, @Nullable FPlayer subject) {
         assertEquals(expected, lookup.resolve(which, WORLD, 5, 5, 5, subject));
         Resolution<T> resolution = lookup.explain(which, WORLD, 5, 5, 5, subject);
         assertEquals(expected, resolution.getValue(), "explain must agree with resolve: " + resolution);
@@ -362,14 +363,14 @@ class RegionResolveTest {
         assertEquals(Tristate.FALSE, lookup.resolve(flag, outside));
     }
 
-    Stream<RegionFlag<?>> stockFlags() {
+    Stream<Flag<?>> stockFlags() {
         return FlagRegistry.get().getByOwner(core).stream();
     }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("stockFlags")
     @SuppressWarnings("unchecked")
-    void stockFlagTieResolvesThroughTheLookup(RegionFlag<?> stock) {
+    void stockFlagTieResolvesThroughTheLookup(Flag<?> stock) {
         stockIterated++;
         Region a = region(core, "a-" + stock.getKey().getName(), 0, box(20), null);
         Region b = region(core, "b-" + stock.getKey().getName(), 0, box(20), null);
@@ -391,7 +392,7 @@ class RegionResolveTest {
             second = values.get(1);
             expected = first;
         }
-        RegionFlag<Object> typed = (RegionFlag<Object>) stock;
+        Flag<Object> typed = (Flag<Object>) stock;
         a.setFlag(typed, first);
         b.setFlag(typed, second);
         assertEquals(expected, lookup.resolve(typed, WORLD, 5, 5, 5, null), stock.getKey().toString());

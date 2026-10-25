@@ -3,20 +3,20 @@ package br.com.finalcraft.evernifecore.region.session;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.SessionContext;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagCategory;
+import br.com.finalcraft.evernifecore.flag.FlagChangeCause;
+import br.com.finalcraft.evernifecore.flag.FlagKey;
+import br.com.finalcraft.evernifecore.flag.FlagOutcome;
+import br.com.finalcraft.evernifecore.flag.FlagOutcomeContext;
+import br.com.finalcraft.evernifecore.flag.FlagSettings;
+import br.com.finalcraft.evernifecore.flag.FlagTypes;
+import br.com.finalcraft.evernifecore.flag.Revalidation;
+import br.com.finalcraft.evernifecore.flag.core.FarewellFlag;
+import br.com.finalcraft.evernifecore.flag.core.GreetingFlag;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.event.RegionChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionFlagChangedEvent;
-import br.com.finalcraft.evernifecore.region.flag.FlagCategory;
-import br.com.finalcraft.evernifecore.region.flag.FlagChangeCause;
-import br.com.finalcraft.evernifecore.region.flag.FlagKey;
-import br.com.finalcraft.evernifecore.region.flag.FlagOutcome;
-import br.com.finalcraft.evernifecore.region.flag.FlagOutcomeContext;
-import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
-import br.com.finalcraft.evernifecore.region.flag.FlagTypes;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
-import br.com.finalcraft.evernifecore.region.flag.Revalidation;
-import br.com.finalcraft.evernifecore.region.flag.core.FarewellFlag;
-import br.com.finalcraft.evernifecore.region.flag.core.GreetingFlag;
 import br.com.finalcraft.evernifecore.testing.TestPlatform;
 import org.junit.jupiter.api.Test;
 
@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SessionFlagsTest extends TrackerFixture {
 
     /** A session text flag that records every call, under the revalidation it is given. */
-    private static final class TracingFlag extends RegionFlag<String> {
+    private static final class TracingFlag extends Flag<String> {
         final List<String> calls = new CopyOnWriteArrayList<>();
         private final Revalidation revalidation;
 

@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.region;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
-import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
-import br.com.finalcraft.evernifecore.region.flag.Tristate;
+import br.com.finalcraft.evernifecore.flag.FlagRegistry;
+import br.com.finalcraft.evernifecore.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.region.group.MembershipCheck;
 import br.com.finalcraft.evernifecore.testing.Plugins;

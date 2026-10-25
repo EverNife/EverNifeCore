@@ -72,7 +72,8 @@ public final class HyRegionMoveSystem extends EntityTickingSystem<EntityStore> {
     //one System for every world, each ticking on its own thread
     private final Map<UUID, Seen> seen = new ConcurrentHashMap<>();
 
-    HyRegionMoveSystem(Supplier<RegionMovementTracker> tracker) {
+    /** Internal: built once by {@link br.com.finalcraft.evernifecore.hytale.action.HyActionSystems}. */
+    public HyRegionMoveSystem(Supplier<RegionMovementTracker> tracker) {
         this.tracker = tracker;
     }
 
@@ -141,7 +142,7 @@ public final class HyRegionMoveSystem extends EntityTickingSystem<EntityStore> {
     }
 
     /** The player left: his session ends, if this System ever saw him. Any thread. */
-    void quit(UUID uuid, Supplier<FPlayer> player) {
+    public void quit(UUID uuid, Supplier<FPlayer> player) {
         if (seen.remove(uuid) != null) {
             tracker.get().onQuit(player.get());
         }

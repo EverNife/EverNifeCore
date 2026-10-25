@@ -5,16 +5,16 @@ import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagChangeCause;
+import br.com.finalcraft.evernifecore.flag.FlagHandler;
+import br.com.finalcraft.evernifecore.flag.FlagKey;
+import br.com.finalcraft.evernifecore.flag.FlagSettings;
+import br.com.finalcraft.evernifecore.flag.FlagStore;
+import br.com.finalcraft.evernifecore.flag.FlagValue;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.event.RegionChangedEvent;
-import br.com.finalcraft.evernifecore.region.flag.FlagChangeCause;
-import br.com.finalcraft.evernifecore.region.flag.FlagHandler;
-import br.com.finalcraft.evernifecore.region.flag.FlagKey;
-import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
-import br.com.finalcraft.evernifecore.region.flag.FlagStore;
-import br.com.finalcraft.evernifecore.region.flag.FlagValue;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.region.group.GroupChange;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
@@ -275,12 +275,12 @@ public final class Region {
      * The live local value of {@code flag}; null when unset or expired. Parents, groups and neighbours are not
      * consulted - resolving the effective value is {@link RegionLookup}'s job.
      */
-    public <T> @Nullable T getFlag(RegionFlag<T> flag) {
+    public <T> @Nullable T getFlag(Flag<T> flag) {
         FlagValue<T> value = flags.getValue(flag);
         return value == null ? null : value.getValue();
     }
 
-    public <T> @Nullable FlagValue<T> getFlagValue(RegionFlag<T> flag) {
+    public <T> @Nullable FlagValue<T> getFlagValue(Flag<T> flag) {
         return flags.getValue(flag);
     }
 
@@ -289,7 +289,7 @@ public final class Region {
      *
      * @throws IllegalStateException when {@code flag} is not registered
      */
-    public <T> void setFlag(RegionFlag<T> flag, T value) {
+    public <T> void setFlag(Flag<T> flag, T value) {
         flags.set(flag, value);
     }
 
@@ -299,12 +299,12 @@ public final class Region {
      *
      * @throws IllegalStateException when {@code flag} is not registered
      */
-    public <T> void setFlag(RegionFlag<T> flag, T value, Duration ttl) {
+    public <T> void setFlag(Flag<T> flag, T value, Duration ttl) {
         flags.set(flag, value, ttl);
     }
 
     /** Removes the local value, permanent and temporary; false when there was none. */
-    public boolean removeFlag(RegionFlag<?> flag) {
+    public boolean removeFlag(Flag<?> flag) {
         return flags.remove(flag);
     }
 
@@ -319,7 +319,7 @@ public final class Region {
     }
 
     /** Every change of a local flag value lands here, after the fact; a handler goes with the value it handled. */
-    void onFlagChanged(RegionFlag<?> flag, @Nullable FlagValue<?> oldValue, @Nullable FlagValue<?> newValue, FlagChangeCause cause) {
+    void onFlagChanged(Flag<?> flag, @Nullable FlagValue<?> oldValue, @Nullable FlagValue<?> newValue, FlagChangeCause cause) {
         if (newValue == null) {
             removeFlagHandler(flag);
         }
@@ -346,25 +346,25 @@ public final class Region {
      * it goes when the flag's value here is removed or expires, when the region goes, and when {@code owner} shuts
      * down. One handler per flag; a new one replaces the old.
      */
-    public void setFlagHandler(ECPluginData owner, RegionFlag<?> flag, FlagHandler handler) {
+    public void setFlagHandler(ECPluginData owner, Flag<?> flag, FlagHandler handler) {
         flagHandlers.put(flag.getKey(), new OwnedHandler(Objects.requireNonNull(owner, "owner"), Objects.requireNonNull(handler, "handler")));
         anyFlagHandler = true;
     }
 
     /** False when the flag had no handler here. */
-    public boolean removeFlagHandler(RegionFlag<?> flag) {
+    public boolean removeFlagHandler(Flag<?> flag) {
         boolean removed = flagHandlers.remove(flag.getKey()) != null;
         anyFlagHandler = !flagHandlers.isEmpty();
         return removed;
     }
 
-    public @Nullable FlagHandler getFlagHandler(RegionFlag<?> flag) {
+    public @Nullable FlagHandler getFlagHandler(Flag<?> flag) {
         OwnedHandler owned = anyFlagHandler ? flagHandlers.get(flag.getKey()) : null;
         return owned == null ? null : owned.handler;
     }
 
     /** The plugin that set the handler of {@code flag} here; null when there is none. */
-    public @Nullable ECPluginData getFlagHandlerOwner(RegionFlag<?> flag) {
+    public @Nullable ECPluginData getFlagHandlerOwner(Flag<?> flag) {
         OwnedHandler owned = anyFlagHandler ? flagHandlers.get(flag.getKey()) : null;
         return owned == null ? null : owned.owner;
     }
@@ -387,7 +387,7 @@ public final class Region {
      * server's. See {@link #getEffectiveFlagSettings}.
      */
     @SuppressWarnings("unchecked")
-    public <S extends FlagSettings> @Nullable S getFlagSettings(RegionFlag<?> flag) {
+    public <S extends FlagSettings> @Nullable S getFlagSettings(Flag<?> flag) {
         FlagSettings own = flagSettings.get(flag.getKey());
         if (own == null) {
             own = readRawSettings(flag);
@@ -397,7 +397,7 @@ public final class Region {
 
     /** This region's own settings for {@code flag} when it has them, else the flag's server-wide ones. */
     @SuppressWarnings("unchecked")
-    public <S extends FlagSettings> S getEffectiveFlagSettings(RegionFlag<?> flag) {
+    public <S extends FlagSettings> S getEffectiveFlagSettings(Flag<?> flag) {
         FlagSettings own = getFlagSettings(flag);
         return own != null ? (S) own : flag.getSettings();
     }
@@ -406,9 +406,9 @@ public final class Region {
      * Gives this region its own settings for {@code flag}. The object is kept as given: after changing it, set it
      * again so the change is written.
      *
-     * @throws IllegalArgumentException when {@code settings} is not of the flag's {@link RegionFlag#getSettingsType()}
+     * @throws IllegalArgumentException when {@code settings} is not of the flag's {@link Flag#getSettingsType()}
      */
-    public void setFlagSettings(RegionFlag<?> flag, FlagSettings settings) {
+    public void setFlagSettings(Flag<?> flag, FlagSettings settings) {
         Class<? extends FlagSettings> expected = flag.getSettingsType();
         if (!expected.isInstance(settings)) {
             throw new IllegalArgumentException("Flag " + flag.getKey() + " takes settings of type " + expected.getName() + ", not "
@@ -427,7 +427,7 @@ public final class Region {
      *
      * @return the settings the region now holds
      */
-    public <S extends FlagSettings> S editFlagSettings(RegionFlag<?> flag, Consumer<? super S> edit) {
+    public <S extends FlagSettings> S editFlagSettings(Flag<?> flag, Consumer<? super S> edit) {
         S own = getFlagSettings(flag);
         if (own == null) {
             own = copyOf(flag.getSettings(), flag);
@@ -438,7 +438,7 @@ public final class Region {
     }
 
     @SuppressWarnings("unchecked")
-    private static <S extends FlagSettings> S copyOf(FlagSettings settings, RegionFlag<?> flag) {
+    private static <S extends FlagSettings> S copyOf(FlagSettings settings, Flag<?> flag) {
         ObjectMapper mapper = ConfigFactory.inMemoryCodec().getObjectMapper();
         try {
             return (S) mapper.treeToValue(mapper.valueToTree(settings), flag.getSettingsType());
@@ -449,7 +449,7 @@ public final class Region {
     }
 
     /** Goes back to the server's settings for {@code flag}; false when the region had none of its own. */
-    public boolean removeFlagSettings(RegionFlag<?> flag) {
+    public boolean removeFlagSettings(Flag<?> flag) {
         boolean removed = flagSettings.remove(flag.getKey()) != null;
         removed |= rawFlagSettings.remove(flag.getKey().toString()) != null;
         if (removed) {
@@ -471,7 +471,7 @@ public final class Region {
         rawFlagSettings.put(key.toLowerCase(Locale.ROOT), raw);
     }
 
-    private @Nullable FlagSettings readRawSettings(RegionFlag<?> flag) {
+    private @Nullable FlagSettings readRawSettings(Flag<?> flag) {
         String key = flag.getKey().toString();
         JsonNode raw = rawFlagSettings.get(key);
         if (raw == null) {
@@ -544,7 +544,7 @@ public final class Region {
         }
 
         @Override
-        public void onGroupFlagChanged(AccessGroup group, RegionFlag<?> flag, @Nullable FlagValue<?> oldValue, @Nullable FlagValue<?> newValue,
+        public void onGroupFlagChanged(AccessGroup group, Flag<?> flag, @Nullable FlagValue<?> oldValue, @Nullable FlagValue<?> newValue,
                                        FlagChangeCause cause) {
             manager.flagChanged(Region.this, group, flag, oldValue, newValue, cause);
         }

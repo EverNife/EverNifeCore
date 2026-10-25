@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.hytale.action.HyActionSystems;
 import br.com.finalcraft.evernifecore.hytale.commands.HyCommandRegisterer;
 import br.com.finalcraft.evernifecore.hytale.ecplugin.ECHytalePlugin;
 import br.com.finalcraft.evernifecore.hytale.eventbus.HyHytaleAudience;
@@ -13,10 +14,9 @@ import br.com.finalcraft.evernifecore.hytale.integration.HyVaultIntegration;
 import br.com.finalcraft.evernifecore.hytale.listeners.PlayerLoginListener;
 import br.com.finalcraft.evernifecore.hytale.loader.imp.HyECPluginExtractor;
 import br.com.finalcraft.evernifecore.hytale.loader.imp.HyPlatform;
-import br.com.finalcraft.evernifecore.hytale.region.HyRegionSystems;
-import br.com.finalcraft.evernifecore.region.session.RegionTicker;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
+import br.com.finalcraft.evernifecore.region.session.RegionTicker;
 import com.hypixel.hytale.event.EventPriority;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.hypixel.hytale.server.core.universe.world.events.AddWorldEvent;
@@ -91,7 +91,7 @@ public class EverNifeCoreHytalePlugin extends ECHytalePlugin {
         });
 
         //still inside setup(): the only moment the server takes a System
-        HyRegionSystems.register(this);
+        HyActionSystems.register(this);
         RegionTicker.start(getPluginData()); //the region tick is the core's own task, on Hytale as on Bukkit
     }
 

@@ -2,11 +2,11 @@ package br.com.finalcraft.evernifecore.region.command;
 
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.ArgParserObjectNode;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
-import br.com.finalcraft.evernifecore.region.flag.FlagParseException;
-import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
-import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
-import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagParseException;
+import br.com.finalcraft.evernifecore.flag.FlagRegistry;
+import br.com.finalcraft.evernifecore.flag.FlagSettings;
+import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -43,16 +43,16 @@ public final class FlagValues {
      * The flags {@code text} names: the one it resolves to in the registry ({@code owner:name}, or a name only one
      * flag has), both build flags for {@link #DENY_BUILD}, or none.
      */
-    public static List<RegionFlag<?>> targets(@Nullable String text) {
+    public static List<Flag<?>> targets(@Nullable String text) {
         if (text == null) {
             return Collections.emptyList();
         }
         if (text.equalsIgnoreCase(DENY_BUILD)) {
             return CoreFlags.DENY_BLOCK_BREAK.isRegistered() && CoreFlags.DENY_BLOCK_PLACE.isRegistered()
-                    ? Arrays.<RegionFlag<?>>asList(CoreFlags.DENY_BLOCK_BREAK, CoreFlags.DENY_BLOCK_PLACE)
-                    : Collections.<RegionFlag<?>>emptyList();
+                    ? Arrays.<Flag<?>>asList(CoreFlags.DENY_BLOCK_BREAK, CoreFlags.DENY_BLOCK_PLACE)
+                    : Collections.<Flag<?>>emptyList();
         }
-        return FlagRegistry.get().find(text).map(Collections::<RegionFlag<?>>singletonList).orElse(Collections.<RegionFlag<?>>emptyList());
+        return FlagRegistry.get().find(text).map(Collections::<Flag<?>>singletonList).orElse(Collections.<Flag<?>>emptyList());
     }
 
     /**
@@ -61,7 +61,7 @@ public final class FlagValues {
      *
      * @throws FlagParseException with the type's own message when it refuses the text
      */
-    public static <T> @Nullable T parse(RegionFlag<T> flag, String text) throws FlagParseException {
+    public static <T> @Nullable T parse(Flag<T> flag, String text) throws FlagParseException {
         String trimmed = text.trim();
         if (trimmed.equals(CLEAR)) {
             return null;
@@ -71,7 +71,7 @@ public final class FlagValues {
 
     /** {@code value} as the flag's type writes it back. */
     @SuppressWarnings("unchecked")
-    public static <T> String format(RegionFlag<T> flag, @Nullable Object value) {
+    public static <T> String format(Flag<T> flag, @Nullable Object value) {
         return value == null ? "null" : flag.getType().format((T) value);
     }
 
@@ -82,7 +82,7 @@ public final class FlagValues {
      *
      * @throws FlagParseException naming the field that is unknown or that refused its value, and every field accepted
      */
-    public static FlagSettings parseSettings(RegionFlag<?> flag, @Nullable FlagSettings current, String text) throws FlagParseException {
+    public static FlagSettings parseSettings(Flag<?> flag, @Nullable FlagSettings current, String text) throws FlagParseException {
         ObjectNode patch;
         try {
             patch = ArgParserObjectNode.parse(text);
@@ -99,7 +99,7 @@ public final class FlagValues {
      *
      * @throws FlagParseException naming the field that is unknown or that refused its value, and every field accepted
      */
-    public static FlagSettings parseSettings(RegionFlag<?> flag, @Nullable FlagSettings current, ObjectNode patch) throws FlagParseException {
+    public static FlagSettings parseSettings(Flag<?> flag, @Nullable FlagSettings current, ObjectNode patch) throws FlagParseException {
         ObjectMapper mapper = mapper();
         Map<String, JsonNode> fields = getSettingsFields(flag, current == null ? flag.getSettings() : current);
         ObjectNode tree = mapper.createObjectNode();
@@ -125,7 +125,7 @@ public final class FlagValues {
      * Each setting {@code settings} has, by the name a command types it with, in declaration order; a field with no
      * value is a {@code null} node.
      */
-    public static Map<String, JsonNode> getSettingsFields(RegionFlag<?> flag, FlagSettings settings) {
+    public static Map<String, JsonNode> getSettingsFields(Flag<?> flag, FlagSettings settings) {
         ObjectMapper mapper = mapper();
         JsonNode written = mapper.valueToTree(settings);
         Map<String, JsonNode> fields = new LinkedHashMap<>();
@@ -137,7 +137,7 @@ public final class FlagValues {
     }
 
     /** The names of the settings of {@code flag}, as {@code field=value} takes them. */
-    public static List<String> getSettingsFieldNames(RegionFlag<?> flag) {
+    public static List<String> getSettingsFieldNames(Flag<?> flag) {
         ObjectMapper mapper = mapper();
         BeanDescription description = mapper.getSerializationConfig().introspect(mapper.constructType(flag.getSettingsType()));
         List<String> names = new ArrayList<>();

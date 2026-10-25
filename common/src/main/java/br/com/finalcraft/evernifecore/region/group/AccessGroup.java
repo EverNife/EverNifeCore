@@ -1,13 +1,13 @@
 package br.com.finalcraft.evernifecore.region.group;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagChangeCause;
+import br.com.finalcraft.evernifecore.flag.FlagKey;
+import br.com.finalcraft.evernifecore.flag.FlagStore;
+import br.com.finalcraft.evernifecore.flag.FlagValue;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
-import br.com.finalcraft.evernifecore.region.flag.FlagChangeCause;
-import br.com.finalcraft.evernifecore.region.flag.FlagKey;
-import br.com.finalcraft.evernifecore.region.flag.FlagStore;
-import br.com.finalcraft.evernifecore.region.flag.FlagValue;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.time.ECClock;
 import jakarta.annotation.Nullable;
 
@@ -38,7 +38,7 @@ public final class AccessGroup {
         void onGroupChanged(AccessGroup group, GroupChange change, @Nullable UUID player);
 
         /** One of the group's own flag values changed. */
-        void onGroupFlagChanged(AccessGroup group, RegionFlag<?> flag, @Nullable FlagValue<?> oldValue, @Nullable FlagValue<?> newValue,
+        void onGroupFlagChanged(AccessGroup group, Flag<?> flag, @Nullable FlagValue<?> oldValue, @Nullable FlagValue<?> newValue,
                                 FlagChangeCause cause);
     }
 
@@ -86,20 +86,20 @@ public final class AccessGroup {
     }
 
     /** The group's own live value, member or not; null when unset or expired. */
-    public <T> @Nullable T getFlag(RegionFlag<T> flag) {
+    public <T> @Nullable T getFlag(Flag<T> flag) {
         FlagValue<T> value = flags.getValue(flag);
         return value == null ? null : value.getValue();
     }
 
-    public <T> void setFlag(RegionFlag<T> flag, T value) {
+    public <T> void setFlag(Flag<T> flag, T value) {
         flags.set(flag, value);
     }
 
-    public <T> void setFlag(RegionFlag<T> flag, T value, Duration ttl) {
+    public <T> void setFlag(Flag<T> flag, T value, Duration ttl) {
         flags.set(flag, value, ttl);
     }
 
-    public boolean removeFlag(RegionFlag<?> flag) {
+    public boolean removeFlag(Flag<?> flag) {
         return flags.remove(flag);
     }
 
@@ -108,7 +108,7 @@ public final class AccessGroup {
         return flags;
     }
 
-    private void onFlagChanged(RegionFlag<?> flag, @Nullable FlagValue<?> oldValue, @Nullable FlagValue<?> newValue, FlagChangeCause cause) {
+    private void onFlagChanged(Flag<?> flag, @Nullable FlagValue<?> oldValue, @Nullable FlagValue<?> newValue, FlagChangeCause cause) {
         hook.onGroupFlagChanged(this, flag, oldValue, newValue, cause);
     }
 
@@ -246,7 +246,7 @@ public final class AccessGroup {
     }
 
     /** The group's value of {@code flag} for {@code player}: null when the player does not belong or the group does not define it. */
-    public <T> @Nullable T resolve(RegionFlag<T> flag, FPlayer player) {
+    public <T> @Nullable T resolve(Flag<T> flag, FPlayer player) {
         T value = getFlag(flag);
         return value != null && contains(player) ? value : null;
     }

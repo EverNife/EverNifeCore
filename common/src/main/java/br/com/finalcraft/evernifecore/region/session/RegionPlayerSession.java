@@ -1,12 +1,12 @@
 package br.com.finalcraft.evernifecore.region.session;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagKey;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.player.state.HeldPlayerState;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.flag.FlagKey;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.region.group.MembershipCheck;
 import br.com.finalcraft.evernifecore.time.ECClock;
@@ -154,12 +154,12 @@ public final class RegionPlayerSession {
     }
 
     /** The value of a session flag applied to this player right now; null when none is. */
-    public @Nullable Object getAppliedSessionValue(RegionFlag<?> flag) {
+    public @Nullable Object getAppliedSessionValue(Flag<?> flag) {
         return appliedValues.get(flag.getKey());
     }
 
     /** When {@code flag} is looked at again on its own; null when no check is pending for it. */
-    public @Nullable Instant getNextRevalidation(RegionFlag<?> flag) {
+    public @Nullable Instant getNextRevalidation(Flag<?> flag) {
         return nextRevalidation.get(flag.getKey());
     }
 

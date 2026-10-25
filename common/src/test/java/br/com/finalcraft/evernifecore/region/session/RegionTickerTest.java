@@ -7,18 +7,18 @@ import br.com.finalcraft.evernifecore.action.UsageWatch;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.EventBuses;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagKey;
+import br.com.finalcraft.evernifecore.flag.FlagRegistry;
+import br.com.finalcraft.evernifecore.flag.FlagTypes;
+import br.com.finalcraft.evernifecore.flag.TickingFlag;
+import br.com.finalcraft.evernifecore.flag.Tristate;
+import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.TestRegions;
 import br.com.finalcraft.evernifecore.region.TestRegions.ManualAgenda;
-import br.com.finalcraft.evernifecore.region.flag.FlagKey;
-import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
-import br.com.finalcraft.evernifecore.region.flag.FlagTypes;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
-import br.com.finalcraft.evernifecore.region.flag.TickingFlag;
-import br.com.finalcraft.evernifecore.region.flag.Tristate;
-import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.testing.FailingExceptionHandler;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
@@ -45,7 +45,7 @@ class RegionTickerTest {
     Path tempDir;
 
     /** Records each player it is ticked for. */
-    static final class PulseFlag extends RegionFlag<Tristate> implements TickingFlag<Tristate> {
+    static final class PulseFlag extends Flag<Tristate> implements TickingFlag<Tristate> {
         final List<String> ticked = new CopyOnWriteArrayList<>();
 
         PulseFlag() {

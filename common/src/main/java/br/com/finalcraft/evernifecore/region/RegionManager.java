@@ -5,6 +5,9 @@ import br.com.finalcraft.evernifecore.action.EventSourceUsage;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagChangeCause;
+import br.com.finalcraft.evernifecore.flag.FlagValue;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.region.event.RegionChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionCreatedEvent;
@@ -13,9 +16,6 @@ import br.com.finalcraft.evernifecore.region.event.RegionGroupChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionLoadFailedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionRedefinedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionRemovedEvent;
-import br.com.finalcraft.evernifecore.region.flag.FlagChangeCause;
-import br.com.finalcraft.evernifecore.region.flag.FlagValue;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.region.group.GroupChange;
 import br.com.finalcraft.evernifecore.region.group.Membership;
@@ -829,7 +829,7 @@ public final class RegionManager {
         ECEventBus.global().postIfListened(RegionChangedEvent.class, () -> new RegionChangedEvent(region, type));
     }
 
-    void flagChanged(Region region, @Nullable AccessGroup group, RegionFlag<?> flag, @Nullable FlagValue<?> oldValue,
+    void flagChanged(Region region, @Nullable AccessGroup group, Flag<?> flag, @Nullable FlagValue<?> oldValue,
                      @Nullable FlagValue<?> newValue, FlagChangeCause cause) {
         if (!region.isAttached()) {
             return;

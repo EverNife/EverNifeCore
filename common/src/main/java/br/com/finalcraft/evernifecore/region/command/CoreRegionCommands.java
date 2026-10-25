@@ -8,6 +8,11 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagKey;
+import br.com.finalcraft.evernifecore.flag.FlagRegistry;
+import br.com.finalcraft.evernifecore.flag.FlagValue;
+import br.com.finalcraft.evernifecore.flag.Resolution;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
@@ -17,11 +22,6 @@ import br.com.finalcraft.evernifecore.pageviewer.PageViewer;
 import br.com.finalcraft.evernifecore.pageviewer.theme.PageTheme;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
-import br.com.finalcraft.evernifecore.region.Resolution;
-import br.com.finalcraft.evernifecore.region.flag.FlagKey;
-import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
-import br.com.finalcraft.evernifecore.region.flag.FlagValue;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.region.group.Membership;
 import br.com.finalcraft.evernifecore.region.shape.BoundingBox;
@@ -87,7 +87,7 @@ public class CoreRegionCommands {
             sender.sendMessage(regionLine(region));
         }
         HERE_FLAGS_HEADER.addPlaceholder("player", target.getName()).send(sender);
-        for (RegionFlag<?> flag : FlagRegistry.get().getAll()) {
+        for (Flag<?> flag : FlagRegistry.get().getAll()) {
             sendExplanation(sender, flag, pos, target);
         }
     }
@@ -150,7 +150,7 @@ public class CoreRegionCommands {
 
         sender.sendMessage("§7flags: §f" + region.getFlags().size());
         for (Map.Entry<FlagKey, FlagValue<?>> entry : region.getFlags().entrySet()) {
-            RegionFlag<?> flag = FlagRegistry.get().get(entry.getKey());
+            Flag<?> flag = FlagRegistry.get().get(entry.getKey());
             StringBuilder line = new StringBuilder(" §7- §f" + entry.getKey() + " §7= §e" + valueText(flag, entry.getValue()));
             if (flag != null && region.getFlagSettings(flag) != null) {
                 line.append(" §7settings: §eoverride");
@@ -161,7 +161,7 @@ public class CoreRegionCommands {
             }
             sender.sendMessage(line.toString());
         }
-        for (RegionFlag<?> flag : FlagRegistry.get().getAll()) {
+        for (Flag<?> flag : FlagRegistry.get().getAll()) {
             if (region.getFlagValue(flag) == null && (region.getFlagSettings(flag) != null || region.getFlagHandlerOwner(flag) != null)) {
                 ECPluginData handlerOwner = region.getFlagHandlerOwner(flag);
                 sender.sendMessage(" §7- §f" + flag.getKey() + " §7(no value)"
@@ -196,7 +196,7 @@ public class CoreRegionCommands {
                 + (parent == null ? "" : ", parent " + parent.getId());
     }
 
-    private static <T> void sendExplanation(FCommandSender sender, RegionFlag<T> flag, WorldLocPos pos, FPlayer target) {
+    private static <T> void sendExplanation(FCommandSender sender, Flag<T> flag, WorldLocPos pos, FPlayer target) {
         Resolution<T> resolution = RegionLookup.get().explain(flag, pos.getWorldName(), pos.getX(), pos.getY(), pos.getZ(), target);
         T value = resolution.getValue();
         if (value == null) {
@@ -244,7 +244,7 @@ public class CoreRegionCommands {
         return pos.getWorldName() + " " + (int) Math.floor(pos.getX()) + " " + (int) Math.floor(pos.getY()) + " " + (int) Math.floor(pos.getZ());
     }
 
-    private static String valueText(@Nullable RegionFlag<?> flag, FlagValue<?> value) {
+    private static String valueText(@Nullable Flag<?> flag, FlagValue<?> value) {
         String text = flag == null ? String.valueOf(value.getValue()) : FlagValues.format(flag, value.getValue());
         Duration left = value.getRemaining();
         return left == null ? text : text + " §7(" + remaining(left) + ")";

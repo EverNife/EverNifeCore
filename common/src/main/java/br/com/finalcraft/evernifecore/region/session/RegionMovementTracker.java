@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.events.player.ECPlayerQuitEvent;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
+import br.com.finalcraft.evernifecore.flag.ProtectionFlagGate;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.Region;
@@ -16,7 +17,6 @@ import br.com.finalcraft.evernifecore.region.event.RegionEnterEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionFlagChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionGroupChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionLeaveEvent;
-import br.com.finalcraft.evernifecore.region.flag.ProtectionFlagGate;
 import jakarta.annotation.Nullable;
 
 import java.util.ArrayList;

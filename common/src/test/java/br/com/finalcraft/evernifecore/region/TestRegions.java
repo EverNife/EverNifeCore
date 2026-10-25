@@ -1,11 +1,11 @@
 package br.com.finalcraft.evernifecore.region;
 
+import br.com.finalcraft.evernifecore.flag.AmountEvery;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagTypes;
+import br.com.finalcraft.evernifecore.flag.core.TimeLock;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.player.state.EffectLevel;
-import br.com.finalcraft.evernifecore.region.flag.AmountEvery;
-import br.com.finalcraft.evernifecore.region.flag.FlagTypes;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
-import br.com.finalcraft.evernifecore.region.flag.core.TimeLock;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
@@ -42,7 +42,7 @@ public final class TestRegions {
      * Two distinct values of {@code flag}'s type, for a flag that keeps the first of a tie: a test over the whole catalog
      * sets them on two tied regions.
      */
-    public static List<Object> twoValues(RegionFlag<?> flag) {
+    public static List<Object> twoValues(Flag<?> flag) {
         Class<?> type = flag.getType().getValueType();
         if (type == WorldLocPos.class) {
             return Arrays.asList(WorldLocPos.of(1, 2, 3, "world"), WorldLocPos.of(4, 5, 6, "world"));

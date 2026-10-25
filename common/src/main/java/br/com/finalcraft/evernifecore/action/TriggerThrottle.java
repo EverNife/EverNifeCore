@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.action;
 
-import br.com.finalcraft.evernifecore.region.flag.FlagKey;
-import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagKey;
+import br.com.finalcraft.evernifecore.flag.FlagSettings;
 import br.com.finalcraft.evernifecore.time.ECClock;
 import jakarta.annotation.Nullable;
 
@@ -13,7 +13,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Lets a flag's {@link RegionFlag#onApplied} fire at most once per player every
+ * Lets a flag's {@link Flag#onApplied} fire at most once per player every
  * {@link FlagSettings#getTriggerInterval()}. Memory only: the window is read from the settings on every call, so a
  * reload changes the pace at once.
  */
@@ -22,12 +22,12 @@ public final class TriggerThrottle {
     private final ConcurrentHashMap<UUID, Map<FlagKey, Instant>> lastFired = new ConcurrentHashMap<>();
 
     /** True - and the firing is recorded - when {@code flag} may fire for {@code player} now, at its server-wide pace. */
-    public boolean tryFire(UUID player, RegionFlag<?> flag) {
+    public boolean tryFire(UUID player, Flag<?> flag) {
         return tryFire(player, flag, flag.getSettings().getTriggerInterval());
     }
 
-    /** As {@link #tryFire(UUID, RegionFlag)}, at the pace of {@code interval} - a region's own settings; zero or null always fires. */
-    public boolean tryFire(UUID player, RegionFlag<?> flag, @Nullable Duration interval) {
+    /** As {@link #tryFire(UUID, Flag)}, at the pace of {@code interval} - a region's own settings; zero or null always fires. */
+    public boolean tryFire(UUID player, Flag<?> flag, @Nullable Duration interval) {
         if (interval == null || interval.isZero() || interval.isNegative()) {
             return true;
         }

@@ -6,15 +6,15 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDP
 import br.com.finalcraft.evernifecore.commands.finalcmd.tree.CommandNode;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagValue;
+import br.com.finalcraft.evernifecore.flag.Tristate;
+import br.com.finalcraft.evernifecore.flag.core.MoveDenySettings;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.flag.FlagValue;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
-import br.com.finalcraft.evernifecore.region.flag.Tristate;
-import br.com.finalcraft.evernifecore.region.flag.core.MoveDenySettings;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.region.overlap.Overlap;
 import br.com.finalcraft.evernifecore.region.overlap.OverlapProvider;
@@ -198,7 +198,7 @@ class RegionCommandNodeTest extends RegionCommandFixture {
     @Test
     void settingsOverridesPerRegionAndDashClears() {
         FinalCMDPluginCommand fp = mount();
-        RegionFlag<?> denyEntry = flag("deny-entry");
+        Flag<?> denyEntry = flag("deny-entry");
 
         harness.dispatch(fp, steve, "region settings arena deny-entry revert=trail:2");
 
@@ -413,7 +413,7 @@ class RegionCommandNodeTest extends RegionCommandFixture {
         harness.dispatch(fp, steve, "region tp arena");
         assertEquals(WorldLocPos.of(5.5, 11, 5.5, WORLD), steve.getTeleports().get(0).getWorldLocPos());
 
-        arena.setFlag((RegionFlag<WorldLocPos>) flag("teleport-point"), WorldLocPos.of(1, 2, 3, WORLD));
+        arena.setFlag((Flag<WorldLocPos>) flag("teleport-point"), WorldLocPos.of(1, 2, 3, WORLD));
         harness.dispatch(fp, steve, "region tp arena");
         assertEquals(WorldLocPos.of(1, 2, 3, WORLD), steve.getTeleports().get(1).getWorldLocPos());
     }

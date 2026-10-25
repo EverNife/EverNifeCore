@@ -1,19 +1,19 @@
 package br.com.finalcraft.evernifecore.region.session;
 
+import br.com.finalcraft.evernifecore.flag.AmountEvery;
+import br.com.finalcraft.evernifecore.flag.FlagParseException;
+import br.com.finalcraft.evernifecore.flag.FlagTypes;
+import br.com.finalcraft.evernifecore.flag.Tristate;
+import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
+import br.com.finalcraft.evernifecore.flag.core.DamageOverTimeSettings;
+import br.com.finalcraft.evernifecore.flag.core.FlightFlag;
+import br.com.finalcraft.evernifecore.flag.core.TimeLock;
 import br.com.finalcraft.evernifecore.player.state.ActiveEffect;
 import br.com.finalcraft.evernifecore.player.state.ECGameMode;
 import br.com.finalcraft.evernifecore.player.state.EffectLevel;
 import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.player.state.PlayerTime;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.flag.AmountEvery;
-import br.com.finalcraft.evernifecore.region.flag.FlagParseException;
-import br.com.finalcraft.evernifecore.region.flag.FlagTypes;
-import br.com.finalcraft.evernifecore.region.flag.Tristate;
-import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
-import br.com.finalcraft.evernifecore.region.flag.core.DamageOverTimeSettings;
-import br.com.finalcraft.evernifecore.region.flag.core.FlightFlag;
-import br.com.finalcraft.evernifecore.region.flag.core.TimeLock;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
 import br.com.finalcraft.evernifecore.testing.TestPlatform;
 import br.com.finalcraft.evernifecore.testing.TestPlayerState;

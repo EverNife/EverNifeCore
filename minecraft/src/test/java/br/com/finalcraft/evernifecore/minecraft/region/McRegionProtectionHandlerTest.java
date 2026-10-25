@@ -1,10 +1,10 @@
 package br.com.finalcraft.evernifecore.minecraft.region;
 
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
+import br.com.finalcraft.evernifecore.flag.core.DenyBlockPlaceFlag;
+import br.com.finalcraft.evernifecore.flag.core.DenyPvpFlag;
 import br.com.finalcraft.evernifecore.math.game.selection.CuboidSelection;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
-import br.com.finalcraft.evernifecore.region.flag.core.DenyBlockPlaceFlag;
-import br.com.finalcraft.evernifecore.region.flag.core.DenyPvpFlag;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;

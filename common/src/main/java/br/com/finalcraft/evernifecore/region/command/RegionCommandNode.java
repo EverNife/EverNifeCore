@@ -11,10 +11,16 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.ArgPars
 import br.com.finalcraft.evernifecore.commands.finalcmd.tab.ITabParser.TabContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.tree.CommandPath;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagParseException;
+import br.com.finalcraft.evernifecore.flag.FlagRegistry;
+import br.com.finalcraft.evernifecore.flag.FlagSettings;
+import br.com.finalcraft.evernifecore.flag.FlagValue;
+import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.ILocaleMessageBase;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.locale.ILocaleMessageBase;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.CreationResult;
 import br.com.finalcraft.evernifecore.region.Region;
@@ -22,12 +28,6 @@ import br.com.finalcraft.evernifecore.region.RegionId;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.region.RemoveStrategy;
-import br.com.finalcraft.evernifecore.region.flag.FlagParseException;
-import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
-import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
-import br.com.finalcraft.evernifecore.region.flag.FlagValue;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
-import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.region.group.Membership;
 import br.com.finalcraft.evernifecore.region.overlap.Overlap;
@@ -395,7 +395,7 @@ public class RegionCommandNode implements RegionScope {
                      @Arg.Flag(value = "--ttl", aliases = {"-t"}, insideTail = true) FCTimeFrame ttl,
                      @Arg.Flag(value = "--flag-settings", aliases = {"--fs"}, insideTail = true) List<ObjectNode> flagSettings) {
         if (valueText.isEmpty() && flagSettings == null) {
-            for (RegionFlag<?> flag : FlagValues.targets(flagName)) {
+            for (Flag<?> flag : FlagValues.targets(flagName)) {
                 FlagValue<?> value = region.getFlagValue(flag);
                 FLAG_VALUE.addPlaceholder("flag", flag.getKey()).addPlaceholder("target", region.getId())
                         .addPlaceholder("value", value == null ? "-" : FlagValues.format(flag, value.getValue())).send(sender);
@@ -423,7 +423,7 @@ public class RegionCommandNode implements RegionScope {
         for (ObjectNode occurrence : occurrences) {
             patch.setAll(occurrence);
         }
-        for (RegionFlag<?> flag : FlagValues.targets(flagName)) {
+        for (Flag<?> flag : FlagValues.targets(flagName)) {
             FlagSettings settings;
             try {
                 settings = FlagValues.parseSettings(flag, region.getFlagSettings(flag), patch);
@@ -440,7 +440,7 @@ public class RegionCommandNode implements RegionScope {
             @FCLocale(lang = LocaleType.EN_US, text = "How a flag acts in this region: field=value overrides the server's settings, - drops the override"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Como uma flag age nesta região: campo=valor sobrepõe as settings do servidor, - remove a sobreposição")
     })
-    public void settings(FCommandSender sender, @Arg("<region>") Region region, @Arg("<flag>") RegionFlag<?> flag,
+    public void settings(FCommandSender sender, @Arg("<region>") Region region, @Arg("<flag>") Flag<?> flag,
                          @Arg(value = "[settings...]", parser = ArgParserFlagValue.Settings.class) String settingsText) {
         if (settingsText.isEmpty()) {
             sendSettings(sender, region, flag);
@@ -708,7 +708,7 @@ public class RegionCommandNode implements RegionScope {
                          @Arg.Flag(value = "--ttl", aliases = {"-t"}, insideTail = true) FCTimeFrame ttl) {
             if (valueText.isEmpty()) {
                 AccessGroup group = target.region.getGroupIfPresent(target.groupName);
-                for (RegionFlag<?> flag : FlagValues.targets(flagName)) {
+                for (Flag<?> flag : FlagValues.targets(flagName)) {
                     Object value = group == null ? null : group.getFlag(flag);
                     FLAG_VALUE.addPlaceholder("flag", flag.getKey()).addPlaceholder("target", target.region.getId() + "/" + target.groupName)
                             .addPlaceholder("value", value == null ? "-" : FlagValues.format(flag, value)).send(sender);
@@ -736,7 +736,7 @@ public class RegionCommandNode implements RegionScope {
                 Duration left = member.getRemaining();
                 sender.sendMessage(" §7member §f" + member.getUuid() + (left == null ? "" : " §7(" + CoreRegionCommands.remaining(left) + ")"));
             }
-            for (RegionFlag<?> flag : FlagRegistry.get().getAll()) {
+            for (Flag<?> flag : FlagRegistry.get().getAll()) {
                 Object value = group.getFlag(flag);
                 if (value != null) {
                     sender.sendMessage(" §7flag §f" + flag.getKey() + " §7= §e" + FlagValues.format(flag, value));
@@ -952,9 +952,9 @@ public class RegionCommandNode implements RegionScope {
     /** @return false when the value was refused and nothing was set */
     private boolean applyFlags(FCommandSender sender, Region region, @Nullable String groupName, String flagName, String valueText,
                                @Nullable FCTimeFrame ttl) {
-        List<RegionFlag<?>> flags = FlagValues.targets(flagName);
+        List<Flag<?>> flags = FlagValues.targets(flagName);
         List<Object> values = new ArrayList<>();
-        for (RegionFlag<?> flag : flags) {
+        for (Flag<?> flag : flags) {
             try {
                 values.add(FlagValues.parse(flag, valueText));
             } catch (FlagParseException refused) {
@@ -965,7 +965,7 @@ public class RegionCommandNode implements RegionScope {
         String target = groupName == null ? region.getId().toString() : region.getId() + "/" + groupName;
         Duration timeToLive = ttl == null ? null : Duration.ofMillis(ttl.getMillis());
         for (int i = 0; i < flags.size(); i++) {
-            RegionFlag<?> flag = flags.get(i);
+            Flag<?> flag = flags.get(i);
             Object value = values.get(i);
             if (value == null) {
                 if (groupName == null) {
@@ -989,7 +989,7 @@ public class RegionCommandNode implements RegionScope {
     }
 
     @SuppressWarnings("unchecked")
-    private static <T> void setFlag(Region region, @Nullable String groupName, RegionFlag<T> flag, Object value, @Nullable Duration ttl) {
+    private static <T> void setFlag(Region region, @Nullable String groupName, Flag<T> flag, Object value, @Nullable Duration ttl) {
         T typed = (T) value;
         if (groupName == null) {
             if (ttl == null) {
@@ -1007,7 +1007,7 @@ public class RegionCommandNode implements RegionScope {
         }
     }
 
-    private static void sendSettings(FCommandSender sender, Region region, RegionFlag<?> flag) {
+    private static void sendSettings(FCommandSender sender, Region region, Flag<?> flag) {
         FlagSettings override = region.getFlagSettings(flag);
         Map<String, JsonNode> server = FlagValues.getSettingsFields(flag, flag.getSettings());
         Map<String, JsonNode> effective = override == null ? server : FlagValues.getSettingsFields(flag, override);

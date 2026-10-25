@@ -1,14 +1,14 @@
 package br.com.finalcraft.evernifecore.region;
 
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.flag.FlagChangeCause;
+import br.com.finalcraft.evernifecore.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.event.RegionChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionCreatedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionFlagChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionGroupChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionRemovedEvent;
-import br.com.finalcraft.evernifecore.region.flag.FlagChangeCause;
-import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.region.group.GroupChange;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;

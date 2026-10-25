@@ -50,12 +50,16 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **The region engine's shared pieces leave `region`**: the action contexts, `Actor`/`TypeKey`/`ECEntityType`,
   `EventSource`, `EventSourceUsage`/`UsageHold`/`UsageWatch` and `TriggerThrottle` now live in
   `br.com.finalcraft.evernifecore.action`; `IPlayerStateAccess`, `HeldPlayerState`, `PlayerStateBackup`, `ECGameMode`,
-  `PlayerTime`, `ActiveEffect` and `EffectLevel` in `player.state`; `ItemSpec` in `item`. Same classes, same
-  behaviour: a plugin updates its imports.
+  `PlayerTime`, `ActiveEffect` and `EffectLevel` in `player.state`; `ItemSpec` in `item`; everything of `region.flag`
+  and `region.flag.core` plus `Resolution` in `flag` / `flag.core`, where `RegionFlag<T>` is now `Flag<T>`. Same
+  classes, same behaviour, same stored format (`regions/flags/<name>.yml` and the region records are keyed by flag
+  key, not by class): a plugin updates its imports and `extends Flag<T>`.
 - **One clock and one scheduler**: `time.ECClock` replaces `RegionClock`; `time.ECScheduler` replaces both
   `scheduler.FCScheduler` and `RegionScheduler` with the same static methods (`runAsync`, `scheduleAsync`,
   `runAsyncFuture`, `supplyAsyncFuture`, `getScheduler`, `getMinecraftScheduler`, `getHytaleScheduler`; the test
   seam `RegionScheduler.set` is `ECScheduler.set`). No alias is kept; `McFCScheduler`/`HyFCScheduler` are unchanged.
+- **The Bukkit region listeners live in `minecraft.action.listener`** (`RegionListeners`, `RegionContexts`, ...); on
+  Hytale `HyRegionSystems` is `hytale.action.HyActionSystems`.
 
 ## [3.0.1-alpha.70] - 2026-10-19
 

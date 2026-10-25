@@ -2,13 +2,13 @@ package br.com.finalcraft.evernifecore.region.command;
 
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagRegistry;
+import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.pageviewer.nav.PVExtraMessages;
 import br.com.finalcraft.evernifecore.pageviewer.theme.ClassicPageTheme;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
-import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSession;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSpec;
 import br.com.finalcraft.evernifecore.region.selection.SelectionTool;
@@ -64,7 +64,7 @@ abstract class RegionCommandFixture {
         harness.close();
     }
 
-    static RegionFlag<?> flag(String name) {
+    static Flag<?> flag(String name) {
         return FlagRegistry.get().find(name).orElseThrow(() -> new AssertionError("no flag " + name));
     }
 

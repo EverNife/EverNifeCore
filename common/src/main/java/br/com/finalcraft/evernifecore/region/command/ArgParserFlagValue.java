@@ -4,11 +4,11 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseCall;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagParseException;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.region.flag.FlagParseException;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.session.RevertStrategy;
 import br.com.finalcraft.evernifecore.util.FCStringUtil;
 import jakarta.annotation.Nonnull;
@@ -37,7 +37,7 @@ public class ArgParserFlagValue extends ArgParser<String> {
     @Override
     public @Nonnull ParseResult<String> parse(@Nonnull ParseCall call) {
         String text = call.getArgumento().toString();
-        RegionFlag<?> flag = call.previouslyParsed(RegionFlag.class);
+        Flag<?> flag = call.previouslyParsed(Flag.class);
         if (flag != null) {
             try {
                 FlagValues.parse(flag, text);
@@ -50,7 +50,7 @@ public class ArgParserFlagValue extends ArgParser<String> {
 
     @Override
     public @Nonnull List<String> tabComplete(TabContext tabContext) {
-        RegionFlag<?> flag = flagBefore(argInfo, tabContext);
+        Flag<?> flag = flagBefore(argInfo, tabContext);
         if (flag == null) {
             return new ArrayList<>();
         }
@@ -62,12 +62,12 @@ public class ArgParserFlagValue extends ArgParser<String> {
     }
 
     /** The flag typed in the window position just before {@code tail}, read off the raw line. */
-    static @Nullable RegionFlag<?> flagBefore(ArgInfo tail, TabContext tabContext) {
+    static @Nullable Flag<?> flagBefore(ArgInfo tail, TabContext tabContext) {
         int flagIndex = tabContext.getIndex() - tabContext.getLocalIndex() + tail.getIndex() - 1;
         if (flagIndex < 0 || flagIndex >= tabContext.getArgs().length) {
             return null;
         }
-        List<RegionFlag<?>> targets = FlagValues.targets(tabContext.getArgs()[flagIndex]);
+        List<Flag<?>> targets = FlagValues.targets(tabContext.getArgs()[flagIndex]);
         return targets.isEmpty() ? null : targets.get(0);
     }
 
@@ -87,7 +87,7 @@ public class ArgParserFlagValue extends ArgParser<String> {
 
         @Override
         public @Nonnull List<String> tabComplete(TabContext tabContext) {
-            RegionFlag<?> flag = flagBefore(argInfo, tabContext);
+            Flag<?> flag = flagBefore(argInfo, tabContext);
             if (flag == null) {
                 return new ArrayList<>();
             }

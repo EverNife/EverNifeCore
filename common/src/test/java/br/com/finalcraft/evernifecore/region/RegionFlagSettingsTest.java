@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.region;
 
+import br.com.finalcraft.evernifecore.flag.FlagSettings;
 import br.com.finalcraft.evernifecore.region.event.RegionChangedEvent;
-import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;

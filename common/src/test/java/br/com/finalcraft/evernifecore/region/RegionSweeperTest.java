@@ -1,11 +1,11 @@
 package br.com.finalcraft.evernifecore.region;
 
+import br.com.finalcraft.evernifecore.flag.FlagChangeCause;
+import br.com.finalcraft.evernifecore.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.TestRegions.ManualClock;
 import br.com.finalcraft.evernifecore.region.event.RegionFlagChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionGroupChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionRemovedEvent;
-import br.com.finalcraft.evernifecore.region.flag.FlagChangeCause;
-import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.region.group.GroupChange;
 import br.com.finalcraft.evernifecore.testing.TestPlatform;

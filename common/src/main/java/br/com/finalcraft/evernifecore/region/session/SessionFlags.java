@@ -4,18 +4,18 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.SessionContext;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagCategory;
+import br.com.finalcraft.evernifecore.flag.FlagHandler;
+import br.com.finalcraft.evernifecore.flag.FlagKey;
+import br.com.finalcraft.evernifecore.flag.FlagOutcome;
+import br.com.finalcraft.evernifecore.flag.FlagOutcomeContext;
+import br.com.finalcraft.evernifecore.flag.FlagRegistry;
+import br.com.finalcraft.evernifecore.flag.Resolution;
+import br.com.finalcraft.evernifecore.flag.Revalidation;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
-import br.com.finalcraft.evernifecore.region.Resolution;
-import br.com.finalcraft.evernifecore.region.flag.FlagCategory;
-import br.com.finalcraft.evernifecore.region.flag.FlagHandler;
-import br.com.finalcraft.evernifecore.region.flag.FlagKey;
-import br.com.finalcraft.evernifecore.region.flag.FlagOutcome;
-import br.com.finalcraft.evernifecore.region.flag.FlagOutcomeContext;
-import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
-import br.com.finalcraft.evernifecore.region.flag.Revalidation;
 import br.com.finalcraft.evernifecore.time.ECClock;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 import jakarta.annotation.Nullable;
@@ -65,7 +65,7 @@ final class SessionFlags {
         boolean all = invalidated || trigger == Trigger.BOUNDARY;
         //a crossing applies what changed; a check that was asked for - by policy or by an invalidation - revalidates even an unchanged value
         boolean asked = invalidated || trigger != Trigger.BOUNDARY;
-        for (RegionFlag<?> flag : FlagRegistry.get().getAll()) {
+        for (Flag<?> flag : FlagRegistry.get().getAll()) {
             if (flag.getCategory() != FlagCategory.SESSION) {
                 continue;
             }
@@ -80,7 +80,7 @@ final class SessionFlags {
     }
 
     /** @param revalidateSame whether an unchanged value is revalidated anyway - a check that came due on its own */
-    private <T> void evaluate(FPlayer player, RegionPlayerSession session, RegionFlag<T> flag, Instant now, boolean revalidateSame) {
+    private <T> void evaluate(FPlayer player, RegionPlayerSession session, Flag<T> flag, Instant now, boolean revalidateSame) {
         FlagKey key = flag.getKey();
         Resolution<T> resolution = lookup.resolution(flag, session.getCurrent(), player);
         Region source = resolution.getSource();
@@ -111,7 +111,7 @@ final class SessionFlags {
         session.setNextRevalidation(key, value == null ? null : nextCheck(player, session, flag, source, now));
     }
 
-    private static @Nullable Instant nextCheck(FPlayer player, RegionPlayerSession session, RegionFlag<?> flag, Region source, Instant now) {
+    private static @Nullable Instant nextCheck(FPlayer player, RegionPlayerSession session, Flag<?> flag, Region source, Instant now) {
         Revalidation revalidation = flag.getRevalidation();
         switch (revalidation.getType()) {
             case INTERVAL:
@@ -127,7 +127,7 @@ final class SessionFlags {
     /** The player left: every applied value stops applying. */
     void leaveAll(FPlayer player, RegionPlayerSession session) {
         for (Map.Entry<FlagKey, Object> entry : new HashMap<>(session.getAppliedValues()).entrySet()) {
-            RegionFlag<?> flag = FlagRegistry.get().get(entry.getKey());
+            Flag<?> flag = FlagRegistry.get().get(entry.getKey());
             Region source = session.getAppliedSource(entry.getKey());
             session.setApplied(entry.getKey(), null, null);
             session.setNextRevalidation(entry.getKey(), null);
@@ -138,12 +138,12 @@ final class SessionFlags {
     }
 
     @SuppressWarnings("unchecked")
-    private <T> void leave(FPlayer player, RegionPlayerSession session, RegionFlag<T> flag, Region source, Object lastValue) {
+    private <T> void leave(FPlayer player, RegionPlayerSession session, Flag<T> flag, Region source, Object lastValue) {
         flag.onLeave(new SessionContext(player, source, session), (T) lastValue);
         notifyHandler(player, source, flag, lastValue, FlagOutcome.REMOVED, Resolution.Reason.DEFAULT);
     }
 
-    private static void notifyHandler(FPlayer player, Region region, RegionFlag<?> flag, Object value, FlagOutcome outcome,
+    private static void notifyHandler(FPlayer player, Region region, Flag<?> flag, Object value, FlagOutcome outcome,
                                       Resolution.Reason reason) {
         FlagHandler handler = region.getFlagHandler(flag);
         if (handler != null) {

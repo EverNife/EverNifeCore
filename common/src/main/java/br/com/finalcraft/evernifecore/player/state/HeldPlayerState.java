@@ -2,10 +2,10 @@ package br.com.finalcraft.evernifecore.player.state;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagKey;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
-import br.com.finalcraft.evernifecore.region.flag.FlagKey;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
@@ -56,7 +56,7 @@ public final class HeldPlayerState {
      * {@code flag} holds {@code slot} at {@code value}. The first holder saves what the player has there now - or what the
      * backup kept, when the server stopped with the player inside and the slot was never given back.
      */
-    public synchronized void hold(String slot, RegionFlag<?> flag, Object value, boolean persistent, FPlayer online) {
+    public synchronized void hold(String slot, Flag<?> flag, Object value, boolean persistent, FPlayer online) {
         Slot held = slots.get(slot);
         if (held == null) {
             PlayerStateBackup backup = backup();
@@ -81,7 +81,7 @@ public final class HeldPlayerState {
      *
      * @return whether the slot was given back; false while another flag still holds it, or when {@code flag} never did
      */
-    public synchronized boolean release(String slot, RegionFlag<?> flag, FPlayer online) {
+    public synchronized boolean release(String slot, Flag<?> flag, FPlayer online) {
         Slot held = slots.get(slot);
         if (held == null || held.holders.remove(flag.getKey()) == null || !held.holders.isEmpty()) {
             return false;

@@ -12,25 +12,25 @@ import br.com.finalcraft.evernifecore.conformance.Verdict;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagKey;
+import br.com.finalcraft.evernifecore.flag.FlagRegistry;
+import br.com.finalcraft.evernifecore.flag.FlagSettings;
+import br.com.finalcraft.evernifecore.flag.Tristate;
+import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
+import br.com.finalcraft.evernifecore.flag.core.DenyFlag;
+import br.com.finalcraft.evernifecore.flag.core.EntryDenySettings;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
-import br.com.finalcraft.evernifecore.minecraft.region.listener.RegionContexts;
-import br.com.finalcraft.evernifecore.minecraft.region.listener.RegionListeners;
+import br.com.finalcraft.evernifecore.minecraft.action.listener.RegionContexts;
+import br.com.finalcraft.evernifecore.minecraft.action.listener.RegionListeners;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.region.CreationResult;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.region.event.RegionLeaveEvent;
-import br.com.finalcraft.evernifecore.region.flag.FlagKey;
-import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
-import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
-import br.com.finalcraft.evernifecore.region.flag.Tristate;
-import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
-import br.com.finalcraft.evernifecore.region.flag.core.DenyFlag;
-import br.com.finalcraft.evernifecore.region.flag.core.EntryDenySettings;
 import br.com.finalcraft.evernifecore.region.session.MoveCause;
 import br.com.finalcraft.evernifecore.region.session.RevertStrategy;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
@@ -153,8 +153,8 @@ public final class RegionsSuite implements ConformanceSuite {
     }
 
     private Verdict coreFlagsRegistered() {
-        List<RegionFlag<?>> all = CoreFlags.all();
-        long registered = all.stream().filter(RegionFlag::isRegistered).count();
+        List<Flag<?>> all = CoreFlags.all();
+        long registered = all.stream().filter(Flag::isRegistered).count();
         boolean sameInstance = FlagRegistry.get().find("evernifecore:deny-pvp").orElse(null) == CoreFlags.DENY_PVP;
         ECPluginData owner = CoreFlags.DENY_PVP.getOwner();
         String ownerName = owner == null ? null : owner.getMetaInfo().getName();
@@ -574,7 +574,7 @@ public final class RegionsSuite implements ConformanceSuite {
      * region of this plugin holds the flag - found by its class name on any handler list, since the event it hears
      * differs by era.
      */
-    private Verdict listenerFollowsNeed(RegionFlag<?> flag, Consumer<Region> define, String listenerName) {
+    private Verdict listenerFollowsNeed(Flag<?> flag, Consumer<Region> define, String listenerName) {
         EventSource source = flag.getNeeds().iterator().next();
         boolean offBefore = !EventSourceUsage.get().isNeeded(source) && !isOn(listenerName);
         World world = Bukkit.getWorlds().get(0);

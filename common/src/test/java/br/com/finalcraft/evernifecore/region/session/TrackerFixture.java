@@ -4,15 +4,15 @@ import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.EventBuses;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagRegistry;
+import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.TestRegions;
 import br.com.finalcraft.evernifecore.region.TestRegions.ManualAgenda;
 import br.com.finalcraft.evernifecore.region.TestRegions.ManualClock;
-import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
-import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.testing.FailingExceptionHandler;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
@@ -77,11 +77,11 @@ abstract class TrackerFixture {
         Plugins.forget(Plugins.CORE);
     }
 
-    <F extends RegionFlag<?>> F registered(F flag) {
+    <F extends Flag<?>> F registered(F flag) {
         //register under the fake plugin the key names
         String keyOwner = flag.getKey().getOwner();
         ECPluginData by = keyOwner.equals(CoreFlags.OWNER) ? core : keyOwner.equals(OWNER.toLowerCase(Locale.ROOT)) ? owner : other;
-        FlagRegistry.get().register(by, (RegionFlag<?>) flag);
+        FlagRegistry.get().register(by, (Flag<?>) flag);
         return flag;
     }
 

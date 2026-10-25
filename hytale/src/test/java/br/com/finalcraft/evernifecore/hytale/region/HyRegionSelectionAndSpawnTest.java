@@ -3,11 +3,12 @@ package br.com.finalcraft.evernifecore.hytale.region;
 import br.com.finalcraft.evernifecore.action.Actor;
 import br.com.finalcraft.evernifecore.action.SpawnContext;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.flag.FlagRegistry;
+import br.com.finalcraft.evernifecore.flag.Tristate;
+import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
+import br.com.finalcraft.evernifecore.hytale.action.HyActionSystems;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
-import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
-import br.com.finalcraft.evernifecore.region.flag.Tristate;
-import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.selection.SelectionClick;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSession;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSpec;
@@ -85,7 +86,7 @@ class HyRegionSelectionAndSpawnTest {
     }
 
     private boolean click(ItemStack hand, DamageBlockEvent event, int x, int y, int z, SelectionClick kind) {
-        return HyRegionSystems.select(hand, event, () -> builder, WORLD, new Vector3i(x, y, z), () -> kind);
+        return HyActionSystems.select(hand, event, () -> builder, WORLD, new Vector3i(x, y, z), () -> kind);
     }
 
     private static DamageBlockEvent hit(ItemStack hand, int x, int y, int z) {
@@ -156,7 +157,7 @@ class HyRegionSelectionAndSpawnTest {
     void withNoRegionNeedingSpawnNoContextIsBuilt() {
         AtomicInteger built = new AtomicInteger();
 
-        assertFalse(HyRegionSystems.spawnDenied(WORLD, () -> {
+        assertFalse(HyActionSystems.spawnDenied(WORLD, () -> {
             built.incrementAndGet();
             return null;
         }));
@@ -175,7 +176,7 @@ class HyRegionSelectionAndSpawnTest {
 
     private boolean spawn(String npc, Attitude attitude, double x) {
         Actor creature = HyRegionContexts.actor(null, npc, attitude, null);
-        return HyRegionSystems.spawnDenied(WORLD, () -> new SpawnContext(HyRegionContexts.position(WORLD, new Vector3d(x, 5, 5)),
-                Actor.environment(HyRegionSystems.NATURAL_SPAWN), null, creature, "SPAWN"));
+        return HyActionSystems.spawnDenied(WORLD, () -> new SpawnContext(HyRegionContexts.position(WORLD, new Vector3d(x, 5, 5)),
+                Actor.environment(HyActionSystems.NATURAL_SPAWN), null, creature, "SPAWN"));
     }
 }

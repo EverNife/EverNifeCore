@@ -1,13 +1,13 @@
 package br.com.finalcraft.evernifecore.region.session;
 
+import br.com.finalcraft.evernifecore.flag.FlagParseException;
+import br.com.finalcraft.evernifecore.flag.Tristate;
+import br.com.finalcraft.evernifecore.flag.core.DenyEntryFlag;
+import br.com.finalcraft.evernifecore.flag.core.EntryDenySettings;
+import br.com.finalcraft.evernifecore.flag.core.MoveDenySettings;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.flag.FlagParseException;
-import br.com.finalcraft.evernifecore.region.flag.Tristate;
-import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryFlag;
-import br.com.finalcraft.evernifecore.region.flag.core.EntryDenySettings;
-import br.com.finalcraft.evernifecore.region.flag.core.MoveDenySettings;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import org.junit.jupiter.api.Test;

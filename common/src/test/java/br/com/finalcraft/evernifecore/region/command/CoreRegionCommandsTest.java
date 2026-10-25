@@ -2,11 +2,11 @@ package br.com.finalcraft.evernifecore.region.command;
 
 import br.com.finalcraft.evernifecore.commands.CoreCommand;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.Tristate;
+import br.com.finalcraft.evernifecore.flag.core.EntryDenySettings;
+import br.com.finalcraft.evernifecore.flag.core.MoveDenySettings;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
-import br.com.finalcraft.evernifecore.region.flag.Tristate;
-import br.com.finalcraft.evernifecore.region.flag.core.EntryDenySettings;
-import br.com.finalcraft.evernifecore.region.flag.core.MoveDenySettings;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.testing.Senders;
 import br.com.finalcraft.evernifecore.testing.TestCommandSender;
@@ -39,7 +39,7 @@ class CoreRegionCommandsTest extends RegionCommandFixture {
         ecore = harness.register(new CoreCommand());
         arena = prot.cuboid("arena", WORLD, 0, 0, 0, 10, 10, 10);
         duelArena = duel.cuboid("arena", WORLD, 0, 0, 0, 20, 20, 20);
-        duelArena.setFlag((RegionFlag<Tristate>) flag("deny-pvp"), Tristate.TRUE);
+        duelArena.setFlag((Flag<Tristate>) flag("deny-pvp"), Tristate.TRUE);
         steve.grant("evernifecore.command.region");
     }
 
@@ -71,10 +71,10 @@ class CoreRegionCommandsTest extends RegionCommandFixture {
     @SuppressWarnings("unchecked")
     void infoPrintsFlagsGroupsMembersAndRemaining() {
         UUID alex = UUID.randomUUID();
-        arena.setFlag((RegionFlag<Tristate>) flag("deny-pvp"), Tristate.FALSE, Duration.ofMinutes(10));
+        arena.setFlag((Flag<Tristate>) flag("deny-pvp"), Tristate.FALSE, Duration.ofMinutes(10));
         AccessGroup members = arena.getGroup("membros");
         members.addMember(alex, Duration.ofMinutes(15));
-        members.setFlag((RegionFlag<Tristate>) flag("deny-block-break"), Tristate.TRUE);
+        members.setFlag((Flag<Tristate>) flag("deny-block-break"), Tristate.TRUE);
         arena.addTag("spawn");
 
         harness.dispatch(ecore, steve, "region info fakeprot:arena");

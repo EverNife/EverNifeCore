@@ -3,15 +3,15 @@ package br.com.finalcraft.evernifecore.minecraft.region;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagRegistry;
+import br.com.finalcraft.evernifecore.flag.Tristate;
+import br.com.finalcraft.evernifecore.flag.TristateFlag;
+import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.minecraft.testkit.BukkitEventWorld;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
-import br.com.finalcraft.evernifecore.region.flag.Tristate;
-import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
-import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.session.RegionMovementTracker;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.RegionWorld;
@@ -56,7 +56,7 @@ public final class RegionServer implements AutoCloseable {
     }
 
     /** Registers {@code flag} for the length of this server, under the core or the region owner - whichever its key names. */
-    public <T, F extends RegionFlag<T>> F flag(F flag) {
+    public <T, F extends Flag<T>> F flag(F flag) {
         FlagRegistry.get().register(flag.getKey().getOwner().equals(CoreFlags.OWNER) ? core : regions.getOwner(), flag);
         return flag;
     }

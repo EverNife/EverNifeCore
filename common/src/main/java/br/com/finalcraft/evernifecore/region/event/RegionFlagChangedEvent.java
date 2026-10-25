@@ -1,10 +1,10 @@
 package br.com.finalcraft.evernifecore.region.event;
 
 import br.com.finalcraft.evernifecore.api.events.base.ECEvent;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagChangeCause;
+import br.com.finalcraft.evernifecore.flag.FlagValue;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.flag.FlagChangeCause;
-import br.com.finalcraft.evernifecore.region.flag.FlagValue;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import jakarta.annotation.Nullable;
 
@@ -17,12 +17,12 @@ public class RegionFlagChangedEvent extends RegionEvent {
     }
 
     private final @Nullable AccessGroup group;
-    private final RegionFlag<?> flag;
+    private final Flag<?> flag;
     private final @Nullable FlagValue<?> oldValue;
     private final @Nullable FlagValue<?> newValue;
     private final FlagChangeCause cause;
 
-    public RegionFlagChangedEvent(Region region, @Nullable AccessGroup group, RegionFlag<?> flag,
+    public RegionFlagChangedEvent(Region region, @Nullable AccessGroup group, Flag<?> flag,
                                   @Nullable FlagValue<?> oldValue, @Nullable FlagValue<?> newValue, FlagChangeCause cause) {
         super(region);
         this.group = group;
@@ -37,7 +37,7 @@ public class RegionFlagChangedEvent extends RegionEvent {
         return group;
     }
 
-    public RegionFlag<?> getFlag() {
+    public Flag<?> getFlag() {
         return flag;
     }
 

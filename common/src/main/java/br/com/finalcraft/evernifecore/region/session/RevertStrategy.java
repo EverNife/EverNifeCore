@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.region.session;
 
+import br.com.finalcraft.evernifecore.flag.FlagParseException;
+import br.com.finalcraft.evernifecore.flag.FlagType;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
-import br.com.finalcraft.evernifecore.region.flag.FlagParseException;
-import br.com.finalcraft.evernifecore.region.flag.FlagType;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.JsonNode;

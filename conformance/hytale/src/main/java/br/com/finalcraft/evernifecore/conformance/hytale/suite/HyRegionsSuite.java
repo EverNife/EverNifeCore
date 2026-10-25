@@ -16,6 +16,11 @@ import br.com.finalcraft.evernifecore.conformance.Verdict;
 import br.com.finalcraft.evernifecore.conformance.hytale.HyWorld;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.Tristate;
+import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
+import br.com.finalcraft.evernifecore.flag.core.EntryDenySettings;
+import br.com.finalcraft.evernifecore.flag.core.TrackChangesSettings;
 import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.hytale.region.HySelectionItems;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
@@ -26,11 +31,6 @@ import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.region.event.RegionLeaveEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionTerrainEvent;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
-import br.com.finalcraft.evernifecore.region.flag.Tristate;
-import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
-import br.com.finalcraft.evernifecore.region.flag.core.EntryDenySettings;
-import br.com.finalcraft.evernifecore.region.flag.core.TrackChangesSettings;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSpec;
 import br.com.finalcraft.evernifecore.region.selection.SelectionTool;
 import br.com.finalcraft.evernifecore.region.session.MoveCause;
@@ -233,7 +233,7 @@ public final class HyRegionsSuite implements ConformanceSuite {
      * The player drops or picks up an item (the game's own event, fired at the player): with {@code flag} on a region
      * 20 blocks off it goes through, with it on a region around the player it is cancelled.
      */
-    private CompletableFuture<Verdict> itemDeniedInsideOnly(FPlayer fplayer, String name, RegionFlag<Tristate> flag, Supplier<EcsEvent> event) {
+    private CompletableFuture<Verdict> itemDeniedInsideOnly(FPlayer fplayer, String name, Flag<Tristate> flag, Supplier<EcsEvent> event) {
         PlayerRef player = HyWorld.player(fplayer);
         World world = HyWorld.worldOf(player);
         return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(at -> {

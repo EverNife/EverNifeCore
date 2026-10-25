@@ -4,18 +4,18 @@ import br.com.finalcraft.evernifecore.api.common.providers.ECProviders;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.commands.CommandRegisterer;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
-import br.com.finalcraft.evernifecore.playerdata.PlayerController;
-import br.com.finalcraft.evernifecore.region.RegionManager;
-import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
-import br.com.finalcraft.evernifecore.region.placeholder.RegionPlaceholders;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.logger.ECFallbackLog;
 import br.com.finalcraft.evernifecore.logger.ECLogger;
+import br.com.finalcraft.evernifecore.playerdata.PlayerController;
+import br.com.finalcraft.evernifecore.region.RegionManager;
+import br.com.finalcraft.evernifecore.region.placeholder.RegionPlaceholders;
 
 
 public class EverNifeCore {

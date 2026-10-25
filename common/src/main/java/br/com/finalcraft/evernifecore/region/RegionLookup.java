@@ -4,17 +4,18 @@ import br.com.finalcraft.evernifecore.action.ActionContext;
 import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.flag.Decision;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagSettings;
+import br.com.finalcraft.evernifecore.flag.Resolution;
+import br.com.finalcraft.evernifecore.flag.Resolution.Step;
+import br.com.finalcraft.evernifecore.flag.Tristate;
+import br.com.finalcraft.evernifecore.flag.TristateFlag;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.chunkpos.ChunkPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.RegionIndex.WorldSnapshot;
-import br.com.finalcraft.evernifecore.region.Resolution.Step;
-import br.com.finalcraft.evernifecore.region.flag.Decision;
-import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
-import br.com.finalcraft.evernifecore.region.flag.Tristate;
-import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.region.session.RegionPlayerSession;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
@@ -45,9 +46,9 @@ import java.util.function.Function;
  * <p>{@code resolve} answers a flag's effective value at a point for a subject: regions are taken in bands of
  * their current priority, highest first; a parent never competes in its own band - its children carry its values
  * down as defaults; inside a region, the highest-priority group that contains the subject and defines the flag
- * overrides the region's own value; distinct values tied in one band go to {@link RegionFlag#resolveTie}; nothing
- * defined gives {@link RegionFlag#getDefault()}. A subject holding {@code evernifecore.region.bypass.*} or
- * {@code evernifecore.region.bypass.<owner>.<name>} reads the default of every {@link RegionFlag#isBypassable()
+ * overrides the region's own value; distinct values tied in one band go to {@link Flag#resolveTie}; nothing
+ * defined gives {@link Flag#getDefault()}. A subject holding {@code evernifecore.region.bypass.*} or
+ * {@code evernifecore.region.bypass.<owner>.<name>} reads the default of every {@link Flag#isBypassable()
  * bypassable} flag - both nodes are checked literally, since plain SuperPerms does not expand the wildcard - and so
  * does one holding the {@link FlagSettings#getBypassPermission() extra node} the flag's settings name where it is read.</p>
  */
@@ -226,36 +227,36 @@ public final class RegionLookup {
      * The effective value of {@code flag} at the point for {@code subject}; a null subject skips groups and bypass.
      * Where nothing defines a refinement, it is the value of its nearest defined ancestor, as {@link #decide} reads it.
      */
-    public <T> @Nullable T resolve(RegionFlag<T> flag, String world, double x, double y, double z, @Nullable FPlayer subject) {
+    public <T> @Nullable T resolve(Flag<T> flag, String world, double x, double y, double z, @Nullable FPlayer subject) {
         return resolution(flag, at(world, x, y, z), subject).getValue();
     }
 
     /** As the point overload, at the subject's current location. */
-    public <T> @Nullable T resolve(RegionFlag<T> flag, FPlayer subject) {
+    public <T> @Nullable T resolve(Flag<T> flag, FPlayer subject) {
         return resolution(flag, at(subject), subject).getValue();
     }
 
     /** The value {@code region} alone gives - its groups, its own value, its ancestors - ignoring the regions around it. */
-    public <T> @Nullable T resolve(RegionFlag<T> flag, Region region, @Nullable FPlayer subject) {
+    public <T> @Nullable T resolve(Flag<T> flag, Region region, @Nullable FPlayer subject) {
         return climb(flag, asked -> own(asked, region, subject, null)).getValue();
     }
 
     /**
-     * {@link #resolve(RegionFlag, Region, FPlayer)} step by step: the value {@code region} alone gives, the region of
+     * {@link #resolve(Flag, Region, FPlayer)} step by step: the value {@code region} alone gives, the region of
      * its chain that gave it, and every step.
      */
-    public <T> Resolution<T> explain(RegionFlag<T> flag, Region region, @Nullable FPlayer subject) {
+    public <T> Resolution<T> explain(Flag<T> flag, Region region, @Nullable FPlayer subject) {
         return climb(flag, asked -> own(asked, region, subject, new ArrayList<>()));
     }
 
     /** Internal: {@link #resolve} over regions already looked up, with the source and reason but no steps. */
-    public <T> Resolution<T> resolution(RegionFlag<T> flag, List<Region> at, @Nullable FPlayer subject) {
+    public <T> Resolution<T> resolution(Flag<T> flag, List<Region> at, @Nullable FPlayer subject) {
         return climb(flag, asked -> walk(asked, at, subject, null));
     }
 
     /**
      * Whether the action is denied where it happens: the first protection flag that needs its source and denies
-     * it wins, the flags after it are not asked. Each flag that took part runs its {@link RegionFlag#onApplied},
+     * it wins, the flags after it are not asked. Each flag that took part runs its {@link Flag#onApplied},
      * at most once per its trigger interval. A point outside every region passes without asking any flag. The native
      * handles of the context's actors are closed when it returns; an event asked in stages goes through one
      * {@link #dispatch()} instead. Thread: the thread of the event; it takes no lock.
@@ -282,7 +283,7 @@ public final class RegionLookup {
     }
 
     /** {@link #resolve} step by step: the same value, plus every region, group, rule and refined flag it went through. */
-    public <T> Resolution<T> explain(RegionFlag<T> flag, String world, double x, double y, double z, @Nullable FPlayer subject) {
+    public <T> Resolution<T> explain(Flag<T> flag, String world, double x, double y, double z, @Nullable FPlayer subject) {
         List<Region> at = at(world, x, y, z);
         return climb(flag, asked -> walk(asked, at, subject, new ArrayList<>()));
     }
@@ -292,13 +293,13 @@ public final class RegionLookup {
      * that is defined - an undefined refinement reads its parent's value - with the steps of the whole climb. A bypass
      * met on the way up stops the climb at {@code flag}'s default.
      */
-    private static <T> Resolution<T> climb(RegionFlag<T> flag, Function<RegionFlag<T>, Resolution<T>> own) {
+    private static <T> Resolution<T> climb(Flag<T> flag, Function<Flag<T>, Resolution<T>> own) {
         Resolution<T> asked = own.apply(flag);
         if (asked.getReason() != Resolution.Reason.DEFAULT || flag.getParent() == null) {
             return asked;
         }
         List<Step> steps = new ArrayList<>(asked.getSteps());
-        for (RegionFlag<T> ancestor = flag.getParent(); ancestor != null && ancestor.isRegistered(); ancestor = ancestor.getParent()) {
+        for (Flag<T> ancestor = flag.getParent(); ancestor != null && ancestor.isRegistered(); ancestor = ancestor.getParent()) {
             Resolution<T> theirs = own.apply(ancestor);
             if (theirs.getReason() == Resolution.Reason.BYPASS) {
                 break;
@@ -312,7 +313,7 @@ public final class RegionLookup {
     }
 
     /** The value {@code region} alone gives for {@code flag} itself, without climbing to the flag's ancestors. */
-    private <T> Resolution<T> own(RegionFlag<T> flag, Region region, @Nullable FPlayer subject, @Nullable List<Step> steps) {
+    private <T> Resolution<T> own(Flag<T> flag, Region region, @Nullable FPlayer subject, @Nullable List<Step> steps) {
         List<Step> recorded = steps == null ? Collections.emptyList() : steps;
         if (bypasses(subject, flag, Collections.singletonList(region))) {
             step(steps, flag, null, 0, null, flag.getDefault(), Resolution.Reason.BYPASS);
@@ -341,7 +342,7 @@ public final class RegionLookup {
     }
 
     /** @param steps where to record each step, or null to record nothing */
-    private <T> Resolution<T> walk(RegionFlag<T> flag, List<Region> at, @Nullable FPlayer subject, @Nullable List<Step> steps) {
+    private <T> Resolution<T> walk(Flag<T> flag, List<Region> at, @Nullable FPlayer subject, @Nullable List<Step> steps) {
         List<Step> recorded = steps == null ? Collections.emptyList() : steps;
         if (bypasses(subject, flag, at)) {
             step(steps, flag, null, 0, null, flag.getDefault(), Resolution.Reason.BYPASS);
@@ -388,7 +389,7 @@ public final class RegionLookup {
     }
 
     /** The value {@code region} gives: its groups' for the subject, else its own, else its nearest ancestor's (groups included). */
-    private <T> @Nullable Hit<T> effective(Region region, int band, RegionFlag<T> flag, @Nullable FPlayer subject, @Nullable List<Step> steps) {
+    private <T> @Nullable Hit<T> effective(Region region, int band, Flag<T> flag, @Nullable FPlayer subject, @Nullable List<Step> steps) {
         for (Region current = region; current != null; current = current.getParent()) {
             Hit<T> hit = subject == null ? null : groupValue(current, flag, subject);
             if (hit != null) {
@@ -405,7 +406,7 @@ public final class RegionLookup {
     }
 
     /** Among the groups of {@code region} that contain the subject and define the flag, the highest priority's value. */
-    private static <T> @Nullable Hit<T> groupValue(Region region, RegionFlag<T> flag, FPlayer subject) {
+    private static <T> @Nullable Hit<T> groupValue(Region region, Flag<T> flag, FPlayer subject) {
         List<T> values = null;
         List<AccessGroup> groups = null;
         int best = Integer.MIN_VALUE;
@@ -430,7 +431,7 @@ public final class RegionLookup {
         return new Hit<>(value, region, index < 0 ? null : groups.get(index), Resolution.Reason.GROUP_VALUE);
     }
 
-    private static <T> T pick(RegionFlag<T> flag, List<T> values) {
+    private static <T> T pick(Flag<T> flag, List<T> values) {
         return allEqual(values) ? values.get(0) : flag.resolveTie(values);
     }
 
@@ -455,7 +456,7 @@ public final class RegionLookup {
     }
 
     /** The standard nodes, or the extra node the settings of {@code flag} name in any region of {@code at}. */
-    private static boolean bypasses(@Nullable FPlayer subject, RegionFlag<?> flag, List<Region> at) {
+    private static boolean bypasses(@Nullable FPlayer subject, Flag<?> flag, List<Region> at) {
         if (subject == null || !flag.isBypassable()) {
             return false;
         }
@@ -472,7 +473,7 @@ public final class RegionLookup {
         return false;
     }
 
-    private static void step(@Nullable List<Step> steps, RegionFlag<?> flag, @Nullable Region region, int priority,
+    private static void step(@Nullable List<Step> steps, Flag<?> flag, @Nullable Region region, int priority,
                              @Nullable AccessGroup group, @Nullable Object value, Resolution.Reason reason) {
         if (steps != null) {
             steps.add(new Step(flag, region, priority, group, value, reason));

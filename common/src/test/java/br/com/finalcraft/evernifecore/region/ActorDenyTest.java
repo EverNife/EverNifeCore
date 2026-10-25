@@ -7,19 +7,20 @@ import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.ExplosionContext;
 import br.com.finalcraft.evernifecore.action.TypeKey;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.flag.Decision;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagKey;
+import br.com.finalcraft.evernifecore.flag.FlagOutcome;
+import br.com.finalcraft.evernifecore.flag.FlagParseException;
+import br.com.finalcraft.evernifecore.flag.FlagRegistry;
+import br.com.finalcraft.evernifecore.flag.Resolution;
+import br.com.finalcraft.evernifecore.flag.Tristate;
+import br.com.finalcraft.evernifecore.flag.core.ActorDenyFlag;
+import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
+import br.com.finalcraft.evernifecore.flag.core.DenySettings;
+import br.com.finalcraft.evernifecore.flag.core.TypeFilterSettings;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.command.FlagValues;
-import br.com.finalcraft.evernifecore.region.flag.Decision;
-import br.com.finalcraft.evernifecore.region.flag.FlagKey;
-import br.com.finalcraft.evernifecore.region.flag.FlagOutcome;
-import br.com.finalcraft.evernifecore.region.flag.FlagParseException;
-import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
-import br.com.finalcraft.evernifecore.region.flag.Tristate;
-import br.com.finalcraft.evernifecore.region.flag.core.ActorDenyFlag;
-import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
-import br.com.finalcraft.evernifecore.region.flag.core.DenySettings;
-import br.com.finalcraft.evernifecore.region.flag.core.TypeFilterSettings;
 import br.com.finalcraft.evernifecore.testing.Actors;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
@@ -72,8 +73,8 @@ class ActorDenyTest {
         Plugins.forget(Plugins.CORE);
     }
 
-    private void register(RegionFlag<?>... flags) {
-        for (RegionFlag<?> flag : flags) {
+    private void register(Flag<?>... flags) {
+        for (Flag<?> flag : flags) {
             FlagRegistry.get().register(core, flag);
         }
     }

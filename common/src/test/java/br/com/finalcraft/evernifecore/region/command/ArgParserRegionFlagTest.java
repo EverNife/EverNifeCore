@@ -4,7 +4,7 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
+import br.com.finalcraft.evernifecore.flag.Flag;
 import br.com.finalcraft.evernifecore.testing.Senders;
 import br.com.finalcraft.evernifecore.testing.TestCommandSender;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,12 +20,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** A flag named on a command line: by its full key, or by a name only one registered flag has. */
 class ArgParserRegionFlagTest extends RegionCommandFixture {
 
-    static final List<RegionFlag<?>> SEEN = new ArrayList<>();
+    static final List<Flag<?>> SEEN = new ArrayList<>();
 
     @FinalCMD(aliases = "flagprobe")
     public static class FlagProbe_Cmd {
         @FinalCMD.SubCMD(subcmd = "get")
-        public void get(FCommandSender sender, @Arg("<flag>") RegionFlag<?> flag) {
+        public void get(FCommandSender sender, @Arg("<flag>") Flag<?> flag) {
             SEEN.add(flag);
         }
     }
@@ -38,7 +38,7 @@ class ArgParserRegionFlagTest extends RegionCommandFixture {
     @Test
     void flagResolvesByFullKeyAndByUniqueName() {
         FinalCMDPluginCommand probe = harness.register(new FlagProbe_Cmd());
-        RegionFlag<?> denyPvp = flag("deny-pvp");
+        Flag<?> denyPvp = flag("deny-pvp");
 
         harness.dispatch(probe, Senders.console(), "get deny-pvp");
         harness.dispatch(probe, Senders.console(), "get " + denyPvp.getKey());

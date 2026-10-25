@@ -5,14 +5,14 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.eventbus.ECListenerWatch;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagKey;
+import br.com.finalcraft.evernifecore.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.event.RegionEnterEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionFlagChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionLeaveEvent;
-import br.com.finalcraft.evernifecore.region.flag.FlagKey;
-import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 import jakarta.annotation.Nullable;
@@ -202,7 +202,7 @@ public final class EventSourceUsage {
 
     private static void collect(Set<FlagKey> keys, Set<EventSource> into) {
         for (FlagKey key : keys) {
-            RegionFlag<?> flag = FlagRegistry.get().get(key);
+            Flag<?> flag = FlagRegistry.get().get(key);
             if (flag != null) {
                 into.addAll(flag.getNeeds());
             }

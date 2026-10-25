@@ -1,0 +1,49 @@
+package br.com.finalcraft.evernifecore.flag.core;
+
+import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.SessionContext;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagCategory;
+import br.com.finalcraft.evernifecore.flag.FlagKey;
+import br.com.finalcraft.evernifecore.flag.FlagTypes;
+import jakarta.annotation.Nullable;
+
+import java.util.Collections;
+import java.util.List;
+
+/** The message a player gets on entering the region. */
+public final class GreetingFlag extends Flag<String> {
+
+    public GreetingFlag() {
+        super(FlagKey.of(CoreFlags.OWNER, "greeting"), FlagTypes.TEXT, Collections.singleton(EventSource.MOVE), null);
+    }
+
+    @Override
+    public FlagCategory getCategory() {
+        return FlagCategory.SESSION;
+    }
+
+    /** The first. */
+    @Override
+    public String resolveTie(List<String> values) {
+        return values.get(0);
+    }
+
+    @Override
+    public void onEnter(SessionContext context, String value) {
+        context.getPlayer().sendMessage(value);
+    }
+
+    /** Crossing straight from one greeting to another greets again, with the new one. */
+    @Override
+    public void onRevalidate(SessionContext context, @Nullable String oldValue, @Nullable String newValue) {
+        if (newValue != null) {
+            context.getPlayer().sendMessage(newValue);
+        }
+    }
+
+    @Override
+    public String getDescription() {
+        return "The message a player gets on entering the region.";
+    }
+}
