@@ -4,12 +4,14 @@ import br.com.finalcraft.evernifecore.storage.config.ParsedStorageConfig;
 import br.com.finalcraft.evernifecore.storage.config.RedisSyncConfig;
 import br.com.finalcraft.evernifecore.storage.config.SyncTransportMode;
 import br.com.finalcraft.everydatabase.Storage;
+import br.com.finalcraft.everydatabase.changefeed.ChangeEvent;
 import br.com.finalcraft.everydatabase.changefeed.ChangeFeedStorage;
 import br.com.finalcraft.everydatabase.manager.CachingManager;
 import br.com.finalcraft.everydatabase.modules.groupedfile.GroupedFileStorage;
 import br.com.finalcraft.everydatabase.modules.localfile.LocalFileStorage;
 import br.com.finalcraft.everydatabase.manager.sync.CacheSync;
 import br.com.finalcraft.everydatabase.manager.sync.CacheSyncTransport;
+import br.com.finalcraft.everydatabase.manager.sync.RemoteChangeListener;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -65,6 +67,14 @@ public final class CacheSyncWiring {
             this.transport = transport;
         }
 
+        /**
+         * Hands {@code event} to the running sync as if its push source had delivered it - the own-origin skip,
+         * the remote-change listener and the invalidate/evict included, on the calling thread. For a test.
+         */
+        public void deliver(ChangeEvent event) {
+            sync.deliver(event);
+        }
+
         @Override
         public void close() {
             try { sync.close(); } catch (RuntimeException ignored) { }
@@ -79,10 +89,12 @@ public final class CacheSyncWiring {
      * Starts a {@link CacheSync} over the applicable subset of {@code managers} according to
      * {@code parsed}, or returns {@code null} when sync is disabled / nothing applies (a clean no-op).
      * {@code logInfo} gets the resulting coverage, {@code logWarning} the collections left without any
-     * cross-instance signal and an explicit request that failed.
+     * cross-instance signal and an explicit request that failed. {@code onRemoteChange} (nullable) is told every
+     * remote change before the cell goes stale or is evicted.
      */
     public static Handle startIfEnabled(ParsedStorageConfig parsed,
                                         List<CachingManager<?, ?>> managers,
+                                        RemoteChangeListener onRemoteChange,
                                         Consumer<String> logInfo,
                                         Consumer<String> logWarning) {
         if (!parsed.isEnableSync() || managers.isEmpty()) {
@@ -98,7 +110,7 @@ public final class CacheSyncWiring {
             if (transport == null) {
                 return null;   // an EXPLICIT redis request failed - already surfaced (missing jedis / connect error)
             }
-            Handle handle = bindAndStart(CacheSync.auto().via(transport), transport, managers, logWarning);
+            Handle handle = bindAndStart(CacheSync.auto().via(transport).onRemoteChange(onRemoteChange), transport, managers, logWarning);
             if (handle != null) {
                 logInfo.accept("Cache-sync enabled via Redis transport (" + redis.getHost() + ":" + redis.getPort() + ").");
             }
@@ -118,7 +130,7 @@ public final class CacheSyncWiring {
             // the stock single-server install - a groupedfile install under the default transport.
             return null;
         }
-        Handle handle = bindAndStart(CacheSync.auto(), null, feedCapable, logWarning);
+        Handle handle = bindAndStart(CacheSync.auto().onRemoteChange(onRemoteChange), null, feedCapable, logWarning);
         if (handle != null) {
             logInfo.accept("Cache-sync enabled via the backends' native change feeds ("
                     + feedCapable.size() + " of " + managers.size() + " collections).");

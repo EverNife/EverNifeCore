@@ -39,6 +39,9 @@ import br.com.finalcraft.evernifecore.storage.config.StorageYamlParser;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.everyconfig.config.Config;
+import br.com.finalcraft.everydatabase.Repository;
+import br.com.finalcraft.everydatabase.changefeed.ChangeEvent;
+import br.com.finalcraft.everydatabase.changefeed.ChangeOp;
 import br.com.finalcraft.everydatabase.log.StorageLogConfig;
 import br.com.finalcraft.everydatabase.log.StorageLogEvent;
 import br.com.finalcraft.everydatabase.log.StorageLogSinks;
@@ -478,7 +481,7 @@ public class PlayerController {
             managers.add(serverCooldowns.getManager());
         }
         try {
-            cacheSync = CacheSyncWiring.startIfEnabled(storageConfig, managers,
+            cacheSync = CacheSyncWiring.startIfEnabled(storageConfig, managers, PlayerController::tellRemoteChange,
                     message -> EverNifeCore.getLog().info("{}", message),
                     message -> EverNifeCore.getLog().warning("{}", message));
         }catch (Throwable cacheSyncFailure){
@@ -486,6 +489,49 @@ public class PlayerController {
             EverNifeCore.getLog().severe("Failed to start cache-sync - continuing without cross-instance coherence: {}",
                     cacheSyncFailure.getMessage());
         }
+    }
+
+    /** Tells the live section another server changed its row, before the sync stales or evicts the cell. */
+    @SuppressWarnings("unchecked")
+    private static void tellRemoteChange(CachingManager<?, ?> manager, Object key, ChangeEvent event){
+        Object live = ((CachingManager<Object, ?>) manager).peek(key).orElse(null);
+        if (!(live instanceof StoredSection)) return; //the base, the accounts and the cooldown rows have no hook
+        StoredSection section = (StoredSection) live;
+        try {
+            section.onRemoteChange(event);
+        }catch (Throwable hookFailure){
+            //a plugin's hook must not stop the cell from going stale, nor the events behind this one
+            EverNifeCore.getLog().severe("{} {}.onRemoteChange() threw - ignored, the cell still goes stale: {}",
+                    section.sectionKind(), section.getClass().getName(), hookFailure);
+        }
+    }
+
+    /**
+     * Internal, for the test engine: hands the running cache-sync a change of {@code key} in the collection of
+     * {@code sectionClass} (a PDSection or an AccountSection) as if another server's push had delivered it -
+     * the own-origin skip, the section's {@code onRemoteChange} and the invalidate/evict included, on the
+     * calling thread. Throws when the class is not registered or no cache-sync is running.
+     */
+    public static void deliverRemoteChange(Class<?> sectionClass, UUID key, ChangeOp op, long version, String originId){
+        PlayerController controller = INSTANCE;
+        if (controller == null) throw notBootstrapped();
+        CachingManager<UUID, ?> manager;
+        PDSectionBinding<? extends PDSection> binding = controller.bindings.get(sectionClass);
+        if (binding != null){
+            manager = binding.getManager();
+        }else {
+            AccountSectionBinding<?> accountBinding = controller.accountEngine.getBindingUnchecked(sectionClass);
+            if (accountBinding == null) throw notRegisteredPDSection(sectionClass);
+            manager = accountBinding.getManager();
+        }
+        CacheSyncWiring.Handle sync = controller.cacheSync;
+        if (sync == null){
+            throw new IllegalStateException("No cache-sync is running, so no remote change can reach "
+                    + sectionClass.getSimpleName() + ". It needs 'multi-server-cache-sync.enabled: true' in"
+                    + " storage.yml (the default) and a backend with a change feed, such as the memory backend"
+                    + " (Storages.memory() in a test), or a 'redis:' block.");
+        }
+        sync.deliver(new ChangeEvent(manager.collection(), key.toString(), op, version, originId));
     }
 
     private void closeCacheSync(){
@@ -1400,7 +1446,7 @@ public class PlayerController {
      * Frees a section's memory without disturbing the players who are online: every dirty cell is
      * flushed, then the cells whose owner is NOT online are evicted. The way back to lazy behaviour
      * after a bulk load (a leaderboard pass, an admin sweep) - though an aggregate is better served by
-     * {@link #querySection(Class, Query, QueryOptions)}, which never populates the cache to begin with.
+     * {@link #querySections(Class, Query, QueryOptions)}, which never populates the cache to begin with.
      *
      * @return how many cells were released
      */
@@ -1927,20 +1973,47 @@ public class PlayerController {
     }
 
     /**
-     * Runs an indexed backend query over a section's collection WITHOUT loading the whole collection
-     * into the cache - the primitive behind an aggregate like {@code /baltop} (one indexed query with
-     * {@code orderBy} + {@code limit} instead of scanning every cached section).
-     *
-     * <p><b>Contract:</b> every field referenced by {@code query} or by {@code options.orderBy()} MUST
-     * be {@code @Indexed} on the section - otherwise the backend throws {@link IllegalArgumentException}
-     * at execution time (the returned future completes exceptionally).</p>
+     * Indexed backend query over a section's collection, WITHOUT loading it into the cache - the primitive
+     * behind a ranking ({@code orderBy} + {@code limit} instead of scanning every cached section). Every field
+     * in {@code query} and in {@code options.orderBy()} must be {@code @Indexed} on the section, or the future
+     * fails with the backend's {@link IllegalArgumentException}. Rows come back DETACHED: no PlayerData, so
+     * the name and the player are null while {@code getUniqueId()} answers. Waits for the controller to be
+     * ready; fails before bootstrap.
      */
-    public <T extends PDSection> CompletableFuture<List<T>> querySection(Class<T> cls, Query query, QueryOptions options){
-        PDSectionBinding<T> binding = getBinding(cls);
-        if (binding == null){
-            return failedFuture(notRegisteredPDSection(cls));
+    public static <T extends PDSection> CompletableFuture<List<T>> querySections(Class<T> cls, Query query, QueryOptions options){
+        PlayerController controller = INSTANCE;
+        if (controller == null) return failedFuture(notBootstrapped());
+        return controller.ready.thenCompose(v -> {
+            PDSectionBinding<T> binding = controller.getBinding(cls);
+            if (binding == null) return failedFuture(notRegisteredPDSection(cls));
+            return binding.getRepository().query(query, options == null ? QueryOptions.none() : options);
+        });
+    }
+
+    /**
+     * Every stored row of a {@link SectionLifecycle#PRELOADED PRELOADED} section, from memory, synchronous,
+     * any thread - the whole collection is in the cache by contract, so this IS everybody. Transient defaults
+     * (seeded, never dirtied) are left out. Any other lifecycle throws: its cache holds only the players this
+     * server touched.
+     */
+    public static <T extends PDSection> Collection<T> getAllSections(Class<T> cls){
+        PlayerController controller = INSTANCE;
+        if (controller == null) throw notBootstrapped();
+        PDSectionBinding<T> binding = controller.getBinding(cls);
+        if (binding == null) throw notRegisteredPDSection(cls);
+        if (binding.getLifecycle() != SectionLifecycle.PRELOADED){
+            String name = cls.getSimpleName();
+            throw new IllegalStateException("PDSection {" + name + "} has lifecycle " + binding.getLifecycle()
+                    + ", so its cache holds only the players this server touched - getAllSections would rank a"
+                    + " subset and call it everybody. Either register it with .lifecycle(SectionLifecycle.PRELOADED)"
+                    + " (the whole collection stays in memory), or query the backend with PlayerController.querySections("
+                    + name + ".class, Query.all(), QueryOptions.builder().descending(\"<@Indexed field>\").limit(n).build()).");
         }
-        return binding.getRepository().query(query, options == null ? QueryOptions.none() : options);
+        List<T> rows = new ArrayList<>();
+        for (T section : binding.getManager().cachedValues()){
+            if (!section.isTransientDefault()) rows.add(section);
+        }
+        return rows;
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------//
@@ -2017,16 +2090,17 @@ public class PlayerController {
     }
 
     /**
-     * Indexed backend query over an account section's collection (the account-family counterpart of
-     * {@link #querySection(Class, Query, QueryOptions)}) - same {@code @Indexed} contract.
+     * Indexed backend query over an account section's collection - the account-family counterpart of
+     * {@link #querySections(Class, Query, QueryOptions)}, same {@code @Indexed} contract and readiness wait.
      */
-    public <T extends AccountSection<T>> CompletableFuture<List<T>> queryAccountSection(Class<T> sectionClass,
-                                                                                        Query query, QueryOptions options){
-        AccountSectionBinding<T> binding = accountEngine.getBinding(sectionClass);
-        if (binding == null){
-            return failedFuture(notRegisteredAccountSection(sectionClass));
-        }
-        return binding.getRepository().query(query, options == null ? QueryOptions.none() : options);
+    public static <T extends AccountSection<T>> CompletableFuture<List<T>> queryAccountSections(Class<T> sectionClass, Query query, QueryOptions options){
+        PlayerController controller = INSTANCE;
+        if (controller == null) return failedFuture(notBootstrapped());
+        return controller.ready.thenCompose(v -> {
+            AccountSectionBinding<T> binding = controller.accountEngine.getBinding(sectionClass);
+            if (binding == null) return failedFuture(notRegisteredAccountSection(sectionClass));
+            return binding.getRepository().query(query, options == null ? QueryOptions.none() : options);
+        });
     }
 
     /**
@@ -2162,6 +2236,32 @@ public class PlayerController {
     /** Immediate flush of a SINGLE account row in isolation (see {@link FlushEngine}). */
     CompletableFuture<Void> flushAccountSection(AccountSection<?> section){
         return flushEngine.flushAccountSection(section);
+    }
+
+    /** Immediate flush of ONE row of either kind ({@link StoredSection#forceSave()}). */
+    CompletableFuture<Void> flushAlone(StoredSection section){
+        return section instanceof PDSection
+                ? flushSection((PDSection) section)
+                : flushAccountSection((AccountSection<?>) section);
+    }
+
+    /** The backend's version of ONE row of either kind ({@link StoredSection#readStoredVersion()}). */
+    CompletableFuture<Long> readStoredVersion(StoredSection section){
+        Repository<UUID, ?> repository;
+        UUID key;
+        if (section instanceof PDSection){
+            PDSectionBinding<? extends PDSection> binding = bindings.get(section.getClass());
+            if (binding == null) return failedFuture(notRegisteredPDSection(section.getClass()));
+            repository = binding.getRepository();
+            key = ((PDSection) section).getStorageKey();
+        }else {
+            AccountSectionBinding<?> binding = accountEngine.getBindingUnchecked(section.getClass());
+            if (binding == null) return failedFuture(notRegisteredAccountSection(section.getClass()));
+            repository = binding.getRepository();
+            key = ((AccountSection<?>) section).getAccountId();
+        }
+        return ready.thenCompose(v -> repository.versions(Collections.singletonList(key)))
+                .thenApply(versions -> versions.get(key));
     }
 
     /** Flushes every dirty row of ONE account section (the account-family rebind path). */

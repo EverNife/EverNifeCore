@@ -158,7 +158,7 @@ final class FlushEngine {
     }
 
     /**
-     * Immediate flush of a SINGLE section in isolation ({@code forceSavePDSection}) - the base
+     * Immediate flush of a SINGLE section in isolation ({@code forceSave}) - the base
      * PlayerData is never touched. Caller-initiated: a conflict completes the returned future
      * EXCEPTIONALLY (with {@link OptimisticConflictException}) after the winner is adopted.
      */
@@ -236,7 +236,7 @@ final class FlushEngine {
             }
         }
         if (dirty.isEmpty()) return null;
-        return flusher.persistBatch(manager, dirty, mode(forced), what, hooks, StoredSection::markStoredInBackend);
+        return flusher.persistBatch(manager, dirty, mode(forced), what, hooks, StoredSection::markPersisted);
     }
 
     /**
@@ -273,7 +273,7 @@ final class FlushEngine {
             lock.unlock();
         }
         return flusher.persistBatch(manager, Collections.singletonList(section), mode(forced), what, hooks,
-                StoredSection::markStoredInBackend);
+                StoredSection::markPersisted);
     }
 
     private static String what(PDSectionBinding<?> binding) {

@@ -121,7 +121,7 @@ class PlayerControllerConflictPipelineTest {
     }
 
     // ------------------------------------------------------------------
-    // forceSavePDSection surfaces an optimistic-lock conflict AND adopts the winner (production path)
+    // forceSave surfaces an optimistic-lock conflict AND adopts the winner (production path)
     // ------------------------------------------------------------------
 
     @Test
@@ -143,7 +143,7 @@ class PlayerControllerConflictPipelineTest {
         live.job = "local-edit";
         live.markClean(); //the live instance is CLEAN when the conflict resolves -> ADOPT_WINNER
 
-        CompletableFuture<Void> forced = live.forceSavePDSection();
+        CompletableFuture<Void> forced = live.forceSave();
         CompletionException thrown = assertThrows(CompletionException.class, forced::join);
         Throwable cause = rootCause(thrown);
         assertTrue(cause instanceof OptimisticConflictException,
@@ -214,7 +214,7 @@ class PlayerControllerConflictPipelineTest {
         live.job = "local-edit";
         live.markClean(); //enter the force-save clean, so absent the re-dirty it would ADOPT_WINNER
 
-        CompletableFuture<Void> forced = live.forceSavePDSection();
+        CompletableFuture<Void> forced = live.forceSave();
 
         //wait until the resolver is inside find(), then re-dirty the live instance and release it
         assertTrue(findEntered.await(3, TimeUnit.SECONDS), "the conflict re-read must have been reached");
@@ -245,7 +245,7 @@ class PlayerControllerConflictPipelineTest {
 
         live.level = 5;
         live.markDirty();
-        CompletableFuture<Void> forced = live.forceSavePDSection();
+        CompletableFuture<Void> forced = live.forceSave();
         CompletionException thrown = assertThrows(CompletionException.class, forced::join);
         Throwable cause = rootCause(thrown);
         assertTrue(cause instanceof StorageWriteException,
@@ -269,7 +269,7 @@ class PlayerControllerConflictPipelineTest {
 
         live.level = 5;
         live.markClean();
-        CompletableFuture<Void> forced = live.forceSavePDSection();
+        CompletableFuture<Void> forced = live.forceSave();
         assertThrows(CompletionException.class, forced::join); //the force-save still reports the lost race
         assertTrue(live.isDirty(), "a vanished winner must leave the live instance dirty to re-create the row");
 
@@ -284,7 +284,7 @@ class PlayerControllerConflictPipelineTest {
     // ------------------------------------------------------------------
 
     @SuppressWarnings("unchecked")
-    private static void wrapBackend(String backendName) throws Exception {
+    static void wrapBackend(String backendName) throws Exception {
         PlayerController controller = PlayerController.get();
         Field registryField = PlayerController.class.getDeclaredField("registry");
         registryField.setAccessible(true);
@@ -306,6 +306,8 @@ class PlayerControllerConflictPipelineTest {
         enum Mode { OFF, CONFLICT, CONFLICT_GATED, ERROR, CONFLICT_VANISH }
 
         private static volatile Mode mode = Mode.OFF;
+        //the section whose repository is scripted, read when the section binds against the decorator
+        private static volatile Class<?> scriptedType = JobsPDSection.class;
         private static final AtomicReference<Object> WINNER = new AtomicReference<>();
         private static volatile CountDownLatch findEntered;
         private static volatile CountDownLatch releaseFind;
@@ -318,9 +320,15 @@ class PlayerControllerConflictPipelineTest {
 
         static void reset() {
             mode = Mode.OFF;
+            scriptedType = JobsPDSection.class;
             WINNER.set(null);
             findEntered = null;
             releaseFind = null;
+        }
+
+        /** Scripts {@code sectionType}'s repository instead of the default one - set it before the section binds. */
+        static void scripting(Class<?> sectionType) {
+            scriptedType = sectionType;
         }
 
         static void serveWinnerAndConflict(Object winner) {
@@ -364,7 +372,7 @@ class PlayerControllerConflictPipelineTest {
             Repository<K, V> real = delegate.repository(descriptor);
             //only the section repository is scripted; the base PlayerData repo delegates untouched, so a
             //whole-player force-save conflicts on the SECTION only (and the winner type never mismatches)
-            if (descriptor.type() != JobsPDSection.class) {
+            if (descriptor.type() != scriptedType) {
                 return real;
             }
             return new ScriptedRepository<>(real, descriptor.keyExtractor());

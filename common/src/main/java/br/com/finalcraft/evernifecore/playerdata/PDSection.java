@@ -82,26 +82,12 @@ public abstract class PDSection extends StoredSection implements IPlayerData {
 
     /**
      * Immediately flushes the WHOLE player (base PlayerData + this section + every other dirty
-     * section), same pipeline as the periodic flush. Use {@link #forceSavePDSection()} to persist
-     * only this section without touching the PlayerData.
+     * section), same pipeline as the periodic flush. Use {@link #forceSave()} to persist only this
+     * section without touching the PlayerData.
      */
     public CompletableFuture<Void> forceSavePlayerData(){
         markDirty();
         return requirePlayerData("a whole-player flush").forceSavePlayerData();
-    }
-
-    /**
-     * Immediately flushes ONLY this section to its own backend, in isolation: the parent
-     * PlayerData is neither marked dirty nor saved, and no other section is touched.
-     */
-    public CompletableFuture<Void> forceSavePDSection(){
-        markDirty();
-        PlayerController controller = PlayerController.get();
-        if (controller == null){
-            return PlayerController.failedFuture(new IllegalStateException(
-                    "PlayerController is not bootstrapped yet!"));
-        }
-        return controller.flushSection(this);
     }
 
     @Override
@@ -118,7 +104,7 @@ public abstract class PDSection extends StoredSection implements IPlayerData {
             throw new IllegalStateException(
                     "This " + getClass().getSimpleName() + " has no PlayerData attached, so it cannot"
                     + " answer " + what + " - that value belongs to the player, not to the section."
-                    + " Sections read straight from the backend arrive this way (querySection returns"
+                    + " Sections read straight from the backend arrive this way (querySections returns"
                     + " rows without loading their players). Use getUniqueId(), which answers from the"
                     + " stored key, or load the player first with"
                     + " PlayerController.getPlayerData(getUniqueId()).");

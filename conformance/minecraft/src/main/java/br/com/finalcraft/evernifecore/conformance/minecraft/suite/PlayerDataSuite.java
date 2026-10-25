@@ -45,7 +45,7 @@ public final class PlayerDataSuite implements ConformanceSuite {
                     .thenCompose(section -> {
                         section.setToken(token);
                         section.markDirty();
-                        return section.forceSavePDSection();
+                        return section.forceSave();
                     })
                     .thenApply(saved -> {
                         try {

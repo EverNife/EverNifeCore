@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.everydatabase.changefeed.ChangeEvent;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchema;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
 import br.com.finalcraft.everydatabase.manager.CachingManager;
@@ -10,9 +11,11 @@ import br.com.finalcraft.everydatabase.manager.writeback.PersistedState;
 import br.com.finalcraft.everydatabase.util.JsonAutoDetectFieldsOnly;
 import br.com.finalcraft.everydatabase.versioned.OptimisticLock;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.annotation.Nullable;
 
 import java.lang.reflect.Constructor;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -150,6 +153,74 @@ abstract class StoredSection implements EntitySchema, IDirtyable {
 
     final void markStoredInBackend() {
         this.transientDefault = false;
+    }
+
+    /** The flush's per-row success callback: the row exists in the backend now, and the plugin is told. */
+    final void markPersisted() {
+        markStoredInBackend();
+        try {
+            onFlushed();
+        } catch (Throwable hookFailure) {
+            //one plugin's hook must not break the batch for the other rows
+            EverNifeCore.getLog().severe("{} {}.onFlushed() threw - ignored, the row is persisted: {}",
+                    sectionKind(), getClass().getName(), hookFailure);
+        }
+    }
+
+    // ---- network hooks and reads (what a plugin running on several servers builds on) ----------
+
+    /**
+     * This row was just WRITTEN to its backend, successfully. Runs on the flush completion thread (storage
+     * async, never the main thread), holding no lock, after the dirty flag was cleared - the instance may
+     * already be dirty again (at-least-once). Not called for a row that lost an optimistic race: the conflict
+     * path adopts or merges the winner instead, and the later write that lands calls it. Keep it cheap; a
+     * throw is logged and swallowed.
+     */
+    protected void onFlushed() {
+    }
+
+    /**
+     * Another server wrote ({@code SAVE}) or deleted ({@code DELETE}) this row, as reported by the
+     * multi-server cache-sync. Runs on the sync's delivery thread while THIS instance is still the one in the
+     * cache, right before the cell is marked stale (SAVE) or evicted (DELETE). After it, a clean cell reloads
+     * on its next read and hands out a NEW instance; a dirty cell is kept and its flush resolves the conflict.
+     * {@code event.version()} is the version after the remote write, or {@code ChangeEvent.UNKNOWN_VERSION}.
+     *
+     * <p>Never fires for this server's own writes, nor without cache-sync (file or H2 backends, a SQL backend
+     * without a {@code redis:} block): there the flush conflict is the only signal. Keep it cheap and
+     * non-blocking - it holds up every later event; a throw is logged and swallowed.
+     */
+    protected void onRemoteChange(ChangeEvent event) {
+    }
+
+    /** The optimistic-lock version this instance last adopted; null when never persisted. Any thread. */
+    public final @Nullable Long getLockVersion() {
+        return lockVersion;
+    }
+
+    /**
+     * The version the BACKEND holds for this row now - one key+version read, never the body. Completes with
+     * null when the row does not exist. Async: never {@code join()} it on the main thread.
+     */
+    public CompletableFuture<Long> readStoredVersion() {
+        PlayerController controller = PlayerController.get();
+        if (controller == null) {
+            return PlayerController.failedFuture(new IllegalStateException("PlayerController is not bootstrapped yet!"));
+        }
+        return controller.readStoredVersion(this);
+    }
+
+    /**
+     * Immediately flushes ONLY this row to its backend; nothing else is touched. A lost optimistic race fails
+     * the future with {@code OptimisticConflictException} after the winner was adopted (or merged).
+     */
+    public CompletableFuture<Void> forceSave() {
+        markDirty();
+        PlayerController controller = PlayerController.get();
+        if (controller == null) {
+            return PlayerController.failedFuture(new IllegalStateException("PlayerController is not bootstrapped yet!"));
+        }
+        return controller.flushAlone(this);
     }
 
     // ---- flush/conflict wiring (called by the flush pipeline, always under the lock) -----------

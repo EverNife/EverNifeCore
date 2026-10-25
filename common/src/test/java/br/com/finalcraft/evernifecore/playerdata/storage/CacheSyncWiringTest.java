@@ -6,6 +6,8 @@ import br.com.finalcraft.evernifecore.storage.StorageRegistry;
 import br.com.finalcraft.evernifecore.storage.config.ParsedStorageConfig;
 import br.com.finalcraft.evernifecore.storage.config.StorageYamlParser;
 import br.com.finalcraft.everydatabase.EntityDescriptor;
+import br.com.finalcraft.everydatabase.changefeed.ChangeEvent;
+import br.com.finalcraft.everydatabase.changefeed.ChangeOp;
 import br.com.finalcraft.everydatabase.codec.JacksonJsonCodec;
 import br.com.finalcraft.everydatabase.log.StorageLogConfig;
 import br.com.finalcraft.everydatabase.manager.CachingManager;
@@ -26,6 +28,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -143,7 +146,7 @@ class CacheSyncWiringTest {
         managers.add(managerOver(parsed));
 
         List<String> warnings = new ArrayList<>();
-        CacheSyncWiring.Handle handle = CacheSyncWiring.startIfEnabled(parsed, managers,
+        CacheSyncWiring.Handle handle = CacheSyncWiring.startIfEnabled(parsed, managers, null,
                 info -> { }, warnings::add);
 
         assertNull(handle, "sync disabled must be a clean no-op (null handle)");
@@ -157,7 +160,7 @@ class CacheSyncWiringTest {
         managers.add(managerOver(parsed));
 
         List<String> warnings = new ArrayList<>();
-        CacheSyncWiring.Handle handle = CacheSyncWiring.startIfEnabled(parsed, managers,
+        CacheSyncWiring.Handle handle = CacheSyncWiring.startIfEnabled(parsed, managers, null,
                 info -> { }, warnings::add);
 
         //a file backend DOES have a change feed, but it watches this machine's filesystem: it cannot
@@ -174,7 +177,7 @@ class CacheSyncWiringTest {
         managers.add(managerOver(parsed));
 
         List<String> warnings = new ArrayList<>();
-        CacheSyncWiring.Handle handle = CacheSyncWiring.startIfEnabled(parsed, managers,
+        CacheSyncWiring.Handle handle = CacheSyncWiring.startIfEnabled(parsed, managers, null,
                 info -> { }, warnings::add);
 
         //the gate above is about the DEFAULT, not about the feed being unusable: an admin who edits
@@ -194,7 +197,7 @@ class CacheSyncWiringTest {
 
         List<String> infos = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
-        CacheSyncWiring.Handle handle = CacheSyncWiring.startIfEnabled(parsed, managers,
+        CacheSyncWiring.Handle handle = CacheSyncWiring.startIfEnabled(parsed, managers, null,
                 infos::add, warnings::add);
 
         //selection is per manager: one backend without a feed used to take the whole native path down
@@ -211,6 +214,35 @@ class CacheSyncWiringTest {
                 "a file backend under 'auto' is working as intended, not a coherence hole: " + warnings);
         assertTrue(infos.stream().anyMatch(info -> info.contains("on_files")),
                 "the skipped file backend must still be surfaced, as info: " + infos);
+        handle.close();
+    }
+
+    @Test
+    void theRemoteChangeListenerIsRegisteredOnTheSyncTheHandleRuns() throws IOException {
+        ParsedStorageConfig parsed = parseMixed();
+        StorageRegistry registry = openRegistry(parsed);
+        List<CachingManager<?, ?>> managers = new ArrayList<>();
+        CachingManager<UUID, PlayerData> manager = managerOver(registry, "mem", "told");
+        managers.add(manager);
+
+        List<Object> told = new ArrayList<>();
+        CacheSyncWiring.Handle handle = CacheSyncWiring.startIfEnabled(parsed, managers,
+                (boundManager, key, event) -> {
+                    told.add(boundManager);
+                    told.add(key);
+                    told.add(event.version());
+                },
+                info -> { }, warning -> { });
+        assertNotNull(handle);
+
+        UUID key = UUID.randomUUID();
+        handle.deliver(new ChangeEvent("told", key.toString(), ChangeOp.SAVE, 3L, "another-server"));
+
+        //the manager the event was routed to, the key already parsed to its type, and the event itself
+        assertEquals(3, told.size(), "the listener given to startIfEnabled must be the one the sync calls: " + told);
+        assertSame(manager, told.get(0));
+        assertEquals(key, told.get(1));
+        assertEquals(3L, told.get(2));
         handle.close();
     }
 }

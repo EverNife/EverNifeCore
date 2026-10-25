@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.testing;
 
+import br.com.finalcraft.everydatabase.changefeed.ChangeOp;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
 import br.com.finalcraft.evernifecore.playerdata.AccountSection;
 import br.com.finalcraft.evernifecore.playerdata.AccountSectionConfiguration;
@@ -14,6 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * The PlayerData layer, booted and torn down as one thing.
@@ -29,6 +31,9 @@ import java.util.Map;
  * hands state to the next test class in the JVM, and the failure surfaces somewhere else.</p>
  */
 public final class PlayerDataWorld implements AutoCloseable {
+
+    /** The origin a simulated remote change carries - never this server's own, so the own-origin skip lets it in. */
+    public static final String REMOTE_ORIGIN = "remote-test";
 
     private final Storages storages;
     private final Map<Class<? extends PDSection>, String> sections =
@@ -116,6 +121,23 @@ public final class PlayerDataWorld implements AutoCloseable {
     public PlayerDataWorld reboot() {
         PlayerController.initialize(requireBooted());
         return this;
+    }
+
+    /**
+     * Another server wrote ({@code SAVE}) or deleted ({@code DELETE}) {@code key}'s row of {@code section}: the
+     * event goes through the running cache-sync exactly as a push would, on this thread - the live section's
+     * {@code onRemoteChange} runs, then the cell goes stale (SAVE) or is evicted (DELETE). Needs a backend with a
+     * change feed and cache-sync on, which {@link Storages#memory()} has by default.
+     */
+    public void remoteChange(Class<? extends PDSection> section, UUID key, ChangeOp op, long version) {
+        requireBooted();
+        PlayerController.deliverRemoteChange(section, key, op, version, REMOTE_ORIGIN);
+    }
+
+    /** Flushes every dirty row now and waits for it - what the periodic flush would do on its next tick. */
+    public void flushAll() {
+        requireBooted();
+        PlayerController.get().flushAll().join();
     }
 
     /** The generated storage.yml, for a test that wants to boot by hand or assert on the file. */

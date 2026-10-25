@@ -26,6 +26,14 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `RankedPlaceholders.register(replacer, owner)` serves `%<prefix>_top_[list]_{n}_name|value|[key]%`, `_size`, `_total`,
   `_position` and `_age`; the core serves `%evernifecore_top_[owner:name]_...%`. `RankedLists.find`/`ownedBy`/`closeOwnedBy`
   (run at the owner's shutdown).
+- **`PlayerController.getAllSections(cls)`**: every stored row of a `PRELOADED` section, from memory (transient defaults
+  left out); any other lifecycle refuses and names `.lifecycle(SectionLifecycle.PRELOADED)` and `querySections` as the
+  ways out.
+- **Section hooks for a network**, on every `PDSection` and `AccountSection`: `onFlushed()` (this row was written; not
+  for a row that lost an optimistic race), `onRemoteChange(ChangeEvent)` (another server wrote or deleted it, told by the
+  multi-server cache-sync before the cell goes stale; never for this server's own writes), `getLockVersion()` and
+  `readStoredVersion()` (one key+version read of the backend). The remote hook needs EveryDatabase 1.5.1
+  (`CacheSync.onRemoteChange`); a throw from either hook is logged and swallowed.
 - **Self-describing type registries (`types`)**: a `TypeRegistry<T>` holds the types of one kind by `owner:name` key,
   each described by a `TypeDescriptor` (aliases, one-sentence description, `ParamSpec` parameters, platforms, needed
   player capabilities, event sources, factory). A definition node (`{type: compare, amount: 3}`, or `permission: shop.vip`
@@ -162,6 +170,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   source is delivered on the main thread when its read lands, still naming the command it was sent from.
 - The core's `/ecore region list` page is an anonymous list now (a world name is not an id): it pages by session.
 - Requires EveryDatabase 1.5.1.
+- **`PlayerController.querySections` / `queryAccountSections`** are static (the instance `querySection` /
+  `queryAccountSection` are gone) and wait for the controller to be ready like every other facade method.
+- **`forceSave()`** replaces `PDSection.forceSavePDSection()` and is the one name on both section kinds.
+- `CacheSyncWiring.startIfEnabled` takes the `RemoteChangeListener` the sync calls.
 - `FlagRegistry.setServedSources` is gone: a platform declares what it raises with `ActionSupport.declare(platform, post,
   pre, nativeCommandSource)`, and `FlagRegistry.getUnservedSources` reads `ActionSupport.isServed`.
 - The Bukkit listeners of `minecraft.action.listener` are named for the action: `RegionListeners` is `ActionListeners`

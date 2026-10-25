@@ -189,7 +189,7 @@ class PlayerControllerIntegrityTest {
     }
 
     // ------------------------------------------------------------------
-    // indexed top-N aggregate: querySection without loading everything into cache
+    // indexed top-N aggregate: querySections without loading everything into cache
     // ------------------------------------------------------------------
 
     @Test
@@ -216,8 +216,8 @@ class PlayerControllerIntegrityTest {
 
         //top-3 by balance descending, indexed field, limit 3 - one backend query, no cache load
         QueryOptions top3 = QueryOptions.builder().descending("balance").limit(3).build();
-        List<BalancePDSection> top = PlayerController.get()
-                .querySection(BalancePDSection.class, Query.all(), top3).join();
+        List<BalancePDSection> top = PlayerController
+                .querySections(BalancePDSection.class, Query.all(), top3).join();
 
         assertEquals(3, top.size(), "the query must return exactly the top-N");
         assertEquals(900L, top.get(0).balance);
@@ -241,8 +241,8 @@ class PlayerControllerIntegrityTest {
         PlayerController.get().flushAll().join();
         PlayerController.clearPDSections(BalancePDSection.class);
 
-        List<BalancePDSection> rows = PlayerController.get()
-                .querySection(BalancePDSection.class, Query.all(), QueryOptions.none()).join();
+        List<BalancePDSection> rows = PlayerController
+                .querySections(BalancePDSection.class, Query.all(), QueryOptions.none()).join();
         assertEquals(1, rows.size());
         BalancePDSection detached = rows.get(0);
 
@@ -540,7 +540,7 @@ class PlayerControllerIntegrityTest {
     }
 
     // ------------------------------------------------------------------
-    // querySection on a NON-indexed field completes exceptionally (contract)
+    // querySections on a NON-indexed field completes exceptionally (contract)
     // ------------------------------------------------------------------
 
     @Test
@@ -559,7 +559,7 @@ class PlayerControllerIntegrityTest {
         //reject it synchronously or through the returned future - both are the same contract breach)
         QueryOptions byNote = QueryOptions.builder().ascending("note").build();
         Throwable thrown = assertThrows(Throwable.class,
-                () -> PlayerController.get().querySection(BalancePDSection.class, Query.all(), byNote).join());
+                () -> PlayerController.querySections(BalancePDSection.class, Query.all(), byNote).join());
         Throwable cause = thrown instanceof CompletionException && thrown.getCause() != null
                 ? thrown.getCause() : thrown;
         assertTrue(cause instanceof IllegalArgumentException,

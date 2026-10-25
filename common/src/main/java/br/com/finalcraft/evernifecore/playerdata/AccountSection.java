@@ -116,17 +116,6 @@ public abstract class AccountSection<T extends AccountSection<T>> extends Stored
         PlayerController.invalidateAccountSection(this.getClass(), accountId);
     }
 
-    /** Immediately flushes ONLY this section to the account backend. */
-    public CompletableFuture<Void> forceSave() {
-        markDirty();
-        PlayerController controller = PlayerController.get();
-        if (controller == null) {
-            return PlayerController.failedFuture(new IllegalStateException(
-                    "PlayerController is not bootstrapped yet!"));
-        }
-        return controller.flushAccountSection(this);
-    }
-
     // ---- conflict/merge wiring (called by the flush pipeline, always under the lock) -----------
 
     /**
