@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -36,6 +37,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @ECoreTest
 class RankedListTest {
+
+    /** Every wait has a ceiling: a regression that never completes a future fails the case instead of hanging the suite. */
+    private static final long WAIT_SECONDS = 5;
 
     @TempDirNobodyCleans
     Path tempDir;
@@ -143,7 +147,7 @@ class RankedListTest {
     }
 
     @Test
-    void anAsyncSourceNeverBlocksTheCallerAndServesNothingBeforeItsFirstRead() {
+    void anAsyncSourceNeverBlocksTheCallerAndServesNothingBeforeItsFirstRead() throws Exception {
         CompletableFuture<List<Integer>> pending = new CompletableFuture<>();
         RankedList<Integer> list = RankedList.anonymous(Integer.class).sourceAsync(() -> pending).unlimitedEntries().build();
 
@@ -154,8 +158,8 @@ class RankedListTest {
 
         pending.complete(Arrays.asList(3, 1, 2));
 
-        assertEquals(3, read.join().getShownCount());
-        assertSame(read.join(), list.snapshotIfPresent());
+        assertEquals(3, read.get(WAIT_SECONDS, TimeUnit.SECONDS).getShownCount());
+        assertSame(read.get(WAIT_SECONDS, TimeUnit.SECONDS), list.snapshotIfPresent());
     }
 
     @Test
@@ -179,7 +183,7 @@ class RankedListTest {
     }
 
     @Test
-    void aFailedAsyncReadKeepsThePreviousSnapshotAndIsRetriedOncePerTtl() {
+    void aFailedAsyncReadKeepsThePreviousSnapshotAndIsRetriedOncePerTtl() throws Exception {
         AtomicInteger reads = new AtomicInteger();
         List<CompletableFuture<List<Integer>>> handed = new ArrayList<>();
         RankedList<Integer> list = RankedList.anonymous(Integer.class)
@@ -204,7 +208,7 @@ class RankedListTest {
         assertTrue(failing.isCompletedExceptionally(), "the read that failed says so to whoever waited on it");
         assertSame(good, list.snapshotIfPresent(), "a failed read must not take the previous one down");
 
-        assertSame(good, list.snapshot().join(), "inside the ttl of the failure, the previous read is served");
+        assertSame(good, list.snapshot().get(WAIT_SECONDS, TimeUnit.SECONDS), "inside the ttl of the failure, the previous read is served");
         assertEquals(2, reads.get(), "a source that is down is not hammered once per reader");
 
         TestClock.advance(Duration.ofSeconds(11));
@@ -259,7 +263,7 @@ class RankedListTest {
     }
 
     @Test
-    void invalidateDuringAnAsyncReadKeepsTheLateReadOutOfTheCache() {
+    void invalidateDuringAnAsyncReadKeepsTheLateReadOutOfTheCache() throws Exception {
         List<CompletableFuture<List<Integer>>> handed = new ArrayList<>();
         RankedList<Integer> list = RankedList.anonymous(Integer.class)
                 .sourceAsync(() -> {
@@ -275,7 +279,7 @@ class RankedListTest {
         list.invalidate();
         handed.get(0).complete(Collections.singletonList(1));
 
-        assertEquals(1, stale.join().getShownCount(), "whoever waited on the stale read still gets an answer");
+        assertEquals(1, stale.get(WAIT_SECONDS, TimeUnit.SECONDS).getShownCount(), "whoever waited on the stale read still gets an answer");
         assertNull(list.snapshotIfPresent(), "but under manual() a read invalidated mid-flight would be served forever");
         list.snapshot();
         assertEquals(2, handed.size(), "the next snapshot() reads again");
@@ -297,11 +301,11 @@ class RankedListTest {
     // ------------------------------------------------------------------
 
     @Test
-    void theCeilingTruncatesTheReadAndCountsWhatItCut() {
+    void theCeilingTruncatesTheReadAndCountsWhatItCut() throws Exception {
         RankedSnapshot<Integer> snapshot = RankedList.anonymous(Integer.class)
                 .source(() -> Arrays.asList(1, 2, 3, 4, 5))
                 .maxEntries(3)
-                .build().snapshot().join();
+                .build().snapshot().get(WAIT_SECONDS, TimeUnit.SECONDS);
 
         assertTrue(snapshot.isTruncated());
         assertEquals(3, snapshot.getShownCount());
@@ -310,12 +314,12 @@ class RankedListTest {
     }
 
     @Test
-    void descendingComparesNumbersAcrossBoxesAndTextIgnoringCase() {
+    void descendingComparesNumbersAcrossBoxesAndTextIgnoringCase() throws Exception {
         RankedSnapshot<Object> numbers = RankedList.anonymous(Object.class)
                 .source(() -> Arrays.<Object>asList(2, 10L, 3.5d))
                 .unlimitedEntries()
                 .orderBy(entry -> entry).descending()
-                .build().snapshot().join();
+                .build().snapshot().get(WAIT_SECONDS, TimeUnit.SECONDS);
         List<Object> order = new ArrayList<>();
         numbers.getEntries().forEach(entry -> order.add(entry.getObject()));
         assertEquals(Arrays.<Object>asList(10L, 3.5d, 2), order, "an Integer and a Long are numbers, not text: \"10\" < \"2\"");
@@ -324,13 +328,13 @@ class RankedListTest {
                 .source(() -> Arrays.asList("alice", "Zoe", "bob"))
                 .unlimitedEntries()
                 .orderBy(entry -> entry).descending()
-                .build().snapshot().join();
+                .build().snapshot().get(WAIT_SECONDS, TimeUnit.SECONDS);
         assertEquals("Zoe", text.getEntries().get(0).getObject());
         assertEquals("alice", text.getEntries().get(2).getObject());
     }
 
     @Test
-    void addValueIsComputedOncePerEntryWhoeverAsks() {
+    void addValueIsComputedOncePerEntryWhoeverAsks() throws Exception {
         AtomicInteger calls = new AtomicInteger();
         RankedList<String> list = RankedList.anonymous(String.class)
                 .source(() -> Collections.singletonList("alpha"))
@@ -340,7 +344,7 @@ class RankedListTest {
                     return entry.toUpperCase();
                 })
                 .build();
-        RankedEntry<String> entry = list.snapshot().join().getEntries().get(0);
+        RankedEntry<String> entry = list.snapshot().get(WAIT_SECONDS, TimeUnit.SECONDS).getEntries().get(0);
 
         assertEquals("ALPHA", list.valueOf(entry, "shout"));
         assertEquals("ALPHA", list.valueOf(entry, "SHOUT"));
@@ -351,7 +355,7 @@ class RankedListTest {
     }
 
     @Test
-    void positionOfFindsThePlayerOnTheSnapshotAndNobodyElse() {
+    void positionOfFindsThePlayerOnTheSnapshotAndNobodyElse() throws Exception {
         TestFPlayerSender alice = new TestFPlayerSender("alice");
         TestFPlayerSender bob = new TestFPlayerSender("bob");
         TestFPlayerSender carol = new TestFPlayerSender("carol");
@@ -359,7 +363,7 @@ class RankedListTest {
                 .source(() -> Arrays.<FPlayer>asList(alice, bob))
                 .unlimitedEntries()
                 .orderBy(FPlayer::getName).descending()
-                .build().snapshot().join();
+                .build().snapshot().get(WAIT_SECONDS, TimeUnit.SECONDS);
 
         assertEquals(Integer.valueOf(1), snapshot.positionOf(bob.getUniqueId()));
         assertEquals(Integer.valueOf(2), snapshot.positionOf(alice.getUniqueId()));
