@@ -1,7 +1,11 @@
 package br.com.finalcraft.evernifecore.hytale.region;
 
 import br.com.finalcraft.evernifecore.hytale.action.HyActionContexts;
+import br.com.finalcraft.evernifecore.action.Actions;
+import br.com.finalcraft.evernifecore.action.Actor;
 import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.ExploreContext;
+import br.com.finalcraft.evernifecore.math.game.vector.chunkpos.ChunkPos;
 import br.com.finalcraft.evernifecore.action.EventSourceUsage;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
@@ -11,6 +15,7 @@ import br.com.finalcraft.evernifecore.region.session.MoveVerdict;
 import br.com.finalcraft.evernifecore.region.session.RegionMovementTracker;
 import com.hypixel.hytale.component.ArchetypeChunk;
 import com.hypixel.hytale.component.CommandBuffer;
+import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.tick.EntityTickingSystem;
@@ -33,7 +38,8 @@ import java.util.function.Supplier;
 /**
  * Region borders on Hytale, which fires no move event: every tick this System reads where each player stands and,
  * only when that is another block or another world, hands the step to the {@link RegionMovementTracker}. A denied
- * step puts a {@link Teleport} back to {@link MoveVerdict#getRevertTo()} on the player.
+ * step puts a {@link Teleport} back to {@link MoveVerdict#getRevertTo()} on the player. The same tick follows chunks for
+ * EXPLORE ({@link #explore}), while some listener needs it.
  *
  * <p>The first tick a player is seen - a login, or the first tick after some region came to need MOVE - is a
  * {@link MoveCause#JOIN}: he is inside wherever he stands, unasked, unless a region there expels him. A position reached through a teleport is a
@@ -72,6 +78,7 @@ public final class HyRegionMoveSystem extends EntityTickingSystem<EntityStore> {
     private final Supplier<RegionMovementTracker> tracker;
     //one System for every world, each ticking on its own thread
     private final Map<UUID, Seen> seen = new ConcurrentHashMap<>();
+    private final Map<UUID, SeenChunk> chunks = new ConcurrentHashMap<>();
 
     /** Internal: built once by {@link br.com.finalcraft.evernifecore.hytale.action.HyActionSystems}. */
     public HyRegionMoveSystem(Supplier<RegionMovementTracker> tracker) {
@@ -98,6 +105,8 @@ public final class HyRegionMoveSystem extends EntityTickingSystem<EntityStore> {
         boolean teleporting = chunk.getComponent(index, Teleport.getComponentType()) != null
                 || chunk.getComponent(index, PendingTeleport.getComponentType()) != null;
         World world = store.getExternalData().getWorld();
+        Ref<EntityStore> ref = chunk.getReferenceTo(index);
+        explore(player.getUuid(), () -> HyActionContexts.actor(ref, store), world.getName(), transform.getPosition(), teleporting);
         WorldLocPos revertTo = step(player.getUuid(), () -> FCHytaleUtil.adapt(player), world.getName(), transform.getPosition(), teleporting);
         if (revertTo != null) {
             buffer.putComponent(chunk.getReferenceTo(index), Teleport.getComponentType(), teleport(revertTo, world, transform.getRotation()));
@@ -142,8 +151,47 @@ public final class HyRegionMoveSystem extends EntityTickingSystem<EntityStore> {
         return null;
     }
 
+    /**
+     * Internal, called by {@link #tick}: EXPLORE on the same tick. A player seen in another chunk of the same world than the tick before posts the
+     * {@code ExploreActionEvent} Post - the step already happened, so there is no {@code Pre}. The first sighting, a
+     * world change and a teleport only remember where he is. Nothing is kept while nobody needs EXPLORE.
+     */
+    public void explore(UUID uuid, Supplier<Actor> actor, String world, Vector3d at, boolean teleporting) {
+        if (!EventSourceUsage.get().isNeeded(EventSource.EXPLORE)) {
+            if (!chunks.isEmpty()) {
+                chunks.clear();   //positions go stale while nobody listens
+            }
+            return;
+        }
+        if (HyActionContexts.isDisabled(world)) {
+            return;
+        }
+        ChunkPos now = ChunkPos.fromBlock((int) Math.floor(at.x), (int) Math.floor(at.z));
+        SeenChunk last = chunks.get(uuid);
+        if (last != null && last.world.equals(world) && last.chunk.equals(now)) {
+            return;   //most ticks: the same chunk
+        }
+        chunks.put(uuid, new SeenChunk(world, now));
+        if (last == null || teleporting || !last.world.equals(world)) {
+            return;
+        }
+        ChunkPos from = last.chunk;
+        Actions.post(EventSource.EXPLORE, () -> new ExploreContext(HyActionContexts.position(world, at), actor.get(), null, from, now));
+    }
+
+    private static final class SeenChunk {
+        final String world;
+        final ChunkPos chunk;
+
+        SeenChunk(String world, ChunkPos chunk) {
+            this.world = world;
+            this.chunk = chunk;
+        }
+    }
+
     /** The player left: his session ends, if this System ever saw him. Any thread. */
     public void quit(UUID uuid, Supplier<FPlayer> player) {
+        chunks.remove(uuid);
         if (seen.remove(uuid) != null) {
             tracker.get().onQuit(player.get());
         }

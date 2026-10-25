@@ -110,7 +110,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   Where the platform has no command event (`ActionSupport.isNativeCommandSource()` false: Hytale), the `FinalCMD`
   executor raises `COMMAND` for its own commands: the `.Pre` past the command's permission and before anything runs (a
   denial or a cancelled `.Pre` stops the command), the `.Post` after it ran; on Bukkit it never posts, so a command is
-  posted once.
+  posted once. Hytale raises `CRAFT` (`CraftRecipeEvent.Pre` asks and can cancel, `.Post` posts; the amount is the
+  recipe's primary output times the crafts), `KILL` (on the server's death hook, the killer named by the death's damage),
+  `RESPAWN` (`RespawnEvent`, with a `.Pre` that keeps the player dead), `EXPLORE` (the region tick, on a chunk change,
+  `.Post` only) and `COMMAND` (through `FinalCMD`); it has no event for smelting, fishing, eating, experience,
+  enchanting, taming, breeding or shearing, and declares those sources not raised. With `RESPAWN` raised, Hytale's boot
+  no longer warns about `spawn-point`, which still sends nobody anywhere there.
 
 ### Fixed
 

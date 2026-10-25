@@ -12,6 +12,7 @@ import br.com.finalcraft.evernifecore.action.EntityContext;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.EventSourceUsage;
 import br.com.finalcraft.evernifecore.action.ItemContext;
+import br.com.finalcraft.evernifecore.action.SimpleContext;
 import br.com.finalcraft.evernifecore.action.SpawnContext;
 import br.com.finalcraft.evernifecore.action.TypeKey;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
@@ -53,7 +54,13 @@ import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
 import com.hypixel.hytale.server.core.entity.InteractionChain;
 import com.hypixel.hytale.server.core.entity.InteractionContext;
 import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent;
+import com.hypixel.hytale.server.core.asset.type.item.config.CraftingRecipe;
 import com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent;
+import com.hypixel.hytale.server.core.event.events.ecs.CraftRecipeEvent;
+import com.hypixel.hytale.server.core.event.events.ecs.RespawnEvent;
+import com.hypixel.hytale.server.core.inventory.MaterialQuantity;
+import com.hypixel.hytale.server.core.modules.entity.damage.DeathComponent;
+import com.hypixel.hytale.server.core.modules.entity.damage.DeathSystems;
 import com.hypixel.hytale.server.core.event.events.ecs.DamageBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.DropItemEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.InteractivelyPickupItemEvent;
@@ -105,10 +112,17 @@ public final class HyActionSystems {
     /** The core sources raised here - by a System, or TICK by the core's own region tick: the ones a flag needs to have an effect on Hytale. */
     public static final Set<EventSource> SERVED_SOURCES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(EventSource.MOVE,
             EventSource.BREAK, EventSource.PLACE, EventSource.INTERACT, EventSource.DAMAGE, EventSource.SPAWN, EventSource.ITEM_DROP,
-            EventSource.ITEM_PICKUP, EventSource.TICK)));
-    /** The served sources whose System posts a cancellable {@code Pre}: the ones the game asks before the outcome. */
+            EventSource.ITEM_PICKUP, EventSource.TICK, EventSource.KILL, EventSource.CRAFT, EventSource.RESPAWN, EventSource.EXPLORE,
+            EventSource.COMMAND)));
+    /**
+     * The served sources whose System posts a cancellable {@code Pre}: the ones the game asks before the outcome. COMMAND's
+     * is posted by the command framework, before one of its commands runs: the server has no command event.
+     */
     public static final Set<EventSource> PRE_SOURCES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(EventSource.BREAK,
-            EventSource.PLACE, EventSource.INTERACT, EventSource.DAMAGE, EventSource.SPAWN, EventSource.ITEM_DROP, EventSource.ITEM_PICKUP)));
+            EventSource.PLACE, EventSource.INTERACT, EventSource.DAMAGE, EventSource.SPAWN, EventSource.ITEM_DROP, EventSource.ITEM_PICKUP,
+            EventSource.CRAFT, EventSource.RESPAWN, EventSource.COMMAND)));
+    /** The killer of a death the server recorded no damage for. */
+    public static final TypeKey UNKNOWN_DEATH = TypeKey.of("environment", "death");
     static final HyRegionMoveSystem MOVE = new HyRegionMoveSystem(RegionMovementTracker::get);
 
     private HyActionSystems() {
@@ -150,6 +164,10 @@ public final class HyActionSystems {
         registry.registerSystem(new TerrainDamageSystem());
         registry.registerSystem(new TerrainPlaceSystem());
         registry.registerSystem(new TerrainExplosionSystem());
+        registry.registerSystem(new CraftSystem());
+        registry.registerSystem(new CraftedSystem());
+        registry.registerSystem(new KillSystem());
+        registry.registerSystem(new RespawnSystem());
         ActionSupport.declare(platformName(), SERVED_SOURCES, PRE_SOURCES, false);
         FlagRegistry.get().setMissingCapabilities(HyPlatform.PLAYER_STATE.getUnsupported());
         return true;
@@ -183,6 +201,19 @@ public final class HyActionSystems {
             Actions.post(source, context);
         }
         return false;
+    }
+
+    /** An outcome with no point before it (a death): its {@code Post} only, built only past the source gate. */
+    static void posted(EventSource source, String world, Supplier<? extends ActionContext> context) {
+        if (EventSourceUsage.get().isNeeded(source) && !HyActionContexts.isDisabled(world)) {
+            Actions.post(source, context);
+        }
+    }
+
+    /** A craft of {@code crafts} times the recipe whose primary output is {@code output}: the amount is every item it gives. */
+    static ItemContext crafted(String world, Vector3d at, Actor crafter, @Nullable Object event, MaterialQuantity output, int crafts) {
+        return new ItemContext(EventSource.CRAFT, HyActionContexts.position(world, at), crafter, event, HyActionContexts.key(output.getItemId()),
+                output.getQuantity() * crafts, null);
     }
 
     /** One block an explosion is about to damage, in {@code world}: a BREAK by the environment - a step, never posted as broken. */
@@ -585,6 +616,109 @@ public final class HyActionSystems {
 
         @Override
         public void onEntityRemove(Ref<EntityStore> ref, RemoveReason reason, Store<EntityStore> store, CommandBuffer<EntityStore> buffer) {
+        }
+    }
+
+    /** The recipe's primary output, when it names an item; null for a recipe that gives none. */
+    private static @Nullable MaterialQuantity outputOf(@Nullable CraftingRecipe recipe) {
+        MaterialQuantity output = recipe == null ? null : recipe.getPrimaryOutput();
+        return output == null || output.getItemId() == null ? null : output;
+    }
+
+    /**
+     * A craft about to happen, asked where the crafter stands: a denial, or a cancelled {@code Pre}, cancels it - the
+     * game checks before it takes the inputs. The {@code Post} waits for the game's own after-craft event
+     * ({@link CraftedSystem}), when the items were given.
+     */
+    private static final class CraftSystem extends ByActor<CraftRecipeEvent.Pre> {
+        CraftSystem() {
+            super(CraftRecipeEvent.Pre.class);
+        }
+
+        @Override
+        public void handle(int index, ArchetypeChunk<EntityStore> chunk, Store<EntityStore> store, CommandBuffer<EntityStore> buffer,
+                           CraftRecipeEvent.Pre event) {
+            MaterialQuantity output = outputOf(event.getCraftedRecipe());
+            Ref<EntityStore> crafter = chunk.getReferenceTo(index);
+            Vector3d at = output == null ? null : positionOf(crafter, store);
+            if (at == null) {
+                return;
+            }
+            String world = worldOf(store);
+            judge(EventSource.CRAFT, world, event, () -> crafted(world, at, HyActionContexts.actor(crafter, store), event, output,
+                    event.getQuantity()), false);
+        }
+    }
+
+    /** The {@code Post} of a craft the game finished and left uncancelled. */
+    private static final class CraftedSystem extends ByActor<CraftRecipeEvent.Post> {
+        CraftedSystem() {
+            super(CraftRecipeEvent.Post.class);
+        }
+
+        @Override
+        public void handle(int index, ArchetypeChunk<EntityStore> chunk, Store<EntityStore> store, CommandBuffer<EntityStore> buffer,
+                           CraftRecipeEvent.Post event) {
+            MaterialQuantity output = event.isCancelled() ? null : outputOf(event.getCraftedRecipe());
+            Ref<EntityStore> crafter = chunk.getReferenceTo(index);
+            Vector3d at = output == null ? null : positionOf(crafter, store);
+            if (at == null) {
+                return;
+            }
+            String world = worldOf(store);
+            posted(EventSource.CRAFT, world, () -> crafted(world, at, HyActionContexts.actor(crafter, store), event, output, event.getQuantity()));
+        }
+    }
+
+    /**
+     * A death, on the server's own death hook - the {@link DeathComponent} added to the dying entity, where the game builds
+     * its kill feed - posted where the victim fell, with the killer the death's damage names. A death cannot be
+     * cancelled: no {@code Pre}, and the regions are not asked.
+     */
+    private static final class KillSystem extends DeathSystems.OnDeathSystem {
+
+        @Override
+        public Query<EntityStore> getQuery() {
+            return Archetype.empty();
+        }
+
+        @Override
+        public void onComponentAdded(Ref<EntityStore> ref, DeathComponent death, Store<EntityStore> store, CommandBuffer<EntityStore> buffer) {
+            if (!EventSourceUsage.get().isNeeded(EventSource.KILL)) {
+                return;
+            }
+            Vector3d at = positionOf(ref, store);
+            if (at == null) {
+                return;
+            }
+            String world = worldOf(store);
+            Damage damage = death.getDeathInfo();
+            posted(EventSource.KILL, world, () -> new DamageContext(EventSource.KILL, HyActionContexts.position(world, at),
+                    damage == null ? Actor.environment(UNKNOWN_DEATH) : DamageSystem.attacker(damage, store), damage,
+                    HyActionContexts.actor(ref, store)));
+        }
+    }
+
+    /**
+     * A player about to respawn, asked where he died: a denial, or a cancelled {@code Pre}, keeps him dead - the game
+     * checks the event before it respawns him; one left uncancelled posts its {@code Post}.
+     */
+    private static final class RespawnSystem extends ByActor<RespawnEvent> {
+        RespawnSystem() {
+            super(RespawnEvent.class);
+        }
+
+        @Override
+        public void handle(int index, ArchetypeChunk<EntityStore> chunk, Store<EntityStore> store, CommandBuffer<EntityStore> buffer,
+                           RespawnEvent event) {
+            Ref<EntityStore> player = chunk.getReferenceTo(index);
+            Vector3d at = positionOf(player, store);
+            if (at == null) {
+                return;
+            }
+            String world = worldOf(store);
+            judge(EventSource.RESPAWN, world, event, () -> new SimpleContext(EventSource.RESPAWN, HyActionContexts.position(world, at),
+                    HyActionContexts.actor(player, store), event));
         }
     }
 

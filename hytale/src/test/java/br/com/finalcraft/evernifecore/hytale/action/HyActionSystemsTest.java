@@ -8,7 +8,22 @@ import br.com.finalcraft.evernifecore.action.Actor;
 import br.com.finalcraft.evernifecore.action.BlockContext;
 import br.com.finalcraft.evernifecore.action.ECEntityType;
 import br.com.finalcraft.evernifecore.action.ActionSupport;
+import br.com.finalcraft.evernifecore.action.DamageContext;
+import br.com.finalcraft.evernifecore.action.SimpleContext;
 import br.com.finalcraft.evernifecore.action.event.BreakActionEvent;
+import br.com.finalcraft.evernifecore.action.event.CraftActionEvent;
+import br.com.finalcraft.evernifecore.action.event.ExploreActionEvent;
+import br.com.finalcraft.evernifecore.action.event.KillActionEvent;
+import br.com.finalcraft.evernifecore.action.event.RespawnActionEvent;
+import br.com.finalcraft.evernifecore.hytale.region.HyRegionMoveSystem;
+import br.com.finalcraft.evernifecore.math.game.vector.chunkpos.ChunkPos;
+import br.com.finalcraft.evernifecore.region.session.RegionMovementTracker;
+import com.hypixel.hytale.server.core.event.events.ecs.CraftRecipeEvent;
+import com.hypixel.hytale.server.core.event.events.ecs.RespawnEvent;
+import com.hypixel.hytale.server.core.inventory.MaterialQuantity;
+import org.joml.Vector3d;
+import java.util.UUID;
+import java.util.function.Supplier;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.action.EventSource;
@@ -378,7 +393,7 @@ class HyActionSystemsTest {
                 lines.add(line);
             }
             assertFalse(lines.isEmpty());
-            for (String key : Arrays.asList("spawn-point", "deny-vehicle", "deny-vehicle-enter", "deny-fire-spread", "deny-fluid-flow",
+            for (String key : Arrays.asList("deny-vehicle", "deny-vehicle-enter", "deny-fire-spread", "deny-fluid-flow",
                     "deny-explosion")) {
                 assertTrue(lines.stream().anyMatch(line -> line.startsWith("Flag evernifecore:" + key + " ")), key + " in " + lines);
             }
@@ -389,6 +404,104 @@ class HyActionSystemsTest {
         } finally {
             ActionSupport.declare("an undeclared platform", null, null, true);
             FlagRegistry.get().setMissingCapabilities(Collections.emptyList());
+        }
+    }
+
+    @Test
+    void hytaleRaisesKillCraftRespawnExploreAndCommandAndNoSourceItHasNoEventFor() {
+        assertTrue(HyActionSystems.SERVED_SOURCES.containsAll(Arrays.asList(EventSource.KILL, EventSource.CRAFT, EventSource.RESPAWN,
+                EventSource.EXPLORE, EventSource.COMMAND)));
+        for (EventSource none : Arrays.asList(EventSource.SMELT, EventSource.CONSUME, EventSource.XP_GAIN, EventSource.ENCHANT,
+                EventSource.TAME, EventSource.BREED, EventSource.SHEAR)) {
+            assertFalse(HyActionSystems.SERVED_SOURCES.contains(none), none + " has no event on Hytale");
+        }
+        assertTrue(HyActionSystems.PRE_SOURCES.containsAll(Arrays.asList(EventSource.CRAFT, EventSource.RESPAWN, EventSource.COMMAND)),
+                "the game asks the craft and the respawn before them; the command framework asks before its commands");
+        assertFalse(HyActionSystems.PRE_SOURCES.contains(EventSource.KILL), "a death cannot be cancelled");
+        assertFalse(HyActionSystems.PRE_SOURCES.contains(EventSource.EXPLORE), "the step is seen after it happened");
+    }
+
+    @Test
+    void aCraftCountsEveryItemOfEveryCraftAndACancelledPreCancelsIt() {
+        Actor crafter = HyActionContexts.actor(miner, null, null, null);
+        MaterialQuantity pickaxes = new MaterialQuantity("Tool_Pickaxe_Crude", null, null, 2, null);
+        CraftRecipeEvent.Pre pre = new CraftRecipeEvent.Pre(null, 3);
+        List<CraftActionEvent.Post> posts = new ArrayList<>();
+        ECEventSubscription<CraftActionEvent.Pre> veto = ECEventBus.global().subscribe(CraftActionEvent.Pre.class, event -> event.setCancelled(true));
+        ECEventSubscription<CraftActionEvent.Post> post = ECEventBus.global().subscribe(CraftActionEvent.Post.class, posts::add);
+        try {
+            assertTrue(HyActionSystems.judge(EventSource.CRAFT, WORLD, pre,
+                    () -> HyActionSystems.crafted(WORLD, new Vector3d(5, 5, 5), crafter, pre, pickaxes, 3), false));
+            assertTrue(pre.isCancelled(), "the game checks the Pre before it takes the inputs");
+            assertTrue(posts.isEmpty(), "the Post waits for the game's after-craft event");
+
+            HyActionSystems.posted(EventSource.CRAFT, WORLD, () -> HyActionSystems.crafted(WORLD, new Vector3d(5, 5, 5), crafter, null, pickaxes, 3));
+            assertEquals(1, posts.size());
+            assertEquals(6, posts.get(0).getContext().getAmount(), "two pickaxes a craft, three crafts");
+            assertEquals(HyActionContexts.key("Tool_Pickaxe_Crude"), posts.get(0).getContext().getItemKey());
+        } finally {
+            veto.unsubscribe();
+            post.unsubscribe();
+        }
+    }
+
+    @Test
+    void aKillIsBuiltAndPostedOnlyWhileSomebodyListens() {
+        AtomicInteger built = new AtomicInteger();
+        Supplier<DamageContext> kill = () -> {
+            built.incrementAndGet();
+            return new DamageContext(EventSource.KILL, HyActionContexts.position(WORLD, new Vector3d(5, 5, 5)),
+                    HyActionContexts.actor(miner, null, null, null), null, Actor.environment(HyActionSystems.UNKNOWN_DEATH));
+        };
+        HyActionSystems.posted(EventSource.KILL, WORLD, kill);
+        assertEquals(0, built.get(), "nobody needs KILL");
+
+        List<KillActionEvent.Post> posts = new ArrayList<>();
+        ECEventSubscription<KillActionEvent.Post> post = ECEventBus.global().subscribe(KillActionEvent.Post.class, posts::add);
+        try {
+            HyActionSystems.posted(EventSource.KILL, WORLD, kill);
+            assertEquals(1, posts.size());
+            assertSame(miner, posts.get(0).getPlayer());
+        } finally {
+            post.unsubscribe();
+        }
+    }
+
+    @Test
+    void aCancelledRespawnPreKeepsThePlayerDead() {
+        RespawnEvent event = new RespawnEvent();
+        ECEventSubscription<RespawnActionEvent.Pre> veto = ECEventBus.global().subscribe(RespawnActionEvent.Pre.class,
+                pre -> pre.setCancelled(true));
+        try {
+            assertTrue(HyActionSystems.judge(EventSource.RESPAWN, WORLD, event, () -> new SimpleContext(EventSource.RESPAWN,
+                    HyActionContexts.position(WORLD, new Vector3d(5, 5, 5)), HyActionContexts.actor(miner, null, null, null), event)));
+            assertTrue(event.isCancelled(), "the game respawns nobody whose RespawnEvent was cancelled");
+        } finally {
+            veto.unsubscribe();
+        }
+    }
+
+    @Test
+    void aStepIntoAnotherChunkIsExploredAndTheFirstSightingOrATeleportIsNot() {
+        HyRegionMoveSystem system = new HyRegionMoveSystem(RegionMovementTracker::get);
+        UUID uuid = UUID.randomUUID();
+        Supplier<Actor> actor = () -> HyActionContexts.actor(miner, null, null, null);
+        List<ExploreActionEvent.Post> steps = new ArrayList<>();
+        ECEventSubscription<ExploreActionEvent.Post> post = ECEventBus.global().subscribe(ExploreActionEvent.Post.class, steps::add);
+        try {
+            system.explore(uuid, actor, WORLD, new Vector3d(1, 5, 1), false);
+            system.explore(uuid, actor, WORLD, new Vector3d(2, 5, 1), false);
+            assertTrue(steps.isEmpty(), "the first sighting and a step inside the chunk");
+
+            system.explore(uuid, actor, WORLD, new Vector3d(200, 5, 1), true);
+            assertTrue(steps.isEmpty(), "a teleport is no exploring");
+
+            system.explore(uuid, actor, WORLD, new Vector3d(1000, 5, 1), false);
+            assertEquals(1, steps.size());
+            assertEquals(ChunkPos.fromBlock(200, 1), steps.get(0).getContext().getFrom());
+            assertEquals(ChunkPos.fromBlock(1000, 1), steps.get(0).getContext().getTo());
+        } finally {
+            post.unsubscribe();
         }
     }
 }
