@@ -1,7 +1,12 @@
 package br.com.finalcraft.evernifecore.action.provenance;
 
 import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.event.BreakActionEvent;
+import br.com.finalcraft.evernifecore.action.event.KillActionEvent;
+import br.com.finalcraft.evernifecore.action.event.PickupActionEvent;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
 import br.com.finalcraft.evernifecore.testing.ActionWorld;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
@@ -16,6 +21,9 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -70,6 +78,50 @@ class ProvenanceTrackerTest {
 
             actions.post(actions.contexts().breakBlock(bob, "world", 1, 2, 3, "minecraft:stone"));
             assertEquals(Provenance.NATURAL, tracker.getOrigin(STONE).join());
+        }
+    }
+
+    @Test
+    void aBreakSubscriberStillReadsTheOriginOfTheBlockBeingBroken() {
+        ProvenanceTracker tracker = actions.provenance();
+        List<Provenance> seen = new ArrayList<>();
+        ECEventSubscription<BreakActionEvent.Post> reader = ECEventBus.global().subscribe(BreakActionEvent.Post.class,
+                event -> seen.add(tracker.getOrigin(STONE).join()));
+        try (ProvenanceHold ignored = tracker.record()) {
+            place();
+            actions.post(actions.contexts().breakBlock(bob, "world", 1, 2, 3, "minecraft:stone"));
+
+            assertEquals(1, seen.size());
+            assertEquals(OriginKind.PLAYER_PLACED, seen.get(0).getKind());
+            assertEquals(alice.getUniqueId(), seen.get(0).getPlayer());
+            assertEquals(Provenance.NATURAL, tracker.getOrigin(STONE).join(), "the record goes once every subscriber read it");
+        } finally {
+            reader.unsubscribe();
+        }
+    }
+
+    @Test
+    void killAndPickupSubscribersStillReadTheOriginOfWhatLeaves() {
+        ProvenanceTracker tracker = actions.provenance();
+        UUID zombie = UUID.randomUUID();
+        UUID diamond = UUID.randomUUID();
+        List<OriginKind> seen = new ArrayList<>();
+        ECEventSubscription<KillActionEvent.Post> killReader = ECEventBus.global().subscribe(KillActionEvent.Post.class,
+                event -> seen.add(tracker.getOrigin(zombie).getKind()));
+        ECEventSubscription<PickupActionEvent.Post> pickupReader = ECEventBus.global().subscribe(PickupActionEvent.Post.class,
+                event -> seen.add(tracker.getOrigin(diamond).getKind()));
+        try (ProvenanceHold ignored = tracker.record()) {
+            actions.post(actions.contexts().spawn(zombie, "minecraft:zombie", "SPAWNER", "world"));
+            actions.post(actions.contexts().drop(alice, diamond, "minecraft:diamond"));
+            actions.post(actions.contexts().kill(alice, zombie, "minecraft:zombie"));
+            actions.post(actions.contexts().pickup(bob, diamond, "minecraft:diamond"));
+
+            assertEquals(Arrays.asList(OriginKind.SPAWNER, OriginKind.PLAYER_DROP), seen);
+            assertEquals(Provenance.NATURAL, tracker.getOrigin(zombie));
+            assertEquals(Provenance.NATURAL, tracker.getOrigin(diamond));
+        } finally {
+            killReader.unsubscribe();
+            pickupReader.unsubscribe();
         }
     }
 
