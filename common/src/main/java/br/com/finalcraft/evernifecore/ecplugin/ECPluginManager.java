@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.ecplugin;
 
+import br.com.finalcraft.evernifecore.types.TypeRegistries;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.EventSourceUsage;
@@ -141,6 +142,7 @@ public class ECPluginManager {
         //a plugin without IECPluginBootstrap never had its regions closed; its storage is gone, so nothing is written
         RegionManager.discardOwnedBy(removed);
         EventSource.unregisterAll(removed);
+        TypeRegistries.unregisterAll(removed);
         EventSourceUsage.stopAll(removed);
 
         //by value, not by removed.getPlugin(): a plugin re-instantiated at runtime leaves two objects

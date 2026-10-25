@@ -18,6 +18,14 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **Self-describing type registries (`types`)**: a `TypeRegistry<T>` holds the types of one kind by `owner:name` key,
+  each described by a `TypeDescriptor` (aliases, one-sentence description, `ParamSpec` parameters, platforms, needed
+  player capabilities, event sources, factory). A definition node (`{type: compare, amount: 3}`, or `permission: shop.vip`
+  for a one-parameter type) is validated before the factory runs, and every refusal names the type, the parameter, the
+  value, the expected format and the type's parameters; a bare name resolves to the caller's own type first, an
+  ambiguous one lists the owners. `parseLater` keeps a definition that cites an absent type as a `PendingDefinition`
+  that resolves when the type registers (a child node always does), and a type this platform cannot run fails the
+  parse. A plugin's types leave on shutdown (`TypeRegistries.unregisterAll`).
 - **`time.Window` and `Season`**: daily, weekly, monthly (29-31 clamp to the month's last day), 5-field cron and season
   windows in a `ZoneId`, with `currentStart`/`nextBoundary`/`isOpen`; daylight-saving safe (a boundary in the spring gap
   moves forward, one in the autumn overlap takes the first occurrence). `Window.parse` reads `daily at 04:00`,
