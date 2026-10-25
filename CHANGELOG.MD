@@ -116,6 +116,19 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `.Post` only) and `COMMAND` (through `FinalCMD`); it has no event for smelting, fishing, eating, experience,
   enchanting, taming, breeding or shearing, and declares those sources not raised. With `RESPAWN` raised, Hytale's boot
   no longer warns about `spawn-point`, which still sends nobody anywhere there.
+- **Provenance** (`action.provenance`): `ProvenanceTracker.open(owner, storage)` records who placed a block
+  (`PLAYER_PLACED`), what made a creature (`SPAWNER`, `EGG`, `BREEDING`, `COMMAND`) and who dropped an item
+  (`PLAYER_DROP`), as a subscriber of the action events - `record()` returns the `ProvenanceHold` that keeps it
+  subscribed, and subscribing is what switches the platform's listeners on - and answers `getOrigin(block)` (async),
+  `peekOrigin(block)` and `getOrigin(entity)`; `Provenance.isOwn(player)` tells a player's own block or drop. Nothing
+  recorded reads `NATURAL`. Blocks persist per chunk on the owner's storage (`provenance_blocks`, write-back through
+  `SVWorldDataManager`); creatures and items live in memory only (50 000 at most), and Hytale spawns are all natural. A
+  break, a kill and a pickup forget the record. Off by default; the core settings gain `Provenance.shared` (one tracker
+  in a storage the core opens on the default backend of its `storage.yml`, answering every plugin), `Provenance.always`
+  (record from boot) and `Provenance.retention.player-placed` (30d; an older placed block reads natural and its record
+  is dropped when read). A plugin's tracker closes in `onECPluginShutdownPre`, before its regions.
+- **`ActionWorld` in `common-tests`**: one plugin's actions against the test doubles - `pre`/`post` as a native listener
+  does them, the contexts they carry, `isNeeded(source)` and the owner's `provenance()` on the world's storage.
 
 ### Fixed
 

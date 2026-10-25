@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.ecplugin;
 
+import br.com.finalcraft.evernifecore.action.provenance.ProvenanceTracker;
 import br.com.finalcraft.evernifecore.cooldown.Cooldowns;
 import br.com.finalcraft.evernifecore.logic.CustomVariables;
 import br.com.finalcraft.evernifecore.logic.Multipliers;
@@ -121,7 +122,8 @@ public interface IECPluginBootstrap {
      * it directly - the qualified form does not compile anywhere else.
      */
     public default void onECPluginShutdownPre() {
-        //regions first: their write needs the plugin's storage, which the plugin closes right after this hook
+        //the writers first: provenance and regions write to the plugin's storage, which the plugin closes right after this hook
+        ProvenanceTracker.closeOwnedBy(getPluginData());
         RegionManager.closeOwnedBy(getPluginData());
         Cooldowns.closeOwnedBy(getPluginData());
         CustomVariables.closeOwnedBy(getPluginData());

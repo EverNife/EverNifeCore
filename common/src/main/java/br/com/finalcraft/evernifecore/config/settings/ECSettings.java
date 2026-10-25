@@ -66,6 +66,11 @@ public class ECSettings {
     public static Duration REGIONS_SELECTION_IDLE_TIME = Duration.ofMinutes(5);
     public static boolean REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = false;
 
+    //Provenance - shipped defaults, for the same reason
+    public static boolean PROVENANCE_SHARED = false;
+    public static boolean PROVENANCE_ALWAYS = false;
+    public static Duration PROVENANCE_RETENTION_PLAYER_PLACED = Duration.ofDays(30);
+
     public static void initialize(){
         ZONE_ID_OF_DAY_OF_TODAY = ConfigManager.getMainConfig().getOrSetValueIfAbsent("Settings.Time.ZONE_ID_OF_DAY_OF_TODAY",
                 ZoneId.systemDefault().getId(),
@@ -165,6 +170,7 @@ public class ECSettings {
 
         loadRegionSettings(ConfigManager.getMainConfig());
         applyRegionSettings();
+        loadProvenanceSettings(ConfigManager.getMainConfig());
 
         if (ConfigManager.getMainConfig().hasNewSeededDefaults()){
             ConfigManager.getMainConfig().save();
@@ -250,6 +256,25 @@ public class ECSettings {
                         "\ntheir built-in settings plus what each region overrides, and an old file left behind is ignored (the log" +
                         "\nsays so). Turn it on to tune a flag for the whole server; a flag may also force its own file on or off." +
                         "\nA reload of EverNifeCore applies a change to the flags of every plugin."
+        );
+    }
+
+    /** Reads every {@code Provenance.*} key of {@code config} into the fields above, seeding what is absent. */
+    public static void loadProvenanceSettings(Config config){
+        PROVENANCE_SHARED = config.getOrSetValueIfAbsent(
+                "Provenance.shared", false,
+                "true: one record of who placed, spawned or dropped what, kept in EverNifeCore's own storage, answers every" +
+                        "\nplugin that asks (one source of truth for a network of plugins); false: each plugin keeps its own, in its" +
+                        "\nown storage (redundant, isolated). Applied on the next restart."
+        );
+        PROVENANCE_ALWAYS = config.getOrSetValueIfAbsent(
+                "Provenance.always", false,
+                "true: record from boot on; false: record only while some plugin asks for origins (a quest that counts only" +
+                        "\nnatural blocks, a job that pays nothing for placed ones) - a block placed before then reads as natural."
+        );
+        PROVENANCE_RETENTION_PLAYER_PLACED = readDuration(config,
+                "Provenance.retention.player-placed", Duration.ofDays(30),
+                "How long a placed block remembers who placed it; an older record reads as natural and is dropped."
         );
     }
 

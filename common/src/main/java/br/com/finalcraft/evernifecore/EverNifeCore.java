@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore;
 
+import br.com.finalcraft.evernifecore.action.provenance.ProvenanceTracker;
 import br.com.finalcraft.evernifecore.api.common.providers.ECProviders;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.commands.CommandRegisterer;
@@ -14,7 +15,9 @@ import br.com.finalcraft.evernifecore.logic.core.CoreLogic;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.logger.ECFallbackLog;
 import br.com.finalcraft.evernifecore.logger.ECLogger;
+import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
+import br.com.finalcraft.evernifecore.storage.ECStorage;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.region.placeholder.RegionPlaceholders;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
@@ -65,6 +68,12 @@ public class EverNifeCore {
         getLog().info("§aLoading up Configurations...");
         ConfigManager.initialize(getEcPluginData());
 
+        if (ECSettings.PROVENANCE_SHARED) {
+            //its own handle on the backend the core's player data uses: a core reload rebuilds the PlayerController's
+            //storages, and the shared record must outlive that
+            ProvenanceTracker.openShared(getEcPluginData(), ECStorage.open(PlayerController.getDefaultBackendDefinition()).join());
+        }
+
         getLog().info("§aLoading up Cooldown System!");
         Cooldowns.loadServerFile();
 
@@ -98,6 +107,7 @@ public class EverNifeCore {
     }
 
     public void onUnload() {
+        ProvenanceTracker.closeShared();
         RegionManager.closeAll(); //what no plugin shutdown closed, and the region system's hold on the global bus
         PlayerController.shutdown(); //flush dirty players + close storage backends
     }

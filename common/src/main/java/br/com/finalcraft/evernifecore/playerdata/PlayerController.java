@@ -926,6 +926,20 @@ public class PlayerController {
         return names;
     }
 
+    /**
+     * The definition of the default backend of the core's {@code storage.yml} - where the core's own sections live.
+     *
+     * @throws IllegalStateException before the controller is bootstrapped
+     */
+    public static BackendDefinition getDefaultBackendDefinition() {
+        PlayerController controller = INSTANCE;
+        if (controller == null) {
+            throw new IllegalStateException("The PlayerController is not bootstrapped yet: ask for the core's backend after"
+                    + " EverNifeCore loaded its configuration.");
+        }
+        return controller.registry.getDefinition(controller.registry.getDefaultBackendName());
+    }
+
     /** Human-readable summary of where the base entity and each section currently persist. */
     public static String storageSummary() {
         PlayerController controller = INSTANCE;
