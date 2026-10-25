@@ -15,6 +15,7 @@ reports failed=0.
 import argparse
 import gzip
 import json
+import math
 import os
 import re
 import shutil
@@ -55,9 +56,9 @@ BREAK_MESSAGE = "ECC break denied"
 SCREENS = ["basic", "hopper", "dispenser", "workbench", "nav", "storage", "prompt", "pager",
            "title-long", "layout", "confirm"]
 SUITE_ORDER = ["items", "nbt", "platform", "version", "commands", "gui", "scheduler", "playerdata",
-               "events", "selection-click", "particles", "text-metrics", "hooks", "nms", "regions", "logic"]
+               "events", "selection-click", "particles", "text-metrics", "hooks", "nms", "regions", "logic", "actions"]
 HALVES = ("run", "write", "read")
-EXPECTED_ENDS = {"run": 15, "write": 3, "read": 3}
+EXPECTED_ENDS = {"run": 16, "write": 3, "read": 3}
 WAIT_SECONDS = {"run": 900, "write": 180, "read": 180}
 TEXT_LINES = ("iiiiiiiiii", "WWWWWWWWWW")
 BOT = "EccBot"
@@ -417,6 +418,20 @@ def click_a_block(mctf: Mctf, client_id: str, r: FlavorResult):
         r.problems.append("attack did not hit a block: %s" % hit)
 
 
+def act_on_the_server(mctf: Mctf, client_id: str, r: FlavorResult):
+    """What the actions suite records: one command, then the block under the feet broken with an empty hand."""
+    bot(mctf, client_id, "/ecc list")
+    bot(mctf, client_id, "/mctf slot 1")
+    pos = (bot(mctf, client_id, "/mctf pos").get("reply") or {})
+    if not pos.get("ok"):
+        r.problems.append("/mctf pos failed before the break: %s" % pos)
+        return
+    under = (math.floor(float(pos["x"])), math.floor(float(pos["y"]) - 1.62 - 0.5), math.floor(float(pos["z"])))
+    broke = bot(mctf, client_id, "/mctf break %d %d %d" % under).get("reply") or {}
+    if not broke.get("ok"):
+        r.problems.append("the bot could not break the block under its feet: %s" % broke)
+
+
 def screen_shown(snapshot: dict, render: dict) -> bool:
     """The server has the container open and the client either drew it or answered why it cannot."""
     opened = (snapshot.get("snapshot") or {}).get("container_type")
@@ -514,6 +529,8 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
 
         console(mctf, server_id, "ecc click " + BOT)
         click_a_block(mctf, client_id, r)
+        console(mctf, server_id, "ecc actions " + BOT)
+        act_on_the_server(mctf, client_id, r)
         console(mctf, server_id, "ecc run all --player %s --cid %s" % (BOT, cid["run"]))
         wait_suite_ends(mctf, server_id, cid["run"], r)
         log.lap("run")

@@ -1,11 +1,17 @@
 package br.com.finalcraft.evernifecore.conformance.hytale.suite;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.action.ActionSupport;
+import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.UnsupportedSourceException;
+import br.com.finalcraft.evernifecore.action.event.CommandActionEvent;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.conformance.ConformanceCase;
 import br.com.finalcraft.evernifecore.conformance.ConformanceContext;
 import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
 import br.com.finalcraft.evernifecore.conformance.Verdict;
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.hytale.action.HyActionSystems;
 import br.com.finalcraft.evernifecore.hytale.itemdatapart.datapart.ItemDataPartMetadata;
 import br.com.finalcraft.evernifecore.hytale.itemstack.ComparableItemComplex;
@@ -33,7 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Which platform the core detected on this server, that its region Systems went on it once, at setup, and that the
  * core's item metadata links against the server's own {@code org.bson}, and that a player's command reaches the core
- * as that player.
+ * as that player - and, Hytale having no command event, as a {@code CommandActionEvent} raised by {@code FinalCMD}.
  */
 public final class HyPlatformSuite implements ConformanceSuite {
 
@@ -102,7 +108,34 @@ public final class HyPlatformSuite implements ConformanceSuite {
                             + " metadata=" + back.getMetadata() + " plain=" + plain + " plainBack=" + plainBack);
                 }),
                 //the server dispatches a player's command (chat or sudo) with the PlayerRef as its sender
-                HyRegionsSuite.withPlayer("player-verb-by-sudo", ctx, this::playerVerbBySudo));
+                HyRegionsSuite.withPlayer("player-verb-by-sudo", ctx, this::playerVerbBySudo),
+                //no command event on this server: the core posts COMMAND from its own executor, for its own commands
+                HyRegionsSuite.withPlayer("command-source-via-finalcmd", ctx, this::commandSourceViaFinalCmd),
+                ConformanceCase.of("fish-source-not-served", () -> {
+                    boolean served = ActionSupport.isServed(EventSource.FISH);
+                    String refusal = "";
+                    try {
+                        ActionSupport.requireServed(EventSource.FISH, false, "the conformance probe");
+                    } catch (UnsupportedSourceException expected) {
+                        refusal = expected.getMessage();
+                    }
+                    return Verdict.of(!served && refusal.contains("Hytale"), "served=" + served + " refusal=" + refusal);
+                }));
+    }
+
+    /** Runs {@code /ecc whoami} as {@code player} while subscribed to {@code CommandActionEvent.Post}: the post names /ecc. */
+    private CompletableFuture<Verdict> commandSourceViaFinalCmd(FPlayer player) {
+        CompletableFuture<String> heard = new CompletableFuture<>();
+        ECEventSubscription<CommandActionEvent.Post> subscription = ECEventBus.global().subscribe(CommandActionEvent.Post.class, event -> {
+            FPlayer who = event.getContext().getPlayer();
+            if (who != null && who.getUniqueId().equals(player.getUniqueId()) && event.getContext().getNames().contains("ecc")) {
+                heard.complete(event.getContext().getCommandLine());
+            }
+        });
+        return playerVerbBySudo(player)
+                .thenApply(ran -> Verdict.of(ran.getKind() == Verdict.Kind.PASS && heard.isDone(), "command ran: " + ran.getDetail()
+                        + " | CommandActionEvent.Post=" + (heard.isDone() ? heard.join() : "none")))
+                .whenComplete((verdict, failed) -> subscription.unsubscribe());
     }
 
     /** Completes the {@code whoami} case waiting on {@code token}; a token nobody waits on is ignored. */

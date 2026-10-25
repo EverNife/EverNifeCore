@@ -11,6 +11,7 @@ import br.com.finalcraft.evernifecore.conformance.MarkerLine;
 import br.com.finalcraft.evernifecore.conformance.RunIds;
 import br.com.finalcraft.evernifecore.conformance.SuiteRunner;
 import br.com.finalcraft.evernifecore.conformance.Verdict;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ActionsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.GuiSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.SelectionClickSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.TextMetricsSuite;
@@ -32,8 +33,9 @@ import java.util.stream.Collectors;
  * {@code /ecc run|write|read <suite|all>}: runs suites on this server and reports every case to the sender, to the
  * log as a human line, and to the log again as an {@code ENCTEST} marker. {@code write} and {@code read} are the
  * two halves of the suites whose subject has to survive a restart. {@code /ecc gui <screen> <player>} opens one
- * sample screen of the {@code gui} suite and leaves it open, to be read from outside the server; {@code click} and
- * {@code text} prepare what the {@code selection-click} and {@code text-metrics} suites need from a real client.
+ * sample screen of the {@code gui} suite and leaves it open, to be read from outside the server; {@code click},
+ * {@code actions} and {@code text} prepare what the {@code selection-click}, {@code actions} and {@code text-metrics}
+ * suites need from a real client.
  */
 @FinalCMD(aliases = {"ecoreconformance", "ecc"}, permission = "evernifecore.conformance")
 public class ConformanceCommand {
@@ -106,6 +108,14 @@ public class ConformanceCommand {
         if (clicker == null) return;
         SelectionClickSuite.arm(clicker);
         sender.sendMessage(SuiteRunner.HUMAN_PREFIX + "click armed for " + clicker.getName() + " - wand given, click a block");
+    }
+
+    /** Subscribes to the command and break posts and records {@code player}'s, for the {@code actions} suite. */
+    @FinalCMD.SubCMD(subcmd = "actions")
+    public void actions(FCommandSender sender, @Arg("<player>") FPlayer player) {
+        Player actor = online(sender, player, "actions");
+        if (actor == null) return;
+        sender.sendMessage(SuiteRunner.HUMAN_PREFIX + "actions armed for " + actor.getName() + ": " + ActionsSuite.arm(actor));
     }
 
     /** Sends {@code player} the two chat lines of known width the {@code text-metrics} suite measures. */

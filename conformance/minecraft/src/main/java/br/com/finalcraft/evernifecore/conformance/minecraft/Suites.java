@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.conformance.minecraft;
 
 import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ActionsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.CommandsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.EventsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.GuiSuite;
@@ -52,6 +53,7 @@ public final class Suites {
                 new HooksSuite(regions, loaded),
                 new NmsSuite(),
                 new RegionsSuite(regions, loaded),
-                new LogicSuite(plugin));
+                new LogicSuite(plugin),
+                new ActionsSuite());
     }
 }
