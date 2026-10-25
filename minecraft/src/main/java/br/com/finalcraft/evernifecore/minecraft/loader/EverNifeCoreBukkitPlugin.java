@@ -9,13 +9,8 @@ import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
-import br.com.finalcraft.evernifecore.minecraft.action.listener.RegionListeners;
-import br.com.finalcraft.evernifecore.minecraft.api.events.ECPlayerChangeChunkEvent;
-import br.com.finalcraft.evernifecore.minecraft.api.events.ECPlayerCraftItemEvent;
-import br.com.finalcraft.evernifecore.minecraft.api.events.damage.ECPetDamagedByPet;
-import br.com.finalcraft.evernifecore.minecraft.api.events.damage.ECPetDamagedByPlayer;
-import br.com.finalcraft.evernifecore.minecraft.api.events.damage.ECPlayerDamagedByPet;
-import br.com.finalcraft.evernifecore.minecraft.api.events.damage.ECPlayerDamagedByPlayer;
+import br.com.finalcraft.evernifecore.action.ActionSupport;
+import br.com.finalcraft.evernifecore.minecraft.action.listener.ActionListeners;
 import br.com.finalcraft.evernifecore.minecraft.commands.McCommandRegisterer;
 import br.com.finalcraft.evernifecore.minecraft.config.McConfigManager;
 import br.com.finalcraft.evernifecore.minecraft.consolefilter.ECBukkitConsoleFilter;
@@ -26,11 +21,8 @@ import br.com.finalcraft.evernifecore.minecraft.eventbus.McForgeAudience;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiListener;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiViews;
 import br.com.finalcraft.evernifecore.minecraft.integration.VaultIntegration;
-import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerCraftListener;
-import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerDamageByEntityListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerInteractListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerLoginListener;
-import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerMoveListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.PluginListener;
 import br.com.finalcraft.evernifecore.minecraft.loader.imp.McECPluginExtractor;
 import br.com.finalcraft.evernifecore.minecraft.loader.imp.McPlatform;
@@ -73,7 +65,7 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
     /** The platform this plugin registers, kept so the native world hooks fire into the same instance. */
     private final McPlatform platform = new McPlatform();
 
-    private RegionListeners regionListeners;
+    private ActionListeners actionListeners;
     private Runnable consoleFilterUninstaller;
     static {
         //First thing to do when this class is loaded is to add REQUIRED dependencies, because there ara plugins that depends
@@ -169,17 +161,11 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
             ECListener.register(ecPluginData, PlayerLoginListener.VanillaLogin.class);
         }
 
-        //Producers hooked on hot native events: registered only while somebody listens to what they
-        //produce, on the bus or on the server, and unregistered when the last listener leaves.
-        ECListener.registerWhileListened(ecPluginData, new PlayerMoveListener(), ECPlayerChangeChunkEvent.class);
-        ECListener.registerWhileListened(ecPluginData, new PlayerCraftListener(), ECPlayerCraftItemEvent.class);
-        ECListener.registerWhileListened(ecPluginData, new PlayerDamageByEntityListener(),
-                ECPlayerDamagedByPlayer.class, ECPlayerDamagedByPet.class, ECPetDamagedByPet.class, ECPetDamagedByPlayer.class);
-
         FCTickUtil.getTickCount();//This will start tickCounting
 
-        //each region listener sits on the server only while some region needs its kind of event
-        regionListeners = RegionListeners.start(ecPluginData);
+        //each action listener sits on the server only while some region, or some listener of its action event, needs it
+        ActionSupport.declare(ActionListeners.platformName(), null, ActionListeners.PRE_SOURCES, true);
+        actionListeners = ActionListeners.start(ecPluginData);
         RegionTicker.start(ecPluginData);
 
         //last, so what a loadbefore plugin asked for runs after the first-tick work scheduled above
@@ -218,9 +204,9 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
         //core tears itself down has no business reaching a Bukkit listener
         ECEventBus.global().removeNativeAudience(McBukkitAudience.NAME);
         ECEventBus.global().removeNativeAudience(McForgeAudience.NAME);
-        if (regionListeners != null) {
-            regionListeners.stop();
-            regionListeners = null;
+        if (actionListeners != null) {
+            actionListeners.stop();
+            actionListeners = null;
         }
         ProtectionAll.getInstance().unregisterAll(getPluginData());
         //and only then the inherited default, which is what unregisters listeners and commands

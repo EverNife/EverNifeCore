@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.action;
 
 import br.com.finalcraft.evernifecore.action.event.ActionEvent;
+import br.com.finalcraft.evernifecore.action.event.ActionEvents;
 import br.com.finalcraft.evernifecore.api.events.base.ECCancellable;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.flag.Decision;
@@ -40,6 +41,40 @@ public final class Actions {
         }
         P posted = ECEventBus.global().postIfListened(preType, () -> pre.apply(context));
         return posted != null && posted.isCancelled();
+    }
+
+    /**
+     * As {@link #denied(ActionContext, Class, Function)}, with the {@code Pre} of the context's source taken from
+     * {@link ActionEvents}; a source with no action event is only asked of the regions.
+     */
+    public static boolean denied(ActionContext context) {
+        try (RegionDispatch dispatch = RegionLookup.get().dispatch()) {
+            if (dispatch.decide(context) == Decision.DENY) {
+                return true;
+            }
+            ActionEvents.Pair pair = ActionEvents.of(context.getSource());
+            if (pair == null) {
+                return false;
+            }
+            ActionEvent<?> posted = ECEventBus.global().postIfListened(anyEvent(pair.getPre()), () -> pair.newPre(context));
+            return posted instanceof ECCancellable && ((ECCancellable) posted).isCancelled();
+        }
+    }
+
+    /**
+     * As {@link #post(Class, Supplier)}, with the {@code Post} of {@code source} taken from {@link ActionEvents}: {@code context}
+     * runs only when somebody listens. Nothing for a source with no action event.
+     */
+    public static void post(EventSource source, Supplier<? extends ActionContext> context) {
+        ActionEvents.Pair pair = ActionEvents.of(source);
+        if (pair != null) {
+            post(anyEvent(pair.getPost()), () -> pair.newPost(context.get()));
+        }
+    }
+
+    @SuppressWarnings("unchecked")   //the catalog's classes are ActionEvents; the bus wants one exact type to answer for
+    private static Class<ActionEvent<?>> anyEvent(Class<? extends ActionEvent<?>> type) {
+        return (Class<ActionEvent<?>>) (Class<?>) type;
     }
 
     /**

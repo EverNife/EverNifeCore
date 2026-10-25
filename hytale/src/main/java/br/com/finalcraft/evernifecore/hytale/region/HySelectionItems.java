@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.hytale.region;
 
+import br.com.finalcraft.evernifecore.hytale.action.HyActionContexts;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
@@ -35,7 +36,7 @@ public final class HySelectionItems implements ISelectionItems {
 
     static String itemIdOf(String materialId) {
         int colon = materialId.indexOf(':');
-        return colon > 0 && materialId.substring(0, colon).equals(HyRegionContexts.NAMESPACE) ? materialId.substring(colon + 1) : DEFAULT_ITEM;
+        return colon > 0 && materialId.substring(0, colon).equals(HyActionContexts.NAMESPACE) ? materialId.substring(colon + 1) : DEFAULT_ITEM;
     }
 
     /** Whether {@code item} is a selection tool this core handed out. */

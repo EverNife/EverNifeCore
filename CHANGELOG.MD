@@ -89,8 +89,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `Spawn`, `Explosion`, `Fluid`, `Respawn`, `Pickup`, `Drop`, `Vehicle`, `FireSpread`, `FlightToggle`. Built only while
   somebody listens, and the native listener or System of the source is on the server only while somebody listens
   (`EventSourceUsage` holds the source for each listened pair, 3 min idle); subscribing to the base `ActionEvent`
-  switches every source on. `ActionEvents` is the catalog (`of(source).getPre()/getPost()`, `all()`), `Actions` what a
-  platform listener does (`denied`, `cancelled`, `post`), `SimpleContext` the context of a source with no detail.
+  switches every source on. `ActionEvents` is the catalog (`of(source).getPre()/getPost()`, `newPre/newPost(context)`,
+  `all()`), `Actions` what a platform listener does (`denied`, `cancelled`, `post`), `SimpleContext` the context of a
+  source with no detail. On Bukkit each listener posts the `.Pre` at its deciding priority and the `.Post` from a
+  `MONITOR` handler that ignores cancelled events (a piston moving blocks is asked of the regions and posts nothing); on
+  Hytale the deciding System posts both, the `.Post` once it leaves the event uncancelled (a hit on a block or an
+  explosion's block damage posts only the `.Pre`: it is not the break).
   `ActionSupport` says which sources a platform raises and where a `.Pre` exists (`declare`, `isServed`, `hasPre`,
   `isNativeCommandSource`); `ActionSupport.requireServed` is the loud failure (`UnsupportedSourceException`, naming the
   definition, the source and the server) a definition raises at load on a platform without the source.
@@ -114,6 +118,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 - `FlagRegistry.setServedSources` is gone: a platform declares what it raises with `ActionSupport.declare(platform, post,
   pre, nativeCommandSource)`, and `FlagRegistry.getUnservedSources` reads `ActionSupport.isServed`.
+- The Bukkit listeners of `minecraft.action.listener` are named for the action: `RegionListeners` is `ActionListeners`
+  (`ActionListeners.follow` for a plugin's own source), each `Region<X>Listener` is `<X>ActionListener`
+  (`RegionItemListeners`/`RegionVehicleListeners` are `ItemActionListeners`/`VehicleActionListeners`), `RegionContexts` is
+  `McActionContexts`; the `track-changes` journal listeners are `TerrainJournalListener` and
+  `TerrainJournalBlockExplodeListener`. On Hytale `hytale.region.HyRegionContexts` is `hytale.action.HyActionContexts`.
+- The Bukkit spawn listener posts `SpawnActionEvent` for egg spawns too; the regions still never decide those.
 - **EveryConfig 1.4.3**: `getOrMergeValue(path, bean)` keeps an unreadable value in the file (reported as a
   `COERCION` `LoadIssue`) instead of writing the field default over it.
 - **The region engine's shared pieces leave `region`**: the action contexts, `Actor`/`TypeKey`/`ECEntityType`,
@@ -146,6 +156,14 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Removed
 
+- **The Bukkit-only events** `ECPlayerCraftItemEvent`, `ECPlayerChangeChunkEvent` and the `ECPlayerdataDamagePlayerdata`
+  family (`ECPlayerDamagedByPlayer`, `ECPlayerDamagedByPet`, `ECPetDamagedByPet`, `ECPetDamagedByPlayer`) no longer exist,
+  nor do their producers `PlayerCraftListener`, `PlayerMoveListener` and `PlayerDamageByEntityListener`. Use
+  `DamageActionEvent` instead of the damage family, on Hytale as on Bukkit: `getActor()` is the attacker, its
+  `getRootPlayer()` the pet's owner or the shooter, `getContext().getVictim()` the victim (a player hurt by a pet is a
+  `DamageActionEvent` whose actor is not a player and has a root player). The craft and chunk-change equivalents,
+  `CraftActionEvent.Post` (`getContext().getAmount()` for the old `getAmountProduced()`) and `ExploreActionEvent.Post`,
+  are not in this tree yet.
 - **`IPlatform.runOnMainThread` and `IPlatform.runOnMainThreadNextTick`** (the `Runnable` and `Supplier` forms): the
   main-thread hop belongs to `time.ECScheduler`, which each platform installs through `ECScheduler.setMainThread`.
   `getPlatform().runOnMainThread(task)` becomes `ECScheduler.onMainThread(task)` (in place when the caller already

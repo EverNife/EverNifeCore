@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.hytale.action;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.action.ActionContext;
 import br.com.finalcraft.evernifecore.action.ActionSupport;
+import br.com.finalcraft.evernifecore.action.Actions;
 import com.hypixel.hytale.common.util.java.ManifestUtil;
 import br.com.finalcraft.evernifecore.action.Actor;
 import br.com.finalcraft.evernifecore.action.BlockContext;
@@ -14,16 +15,13 @@ import br.com.finalcraft.evernifecore.action.ItemContext;
 import br.com.finalcraft.evernifecore.action.SpawnContext;
 import br.com.finalcraft.evernifecore.action.TypeKey;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.flag.Decision;
 import br.com.finalcraft.evernifecore.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.hytale.loader.imp.HyPlatform;
-import br.com.finalcraft.evernifecore.hytale.region.HyRegionContexts;
 import br.com.finalcraft.evernifecore.hytale.region.HyRegionMoveSystem;
 import br.com.finalcraft.evernifecore.hytale.region.HySelectionItems;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
-import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.selection.SelectionClick;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSession;
 import br.com.finalcraft.evernifecore.region.selection.SelectionTool;
@@ -87,13 +85,15 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * The region protection on Hytale: one ECS System per kind of game event, plus the tick that follows region borders
+ * The actions on Hytale: one ECS System per kind of game event, plus the tick that follows region borders
  * ({@link HyRegionMoveSystem}), registered once while the core sets up - the server takes Systems only then - and
- * always on the server. What switches a System on and off is
- * {@link EventSourceUsage}: every handle first asks whether some region needs its source, and while none does it
- * returns before building anything. A denial cancels the event; the deny message is the flag's to send.
+ * always on the server. What switches a System on and off is {@link EventSourceUsage}: every handle first asks whether
+ * its source is needed - by a region, or by a listener of its action event - and while it is not, returns before building
+ * anything. Past the gate the regions decide and the {@code Pre} action event is posted; a denial or a cancelled
+ * {@code Pre} cancels the event (the deny message is the flag's to send), and an event left uncancelled posts its
+ * {@code Post}.
  *
- * <p>0.7.1 fires no explosion event: an explosion reaches the regions only block by block, as a
+ * <p>0.7.2 fires no explosion event: an explosion reaches the regions only block by block, as a
  * {@link DamageBlockEvent} with no actor, decided as a BREAK by the environment. {@code deny-explosion} has no effect
  * here. {@link #SERVED_SOURCES} are the core sources a System here raises; every flag that needs another one says in
  * the boot log that it has no effect on Hytale.</p>
@@ -155,28 +155,41 @@ public final class HyActionSystems {
         return true;
     }
 
+    /** {@link #judge(EventSource, String, ICancellableEcsEvent, Supplier, boolean)} for an event that is the outcome itself. */
+    static boolean judge(EventSource source, String world, ICancellableEcsEvent event, Supplier<? extends ActionContext> context) {
+        return judge(source, world, event, context, true);
+    }
+
     /**
-     * What every System does with its event: nothing while no region needs {@code source}, in a disabled world or on an
-     * event already cancelled; else it asks the regions and cancels a denial. {@code context} is built only past the gate.
+     * What every System does with its event: nothing while {@code source} is not needed - by a region or a listener of its
+     * action event -, in a disabled world or on an event already cancelled; else the regions decide, the {@code Pre} is
+     * posted, and a denial or a cancelled {@code Pre} cancels the event. When {@code postsOutcome}, an event this System
+     * leaves uncancelled then posts its {@code Post} - Hytale has no last-word priority, so a System of another plugin
+     * that runs later may still cancel it. {@code context} is built only past the gate, and again only for a listened Post.
      *
+     * @param postsOutcome false for a step on the way to the outcome (a hit on a block is not its break)
      * @return whether the event was denied here
      */
-    static boolean judge(EventSource source, String world, ICancellableEcsEvent event, Supplier<? extends ActionContext> context) {
-        if (!EventSourceUsage.get().isNeeded(source) || event.isCancelled() || HyRegionContexts.isDisabled(world)) {
+    static boolean judge(EventSource source, String world, ICancellableEcsEvent event, Supplier<? extends ActionContext> context,
+                         boolean postsOutcome) {
+        if (!EventSourceUsage.get().isNeeded(source) || event.isCancelled() || HyActionContexts.isDisabled(world)) {
             return false;
         }
-        if (RegionLookup.get().decide(context.get()) == Decision.DENY) {
+        if (Actions.denied(context.get())) {
             event.setCancelled(true);
             return true;
+        }
+        if (postsOutcome) {
+            Actions.post(source, context);
         }
         return false;
     }
 
-    /** One block an explosion is about to damage, in {@code world}: a BREAK by the environment. */
+    /** One block an explosion is about to damage, in {@code world}: a BREAK by the environment - a step, never posted as broken. */
     static boolean explode(String world, DamageBlockEvent event) {
         return judge(EventSource.BREAK, world, event, () -> new BlockContext(EventSource.BREAK,
-                HyRegionContexts.position(world, event.getTargetBlock()), Actor.environment(HyRegionContexts.EXPLOSION), event,
-                HyRegionContexts.key(event.getBlockType()), null));
+                HyActionContexts.position(world, event.getTargetBlock()), Actor.environment(HyActionContexts.EXPLOSION), event,
+                HyActionContexts.key(event.getBlockType()), null), false);
     }
 
     /**
@@ -188,25 +201,32 @@ public final class HyActionSystems {
         if (!EventSourceUsage.get().isNeeded(source)) {
             return false;
         }
-        TypeKey key = HyRegionContexts.itemKey(item);
+        TypeKey key = HyActionContexts.itemKey(item);
         Vector3d at = key == null ? null : positionOf(actor, store);
         if (at == null) {
             return false;
         }
         String world = worldOf(store);
-        return judge(source, world, event, () -> new ItemContext(source, HyRegionContexts.position(world, at),
-                HyRegionContexts.actor(actor, store), event, key));
+        return judge(source, world, event, () -> new ItemContext(source, HyActionContexts.position(world, at),
+                HyActionContexts.actor(actor, store), event, key));
     }
 
     /** What spawns a creature nobody spawned on purpose: the world itself. */
     public static final TypeKey NATURAL_SPAWN = TypeKey.of("environment", "spawn");
 
-    /** Whether the regions deny the spawn {@code context} describes; nothing is built while no region needs SPAWN. */
+    /**
+     * Whether the regions or a subscriber of the {@code Pre} deny the spawn {@code context} describes; one allowed posts
+     * its {@code Post}. Nothing is built while SPAWN is not needed.
+     */
     public static boolean spawnDenied(String world, Supplier<SpawnContext> context) {
-        if (!EventSourceUsage.get().isNeeded(EventSource.SPAWN) || HyRegionContexts.isDisabled(world)) {
+        if (!EventSourceUsage.get().isNeeded(EventSource.SPAWN) || HyActionContexts.isDisabled(world)) {
             return false;
         }
-        return RegionLookup.get().decide(context.get()) == Decision.DENY;
+        if (Actions.denied(context.get())) {
+            return true;
+        }
+        Actions.post(EventSource.SPAWN, context);
+        return false;
     }
 
     /**
@@ -247,7 +267,7 @@ public final class HyActionSystems {
 
     private static boolean clicked(Ref<EntityStore> actor, Store<EntityStore> store, ICancellableEcsEvent event, Vector3i target,
                                    @Nullable ItemStack hand, boolean left) {
-        return select(hand, event, () -> HyRegionContexts.player(actor, store), worldOf(store), target,
+        return select(hand, event, () -> HyActionContexts.player(actor, store), worldOf(store), target,
                 () -> left ? SelectionClick.LEFT : isCrouching(actor, store) ? SelectionClick.SNEAK_RIGHT : SelectionClick.RIGHT);
     }
 
@@ -262,9 +282,14 @@ public final class HyActionSystems {
 
     private static boolean onBlock(EventSource source, Ref<EntityStore> actor, Store<EntityStore> store, ICancellableEcsEvent event,
                                    Vector3i target, TypeKey blockKey, @Nullable ItemStack hand) {
+        return onBlock(source, actor, store, event, target, blockKey, hand, true);
+    }
+
+    private static boolean onBlock(EventSource source, Ref<EntityStore> actor, Store<EntityStore> store, ICancellableEcsEvent event,
+                                   Vector3i target, TypeKey blockKey, @Nullable ItemStack hand, boolean postsOutcome) {
         String world = worldOf(store);
-        return judge(source, world, event, () -> new BlockContext(source, HyRegionContexts.position(world, target),
-                HyRegionContexts.actor(actor, store), event, blockKey, HyRegionContexts.itemKey(hand)));
+        return judge(source, world, event, () -> new BlockContext(source, HyActionContexts.position(world, target),
+                HyActionContexts.actor(actor, store), event, blockKey, HyActionContexts.itemKey(hand)), postsOutcome);
     }
 
     private static @Nullable Vector3d positionOf(Ref<EntityStore> ref, Store<EntityStore> store) {
@@ -297,11 +322,14 @@ public final class HyActionSystems {
                 return;
             }
             onBlock(EventSource.BREAK, chunk.getReferenceTo(index), store, event, event.getTargetBlock(),
-                    HyRegionContexts.key(event.getBlockType()), event.getItemInHand());
+                    HyActionContexts.key(event.getBlockType()), event.getItemInHand());
         }
     }
 
-    /** Each hit on a block is a BREAK too: a denied one leaves no crack, and the block never reaches the break. */
+    /**
+     * Each hit on a block is a BREAK too: a denied one - or one whose {@code Pre} a subscriber cancelled - leaves no crack,
+     * and the block never reaches the break. A hit is not the break: only {@link BreakSystem} posts the {@code Post}.
+     */
     private static final class DamageBlockSystem extends ByActor<DamageBlockEvent> {
         DamageBlockSystem() {
             super(DamageBlockEvent.class);
@@ -314,7 +342,7 @@ public final class HyActionSystems {
                 return;
             }
             onBlock(EventSource.BREAK, chunk.getReferenceTo(index), store, event, event.getTargetBlock(),
-                    HyRegionContexts.key(event.getBlockType()), event.getItemInHand());
+                    HyActionContexts.key(event.getBlockType()), event.getItemInHand(), false);
         }
     }
 
@@ -394,7 +422,7 @@ public final class HyActionSystems {
     }
 
     private static void record(EventSource source, String world, ICancellableEcsEvent event, Vector3i block) {
-        if (!EventSourceUsage.get().isNeeded(source) || event.isCancelled() || HyRegionContexts.isDisabled(world)) {
+        if (!EventSourceUsage.get().isNeeded(source) || event.isCancelled() || HyActionContexts.isDisabled(world)) {
             return;
         }
         RegionTerrain.recordChange(world, block.x, block.y, block.z,
@@ -410,9 +438,9 @@ public final class HyActionSystems {
         @Override
         public void handle(int index, ArchetypeChunk<EntityStore> chunk, Store<EntityStore> store, CommandBuffer<EntityStore> buffer,
                            PlaceBlockEvent event) {
-            TypeKey placed = HyRegionContexts.itemKey(event.getItemInHand());
+            TypeKey placed = HyActionContexts.itemKey(event.getItemInHand());
             onBlock(EventSource.PLACE, chunk.getReferenceTo(index), store, event, event.getTargetBlock(),
-                    placed != null ? placed : HyRegionContexts.key((BlockType) null), event.getItemInHand());
+                    placed != null ? placed : HyActionContexts.key((BlockType) null), event.getItemInHand());
         }
     }
 
@@ -431,7 +459,7 @@ public final class HyActionSystems {
                 return;
             }
             if (onBlock(EventSource.INTERACT, chunk.getReferenceTo(index), store, event, event.getTargetBlock(),
-                    HyRegionContexts.key(event.getBlockType()), hand)) {
+                    HyActionContexts.key(event.getBlockType()), hand)) {
                 InteractionChain chain = context == null ? null : context.getChain();
                 if (chain != null) {
                     chain.setServerState(InteractionState.Failed);
@@ -459,8 +487,8 @@ public final class HyActionSystems {
             return false;
         }
         String world = worldOf(store);
-        return judge(EventSource.INTERACT, world, event, () -> new EntityContext(HyRegionContexts.position(world, at),
-                HyRegionContexts.actor(user, store), event, HyRegionContexts.actor(target, store)));
+        return judge(EventSource.INTERACT, world, event, () -> new EntityContext(HyActionContexts.position(world, at),
+                HyActionContexts.actor(user, store), event, HyActionContexts.actor(target, store)));
     }
 
     /**
@@ -498,7 +526,7 @@ public final class HyActionSystems {
                 if (type == InteractionType.Secondary && clicked(user, store, event, at, context.getHeldItem(), false)) {
                     return;
                 }
-                onBlock(EventSource.INTERACT, user, store, event, at, HyRegionContexts.key((BlockType) null), context.getHeldItem());
+                onBlock(EventSource.INTERACT, user, store, event, at, HyActionContexts.key((BlockType) null), context.getHeldItem());
             }
         }
     }
@@ -549,8 +577,8 @@ public final class HyActionSystems {
                 return;
             }
             String world = worldOf(store);
-            if (spawnDenied(world, () -> new SpawnContext(HyRegionContexts.position(world, at), Actor.environment(NATURAL_SPAWN), null,
-                    HyRegionContexts.actor(ref, store), reason.name()))) {
+            if (spawnDenied(world, () -> new SpawnContext(HyActionContexts.position(world, at), Actor.environment(NATURAL_SPAWN), null,
+                    HyActionContexts.actor(ref, store), reason.name()))) {
                 buffer.removeEntity(ref, RemoveReason.REMOVE);
             }
         }
@@ -582,8 +610,8 @@ public final class HyActionSystems {
             Vector3d at = chunk.getComponent(index, TransformComponent.getComponentType()).getPosition();
             Ref<EntityStore> victim = chunk.getReferenceTo(index);
             String world = worldOf(store);
-            judge(EventSource.DAMAGE, world, damage, () -> new DamageContext(HyRegionContexts.position(world, at),
-                    attacker(damage, store), damage, HyRegionContexts.actor(victim, store)));
+            judge(EventSource.DAMAGE, world, damage, () -> new DamageContext(HyActionContexts.position(world, at),
+                    attacker(damage, store), damage, HyActionContexts.actor(victim, store)));
         }
 
         private static Actor attacker(Damage damage, Store<EntityStore> store) {
@@ -591,11 +619,11 @@ public final class HyActionSystems {
             if (source instanceof Damage.ProjectileSource projectile && projectile.getProjectile() != null
                     && projectile.getProjectile().isValid()) {
                 Ref<EntityStore> shooter = projectile.getRef();
-                FPlayer player = shooter != null && shooter.isValid() ? HyRegionContexts.player(shooter, store) : null;
-                return HyRegionContexts.projectile(projectile.getProjectile(), player, store);
+                FPlayer player = shooter != null && shooter.isValid() ? HyActionContexts.player(shooter, store) : null;
+                return HyActionContexts.projectile(projectile.getProjectile(), player, store);
             }
             if (source instanceof Damage.EntitySource entity && entity.getRef() != null && entity.getRef().isValid()) {
-                return HyRegionContexts.actor(entity.getRef(), store);
+                return HyActionContexts.actor(entity.getRef(), store);
             }
             DamageCause cause = damage.getCause();
             return Actor.environment(TypeKey.of("environment", cause == null ? "damage" : cause.getId()));

@@ -7,7 +7,7 @@ import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.flag.Decision;
 import br.com.finalcraft.evernifecore.math.game.selection.CuboidSelection;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
-import br.com.finalcraft.evernifecore.minecraft.action.listener.RegionContexts;
+import br.com.finalcraft.evernifecore.minecraft.action.listener.McActionContexts;
 import br.com.finalcraft.evernifecore.minecraft.protection.integration.ProtectionHandler;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import org.bukkit.Location;
@@ -44,11 +44,11 @@ public final class McRegionProtectionHandler implements ProtectionHandler {
 
     @Override
     public boolean canAttack(Player player, Entity victim) {
-        if (RegionContexts.isDisabled(victim.getWorld())) {
+        if (McActionContexts.isDisabled(victim.getWorld())) {
             return true;
         }
-        return allows(new DamageContext(RegionContexts.position(victim.getLocation()), RegionContexts.actor(player), null,
-                RegionContexts.actor(victim)));
+        return allows(new DamageContext(McActionContexts.position(victim.getLocation()), McActionContexts.actor(player), null,
+                McActionContexts.actor(victim)));
     }
 
     @Override
@@ -75,7 +75,7 @@ public final class McRegionProtectionHandler implements ProtectionHandler {
     }
 
     private boolean allowsArea(EventSource source, Player player, World world, double x1, double y1, double z1, double x2, double y2, double z2) {
-        if (RegionContexts.isDisabled(world)) {
+        if (McActionContexts.isDisabled(world)) {
             return true;
         }
         if (!allowsBlock(source, player, new Location(world, (x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2))) {
@@ -94,11 +94,11 @@ public final class McRegionProtectionHandler implements ProtectionHandler {
     }
 
     private boolean allowsBlock(EventSource source, Player player, Location at) {
-        if (RegionContexts.isDisabled(at.getWorld())) {
+        if (McActionContexts.isDisabled(at.getWorld())) {
             return true;
         }
-        return allows(new BlockContext(source, RegionContexts.position(at), RegionContexts.actor(player), null,
-                RegionContexts.key(at.getBlock().getType()), RegionContexts.itemInHandKey(player)));
+        return allows(new BlockContext(source, McActionContexts.position(at), McActionContexts.actor(player), null,
+                McActionContexts.key(at.getBlock().getType()), McActionContexts.itemInHandKey(player)));
     }
 
     private static boolean allows(ActionContext context) {

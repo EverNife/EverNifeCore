@@ -1,12 +1,22 @@
 package br.com.finalcraft.evernifecore.action.event;
 
+import br.com.finalcraft.evernifecore.action.ActionContext;
+import br.com.finalcraft.evernifecore.action.BlockContext;
+import br.com.finalcraft.evernifecore.action.DamageContext;
 import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.ExplosionContext;
+import br.com.finalcraft.evernifecore.action.FluidContext;
+import br.com.finalcraft.evernifecore.action.ItemContext;
+import br.com.finalcraft.evernifecore.action.SimpleContext;
+import br.com.finalcraft.evernifecore.action.SpawnContext;
+import br.com.finalcraft.evernifecore.action.VehicleContext;
 import jakarta.annotation.Nullable;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * The catalog that ties each core {@link EventSource} to its {@link ActionEvent} pair. Every core source that is an
@@ -18,26 +28,39 @@ public final class ActionEvents {
     private static final Map<EventSource, Pair> CATALOG = new LinkedHashMap<>();
 
     static {
-        add(EventSource.BREAK, BreakActionEvent.Pre.class, BreakActionEvent.Post.class);
-        add(EventSource.PLACE, PlaceActionEvent.Pre.class, PlaceActionEvent.Post.class);
-        add(EventSource.INTERACT, InteractActionEvent.Pre.class, InteractActionEvent.Post.class);
-        add(EventSource.DAMAGE, DamageActionEvent.Pre.class, DamageActionEvent.Post.class);
-        add(EventSource.SPAWN, SpawnActionEvent.Pre.class, SpawnActionEvent.Post.class);
-        add(EventSource.EXPLOSION, ExplosionActionEvent.Pre.class, ExplosionActionEvent.Post.class);
-        add(EventSource.FLUID, FluidActionEvent.Pre.class, FluidActionEvent.Post.class);
-        add(EventSource.RESPAWN, RespawnActionEvent.Pre.class, RespawnActionEvent.Post.class);
-        add(EventSource.ITEM_PICKUP, PickupActionEvent.Pre.class, PickupActionEvent.Post.class);
-        add(EventSource.ITEM_DROP, DropActionEvent.Pre.class, DropActionEvent.Post.class);
-        add(EventSource.VEHICLE, VehicleActionEvent.Pre.class, VehicleActionEvent.Post.class);
-        add(EventSource.FIRE_SPREAD, FireSpreadActionEvent.Pre.class, FireSpreadActionEvent.Post.class);
-        add(EventSource.FLIGHT_TOGGLE, FlightToggleActionEvent.Pre.class, FlightToggleActionEvent.Post.class);
+        add(EventSource.BREAK, BreakActionEvent.Pre.class, BreakActionEvent.Post.class,
+                context -> new BreakActionEvent.Pre(context.as(BlockContext.class)), context -> new BreakActionEvent.Post(context.as(BlockContext.class)));
+        add(EventSource.PLACE, PlaceActionEvent.Pre.class, PlaceActionEvent.Post.class,
+                context -> new PlaceActionEvent.Pre(context.as(BlockContext.class)), context -> new PlaceActionEvent.Post(context.as(BlockContext.class)));
+        add(EventSource.INTERACT, InteractActionEvent.Pre.class, InteractActionEvent.Post.class, InteractActionEvent.Pre::new, InteractActionEvent.Post::new);
+        add(EventSource.DAMAGE, DamageActionEvent.Pre.class, DamageActionEvent.Post.class,
+                context -> new DamageActionEvent.Pre(context.as(DamageContext.class)), context -> new DamageActionEvent.Post(context.as(DamageContext.class)));
+        add(EventSource.SPAWN, SpawnActionEvent.Pre.class, SpawnActionEvent.Post.class,
+                context -> new SpawnActionEvent.Pre(context.as(SpawnContext.class)), context -> new SpawnActionEvent.Post(context.as(SpawnContext.class)));
+        add(EventSource.EXPLOSION, ExplosionActionEvent.Pre.class, ExplosionActionEvent.Post.class,
+                context -> new ExplosionActionEvent.Pre(context.as(ExplosionContext.class)), context -> new ExplosionActionEvent.Post(context.as(ExplosionContext.class)));
+        add(EventSource.FLUID, FluidActionEvent.Pre.class, FluidActionEvent.Post.class,
+                context -> new FluidActionEvent.Pre(context.as(FluidContext.class)), context -> new FluidActionEvent.Post(context.as(FluidContext.class)));
+        add(EventSource.RESPAWN, RespawnActionEvent.Pre.class, RespawnActionEvent.Post.class,
+                context -> new RespawnActionEvent.Pre(context.as(SimpleContext.class)), context -> new RespawnActionEvent.Post(context.as(SimpleContext.class)));
+        add(EventSource.ITEM_PICKUP, PickupActionEvent.Pre.class, PickupActionEvent.Post.class,
+                context -> new PickupActionEvent.Pre(context.as(ItemContext.class)), context -> new PickupActionEvent.Post(context.as(ItemContext.class)));
+        add(EventSource.ITEM_DROP, DropActionEvent.Pre.class, DropActionEvent.Post.class,
+                context -> new DropActionEvent.Pre(context.as(ItemContext.class)), context -> new DropActionEvent.Post(context.as(ItemContext.class)));
+        add(EventSource.VEHICLE, VehicleActionEvent.Pre.class, VehicleActionEvent.Post.class,
+                context -> new VehicleActionEvent.Pre(context.as(VehicleContext.class)), context -> new VehicleActionEvent.Post(context.as(VehicleContext.class)));
+        add(EventSource.FIRE_SPREAD, FireSpreadActionEvent.Pre.class, FireSpreadActionEvent.Post.class,
+                context -> new FireSpreadActionEvent.Pre(context.as(BlockContext.class)), context -> new FireSpreadActionEvent.Post(context.as(BlockContext.class)));
+        add(EventSource.FLIGHT_TOGGLE, FlightToggleActionEvent.Pre.class, FlightToggleActionEvent.Post.class,
+                context -> new FlightToggleActionEvent.Pre(context.as(SimpleContext.class)), context -> new FlightToggleActionEvent.Post(context.as(SimpleContext.class)));
     }
 
     private ActionEvents() {
     }
 
-    private static void add(EventSource source, Class<? extends ActionEvent<?>> pre, Class<? extends ActionEvent<?>> post) {
-        CATALOG.put(source, new Pair(pre, post));
+    private static void add(EventSource source, Class<? extends ActionEvent<?>> pre, Class<? extends ActionEvent<?>> post,
+                            Function<ActionContext, ActionEvent<?>> newPre, Function<ActionContext, ActionEvent<?>> newPost) {
+        CATALOG.put(source, new Pair(pre, post, newPre, newPost));
     }
 
     /** The pair of {@code source}; null for a source with no action event. */
@@ -55,10 +78,15 @@ public final class ActionEvents {
 
         private final Class<? extends ActionEvent<?>> pre;
         private final Class<? extends ActionEvent<?>> post;
+        private final Function<ActionContext, ActionEvent<?>> newPre;
+        private final Function<ActionContext, ActionEvent<?>> newPost;
 
-        private Pair(Class<? extends ActionEvent<?>> pre, Class<? extends ActionEvent<?>> post) {
+        private Pair(Class<? extends ActionEvent<?>> pre, Class<? extends ActionEvent<?>> post, Function<ActionContext, ActionEvent<?>> newPre,
+                     Function<ActionContext, ActionEvent<?>> newPost) {
             this.pre = pre;
             this.post = post;
+            this.newPre = newPre;
+            this.newPost = newPost;
         }
 
         /** The cancellable half, posted before the outcome where the platform has such a point. */
@@ -69,6 +97,20 @@ public final class ActionEvents {
         /** The half posted after the outcome. */
         public Class<? extends ActionEvent<?>> getPost() {
             return post;
+        }
+
+        /**
+         * A new {@code Pre} over {@code context}, for a platform or a plugin that posts the event itself.
+         *
+         * @throws IllegalArgumentException when {@code context} is of another source or kind than this pair's
+         */
+        public ActionEvent<?> newPre(ActionContext context) {
+            return newPre.apply(context);
+        }
+
+        /** A new {@code Post} over {@code context}; the same refusals as {@link #newPre}. */
+        public ActionEvent<?> newPost(ActionContext context) {
+            return newPost.apply(context);
         }
     }
 }

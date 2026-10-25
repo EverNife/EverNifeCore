@@ -719,7 +719,7 @@ public class ECEventBus {
             watches.remove(this);
         }
 
-        /** {@code "[ECPlayerChangeChunkEvent] plugin=EverNifeCore present"} */
+        /** {@code "[BreakActionEvent.Post] plugin=EverNifeCore present"} */
         @Override
         public String toString() {
             String types = eventTypes.stream().map(Class::getSimpleName).collect(Collectors.joining(", ", "[", "]"));

@@ -23,8 +23,8 @@ import br.com.finalcraft.evernifecore.flag.core.EntryDenySettings;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
-import br.com.finalcraft.evernifecore.minecraft.action.listener.RegionContexts;
-import br.com.finalcraft.evernifecore.minecraft.action.listener.RegionListeners;
+import br.com.finalcraft.evernifecore.minecraft.action.listener.McActionContexts;
+import br.com.finalcraft.evernifecore.minecraft.action.listener.ActionListeners;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.region.CreationResult;
 import br.com.finalcraft.evernifecore.region.Region;
@@ -128,16 +128,16 @@ public final class RegionsSuite implements ConformanceSuite {
                 PlayerCases.later("game-mode-applies-and-restores", ctx, this::gameModeAppliesAndRestores),
                 PlayerCases.later("potion-effects-apply-and-restore", ctx, this::potionEffectsApplyAndRestore),
                 ConformanceCase.of("fire-spread-listener-follows-need", () -> listenerFollowsNeed(CoreFlags.DENY_FIRE_SPREAD,
-                        region -> region.setFlag(CoreFlags.DENY_FIRE_SPREAD, Tristate.TRUE), "RegionFireSpreadListener")),
+                        region -> region.setFlag(CoreFlags.DENY_FIRE_SPREAD, Tristate.TRUE), "FireSpreadActionListener")),
                 ConformanceCase.of("respawn-listener-follows-need", () -> listenerFollowsNeed(CoreFlags.SPAWN_POINT,
-                        region -> region.setFlag(CoreFlags.SPAWN_POINT, WorldLocPos.of(0, 64, 0, region.getWorld())), "RegionRespawnListener")),
+                        region -> region.setFlag(CoreFlags.SPAWN_POINT, WorldLocPos.of(0, 64, 0, region.getWorld())), "RespawnActionListener")),
                 ConformanceCase.of("item-drop-listener-follows-need", () -> listenerFollowsNeed(CoreFlags.DENY_ITEM_DROP,
-                        region -> region.setFlag(CoreFlags.DENY_ITEM_DROP, Tristate.TRUE), "RegionItemListeners$Drop")),
+                        region -> region.setFlag(CoreFlags.DENY_ITEM_DROP, Tristate.TRUE), "ItemActionListeners$Drop")),
                 ConformanceCase.of("item-pickup-listener-follows-need", () -> listenerFollowsNeed(CoreFlags.DENY_ITEM_PICKUP,
                         region -> region.setFlag(CoreFlags.DENY_ITEM_PICKUP, Tristate.TRUE),
-                        MCVersion.isHigherEquals(MCDetailedVersion.v1_12_R1) ? "RegionItemListeners$Pickup" : "RegionItemListeners$LegacyPickup")),
+                        MCVersion.isHigherEquals(MCDetailedVersion.v1_12_R1) ? "ItemActionListeners$Pickup" : "ItemActionListeners$LegacyPickup")),
                 ConformanceCase.of("vehicle-listener-follows-need", () -> listenerFollowsNeed(CoreFlags.DENY_VEHICLE,
-                        region -> region.setFlag(CoreFlags.DENY_VEHICLE, Tristate.TRUE), "RegionVehicleListeners$BreakAndEnter"))));
+                        region -> region.setFlag(CoreFlags.DENY_VEHICLE, Tristate.TRUE), "VehicleActionListeners$BreakAndEnter"))));
         cases.addAll(new TerrainCases(regions).cases(ctx));
         return cases;
     }
@@ -174,7 +174,7 @@ public final class RegionsSuite implements ConformanceSuite {
         };
         FlagRegistry.get().register(pd, flag);
         ProbeListener listener = new ProbeListener();
-        UsageWatch watch = RegionListeners.follow(pd, probe, listener, null);
+        UsageWatch watch = ActionListeners.follow(pd, probe, listener, null);
         Runnable cleanup = () -> {
             watch.stop();
             listener.unregisterThis();
@@ -413,9 +413,9 @@ public final class RegionsSuite implements ConformanceSuite {
      */
     private Verdict blockKeyIsTheRegistrys() {
         boolean flattened = MCVersion.isHigherEquals(MCVersion.v1_13);
-        String tnt = RegionContexts.key(Material.TNT).toString();
-        String wire = RegionContexts.key(Material.REDSTONE_WIRE).toString();
-        String wool = RegionContexts.key(Material.valueOf(flattened ? "RED_WOOL" : "WOOL")).toString();
+        String tnt = McActionContexts.key(Material.TNT).toString();
+        String wire = McActionContexts.key(Material.REDSTONE_WIRE).toString();
+        String wool = McActionContexts.key(Material.valueOf(flattened ? "RED_WOOL" : "WOOL")).toString();
         String expectedWool = flattened ? "minecraft:red_wool" : "minecraft:wool";
         return Verdict.of("minecraft:tnt".equals(tnt) && "minecraft:redstone_wire".equals(wire) && expectedWool.equals(wool),
                 "tnt=" + tnt + " redstone_wire=" + wire + " wool=" + wool + " (expected " + expectedWool + ")");
@@ -427,7 +427,7 @@ public final class RegionsSuite implements ConformanceSuite {
         Location above = player.getLocation().add(0, 40, 0);
         TNTPrimed tnt = world.spawn(above, TNTPrimed.class);
         try {
-            String key = RegionContexts.key(tnt).toString();
+            String key = McActionContexts.key(tnt).toString();
             String expected = MCVersion.isEqual(MCVersion.v1_7_10) ? "minecraft:PrimedTnt" : "minecraft:tnt";
             return CompletableFuture.completedFuture(Verdict.of(expected.equals(key), "key=" + key + " (expected " + expected + ")"));
         } finally {

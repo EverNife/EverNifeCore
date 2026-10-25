@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.hytale.region;
 
+import br.com.finalcraft.evernifecore.hytale.action.HyActionContexts;
 import br.com.finalcraft.evernifecore.action.Actor;
 import br.com.finalcraft.evernifecore.action.SpawnContext;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
@@ -175,8 +176,8 @@ class HyRegionSelectionAndSpawnTest {
     }
 
     private boolean spawn(String npc, Attitude attitude, double x) {
-        Actor creature = HyRegionContexts.actor(null, npc, attitude, null);
-        return HyActionSystems.spawnDenied(WORLD, () -> new SpawnContext(HyRegionContexts.position(WORLD, new Vector3d(x, 5, 5)),
+        Actor creature = HyActionContexts.actor(null, npc, attitude, null);
+        return HyActionSystems.spawnDenied(WORLD, () -> new SpawnContext(HyActionContexts.position(WORLD, new Vector3d(x, 5, 5)),
                 Actor.environment(HyActionSystems.NATURAL_SPAWN), null, creature, "SPAWN"));
     }
 }

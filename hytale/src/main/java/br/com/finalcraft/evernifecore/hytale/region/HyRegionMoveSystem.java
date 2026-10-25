@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.hytale.region;
 
+import br.com.finalcraft.evernifecore.hytale.action.HyActionContexts;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.EventSourceUsage;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
@@ -122,10 +123,10 @@ public final class HyRegionMoveSystem extends EntityTickingSystem<EntityStore> {
             }
             return null;
         }
-        if (HyRegionContexts.isDisabled(world) || (last != null && last.sameBlock(world, at))) {
+        if (HyActionContexts.isDisabled(world) || (last != null && last.sameBlock(world, at))) {
             return null;   //standing still or turning the head is most of the ticks; the tracker is asked on a block change only
         }
-        WorldLocPos to = HyRegionContexts.position(world, at);
+        WorldLocPos to = HyActionContexts.position(world, at);
         if (last == null) {
             MoveVerdict verdict = tracker.get().onJoin(player.get(), to);
             seen.put(uuid, new Seen(world, at));

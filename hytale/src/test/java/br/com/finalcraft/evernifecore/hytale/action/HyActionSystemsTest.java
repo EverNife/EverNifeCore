@@ -8,6 +8,9 @@ import br.com.finalcraft.evernifecore.action.Actor;
 import br.com.finalcraft.evernifecore.action.BlockContext;
 import br.com.finalcraft.evernifecore.action.ECEntityType;
 import br.com.finalcraft.evernifecore.action.ActionSupport;
+import br.com.finalcraft.evernifecore.action.event.BreakActionEvent;
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.EventSourceUsage;
 import br.com.finalcraft.evernifecore.action.ItemContext;
@@ -21,7 +24,6 @@ import br.com.finalcraft.evernifecore.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.flag.Tristate;
 import br.com.finalcraft.evernifecore.flag.TristateFlag;
 import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
-import br.com.finalcraft.evernifecore.hytale.region.HyRegionContexts;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
@@ -113,8 +115,8 @@ class HyActionSystemsTest {
     }
 
     private BlockContext breakBy(Actor actor, int x, int y, int z, Object event) {
-        return new BlockContext(EventSource.BREAK, HyRegionContexts.position(WORLD, new Vector3i(x, y, z)), actor, event,
-                HyRegionContexts.key("Rock_Stone"), null);
+        return new BlockContext(EventSource.BREAK, HyActionContexts.position(WORLD, new Vector3i(x, y, z)), actor, event,
+                HyActionContexts.key("Rock_Stone"), null);
     }
 
     private static BreakBlockEvent breakEvent(int x, int y, int z) {
@@ -130,7 +132,7 @@ class HyActionSystemsTest {
 
         boolean denied = HyActionSystems.judge(EventSource.BREAK, WORLD, event, () -> {
             built.incrementAndGet();
-            return breakBy(HyRegionContexts.actor(miner, null, null, null), 5, 5, 5, event);
+            return breakBy(HyActionContexts.actor(miner, null, null, null), 5, 5, 5, event);
         });
 
         assertFalse(denied);
@@ -142,7 +144,7 @@ class HyActionSystemsTest {
     void aBreakInsideDenyBlockBreakIsCancelledAndOutsideItHappens() {
         vault(CoreFlags.DENY_BLOCK_BREAK);
         assertTrue(EventSourceUsage.get().isNeeded(EventSource.BREAK));
-        Actor player = HyRegionContexts.actor(miner, null, null, null);
+        Actor player = HyActionContexts.actor(miner, null, null, null);
 
         BreakBlockEvent inside = breakEvent(5, 5, 5);
         BreakBlockEvent outside = breakEvent(50, 5, 5);
@@ -153,6 +155,54 @@ class HyActionSystemsTest {
     }
 
     @Test
+    void aPostIsPostedOnlyWithASubscriber() {
+        AtomicInteger built = new AtomicInteger();
+        BreakBlockEvent event = breakEvent(50, 5, 5);
+        List<BreakActionEvent.Post> posts = new ArrayList<>();
+        ECEventSubscription<BreakActionEvent.Post> subscription = ECEventBus.global().subscribe(BreakActionEvent.Post.class, posts::add);
+        try {
+            assertTrue(EventSourceUsage.get().isNeeded(EventSource.BREAK), "the subscriber alone needs BREAK, with no region");
+
+            assertFalse(HyActionSystems.judge(EventSource.BREAK, WORLD, event, () -> {
+                built.incrementAndGet();
+                return breakBy(HyActionContexts.actor(miner, null, null, null), 50, 5, 5, event);
+            }));
+
+            assertEquals(1, posts.size());
+            assertEquals(2, built.get(), "one context for the regions and the Pre, one for the Post");
+        } finally {
+            subscription.unsubscribe();
+        }
+    }
+
+    @Test
+    void aCancelledPreCancelsTheEcsEvent() {
+        BreakBlockEvent event = breakEvent(50, 5, 5);
+        ECEventSubscription<BreakActionEvent.Pre> veto = ECEventBus.global().subscribe(BreakActionEvent.Pre.class,
+                pre -> pre.setCancelled(true));
+        try {
+            assertTrue(HyActionSystems.judge(EventSource.BREAK, WORLD, event,
+                    () -> breakBy(HyActionContexts.actor(miner, null, null, null), 50, 5, 5, event)));
+            assertTrue(event.isCancelled(), "no region denied it: the subscriber of the Pre did");
+        } finally {
+            veto.unsubscribe();
+        }
+    }
+
+    @Test
+    void aHitOnABlockPostsNoBreak() {
+        DamageBlockEvent hit = new DamageBlockEvent(null, new Vector3i(50, 5, 5), null, 0f, 1f);
+        List<BreakActionEvent.Post> posts = new ArrayList<>();
+        ECEventSubscription<BreakActionEvent.Post> subscription = ECEventBus.global().subscribe(BreakActionEvent.Post.class, posts::add);
+        try {
+            assertFalse(HyActionSystems.explode(WORLD, hit));
+            assertTrue(posts.isEmpty(), "damage on the way to a break is not the break");
+        } finally {
+            subscription.unsubscribe();
+        }
+    }
+
+    @Test
     void aDisabledWorldIsNeverAsked() {
         vault(CoreFlags.DENY_BLOCK_BREAK);
         List<String> before = ECSettings.REGIONS_DISABLED_WORLDS;
@@ -160,7 +210,7 @@ class HyActionSystemsTest {
         try {
             BreakBlockEvent event = breakEvent(5, 5, 5);
             assertFalse(HyActionSystems.judge(EventSource.BREAK, WORLD, event,
-                    () -> breakBy(HyRegionContexts.actor(miner, null, null, null), 5, 5, 5, event)));
+                    () -> breakBy(HyActionContexts.actor(miner, null, null, null), 5, 5, 5, event)));
             assertFalse(event.isCancelled());
         } finally {
             ECSettings.REGIONS_DISABLED_WORLDS = before;
@@ -175,14 +225,14 @@ class HyActionSystemsTest {
         BreakBlockEvent event = breakEvent(5, 5, 5);
         event.setCancelled(true);
 
-        HyActionSystems.judge(EventSource.BREAK, WORLD, event, () -> breakBy(HyRegionContexts.actor(miner, null, null, null), 5, 5, 5, event));
+        HyActionSystems.judge(EventSource.BREAK, WORLD, event, () -> breakBy(HyActionContexts.actor(miner, null, null, null), 5, 5, 5, event));
 
         assertTrue(capturing.asked.isEmpty(), "another plugin already said no; the regions have nothing to add");
     }
 
     @Test
     void aPlayerActsAsItselfWithItselfAsTheRoot() {
-        Actor actor = HyRegionContexts.actor(miner, null, null, null);
+        Actor actor = HyActionContexts.actor(miner, null, null, null);
 
         assertSame(Actor.Type.ENTITY, actor.getType());
         assertSame(ECEntityType.PLAYER, actor.getEntityType());
@@ -192,16 +242,16 @@ class HyActionSystemsTest {
 
     @Test
     void anNpcIsTypedByItsAttitudeAndHasNoPlayerBehindIt() {
-        Actor brute = HyRegionContexts.actor(null, "Trork_Brute", Attitude.HOSTILE, null);
+        Actor brute = HyActionContexts.actor(null, "Trork_Brute", Attitude.HOSTILE, null);
         assertSame(ECEntityType.MONSTER, brute.getEntityType());
         assertNull(brute.getRootPlayer());
         assertEquals(TypeKey.of("hytale", "Trork_Brute"), brute.getKey());
 
-        assertSame(ECEntityType.ANIMAL, HyRegionContexts.actor(null, "Sheep", Attitude.NEUTRAL, null).getEntityType());
-        assertSame(ECEntityType.ANIMAL, HyRegionContexts.actor(null, "Kweebec", Attitude.FRIENDLY, null).getEntityType());
-        assertSame(ECEntityType.NPC, HyRegionContexts.actor(null, "Quest_Giver", null, null).getEntityType(),
+        assertSame(ECEntityType.ANIMAL, HyActionContexts.actor(null, "Sheep", Attitude.NEUTRAL, null).getEntityType());
+        assertSame(ECEntityType.ANIMAL, HyActionContexts.actor(null, "Kweebec", Attitude.FRIENDLY, null).getEntityType());
+        assertSame(ECEntityType.NPC, HyActionContexts.actor(null, "Quest_Giver", null, null).getEntityType(),
                 "a role with no attitude is a scripted NPC");
-        assertSame(ECEntityType.OTHER, HyRegionContexts.actor(null, null, null, null).getEntityType());
+        assertSame(ECEntityType.OTHER, HyActionContexts.actor(null, null, null, null).getEntityType());
     }
 
     @Test
@@ -214,7 +264,7 @@ class HyActionSystemsTest {
 
         Actor actor = capturing.asked.get(0).getActor();
         assertSame(Actor.Type.ENVIRONMENT, actor.getType());
-        assertEquals(HyRegionContexts.EXPLOSION, actor.getKey());
+        assertEquals(HyActionContexts.EXPLOSION, actor.getKey());
         assertNull(actor.getRootPlayer());
     }
 
@@ -233,10 +283,10 @@ class HyActionSystemsTest {
 
     @Test
     void anAssetIdIsTheKeyAsTheServerSpellsIt() {
-        assertEquals(TypeKey.of("hytale", "Rock_Stone"), HyRegionContexts.key("Rock_Stone"));
-        assertEquals(TypeKey.of("mymod", "Crystal"), HyRegionContexts.key("mymod:Crystal"), "a namespace the server gives is kept");
-        assertEquals(TypeKey.of("hytale", "Unknown"), HyRegionContexts.key((BlockType) null));
-        assertNull(HyRegionContexts.itemKey(null), "an empty hand holds nothing");
+        assertEquals(TypeKey.of("hytale", "Rock_Stone"), HyActionContexts.key("Rock_Stone"));
+        assertEquals(TypeKey.of("mymod", "Crystal"), HyActionContexts.key("mymod:Crystal"), "a namespace the server gives is kept");
+        assertEquals(TypeKey.of("hytale", "Unknown"), HyActionContexts.key((BlockType) null));
+        assertNull(HyActionContexts.itemKey(null), "an empty hand holds nothing");
     }
 
     @Test
@@ -258,15 +308,15 @@ class HyActionSystemsTest {
         FlagRegistry.get().register(core, CoreFlags.DENY_ITEM_PICKUP);
         Region vault = vault(CoreFlags.DENY_ITEM_DROP);
         vault.setFlag(CoreFlags.DENY_ITEM_PICKUP, Tristate.TRUE);
-        Actor player = HyRegionContexts.actor(miner, null, null, null);
-        TypeKey stick = HyRegionContexts.key("Ingredient_Stick");
+        Actor player = HyActionContexts.actor(miner, null, null, null);
+        TypeKey stick = HyActionContexts.key("Ingredient_Stick");
         DropItemEvent.Drop drop = new DropItemEvent.Drop(null, 0f);
         InteractivelyPickupItemEvent pickup = new InteractivelyPickupItemEvent(null);
 
         assertTrue(HyActionSystems.judge(EventSource.ITEM_DROP, WORLD, drop, () -> new ItemContext(EventSource.ITEM_DROP,
-                HyRegionContexts.position(WORLD, new Vector3i(5, 5, 5)), player, drop, stick)));
+                HyActionContexts.position(WORLD, new Vector3i(5, 5, 5)), player, drop, stick)));
         assertTrue(HyActionSystems.judge(EventSource.ITEM_PICKUP, WORLD, pickup, () -> new ItemContext(EventSource.ITEM_PICKUP,
-                HyRegionContexts.position(WORLD, new Vector3i(5, 5, 5)), player, pickup, stick)));
+                HyActionContexts.position(WORLD, new Vector3i(5, 5, 5)), player, pickup, stick)));
         assertTrue(drop.isCancelled());
         assertTrue(pickup.isCancelled());
     }

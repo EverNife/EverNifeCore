@@ -10,8 +10,8 @@ import br.com.finalcraft.evernifecore.flag.Tristate;
 import br.com.finalcraft.evernifecore.flag.TristateFlag;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
-import br.com.finalcraft.evernifecore.minecraft.action.listener.RegionInteractListener;
-import br.com.finalcraft.evernifecore.minecraft.action.listener.RegionListeners;
+import br.com.finalcraft.evernifecore.minecraft.action.listener.InteractActionListener;
+import br.com.finalcraft.evernifecore.minecraft.action.listener.ActionListeners;
 import br.com.finalcraft.evernifecore.minecraft.region.RegionServer;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSession;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSpec;
@@ -188,7 +188,7 @@ class McSelectionListenerTest {
     void aSelectionClickInsideDenyInteractStillSelects() {
         DenyingProbe denyInteract = server.flag(new DenyingProbe(server.regions.getOwner()));
         server.box("claim", 0, 0, 0, 20, 100, 20, denyInteract);
-        server.listen(new RegionInteractListener());
+        server.listen(new InteractActionListener());
         server.listen(new McSelectionListener(items));
         SelectionSession session = start();
 
@@ -206,7 +206,7 @@ class McSelectionListenerTest {
     @Test
     void theListenerSitsOnTheServerOnlyWhileASelectionIsOpen() {
         Duration idleTime = EventSourceUsage.get().getIdleTime();
-        RegionListeners bridge = RegionListeners.start(server.server.getPluginData());
+        ActionListeners bridge = ActionListeners.start(server.server.getPluginData());
         try {
             assertFalse(isRegistered(PlayerInteractEvent.getHandlerList(), McSelectionListener.class), "no selection is open");
 
