@@ -18,6 +18,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **`time.Window` and `Season`**: daily, weekly, monthly (29-31 clamp to the month's last day), 5-field cron and season
+  windows in a `ZoneId`, with `currentStart`/`nextBoundary`/`isOpen`; daylight-saving safe (a boundary in the spring gap
+  moves forward, one in the autumn overlap takes the first occurrence). `Window.parse` reads `daily at 04:00`,
+  `weekly on monday at 18:00 zone Europe/Lisbon`, `monthly on 1`, `cron 0 4 * * 1` and `{season: {id, from, to, zone}}`;
+  a cron that can never match is a parse error.
 - **`RegionCrossedEvent`**: posted once a crossing took effect, with the regions left, the regions entered, the
   player, from/to, the `MoveCause` and the native event; never cancellable. `RegionEnterEvent`/`RegionLeaveEvent`
   keep their "before the crossing, cancellable" role.
