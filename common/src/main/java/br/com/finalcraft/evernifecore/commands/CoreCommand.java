@@ -18,7 +18,9 @@ import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.pageviewer.PageViewer;
 import br.com.finalcraft.evernifecore.pageviewer.theme.PageTheme;
+import br.com.finalcraft.evernifecore.logic.command.CoreLogicCommands;
 import br.com.finalcraft.evernifecore.region.command.CoreRegionCommands;
+import br.com.finalcraft.evernifecore.types.command.CoreTypesCommands;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -39,6 +41,18 @@ public class CoreCommand {
             @FCLocale(lang = LocaleType.PT_BR, text = "Lê as regiões de todo plugin: here, info e list")
     })
     private final CoreRegionCommands region = new CoreRegionCommands();
+
+    @FinalCMD.Node(subcmd = "logic", permission = PermissionNodes.EVERNIFECORE_COMMAND_LOGIC, locales = {
+            @FCLocale(lang = LocaleType.EN_US, text = "Watch the logic of every plugin as it runs: trace"),
+            @FCLocale(lang = LocaleType.PT_BR, text = "Acompanha a lógica de todo plugin enquanto roda: trace")
+    })
+    private final CoreLogicCommands logic = new CoreLogicCommands();
+
+    @FinalCMD.Node(subcmd = "types", permission = PermissionNodes.EVERNIFECORE_COMMAND_TYPES, locales = {
+            @FCLocale(lang = LocaleType.EN_US, text = "The registered condition, cost, effect, variable and owner types: export"),
+            @FCLocale(lang = LocaleType.PT_BR, text = "Os tipos registrados de condição, custo, efeito, variável e dono: export")
+    })
+    private final CoreTypesCommands types = new CoreTypesCommands();
 
     /**
      * Built on the first {@code /ecore info}: the executor is instantiated before its locale fields

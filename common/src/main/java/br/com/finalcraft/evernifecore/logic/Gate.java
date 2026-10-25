@@ -11,6 +11,7 @@ import br.com.finalcraft.evernifecore.logic.audit.GateCheckEvent;
 import br.com.finalcraft.evernifecore.logic.audit.GateDeniedEvent;
 import br.com.finalcraft.evernifecore.logic.audit.GatePaidEvent;
 import br.com.finalcraft.evernifecore.logic.audit.GatePrePayEvent;
+import br.com.finalcraft.evernifecore.logic.audit.LogicTrace;
 import br.com.finalcraft.evernifecore.types.TypeRegistryException;
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -127,6 +128,9 @@ public final class Gate {
         for (Condition condition : all) {
             ConditionResult result = Conditions.test(condition, ctx);
             notes.addAll(result.getNotes());
+            if (result.isPassed()) {
+                LogicTrace.publish(ctx, () -> "condition " + condition + " -> passed");
+            }
             for (ConditionResult failure : result.getFailures()) {
                 failures.add(failure);
                 ctx.getAudit().add(ctx, AuditKind.CONDITION_FAILED, failure.getCondition() + ": " + plain(failure.getWhy()));
@@ -134,6 +138,7 @@ public final class Gate {
         }
         GateResult result = new GateResult(this, ctx, failures.isEmpty() ? GateResult.Outcome.PASSED : GateResult.Outcome.DENIED,
                 failures, notes);
+        LogicTrace.publish(ctx, () -> "check " + this + " -> " + result.getOutcome());
         ECEventBus.global().postIfListened(GateCheckEvent.class, () -> new GateCheckEvent(ctx, result));
         return result;
     }

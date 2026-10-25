@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.logic;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.logic.audit.LogicTrace;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -23,13 +24,14 @@ public final class Multipliers {
         PROVIDERS.removeIf(registered -> registered.owner == owner);
     }
 
-    /** The product of every provider's factor; {@code ONE} without providers. */
+    /** The product of every provider's factor, each one traced; {@code ONE} without providers. */
     static BigDecimal of(ExecutionContext ctx, String variableId) {
         BigDecimal product = BigDecimal.ONE;
         for (Registered registered : PROVIDERS) {
             BigDecimal factor = registered.provider.getMultiplier(ctx, variableId);
             if (factor != null) {
                 product = product.multiply(factor);
+                LogicTrace.publish(ctx, () -> "multiplier " + variableId + ": " + registered.provider + " x" + factor.toPlainString());
             }
         }
         return product;

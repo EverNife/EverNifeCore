@@ -11,7 +11,8 @@ import java.util.List;
 
 /**
  * What happened while one {@link ExecutionContext} ran, in memory and in order: every failed condition, cost taken or
- * refunded, effect applied or failed. A context and every context derived from it write to the same trail. Thread-safe.
+ * refunded, effect applied or failed. A context and every context derived from it write to the same trail. Every entry
+ * also goes to {@link LogicTrace}. Thread-safe.
  */
 public final class AuditTrail {
 
@@ -27,6 +28,7 @@ public final class AuditTrail {
         synchronized (entries) {
             entries.add(entry);
         }
+        LogicTrace.publish(ctx, () -> kind + " " + text);
         return entry;
     }
 

@@ -13,6 +13,7 @@ import br.com.finalcraft.evernifecore.logic.Conditions;
 import br.com.finalcraft.evernifecore.logic.CustomVariables;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 import br.com.finalcraft.evernifecore.logic.Variables;
+import br.com.finalcraft.evernifecore.logic.audit.LogicTrace;
 import br.com.finalcraft.evernifecore.logic.core.CoreLogic;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
 import br.com.finalcraft.everydatabase.Storages;
@@ -29,7 +30,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 /**
  * One plugin that owns logic, for a test: its plugin data, an in-memory storage that counts calls, contexts already
  * carrying its {@link Caller}, players that are online on the platform, the core's stock types registered, and the
- * clock and scheduler of {@link TestClock}. Needs a platform with {@code ignoringPlatformRegistrations()} and
+ * clock and scheduler of {@link TestClock}, and the lines a trace of a player would send ({@link #trace}). Needs a platform with {@code ignoringPlatformRegistrations()} and
  * {@code mainThreadInline()}, {@code platformProviderId(...)} for a type that names platforms or capabilities (and
  * {@code playerState()} for what reads a player's state); {@code offWorldThread()} proves the dispatch of effects.
  *
@@ -55,6 +56,7 @@ public final class LogicWorld implements AutoCloseable {
     private final List<FPlayer> players = new ArrayList<>();
     private final List<ECEventSubscription<?>> subscriptions = new ArrayList<>();
     private final Map<Class<?>, List<?>> recorded = new HashMap<>();
+    private final List<String> traceWatchers = new ArrayList<>();
     private boolean closed;
 
     private LogicWorld(String ownerName, Path dataFolder) {
@@ -170,13 +172,27 @@ public final class LogicWorld implements AutoCloseable {
         return seen;
     }
 
-    /** Unsubscribes the recorders, takes this world's players offline, closes the storage and forgets the plugin and its types. */
+    /**
+     * The lines {@code /ecore logic trace <player> <this plugin>} would send an admin from now until {@link #close()}:
+     * every condition, cost, effect and multiplier run for {@code player} by this world's callers, the caller in front.
+     * The list is live.
+     */
+    public synchronized List<String> trace(FPlayer player) {
+        List<String> lines = new CopyOnWriteArrayList<>();
+        String watcher = "logic-world:" + ownerName + ":" + player.getUniqueId();
+        LogicTrace.start(watcher, player.getUniqueId(), ownerName, lines::add);
+        traceWatchers.add(watcher);
+        return lines;
+    }
+
+    /** Stops the traces, unsubscribes the recorders, takes this world's players offline, closes the storage and forgets the plugin and its types. */
     @Override
     public void close() {
         if (closed) {
             return;
         }
         closed = true;
+        traceWatchers.forEach(LogicTrace::stop);
         subscriptions.forEach(ECEventSubscription::unsubscribe);
         if (!players.isEmpty()) {
             players.clear();

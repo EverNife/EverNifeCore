@@ -60,6 +60,14 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   variable, one value per owner, stored in `ec_variables` and read as `{plugin:name}` or `{type: custom, id: ...}`;
   `.window(Window)` makes it an accumulator that starts over each window. `LogicWorld` gains `cooldowns()` and
   `customVariables()`.
+- **`/ecore logic trace <player> [plugin]` and `/ecore types export [kind]`**: the trace (permission
+  `evernifecore.command.logic`) toggles, for whoever typed it, a line per condition checked, cost taken or refunded,
+  effect applied and multiplier of that player's contexts - only one plugin's callers when one is named - with the
+  caller in front (`LogicTrace`; a player who watches stops on quit), and the `LOGIC` debug module (off by default)
+  writes the same lines to the log. The export (permission `evernifecore.command.types`) writes
+  `export/types-<kind>.md` into the core's folder from the live registries: one table per type with its parameters,
+  platforms, sources, capabilities and whether this platform runs it. `LogicWorld.trace(player)` hands a test the
+  lines.
 - **`RegionCrossedEvent`**: posted once a crossing took effect, with the regions left, the regions entered, the
   player, from/to, the `MoveCause` and the native event; never cancellable. `RegionEnterEvent`/`RegionLeaveEvent`
   keep their "before the crossing, cancellable" role.
