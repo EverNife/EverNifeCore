@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.flag;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.player.state.StateHolder;
 import br.com.finalcraft.evernifecore.region.RegionId;
 
 /**
@@ -8,7 +9,7 @@ import br.com.finalcraft.evernifecore.region.RegionId;
  * part names the plugin that registers the flag ({@link FlagRegistry#register}); equality and hashing work on the text
  * form only.
  */
-public final class FlagKey {
+public final class FlagKey implements StateHolder {
 
     private final String owner;
     private final String name;
@@ -65,6 +66,11 @@ public final class FlagKey {
     /** {@code owner:name}, always lowercase. */
     @Override
     public String toString() {
+        return text;
+    }
+
+    @Override
+    public String getHolderId() {
         return text;
     }
 }

@@ -43,6 +43,13 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `GatePrePayEvent` (cancellable), `CostTakeEvent`, `CostRefundEvent`, `EffectApplyEvent` (cancellable, the effect
   replaceable), `GatePaidEvent` and `GateDeniedEvent`. `common-tests` gains `LogicWorld` and `TestClock`, the clock and
   scheduler `RegionWorld` now shares with it.
+- **The stock logic types**: the variables `exp-level`, `exp-points`, `health`, `food`, `gamemode` (all writable),
+  `permission`, `placeholder`, `playtime` and `stat`; the conditions `compare` (numbers, texts, true/false) and
+  `permission`; the effects `message`, `command` (`as: player|console`), `set`, `add`, `teleport` and the holdable
+  `gamemode`, `fly`, `potion-effect`, `player-time` and `player-weather` - `scope: held` holds the slot for the context's
+  `StateHolder` (`HoldableEffect.HOLDER_ATTRIBUTE`) and the slot is given back when it lets go or on quit; `scope: held`
+  on an effect that cannot be held fails the parse. `IPlayerStateAccess` gains the capabilities `EXPERIENCE`
+  (`getLevel`/`setLevel`/`getExp`/`setExp`) and `STATISTICS` (`getStatistic`); Bukkit has both, Hytale neither yet.
 - **`RegionCrossedEvent`**: posted once a crossing took effect, with the regions left, the regions entered, the
   player, from/to, the `MoveCause` and the native event; never cancellable. `RegionEnterEvent`/`RegionLeaveEvent`
   keep their "before the crossing, cancellable" role.
@@ -88,6 +95,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `scheduler.FCScheduler` and `RegionScheduler` with the same static methods (`runAsync`, `scheduleAsync`,
   `runAsyncFuture`, `supplyAsyncFuture`, `getScheduler`, `getMinecraftScheduler`, `getHytaleScheduler`; the test
   seam `RegionScheduler.set` is `ECScheduler.set`). No alias is kept; `McFCScheduler`/`HyFCScheduler` are unchanged.
+- **`HeldPlayerState` is one per player** (`HeldPlayerState.of(uuid)`, no public constructor) and is held by any
+  `StateHolder` - `Flag` and `FlagKey` are holders - instead of a region flag: `hold`/`release` take a `StateHolder` and
+  `getHolders` answers by holder id. What is still held when the player quits is given back (`HeldPlayerState.forget`).
 - **The Bukkit region listeners live in `minecraft.action.listener`** (`RegionListeners`, `RegionContexts`, ...); on
   Hytale `HyRegionSystems` is `hytale.action.HyActionSystems`.
 

@@ -11,6 +11,7 @@ import br.com.finalcraft.evernifecore.player.state.PlayerTime;
 import jakarta.annotation.Nullable;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
+import org.bukkit.Statistic;
 import org.bukkit.WeatherType;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -18,6 +19,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.Map;
@@ -27,8 +29,8 @@ import java.util.function.BiPredicate;
 
 /**
  * Every capability, through the Bukkit player: {@code setPlayerTime} (ramped one step per tick), {@code setPlayerWeather},
- * flight, {@link GameMode} (only the modes this server version has), potion effects by their Bukkit name, health, food
- * and {@code Bukkit.dispatchCommand}.
+ * flight, {@link GameMode} (only the modes this server version has), potion effects by their Bukkit name, health, food,
+ * experience, untyped {@link Statistic}s and {@code Bukkit.dispatchCommand}.
  */
 public final class McPlayerStateAccess implements IPlayerStateAccess {
 
@@ -267,6 +269,50 @@ public final class McPlayerStateAccess implements IPlayerStateAccess {
     @Override
     public void setFood(FPlayer player, int food) {
         bukkit(player).setFoodLevel(Math.max(0, Math.min(20, food)));
+    }
+
+    // ---- EXPERIENCE ----
+
+    @Override
+    public int getLevel(FPlayer player) {
+        return bukkit(player).getLevel();
+    }
+
+    @Override
+    public void setLevel(FPlayer player, int level) {
+        bukkit(player).setLevel(Math.max(0, level));
+    }
+
+    @Override
+    public int getExp(FPlayer player) {
+        return bukkit(player).getTotalExperience();
+    }
+
+    @Override
+    public void setExp(FPlayer player, int points) {
+        Player bukkit = bukkit(player);
+        //setTotalExperience alone moves neither the level nor the bar: start from nothing and give the points
+        bukkit.setExp(0);
+        bukkit.setLevel(0);
+        bukkit.setTotalExperience(0);
+        bukkit.giveExp(Math.max(0, points));
+    }
+
+    // ---- STATISTICS ----
+
+    /** An untyped Bukkit {@link Statistic} by its enum name; a statistic of a block, item or entity needs one and answers null. */
+    @Override
+    public @Nullable BigDecimal getStatistic(FPlayer player, String nativeName) {
+        Statistic statistic;
+        try {
+            statistic = Statistic.valueOf(nativeName.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException unknown) {
+            return null;
+        }
+        if (statistic.getType() != Statistic.Type.UNTYPED) {
+            return null;
+        }
+        return BigDecimal.valueOf(bukkit(player).getStatistic(statistic));
     }
 
     // ---- COMMAND ----

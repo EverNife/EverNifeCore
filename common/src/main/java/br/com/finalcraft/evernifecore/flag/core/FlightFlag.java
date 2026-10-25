@@ -3,7 +3,6 @@ package br.com.finalcraft.evernifecore.flag.core;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.SessionContext;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.flag.FlagKey;
 import br.com.finalcraft.evernifecore.flag.FlagTypes;
 import br.com.finalcraft.evernifecore.flag.Tristate;
 import br.com.finalcraft.evernifecore.player.state.ECGameMode;
@@ -75,10 +74,10 @@ public final class FlightFlag extends PlayerStateFlag<Tristate> {
         FPlayer player = context.getPlayer();
         Tristate force = Tristate.UNDEFINED;
         Tristate allow = Tristate.UNDEFINED;
-        for (Map.Entry<FlagKey, Object> holder : held.getHolders(getSlot()).entrySet()) {
-            if (holder.getKey().equals(CoreFlags.FORCE_FLY.getKey())) {
+        for (Map.Entry<String, Object> holder : held.getHolders(getSlot()).entrySet()) {
+            if (holder.getKey().equals(CoreFlags.FORCE_FLY.getHolderId())) {
                 force = (Tristate) holder.getValue();
-            } else if (holder.getKey().equals(CoreFlags.ALLOW_FLY.getKey())) {
+            } else if (holder.getKey().equals(CoreFlags.ALLOW_FLY.getHolderId())) {
                 allow = (Tristate) holder.getValue();
             }
         }

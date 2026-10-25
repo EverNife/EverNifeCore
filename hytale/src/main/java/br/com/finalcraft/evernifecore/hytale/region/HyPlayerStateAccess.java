@@ -54,7 +54,8 @@ import java.util.function.Supplier;
 
 /**
  * Clock, flight, game mode ({@code ADVENTURE}, {@code CREATIVE}), entity effects, health and commands. Hytale has no
- * per-player weather the server can clear again and no food, so those two capabilities are missing. The clock is the
+ * per-player weather the server can clear again and no food, and its API exposes no experience and no statistics, so
+ * those four capabilities are missing. The clock is the
  * client's time override - the packet the server's own player-only time effect sends: a fixed time is a paused
  * override, a relative one an offset from the world's time that keeps running. An effect has no level here: the
  * level is ignored and an effect id names its strength ({@code Potion_Speed_2}).

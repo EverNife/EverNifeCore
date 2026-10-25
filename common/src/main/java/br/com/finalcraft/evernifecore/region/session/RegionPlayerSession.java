@@ -52,10 +52,10 @@ public final class RegionPlayerSession {
     /** Internal: sessions are made by {@code RegionLookup.getSession(player)}. */
     public RegionPlayerSession(UUID player) {
         this.player = Objects.requireNonNull(player, "player");
-        this.heldState = new HeldPlayerState(player);
+        this.heldState = HeldPlayerState.of(player);
     }
 
-    /** What the session flags changed on the player and what to give back, slot by slot. */
+    /** What was changed on the player and what to give back, slot by slot - the player's one {@link HeldPlayerState}. */
     public HeldPlayerState getHeldState() {
         return heldState;
     }

@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.player.state.PlayerTime;
 import jakarta.annotation.Nullable;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,8 +25,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Players in memory, as {@link Platforms#playerState()} answers {@code getPlayerState()}: every capability by default,
- * each player starting in survival, on the world's clock and weather, not allowed to fly, with 20 health of 20 and 20
- * food of 20. Weathers are {@code clear}, {@code rain} and {@code thunder}; any non-blank effect id exists. Commands are
+ * each player starting in survival, on the world's clock and weather, not allowed to fly, with 20 health of 20, 20
+ * food of 20, level 0 with no experience and no statistics. Weathers are {@code clear}, {@code rain} and {@code thunder}; any non-blank effect id exists. Commands are
  * kept, in order, as {@code console: <command>} or {@code <player name>: <command>}.
  */
 public final class TestPlayerState implements IPlayerStateAccess {
@@ -44,6 +45,11 @@ public final class TestPlayerState implements IPlayerStateAccess {
         public volatile int food = 20;
         /** The share of a damage that armor absorbs, 0 to 1; a damage that ignores armor skips it. */
         public volatile double armor;
+        public volatile int level;
+        /** The total experience points; unlike a real player, independent of {@link #level}. */
+        public volatile int exp;
+        /** Statistics by native name; one absent here does not exist. */
+        public final Map<String, BigDecimal> statistics = new ConcurrentHashMap<>();
     }
 
     private static final List<String> WEATHERS = Arrays.asList(CLEAR, RAIN, "thunder");
@@ -218,6 +224,31 @@ public final class TestPlayerState implements IPlayerStateAccess {
     @Override
     public void setFood(FPlayer player, int food) {
         require(Capability.FOOD, player).food = Math.max(0, Math.min(20, food));
+    }
+
+    @Override
+    public int getLevel(FPlayer player) {
+        return require(Capability.EXPERIENCE, player).level;
+    }
+
+    @Override
+    public void setLevel(FPlayer player, int level) {
+        require(Capability.EXPERIENCE, player).level = Math.max(0, level);
+    }
+
+    @Override
+    public int getExp(FPlayer player) {
+        return require(Capability.EXPERIENCE, player).exp;
+    }
+
+    @Override
+    public void setExp(FPlayer player, int points) {
+        require(Capability.EXPERIENCE, player).exp = Math.max(0, points);
+    }
+
+    @Override
+    public @Nullable BigDecimal getStatistic(FPlayer player, String nativeName) {
+        return require(Capability.STATISTICS, player).statistics.get(nativeName);
     }
 
     @Override

@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.logic;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.player.state.StateHolder;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 
 import java.math.BigDecimal;
@@ -32,7 +33,8 @@ final class ModifiedEffect implements Effect {
     }
 
     @Override
-    public void apply(ExecutionContext ctx) {
+    public void apply(ExecutionContext context) {
+        ExecutionContext ctx = context;
         Condition condition = modifiers.getCondition();
         if (condition != null && !Conditions.test(condition, ctx).isPassed()) {
             return;
@@ -43,6 +45,10 @@ final class ModifiedEffect implements Effect {
         }
         if (modifiers.getScope() == EffectScope.HELD && !effect.isHoldable()) {
             throw new IllegalStateException(effect + " cannot be held (scope: held): use effects-on-enter, or scope: permanent.");
+        }
+        if (modifiers.getScope() == EffectScope.HELD) {
+            StateHolder holder = ctx.getAttribute(HoldableEffect.HOLDER_ATTRIBUTE, StateHolder.class);
+            ctx = ctx.derive().attribute(HoldableEffect.HELD_BY_ATTRIBUTE, holder != null ? holder : StateHolder.of(ctx.getCaller().toString())).build();
         }
         boolean self = modifiers.getTarget().equals("self");
         for (ExecutionContext target : targets(ctx)) {

@@ -36,6 +36,17 @@ public final class GameModeFlag extends PlayerStateFlag<ECGameMode> {
 
     @Override
     protected void apply(SessionContext context, IPlayerStateAccess access, HeldPlayerState held) {
-        access.setGameMode(context.getPlayer(), (ECGameMode) held.getHolders(getSlot()).get(getKey()));
+        //after this flag let go, another holder (a held effect) keeps the slot: the mode it asked for stands alone
+        ECGameMode mode = null;
+        for (Object value : held.getHolders(getSlot()).values()) {
+            if (value instanceof ECGameMode) {
+                mode = (ECGameMode) value;
+            }
+        }
+        Object own = held.getHolders(getSlot()).get(getHolderId());
+        mode = own instanceof ECGameMode ? (ECGameMode) own : mode;
+        if (mode != null) {
+            access.setGameMode(context.getPlayer(), mode);
+        }
     }
 }

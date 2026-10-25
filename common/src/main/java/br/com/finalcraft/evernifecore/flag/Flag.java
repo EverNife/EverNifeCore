@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.SessionContext;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
+import br.com.finalcraft.evernifecore.player.state.StateHolder;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
@@ -25,7 +26,7 @@ import java.util.Set;
  * {@link #applies apply} to, the refinement is the one asked, and where no region defines it, it reads the value of
  * the nearest ancestor that is defined - the decision stays the refinement's own.</p>
  */
-public abstract class Flag<T> {
+public abstract class Flag<T> implements StateHolder {
 
     private final FlagKey key;
     private volatile @Nullable ECPluginData owner;
@@ -53,6 +54,12 @@ public abstract class Flag<T> {
         this.type = Objects.requireNonNull(type, "type");
         this.needs = needs.isEmpty() ? Collections.emptySet() : Collections.unmodifiableSet(new LinkedHashSet<>(needs));
         this.defaultValue = defaultValue;
+    }
+
+    /** A flag holds a player's state slot by its key. */
+    @Override
+    public String getHolderId() {
+        return getKey().toString();
     }
 
     public FlagKey getKey() {

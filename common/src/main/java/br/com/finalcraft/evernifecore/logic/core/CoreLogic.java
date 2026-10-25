@@ -13,6 +13,9 @@ public final class CoreLogic {
     /** Registers every stock type and the core's owner kinds under {@code core}, the EverNifeCore plugin data. */
     public static void registerAll(ECPluginData core) {
         Compositions.register(core);
+        StockConditions.register(core);
+        StockVariables.register(core);
+        StockEffects.register(core);
         for (ProgressOwnerProvider provider : CoreOwners.all()) {
             ProgressOwners.register(core, provider);
         }

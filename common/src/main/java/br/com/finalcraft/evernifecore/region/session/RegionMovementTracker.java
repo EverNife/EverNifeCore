@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.flag.ProtectionFlagGate;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.player.state.HeldPlayerState;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.event.RegionChangedEvent;
@@ -182,6 +183,7 @@ public final class RegionMovementTracker {
     public MoveVerdict onJoin(FPlayer player, WorldLocPos at) {
         warnIfOffThread("onJoin", at.getWorldName());
         lookup.forgetSession(player.getUniqueId());
+        HeldPlayerState.forget(player.getUniqueId(), null); //a joining player holds nothing yet: what memory kept is a past life's
         RegionPlayerSession session = lookup.getSession(player);
         session.setOnlinePlayer(player);
         List<Region> next = lookup.at(at);
@@ -244,6 +246,7 @@ public final class RegionMovementTracker {
                     () -> new RegionCrossedEvent(player, from, null, MoveCause.QUIT, left, Collections.emptyList(), null));
             sessionFlags.leaveAll(player, session);
         }
+        HeldPlayerState.forget(uuid, player); //what no region holds any more: held effects, given back on quit
     }
 
     /** A world's snapshot changed: the players standing still in it may be under other regions now. */

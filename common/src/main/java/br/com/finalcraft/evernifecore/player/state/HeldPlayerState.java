@@ -2,25 +2,32 @@ package br.com.finalcraft.evernifecore.player.state;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.flag.Flag;
-import br.com.finalcraft.evernifecore.flag.FlagKey;
+import br.com.finalcraft.evernifecore.api.events.player.ECPlayerQuitEvent;
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.eventbus.ECEventPriority;
+import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
+import br.com.finalcraft.evernifecore.eventbus.ECSubscribeOptions;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * What the session flags changed on one player, slot by slot, and what the player had there before: the first flag to
- * hold a slot saves the player's state, the last to let it go writes it back - so the player leaves with what they had
- * on entering, even when it equals what the region gave. A slot held with {@code persistent} also lands in the player's
- * {@link PlayerStateBackup}: a player who was inside when the server stopped gets it back on the next join
- * ({@link #restoreLeftovers}). One per movement session; calls run on the player's world thread.
+ * What was changed on one player, slot by slot, by whom, and what the player had there before: the first
+ * {@link StateHolder} - a session flag, a held effect - to hold a slot saves the player's state, the last to let it go
+ * writes it back, so the player ends with what they had before, even when it equals what was given. A slot held with
+ * {@code persistent} also lands in the player's {@link PlayerStateBackup}: a player who was inside when the server
+ * stopped gets it back on the next join ({@link #restoreLeftovers}). One per player while online ({@link #of}); on quit
+ * every slot still held is given back ({@link #forget}). Calls run on the player's world thread.
  */
 public final class HeldPlayerState {
 
@@ -31,9 +38,12 @@ public final class HeldPlayerState {
     public static final String GAME_MODE = "game-mode";
     private static final String EFFECT = "effect:";
 
+    private static final Map<UUID, HeldPlayerState> PLAYERS = new ConcurrentHashMap<>();
+    private static @Nullable ECEventSubscription<ECPlayerQuitEvent> quitSubscription;
+
     private static final class Slot {
         final String before;
-        final Map<FlagKey, Object> holders = new LinkedHashMap<>();
+        final Map<String, Object> holders = new LinkedHashMap<>();
 
         Slot(String before) {
             this.before = before;
@@ -43,8 +53,49 @@ public final class HeldPlayerState {
     private final UUID player;
     private final Map<String, Slot> slots = new HashMap<>();
 
-    public HeldPlayerState(UUID player) {
+    private HeldPlayerState(UUID player) {
         this.player = player;
+    }
+
+    /** The state held on {@code player}, created on first use; the same instance until {@link #forget}. */
+    public static HeldPlayerState of(UUID player) {
+        return PLAYERS.computeIfAbsent(player, HeldPlayerState::new);
+    }
+
+    /**
+     * {@code player} quit: every slot still held is given back on {@code online} (when it is still there to write to)
+     * and the instance is dropped. It also runs by itself on every quit after the region sessions let go of their
+     * slots, so a slot held outside any region is given back too; calling it again does nothing.
+     */
+    public static void forget(UUID player, @Nullable FPlayer online) {
+        HeldPlayerState state = PLAYERS.remove(player);
+        if (state != null && online != null) {
+            state.giveAllBack(online);
+        }
+        synchronized (HeldPlayerState.class) {
+            if (PLAYERS.isEmpty() && quitSubscription != null) {
+                quitSubscription.unsubscribe();
+                quitSubscription = null;
+            }
+        }
+    }
+
+    private synchronized void giveAllBack(FPlayer online) {
+        List<Map.Entry<String, Slot>> held = new ArrayList<>(slots.entrySet());
+        slots.clear();
+        for (Map.Entry<String, Slot> slot : held) {
+            give(online, slot.getKey(), slot.getValue().before);
+        }
+    }
+
+    private static void watchQuits() {
+        synchronized (HeldPlayerState.class) {
+            if (quitSubscription == null) {
+                //late: the region sessions let go of their slots first, on the normal priority
+                quitSubscription = ECEventBus.global().subscribe(ECPlayerQuitEvent.class, ECSubscribeOptions.defaults()
+                        .withPriority(ECEventPriority.LATE), event -> forget(event.getPlayerData().getUniqueId(), event.getPlayer()));
+            }
+        }
     }
 
     /** The slot of one effect, by its platform id. */
@@ -53,10 +104,12 @@ public final class HeldPlayerState {
     }
 
     /**
-     * {@code flag} holds {@code slot} at {@code value}. The first holder saves what the player has there now - or what the
-     * backup kept, when the server stopped with the player inside and the slot was never given back.
+     * {@code holder} holds {@code slot} at {@code value}; changing the player is the holder's part. The first holder
+     * saves what the player has there now - or what the backup kept, when the server stopped with the player inside and
+     * the slot was never given back.
      */
-    public synchronized void hold(String slot, Flag<?> flag, Object value, boolean persistent, FPlayer online) {
+    public synchronized void hold(String slot, StateHolder holder, Object value, boolean persistent, FPlayer online) {
+        watchQuits();
         Slot held = slots.get(slot);
         if (held == null) {
             PlayerStateBackup backup = backup();
@@ -67,23 +120,23 @@ public final class HeldPlayerState {
                 backup.put(slot, held.before);
             }
         }
-        held.holders.put(flag.getKey(), value);
+        held.holders.put(holder.getHolderId(), value);
     }
 
-    /** The flags holding {@code slot} now, with their values, in the order they took it. */
-    public synchronized Map<FlagKey, Object> getHolders(String slot) {
+    /** The holders of {@code slot} now, by {@link StateHolder#getHolderId() id}, with their values, in the order they took it. */
+    public synchronized Map<String, Object> getHolders(String slot) {
         Slot held = slots.get(slot);
         return held == null ? Collections.emptyMap() : new LinkedHashMap<>(held.holders);
     }
 
     /**
-     * {@code flag} lets {@code slot} go. The last holder writes back what the player had.
+     * {@code holder} lets {@code slot} go. The last holder writes back what the player had.
      *
-     * @return whether the slot was given back; false while another flag still holds it, or when {@code flag} never did
+     * @return whether the slot was given back; false while another holder still holds it, or when {@code holder} never did
      */
-    public synchronized boolean release(String slot, Flag<?> flag, FPlayer online) {
+    public synchronized boolean release(String slot, StateHolder holder, FPlayer online) {
         Slot held = slots.get(slot);
-        if (held == null || held.holders.remove(flag.getKey()) == null || !held.holders.isEmpty()) {
+        if (held == null || held.holders.remove(holder.getHolderId()) == null || !held.holders.isEmpty()) {
             return false;
         }
         slots.remove(slot);
@@ -91,7 +144,7 @@ public final class HeldPlayerState {
         return true;
     }
 
-    /** On join, once the session flags applied: gives back every slot the backup kept that no flag holds now. */
+    /** On join, once the session flags applied: gives back every slot the backup kept that nobody holds now. */
     public synchronized void restoreLeftovers(FPlayer online) {
         PlayerStateBackup backup = backup();
         if (backup == null) {

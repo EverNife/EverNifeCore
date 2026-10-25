@@ -26,7 +26,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 /**
  * One plugin that owns logic, for a test: its plugin data, an in-memory storage that counts calls, contexts already
  * carrying its {@link Caller}, players that are online on the platform, the core's stock types registered, and the
- * clock and scheduler of {@link TestClock}. Needs a platform with {@code ignoringPlatformRegistrations()} and {@code mainThreadInline()} (and
+ * clock and scheduler of {@link TestClock}. Needs a platform with {@code ignoringPlatformRegistrations()} and
+ * {@code mainThreadInline()}, {@code platformProviderId(...)} for a type that names platforms or capabilities (and
  * {@code playerState()} for what reads a player's state); {@code offWorldThread()} proves the dispatch of effects.
  *
  * <pre>{@code

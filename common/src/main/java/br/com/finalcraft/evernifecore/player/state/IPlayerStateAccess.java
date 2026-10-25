@@ -3,20 +3,21 @@ package br.com.finalcraft.evernifecore.player.state;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import jakarta.annotation.Nullable;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 /**
- * What a platform can read and change on one player, for the session flags: clock, weather, flight, game mode, effects,
- * health, food and commands. A platform declares each {@link Capability} it has through {@link #supports}; every call of
+ * What a platform can read and change on one player, for the session flags and the logic engine: clock, weather,
+ * flight, game mode, effects, health, food, commands, experience and statistics. A platform declares each {@link Capability} it has through {@link #supports}; every call of
  * one it lacks throws, and a flag that needs it is reported at boot as having no effect there. Calls run on the
  * player's world thread.
  */
 public interface IPlayerStateAccess {
 
-    enum Capability { TIME, WEATHER, FLIGHT, GAME_MODE, EFFECTS, HEALTH, FOOD, COMMAND }
+    enum Capability { TIME, WEATHER, FLIGHT, GAME_MODE, EFFECTS, HEALTH, FOOD, COMMAND, EXPERIENCE, STATISTICS }
 
     /** The weather that stops rain and storms, on every platform that has {@link Capability#WEATHER}. */
     String CLEAR = "clear";
@@ -153,6 +154,35 @@ public interface IPlayerStateAccess {
     /** Clamped between zero and {@link #getMaxFood}. */
     default void setFood(FPlayer player, int food) {
         throw unsupported(Capability.FOOD);
+    }
+
+    // ---- EXPERIENCE ----
+
+    /** The experience level, a whole number. */
+    default int getLevel(FPlayer player) {
+        throw unsupported(Capability.EXPERIENCE);
+    }
+
+    /** Sets the level, keeping the progress inside it. */
+    default void setLevel(FPlayer player, int level) {
+        throw unsupported(Capability.EXPERIENCE);
+    }
+
+    /** Every experience point the player holds, the levels included. */
+    default int getExp(FPlayer player) {
+        throw unsupported(Capability.EXPERIENCE);
+    }
+
+    /** Sets the total experience points; the level and the progress bar follow from them. */
+    default void setExp(FPlayer player, int points) {
+        throw unsupported(Capability.EXPERIENCE);
+    }
+
+    // ---- STATISTICS ----
+
+    /** The platform's statistic named {@code nativeName} for {@code player}; null when this platform has none by that name. */
+    default @Nullable BigDecimal getStatistic(FPlayer player, String nativeName) {
+        throw unsupported(Capability.STATISTICS);
     }
 
     // ---- COMMAND ----

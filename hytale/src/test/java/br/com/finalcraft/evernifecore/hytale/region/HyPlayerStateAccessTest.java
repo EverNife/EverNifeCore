@@ -142,8 +142,10 @@ class HyPlayerStateAccessTest {
     private final FPlayer player = Senders.player("Kweebec");
 
     @Test
-    void weatherAndFoodAreTheCapabilitiesHytaleLacks() {
-        assertEquals(Arrays.asList(Capability.WEATHER, Capability.FOOD), access.getUnsupported());
+    void weatherFoodExperienceAndStatisticsAreTheCapabilitiesHytaleLacks() {
+        assertEquals(Arrays.asList(Capability.WEATHER, Capability.FOOD, Capability.EXPERIENCE, Capability.STATISTICS), access.getUnsupported());
+        assertFalse(access.supports(Capability.EXPERIENCE));
+        assertThrows(UnsupportedOperationException.class, () -> access.getLevel(player));
         assertThrows(UnsupportedOperationException.class, () -> access.setFood(player, 5));
         assertNull(access.toWeatherId("clear"));
     }
