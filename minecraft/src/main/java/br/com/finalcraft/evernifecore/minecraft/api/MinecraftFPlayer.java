@@ -9,6 +9,7 @@ import br.com.finalcraft.evernifecore.integration.LuckPermsIntegration;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.minecraft.util.FCMinecraftAdventureUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import net.kyori.adventure.text.Component;
@@ -84,7 +85,7 @@ public abstract class MinecraftFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
         Player player = getPlayer();
         if (player == null || !player.isOnline()) return; // nothing to kick
         //kickPlayer is a non-thread-safe Bukkit call; run on the main thread and re-check online there
-        EverNifeCore.getPlatform().runOnMainThread(() -> {
+        ECScheduler.onMainThread(() -> {
             Player online = getPlayer();
             if (online != null && online.isOnline()) online.kickPlayer(reason);
         });

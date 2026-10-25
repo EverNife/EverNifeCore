@@ -1,9 +1,8 @@
 package br.com.finalcraft.evernifecore.hytale.ecplugin;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.IECPluginBootstrap;
-import br.com.finalcraft.evernifecore.hytale.loader.imp.HyPlatform;
+import br.com.finalcraft.evernifecore.hytale.scheduler.HyFCScheduler;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 
@@ -51,13 +50,11 @@ public abstract class ECHytalePlugin extends JavaPlugin implements IECPluginBoot
     @Override
     protected void start() {
         //The server reached the start phase: every plugin finished setup() and (per the Hytale
-        //lifecycle) all worlds are loaded. Release the tasks IPlatform.runOnMainThreadNextTick buffered before
+        //lifecycle) all worlds are loaded. Release the tasks ECScheduler.onMainThreadLater buffered before
         //the start phase - the closest Hytale has to Bukkit's "first tick after all plugins enabled".
         //Idempotent across plugins; if worlds turn out to load after this, AllWorldsLoadedEvent is the
         //alternative trigger.
-        if (EverNifeCore.getPlatform() instanceof HyPlatform hyPlatform) {
-            hyPlatform.flushPendingMainThreadTasks();
-        }
+        HyFCScheduler.INSTANCE.flushPendingMainThreadTasks();
     }
 
     @Override

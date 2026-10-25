@@ -16,6 +16,7 @@ import br.com.finalcraft.evernifecore.logger.ECLogger;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.region.placeholder.RegionPlaceholders;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 
 
 public class EverNifeCore {
@@ -81,7 +82,7 @@ public class EverNifeCore {
      * during enable would be a false alarm.
      */
     private void checkEconomyOnFirstTick() {
-        getPlatform().runOnMainThreadNextTick(() -> {
+        ECScheduler.onMainThreadLater(() -> {
             IEconomyProvider economy = getProviders().getEconomyOrNull();
             if (economy == null) {
                 //Nobody registered one. This is a wiring bug in the platform module, NOT a server

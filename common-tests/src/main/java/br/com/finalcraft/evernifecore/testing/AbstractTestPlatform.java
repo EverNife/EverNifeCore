@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 /**
  * Strict base for every platform double: each method refuses instead of answering, naming itself
@@ -40,12 +39,13 @@ import java.util.function.Supplier;
 public abstract class AbstractTestPlatform implements IPlatform {
 
     /**
-     * @param method the refusing method, as it reads in {@link IPlatform}
+     * @param method the refusing method, as it reads in {@link IPlatform}, or qualified ({@code ECScheduler.onMainThread})
+     *               when the double answers for another core seam
      * @param hint   the builder call that teaches this double how to answer
      */
     protected UnsupportedOperationException notConfigured(String method, String hint) {
         return new UnsupportedOperationException(
-                "IPlatform#" + method + " not configured on this test platform - use " + hint
+                (method.contains(".") ? method : "IPlatform#" + method) + " not configured on this test platform - use " + hint
                         + " (or Platforms.lenient() for the old no-op defaults)");
     }
 
@@ -212,26 +212,6 @@ public abstract class AbstractTestPlatform implements IPlatform {
     @Override
     public void registerArgParsers() {
         throw notConfigured("registerArgParsers", "Platforms.strict().ignoringPlatformRegistrations()");
-    }
-
-    @Override
-    public CompletableFuture<Void> runOnMainThread(Runnable task) {
-        throw notConfigured("runOnMainThread(Runnable)", "Platforms.strict().mainThreadInline()");
-    }
-
-    @Override
-    public <T> CompletableFuture<T> runOnMainThread(Supplier<T> task) {
-        throw notConfigured("runOnMainThread(Supplier)", "Platforms.strict().mainThreadInline()");
-    }
-
-    @Override
-    public CompletableFuture<Void> runOnMainThreadNextTick(Runnable task) {
-        throw notConfigured("runOnMainThreadNextTick(Runnable)", "Platforms.strict().mainThreadInline()");
-    }
-
-    @Override
-    public <T> CompletableFuture<T> runOnMainThreadNextTick(Supplier<T> task) {
-        throw notConfigured("runOnMainThreadNextTick(Supplier)", "Platforms.strict().mainThreadInline()");
     }
 
     @Override

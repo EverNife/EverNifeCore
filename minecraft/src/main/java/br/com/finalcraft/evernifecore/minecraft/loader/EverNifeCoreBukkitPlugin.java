@@ -46,6 +46,7 @@ import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.minecraft.worldedit.WorldEditForge;
 import br.com.finalcraft.evernifecore.region.session.RegionTicker;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import de.tr7zw.changeme.nbtapi.utils.MinecraftVersion;
 import org.bukkit.Bukkit;
 
@@ -105,6 +106,7 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
                 IPlatform.class,
                 platform
         );
+        ECScheduler.setMainThread(McFCScheduler.INSTANCE);
 
         //Economy resolves lazily, so registering it this early costs nothing and covers the plugins
         //that load before EverNifeCore and charge during their own enable.

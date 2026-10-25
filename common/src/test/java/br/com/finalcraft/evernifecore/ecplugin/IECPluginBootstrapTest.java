@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManage
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseCall;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import jakarta.annotation.Nonnull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -19,9 +20,12 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -67,6 +71,39 @@ class IECPluginBootstrapTest {
 
         //the test platform runs the first-tick task in place, so it has already run
         assertTrue(firstTickRan.get(), "a non-null runOnFirstTick() must be scheduled");
+    }
+
+    @Test
+    void theFirstTickTaskIsHandedToTheMainThreadAndNeverRunsInsideEnable() {
+        RecordingBootstrap boot = new RecordingBootstrap(pluginData("BootFirstTickLater"));
+        AtomicBoolean firstTickRan = new AtomicBoolean(false);
+        boot.firstTick = () -> firstTickRan.set(true);
+        List<Supplier<?>> deliveredLater = new ArrayList<>();
+        ECScheduler.MainThread previous = ECScheduler.getMainThread();
+        ECScheduler.setMainThread(new ECScheduler.MainThread() {
+            @Override
+            public <T> CompletableFuture<T> onMainThread(Supplier<T> task) {
+                throw new AssertionError("the first tick task must never be offered to run in place");
+            }
+
+            @Override
+            public <T> CompletableFuture<T> onMainThreadLater(Supplier<T> task) {
+                deliveredLater.add(task);
+                return new CompletableFuture<>();
+            }
+        });
+        try {
+            boot.runECPluginEnable();
+        } finally {
+            ECScheduler.setMainThread(previous);
+        }
+
+        assertFalse(firstTickRan.get(), "enable returned before the first tick task ran");
+        assertEquals(1, deliveredLater.size(), "exactly one hand-off to onMainThreadLater");
+
+        deliveredLater.get(0).get();
+
+        assertTrue(firstTickRan.get(), "running what was handed over runs the first tick task");
     }
 
     @Test

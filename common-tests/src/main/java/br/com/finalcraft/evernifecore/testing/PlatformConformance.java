@@ -196,36 +196,6 @@ public final class PlatformConformance {
             }
         });
 
-        call(platform, "runOnMainThread", failures, new Call<Object>() {
-            @Override
-            public Object run(IPlatform target) {
-                //inline or deferred is the platform's call; handing back no future at all is not,
-                //because every caller in the codebase chains on it
-                if (target.runOnMainThread(new Runnable() {
-                    @Override
-                    public void run() {
-                    }
-                }) == null) {
-                    throw new IllegalStateException("returned null instead of a future");
-                }
-                return null;
-            }
-        });
-
-        call(platform, "runOnMainThreadNextTick", failures, new Call<Object>() {
-            @Override
-            public Object run(IPlatform target) {
-                if (target.runOnMainThreadNextTick(new Runnable() {
-                    @Override
-                    public void run() {
-                    }
-                }) == null) {
-                    throw new IllegalStateException("returned null instead of a future");
-                }
-                return null;
-            }
-        });
-
         return Collections.unmodifiableList(failures);
     }
 

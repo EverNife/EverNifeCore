@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 import br.com.finalcraft.evernifecore.region.visual.VisualStyle;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -86,15 +87,30 @@ class PlatformsTest {
 
     @Test
     void lenientRunsMainThreadTasksInPlaceSoABootSequenceIsDeterministic() {
-        TestPlatform platform = Platforms.lenient().build();
-        StringBuilder ran = new StringBuilder();
+        try (ECoreTestWorld world = Platforms.lenient().install()) {
+            StringBuilder ran = new StringBuilder();
 
-        platform.runOnMainThread(() -> ran.append("now,"));
-        platform.runOnMainThreadNextTick(() -> ran.append("next"));
+            ECScheduler.onMainThread(() -> {
+                ran.append("now,");
+            });
+            ECScheduler.onMainThreadLater(() -> {
+                ran.append("later");
+            });
 
-        assertEquals("now,next", ran.toString());
-        assertEquals("value", platform.runOnMainThread(() -> "value").join());
-        assertEquals("value", platform.runOnMainThreadNextTick(() -> "value").join());
+            assertEquals("now,later", ran.toString());
+            assertEquals("value", ECScheduler.onMainThread(() -> "value").join());
+            assertEquals("value", ECScheduler.onMainThreadLater(() -> "value").join());
+            assertEquals(4, world.platform().getMainThreadRuns());
+        }
+    }
+
+    @Test
+    void strictRefusesTheMainThreadHopAndNamesTheBuilderCall() {
+        try (ECoreTestWorld world = Platforms.strict().install()) {
+            UnsupportedOperationException refused = assertThrows(UnsupportedOperationException.class,
+                    () -> ECScheduler.onMainThread(() -> { }));
+            assertTrue(refused.getMessage().contains("mainThreadInline()"), refused.getMessage());
+        }
     }
 
     @Test

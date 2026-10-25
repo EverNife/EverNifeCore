@@ -13,8 +13,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * {@link ECScheduler#runAsyncFuture(Runnable)} - a background-thread building block (the same one
- * {@code HyPlatform.runOnMainThreadNextTick} builds on): it runs the task off the caller thread and reports
- * the outcome through the returned future.
+ * {@code HyFCScheduler.onMainThreadLater} builds on): it runs the task off the caller thread and reports
+ * the outcome through the returned future - and the main-thread hop, which refuses when no platform installed one.
  */
 class ECSchedulerTest {
 
@@ -35,5 +35,19 @@ class ECSchedulerTest {
 
         ExecutionException thrown = assertThrows(ExecutionException.class, () -> future.get(5, TimeUnit.SECONDS));
         assertInstanceOf(IllegalStateException.class, thrown.getCause());
+    }
+
+    @Test
+    void withoutAnInstalledMainThreadTheHopRefusesAndSaysWhoInstallsOne() {
+        ECScheduler.MainThread previous = ECScheduler.getMainThread();
+        ECScheduler.setMainThread(null);
+        try {
+            IllegalStateException refused = assertThrows(IllegalStateException.class,
+                    () -> ECScheduler.onMainThread(() -> { }));
+            assertTrue(refused.getMessage().contains("ECScheduler.setMainThread"), refused.getMessage());
+            assertThrows(IllegalStateException.class, () -> ECScheduler.onMainThreadLater(() -> { }));
+        } finally {
+            ECScheduler.setMainThread(previous);
+        }
     }
 }

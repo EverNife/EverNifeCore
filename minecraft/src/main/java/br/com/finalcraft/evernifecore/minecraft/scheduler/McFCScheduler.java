@@ -9,11 +9,13 @@ import org.bukkit.scheduler.BukkitTask;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
-public class McFCScheduler {
+public class McFCScheduler implements ECScheduler.MainThread {
 
     public static McFCScheduler INSTANCE = new McFCScheduler();
 
@@ -79,6 +81,42 @@ public class McFCScheduler {
         if (held != null) {
             held.forEach(this::runSync);
         }
+    }
+
+    /** In place when the caller is the server thread, else as {@link #onMainThreadLater(Supplier)}; a throwable is also printed. */
+    @Override
+    public <T> CompletableFuture<T> onMainThread(Supplier<T> task) {
+        if (!FCBukkitUtil.isMainThread()) {
+            return onMainThreadLater(task);
+        }
+        CompletableFuture<T> future = new CompletableFuture<>();
+        try {
+            future.complete(task.get());
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+            future.completeExceptionally(throwable);
+        }
+        return future;
+    }
+
+    /**
+     * Never in place, even on the server thread: a {@link #runSync(Runnable)} task, so it holds the tick until it
+     * returns, and one asked during enable fires on the first tick, after every plugin has enabled. A throwable is
+     * also printed.
+     */
+    @Override
+    public <T> CompletableFuture<T> onMainThreadLater(Supplier<T> task) {
+        //zero delay on purpose: a one-tick delay would reorder the first tick against the tasks held until the core enables
+        CompletableFuture<T> future = new CompletableFuture<>();
+        runSync(() -> {
+            try {
+                future.complete(task.get());
+            } catch (Throwable throwable) {
+                throwable.printStackTrace();
+                future.completeExceptionally(throwable);
+            }
+        });
+        return future;
     }
 
     public void scheduleSync(Runnable runnable, long delayMillis){

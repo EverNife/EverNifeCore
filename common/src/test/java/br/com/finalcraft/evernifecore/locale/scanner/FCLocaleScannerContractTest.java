@@ -42,7 +42,6 @@ import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -215,10 +214,6 @@ public class FCLocaleScannerContractTest {
         @Override public boolean serverSupportsActionBar() { return delegate.serverSupportsActionBar(); }
         @Override public IPlatformVecAdapter getVecAdapter() { return delegate.getVecAdapter(); }
         @Override public IPlatformChatAdapter getChatAdapter() { return delegate.getChatAdapter(); }
-        @Override public CompletableFuture<Void> runOnMainThread(Runnable task) { return delegate.runOnMainThread(task); }
-        @Override public <T> CompletableFuture<T> runOnMainThread(Supplier<T> task) { return delegate.runOnMainThread(task); }
-        @Override public CompletableFuture<Void> runOnMainThreadNextTick(Runnable task) { return delegate.runOnMainThreadNextTick(task); }
-        @Override public <T> CompletableFuture<T> runOnMainThreadNextTick(Supplier<T> task) { return delegate.runOnMainThreadNextTick(task); }
         @Override public void registerConfigTypes() { delegate.registerConfigTypes(); }
         @Override public void registerArgParsers() { delegate.registerArgParsers(); }
         @Override public WorldHeight getWorldHeight(String worldName) { return delegate.getWorldHeight(worldName); }

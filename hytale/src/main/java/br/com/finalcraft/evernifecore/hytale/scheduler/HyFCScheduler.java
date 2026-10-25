@@ -5,13 +5,23 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.util.thread.TickingThread;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.*;
+import java.util.function.Supplier;
 
-public class HyFCScheduler {
+public class HyFCScheduler implements ECScheduler.MainThread {
 
     public static HyFCScheduler INSTANCE = new HyFCScheduler();
 
     private final SynchronizedAction synchronizedAction = new SynchronizedAction();
+
+    //main-thread tasks asked before the start phase (every plugin set up, all worlds loaded) wait on a gate here;
+    //flushPendingMainThreadTasks() opens them once, then tasks run at once.
+    private static final CompletableFuture<Void> READY_GATE = CompletableFuture.completedFuture(null);
+    private final Object startGateLock = new Object();
+    private boolean serverStarted = false;
+    private final List<CompletableFuture<Void>> pendingStartGates = new ArrayList<>();
 
     public HyFCScheduler() {
 
@@ -44,6 +54,53 @@ public class HyFCScheduler {
     /** How long {@code ticks} last on a clock running at {@code tps}, in milliseconds. */
     public static long ticksToMillis(long ticks, int tps) {
         return ticks * 1000L / tps;
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  The main thread ECScheduler hops to
+    // -----------------------------------------------------------------------------------------------------------------
+
+    /** The same as {@link #onMainThreadLater(Supplier)}: there is no main thread here to test the caller against. */
+    @Override
+    public <T> CompletableFuture<T> onMainThread(Supplier<T> task) {
+        return onMainThreadLater(task);
+    }
+
+    /**
+     * Runs the task on a background thread - Hytale has no single main thread (schedulers are per-world) - once the
+     * start phase came: asked before it, the task waits for {@link #flushPendingMainThreadTasks()}; asked after, it
+     * runs right away. A throwable is printed and fails the future.
+     */
+    @Override
+    public <T> CompletableFuture<T> onMainThreadLater(Supplier<T> task) {
+        CompletableFuture<Void> gate;
+        synchronized (startGateLock) {
+            if (serverStarted) {
+                gate = READY_GATE;
+            } else {
+                gate = new CompletableFuture<>();
+                pendingStartGates.add(gate);
+            }
+        }
+        return gate.thenCompose(ignored -> ECScheduler.supplyAsyncFuture(task));
+    }
+
+    /**
+     * Releases every task {@link #onMainThreadLater(Supplier)} buffered before the start phase - called from
+     * {@code ECHytalePlugin.start()}, which the server runs once every plugin has finished {@code setup()} and all
+     * worlds are loaded. Idempotent: repeated (or per-plugin) calls find nothing left to release.
+     */
+    public void flushPendingMainThreadTasks() {
+        List<CompletableFuture<Void>> gates;
+        synchronized (startGateLock) {
+            if (serverStarted) {
+                return;
+            }
+            serverStarted = true;
+            gates = new ArrayList<>(pendingStartGates);
+            pendingStartGates.clear();
+        }
+        gates.forEach(gate -> gate.complete(null));
     }
 
     // -----------------------------------------------------------------------------------------------------------------

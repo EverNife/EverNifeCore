@@ -1,6 +1,5 @@
 package br.com.finalcraft.evernifecore.action;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
@@ -157,7 +156,7 @@ public final class EventSourceUsage {
     /**
      * Runs {@code onNeeded} whenever {@code source} becomes needed - at once when it already is - and {@code onIdle}
      * once it has stayed unneeded for {@link #getIdleTime()}. One callback per transition, through
-     * {@code IPlatform.runOnMainThread} because they register native listeners and have no world of their own; a
+     * {@link ECScheduler#onMainThread} because they register native listeners and have no world of their own; a
      * callback that throws is logged and the watch keeps the state it moved to.
      */
     public UsageWatch watch(ECPluginData owner, EventSource source, Runnable onNeeded, Runnable onIdle) {
@@ -264,7 +263,7 @@ public final class EventSourceUsage {
         if (callback == null) {
             return;
         }
-        EverNifeCore.getPlatform().runOnMainThread(() -> {
+        ECScheduler.onMainThread(() -> {
             try {
                 callback.run();
             } catch (Throwable failure) {

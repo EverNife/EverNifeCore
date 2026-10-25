@@ -3,7 +3,6 @@ package br.com.finalcraft.evernifecore.ecplugin;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.EventSourceUsage;
-import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
@@ -11,6 +10,7 @@ import br.com.finalcraft.evernifecore.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ECLogger;
 import br.com.finalcraft.evernifecore.region.RegionManager;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 
 /**
  * The platform-agnostic bootstrap contract of an ECPlugin.
@@ -151,11 +151,11 @@ public interface IECPluginBootstrap {
     // ------------------------------------------------------------------
 
     /**
-     * Returns a task handed to {@link IPlatform#runOnMainThreadNextTick(Runnable)} once enable
-     * finishes, or {@code null} (the default) to run nothing. It runs as soon as the platform is
-     * ready: on Bukkit the next tick (after every plugin enabled) on the server main thread; on
-     * Hytale once all plugins have set up and all worlds are loaded. See
-     * {@link IPlatform#runOnMainThreadNextTick(Runnable)} for the exact contract.
+     * Returns a task handed to {@link ECScheduler#onMainThreadLater} once enable
+     * finishes, or {@code null} (the default) to run nothing. It runs once every plugin has enabled:
+     * on Bukkit on the first tick, on the server main thread; on Hytale once all plugins have set up
+     * and all worlds are loaded. A plugin re-enabled at runtime gets it after this enable returned.
+     * See {@link ECScheduler#onMainThreadLater} for the exact contract.
      */
     public default Runnable runOnFirstTick() {
         return null;
@@ -199,8 +199,8 @@ public interface IECPluginBootstrap {
 
         Runnable firstTick = runOnFirstTick();
         if (firstTick != null) {
-            //fire-and-forget: runOnMainThreadNextTick already prints any failure of the task
-            EverNifeCore.getPlatform().runOnMainThreadNextTick(firstTick);
+            //fire-and-forget: onMainThreadLater already prints any failure of the task
+            ECScheduler.onMainThreadLater(firstTick);
         }
     }
 

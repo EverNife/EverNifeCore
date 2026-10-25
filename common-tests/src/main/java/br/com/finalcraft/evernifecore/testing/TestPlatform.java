@@ -21,6 +21,7 @@ import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 import br.com.finalcraft.evernifecore.region.visual.VisualStyle;
 import br.com.finalcraft.evernifecore.text.ITextMetrics;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 
 import jakarta.annotation.Nullable;
 
@@ -192,9 +193,36 @@ public class TestPlatform extends AbstractTestPlatform {
         return (player, spec) -> selectionItemsGiven.add(new GivenSelectionItem(player, spec));
     }
 
-    /** How many {@code runOnMainThread}/{@code runOnMainThreadNextTick} calls this platform ran. */
+    /** How many {@code ECScheduler.onMainThread}/{@code onMainThreadLater} tasks this world's main thread ran. */
     public int getMainThreadRuns() {
         return mainThreadRuns.get();
+    }
+
+    /**
+     * The main thread {@link ECoreTestWorld} installs on {@code ECScheduler} for its life: with
+     * {@code mainThreadInline()} both forms run the task in place (tests have no server thread and no tick, which
+     * keeps a boot sequence such as the first-tick legacy import deterministic); without it, strict, both throw.
+     */
+    ECScheduler.MainThread mainThread() {
+        return new ECScheduler.MainThread() {
+            @Override
+            public <T> CompletableFuture<T> onMainThread(Supplier<T> task) {
+                if (mainThreadInline == null) {
+                    throw notConfigured("ECScheduler.onMainThread", "Platforms.strict().mainThreadInline()");
+                }
+                mainThreadRuns.incrementAndGet();
+                return CompletableFuture.completedFuture(task.get());
+            }
+
+            @Override
+            public <T> CompletableFuture<T> onMainThreadLater(Supplier<T> task) {
+                if (mainThreadInline == null) {
+                    throw notConfigured("ECScheduler.onMainThreadLater", "Platforms.strict().mainThreadInline()");
+                }
+                mainThreadRuns.incrementAndGet();
+                return CompletableFuture.completedFuture(task.get());
+            }
+        };
     }
 
     /** Fires every {@code onWorldLoaded} listener with {@code worldName}, as a real platform does when a world loads. */
@@ -465,47 +493,6 @@ public class TestPlatform extends AbstractTestPlatform {
         if (configTypesIgnored == null) {
             super.registerArgParsers();
         }
-    }
-
-    @Override
-    public CompletableFuture<Void> runOnMainThread(Runnable task) {
-        if (mainThreadInline == null) {
-            return super.runOnMainThread(task);
-        }
-        //inline: tests have no server thread to be off of
-        mainThreadRuns.incrementAndGet();
-        task.run();
-        return CompletableFuture.completedFuture(null);
-    }
-
-    @Override
-    public <T> CompletableFuture<T> runOnMainThread(Supplier<T> task) {
-        if (mainThreadInline == null) {
-            return super.runOnMainThread(task);
-        }
-        mainThreadRuns.incrementAndGet();
-        return CompletableFuture.completedFuture(task.get());
-    }
-
-    @Override
-    public CompletableFuture<Void> runOnMainThreadNextTick(Runnable task) {
-        if (mainThreadInline == null) {
-            return super.runOnMainThreadNextTick(task);
-        }
-        //inline too - tests have no tick. It makes the first-tick legacy import deterministic
-        //(PlayerController.bootstrap blocks until the import + load finish)
-        mainThreadRuns.incrementAndGet();
-        task.run();
-        return CompletableFuture.completedFuture(null);
-    }
-
-    @Override
-    public <T> CompletableFuture<T> runOnMainThreadNextTick(Supplier<T> task) {
-        if (mainThreadInline == null) {
-            return super.runOnMainThreadNextTick(task);
-        }
-        mainThreadRuns.incrementAndGet();
-        return CompletableFuture.completedFuture(task.get());
     }
 
     @Override

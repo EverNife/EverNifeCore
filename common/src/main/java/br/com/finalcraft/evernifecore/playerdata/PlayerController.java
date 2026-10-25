@@ -36,6 +36,7 @@ import br.com.finalcraft.evernifecore.storage.config.PlayerDataAdminConfig;
 import br.com.finalcraft.evernifecore.storage.config.SectionFamily;
 import br.com.finalcraft.evernifecore.storage.config.StorageYamlDefaults;
 import br.com.finalcraft.evernifecore.storage.config.StorageYamlParser;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.everydatabase.log.StorageLogConfig;
@@ -295,7 +296,7 @@ public class PlayerController {
             EverNifeCore.getLog().info("Legacy PlayerData YAML files found at [{}] - the one-time import will run once"
                     + " every plugin has registered its sections (the first server tick); player logins"
                     + " are held until it finishes.", legacyFolder.getPath());
-            EverNifeCore.getPlatform().runOnMainThreadNextTick(() -> fresh.legacyBootstrap.runImportThenStart(legacyFolder));
+            ECScheduler.onMainThreadLater(() -> fresh.legacyBootstrap.runImportThenStart(legacyFolder));
         }
         //a plugin-owned ECStorage needs nothing here: the registries kept their identity, so its
         //managers (and every live Ref through them) stay valid across the whole swap
@@ -1236,7 +1237,7 @@ public class PlayerController {
      */
     public static <T> void whenCompleteOnMainThread(CompletableFuture<T> future, BiConsumer<T, Throwable> callback){
         future.whenComplete((value, error) ->
-                EverNifeCore.getPlatform().runOnMainThread(() -> callback.accept(value, error)));
+                ECScheduler.onMainThread(() -> callback.accept(value, error)));
     }
 
     /** Memory or lazy-load; completes with null when the player doesn't exist in the backend. */

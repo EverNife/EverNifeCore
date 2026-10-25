@@ -11,6 +11,7 @@ import br.com.finalcraft.evernifecore.eventbus.ECNativeAudience;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.spawn.ISpawnProvider;
 import br.com.finalcraft.evernifecore.spawn.SpawnPoints;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -44,6 +45,7 @@ public final class ECoreTestWorld implements AutoCloseable {
     private final IEconomyProvider previousEconomy;
     private final boolean hadEconomy;
     private final ISpawnProvider previousSpawn;
+    private final ECScheduler.MainThread previousMainThread;
     private final Set<ECListenerWatch> watchesBefore = Collections.newSetFromMap(new IdentityHashMap<>());
     private final List<String> audiencesBefore = new ArrayList<>();
     private boolean closed = false;
@@ -56,6 +58,7 @@ public final class ECoreTestWorld implements AutoCloseable {
         this.previousEconomy = previousEconomy;
         this.hadEconomy = previousEconomy != null;
         this.previousSpawn = EverNifeCore.getProviders().getSpawnOrNull();
+        this.previousMainThread = ECScheduler.getMainThread();
         this.watchesBefore.addAll(ECEventBus.global().getListenerWatches());
         for (ECNativeAudience audience : ECEventBus.global().getNativeAudiences()) {
             this.audiencesBefore.add(audience.name());
@@ -74,6 +77,7 @@ public final class ECoreTestWorld implements AutoCloseable {
         );
 
         providers.register(IPlatform.class, platform);
+        ECScheduler.setMainThread(platform.mainThread());
         SpawnPoints.resetWarning(); //a new world is a new boot: its first spawn fallback reports again
         return world;
     }
@@ -132,6 +136,7 @@ public final class ECoreTestWorld implements AutoCloseable {
         restore(providers, IECPluginExtractor.class, previousExtractor, hadExtractor);
         restore(providers, IEconomyProvider.class, previousEconomy, hadEconomy);
         restore(providers, ISpawnProvider.class, previousSpawn, previousSpawn != null);
+        ECScheduler.setMainThread(previousMainThread);
         SpawnPoints.resetWarning();
 
         if (!leaked.isEmpty()) {

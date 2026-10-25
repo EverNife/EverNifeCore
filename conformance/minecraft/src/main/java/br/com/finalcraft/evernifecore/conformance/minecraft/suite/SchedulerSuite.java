@@ -1,6 +1,5 @@
 package br.com.finalcraft.evernifecore.conformance.minecraft.suite;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.conformance.ConformanceCase;
 import br.com.finalcraft.evernifecore.conformance.ConformanceContext;
 import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
@@ -34,7 +33,7 @@ public final class SchedulerSuite implements ConformanceSuite {
                     CompletableFuture<Verdict> answer = new CompletableFuture<>();
                     ECScheduler.runAsync(() -> {
                         boolean askedOffMain = !Bukkit.isPrimaryThread();
-                        EverNifeCore.getPlatform().runOnMainThread(() -> {
+                        ECScheduler.onMainThread(() -> {
                             boolean ranOnMain = Bukkit.isPrimaryThread();
                             answer.complete(Verdict.of(askedOffMain && ranOnMain,
                                     "askedOffMain=" + askedOffMain + " ranOnMain=" + ranOnMain));
@@ -42,10 +41,10 @@ public final class SchedulerSuite implements ConformanceSuite {
                     });
                     return PlayerCases.within(answer, TIMEOUT_MILLIS);
                 }),
-                ConformanceCase.later("next-tick-never-inline", () -> {
+                ConformanceCase.later("later-never-inline", () -> {
                     AtomicBoolean ran = new AtomicBoolean();
                     CompletableFuture<Verdict> answer = new CompletableFuture<>();
-                    EverNifeCore.getPlatform().runOnMainThreadNextTick(() -> {
+                    ECScheduler.onMainThreadLater(() -> {
                         ran.set(true);
                         answer.complete(Verdict.pass("ran later on main=" + Bukkit.isPrimaryThread()));
                     });

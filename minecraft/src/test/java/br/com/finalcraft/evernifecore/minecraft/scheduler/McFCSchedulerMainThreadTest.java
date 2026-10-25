@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.minecraft.loader.imp;
+package br.com.finalcraft.evernifecore.minecraft.scheduler;
 
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -20,12 +19,12 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The two main-thread bridges of {@link McPlatform}, told apart by when they run:
- * {@code runOnMainThread} is in place when the caller already is the main thread and a hop when it
- * is not; {@code runOnMainThreadNextTick} always waits for the tick, even from the main thread -
+ * The two main-thread hops of {@link McFCScheduler}, told apart by when they run:
+ * {@code onMainThread} is in place when the caller already is the main thread and a hop when it
+ * is not; {@code onMainThreadLater} always waits for the tick, even from the main thread -
  * which is what lets a task scheduled during enable fire only after every plugin has enabled.
  */
-class McPlatformMainThreadTest {
+class McFCSchedulerMainThreadTest {
 
     @TempDirNobodyCleans
     Path tempDir;
@@ -33,27 +32,27 @@ class McPlatformMainThreadTest {
     @Test
     void alreadyOnTheMainThreadThereIsNothingToWaitFor() {
         try (GuiTestWorld world = GuiTestWorld.install(tempDir)) {
-            McPlatform platform = new McPlatform();
+            McFCScheduler scheduler = McFCScheduler.INSTANCE;
             List<String> ran = new ArrayList<>();
 
-            CompletableFuture<Void> hop = platform.runOnMainThread(() -> {
-                ran.add("ran");
-            });
+            CompletableFuture<Boolean> hop = scheduler.onMainThread(() -> ran.add("ran"));
 
             assertEquals(Arrays.asList("ran"), ran, "the task ran inside the call itself");
             assertTrue(hop.isDone());
-            assertEquals("value", platform.runOnMainThread(() -> "value").getNow(null));
+            assertEquals("value", scheduler.onMainThread(() -> "value").getNow(null));
         }
     }
 
     @Test
     void offTheMainThreadTheTaskWaitsForTheTickAndLandsOnIt() {
         try (GuiTestWorld world = GuiTestWorld.install(tempDir)) {
-            McPlatform platform = new McPlatform();
+            McFCScheduler scheduler = McFCScheduler.INSTANCE;
             AtomicReference<Thread> ranOn = new AtomicReference<>();
 
-            CompletableFuture<Void> hop = offTheMainThread(
-                    () -> platform.runOnMainThread(() -> ranOn.set(Thread.currentThread())));
+            CompletableFuture<Object> hop = offTheMainThread(() -> scheduler.onMainThread(() -> {
+                ranOn.set(Thread.currentThread());
+                return null;
+            }));
 
             assertNull(ranOn.get(), "nothing may run on the worker that asked");
             assertFalse(hop.isDone());
@@ -66,14 +65,12 @@ class McPlatformMainThreadTest {
     }
 
     @Test
-    void nextTickNeverRunsInsideTheCallEvenFromTheMainThread() {
+    void laterNeverRunsInsideTheCallEvenFromTheMainThread() {
         try (GuiTestWorld world = GuiTestWorld.install(tempDir)) {
-            McPlatform platform = new McPlatform();
+            McFCScheduler scheduler = McFCScheduler.INSTANCE;
             List<String> order = new ArrayList<>();
 
-            CompletableFuture<Void> tick = platform.runOnMainThreadNextTick(() -> {
-                order.add("the task");
-            });
+            CompletableFuture<Boolean> tick = scheduler.onMainThreadLater(() -> order.add("the task"));
             order.add("the rest of the call");
 
             assertFalse(tick.isDone(), "a task for the next tick has no business running inside this one");
@@ -88,9 +85,9 @@ class McPlatformMainThreadTest {
     @Test
     void aTaskThatThrowsCompletesTheFutureExceptionally() {
         try (GuiTestWorld world = GuiTestWorld.install(tempDir)) {
-            McPlatform platform = new McPlatform();
+            McFCScheduler scheduler = McFCScheduler.INSTANCE;
 
-            CompletableFuture<Object> failed = platform.runOnMainThread((Supplier<Object>) () -> {
+            CompletableFuture<Object> failed = scheduler.onMainThread(() -> {
                 throw new IllegalStateException("the task failed");
             });
 

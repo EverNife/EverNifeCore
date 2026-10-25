@@ -66,6 +66,17 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **The Bukkit region listeners live in `minecraft.action.listener`** (`RegionListeners`, `RegionContexts`, ...); on
   Hytale `HyRegionSystems` is `hytale.action.HyActionSystems`.
 
+### Removed
+
+- **`IPlatform.runOnMainThread` and `IPlatform.runOnMainThreadNextTick`** (the `Runnable` and `Supplier` forms): the
+  main-thread hop belongs to `time.ECScheduler`, which each platform installs through `ECScheduler.setMainThread`.
+  `getPlatform().runOnMainThread(task)` becomes `ECScheduler.onMainThread(task)` (in place when the caller already
+  is the main thread, as before); `getPlatform().runOnMainThreadNextTick(task)` becomes
+  `ECScheduler.onMainThreadLater(task)` (never in place; asked during enable it still runs once every plugin has
+  enabled). The new name drops the "next tick" the old one never kept on Paper or Hytale - to pace work one tick at a
+  time use `IPlatform.runOnWorldThreadNextTick`. In `common-tests`, `Platforms.mainThreadInline()` now also installs
+  the in-place main thread on `ECScheduler` for the life of the `ECoreTestWorld`.
+
 ## [3.0.1-alpha.70] - 2026-10-19
 
 Regions decide by who acts - a player, a fake player, a mob, a block or the environment - and now cover explosions,

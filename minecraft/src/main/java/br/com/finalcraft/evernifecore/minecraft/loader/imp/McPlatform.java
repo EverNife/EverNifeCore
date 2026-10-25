@@ -60,7 +60,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -393,7 +392,10 @@ public class McPlatform implements IPlatform {
 
     @Override
     public CompletableFuture<Void> runOnWorldThread(String worldName, Runnable task) {
-        return runOnMainThread(task);
+        return McFCScheduler.INSTANCE.onMainThread(() -> {
+            task.run();
+            return null;
+        });
     }
 
     @Override
@@ -433,56 +435,6 @@ public class McPlatform implements IPlatform {
         for (Consumer<String> listener : worldUnloadedListeners) {
             listener.accept(worldName);
         }
-    }
-
-    @Override
-    public CompletableFuture<Void> runOnMainThread(Runnable task) {
-        return runOnMainThread(() -> {
-            task.run();
-            return null;
-        });
-    }
-
-    @Override
-    public <T> CompletableFuture<T> runOnMainThread(Supplier<T> task) {
-        if (!FCBukkitUtil.isMainThread()) {
-            return runOnMainThreadNextTick(task);
-        }
-        CompletableFuture<T> future = new CompletableFuture<>();
-        try {
-            future.complete(task.get());
-        } catch (Throwable throwable) {
-            throwable.printStackTrace();
-            future.completeExceptionally(throwable);
-        }
-        return future;
-    }
-
-    @Override
-    public CompletableFuture<Void> runOnMainThreadNextTick(Runnable task) {
-        return runOnMainThreadNextTick(() -> {
-            task.run();
-            return null;
-        });
-    }
-
-    @Override
-    public <T> CompletableFuture<T> runOnMainThreadNextTick(Supplier<T> task) {
-        //Never inline, even when already on the main thread; a zero-delay task, so one scheduled from a running
-        //scheduler task may still run in that tick (runOnWorldThreadNextTick paces). A task scheduled during enable
-        //fires on the first tick (after every plugin has enabled). It runs ON that thread and holds
-        //the tick until it finishes - the first-boot legacy import relies on that to freeze the
-        //server while it migrates.
-        CompletableFuture<T> future = new CompletableFuture<>();
-        ECScheduler.getMinecraftScheduler().runSync(() -> {
-            try {
-                future.complete(task.get());
-            } catch (Throwable throwable) {
-                throwable.printStackTrace();
-                future.completeExceptionally(throwable);
-            }
-        });
-        return future;
     }
 
     private final ExecuteOnce registerConfigTypesOnce = ExecuteOnce.of(McConfigTypes::register);

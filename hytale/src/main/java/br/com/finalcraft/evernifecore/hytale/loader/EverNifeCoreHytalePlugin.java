@@ -14,9 +14,11 @@ import br.com.finalcraft.evernifecore.hytale.integration.HyVaultIntegration;
 import br.com.finalcraft.evernifecore.hytale.listeners.PlayerLoginListener;
 import br.com.finalcraft.evernifecore.hytale.loader.imp.HyECPluginExtractor;
 import br.com.finalcraft.evernifecore.hytale.loader.imp.HyPlatform;
+import br.com.finalcraft.evernifecore.hytale.scheduler.HyFCScheduler;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
 import br.com.finalcraft.evernifecore.region.session.RegionTicker;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import com.hypixel.hytale.event.EventPriority;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.hypixel.hytale.server.core.universe.world.events.AddWorldEvent;
@@ -48,6 +50,7 @@ public class EverNifeCoreHytalePlugin extends ECHytalePlugin {
                 IPlatform.class,
                 new HyPlatform()
         );
+        ECScheduler.setMainThread(HyFCScheduler.INSTANCE);
 
         //Economy resolves lazily, so registering it this early costs nothing and covers a plugin that
         //sets up before EverNifeCore and charges during its own setup.

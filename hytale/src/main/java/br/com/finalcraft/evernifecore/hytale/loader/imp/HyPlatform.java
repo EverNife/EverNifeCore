@@ -33,7 +33,6 @@ import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
 import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
-import br.com.finalcraft.evernifecore.time.ECScheduler;
 import br.com.finalcraft.evernifecore.util.ExecuteOnce;
 import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import br.com.finalcraft.everylibs.reflection.MethodInvoker;
@@ -64,7 +63,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -75,13 +73,6 @@ public class HyPlatform implements IPlatform {
     private HyPlatformChatAdapter CHAT_ADAPTER = new HyPlatformChatAdapter();
 
     private HyPlatformVecAdapter VEC_ADAPTER = new HyPlatformVecAdapter();
-
-    //runOnMainThreadNextTick tasks submitted before the start phase (every plugin set up, all worlds loaded)
-    //are buffered on a gate here; flushPendingMainThreadTasks() opens them once, then tasks run at once.
-    private static final CompletableFuture<Void> READY_GATE = CompletableFuture.completedFuture(null);
-    private final Object startGateLock = new Object();
-    private boolean serverStarted = false;
-    private final List<CompletableFuture<Void>> pendingStartGates = new ArrayList<>();
 
     @Override
     public String getPlatformProviderId() {
@@ -453,62 +444,6 @@ public class HyPlatform implements IPlatform {
         for (Consumer<String> listener : worldUnloadedListeners) {
             listener.accept(worldName);
         }
-    }
-
-    @Override
-    public CompletableFuture<Void> runOnMainThread(Runnable task) {
-        //there is no main thread here to test against, so "right now" and "next opportunity"
-        //are the same path on this platform
-        return runOnMainThreadNextTick(task);
-    }
-
-    @Override
-    public <T> CompletableFuture<T> runOnMainThread(Supplier<T> task) {
-        return runOnMainThreadNextTick(task);
-    }
-
-    @Override
-    public CompletableFuture<Void> runOnMainThreadNextTick(Runnable task) {
-        return runOnMainThreadNextTick(() -> {
-            task.run();
-            return null;
-        });
-    }
-
-    @Override
-    public <T> CompletableFuture<T> runOnMainThreadNextTick(Supplier<T> task) {
-        //Hytale has no single main thread (schedulers are per-world). Before the start phase we buffer
-        //a gate the flush opens once every plugin has set up and all worlds are loaded; after it, the
-        //gate is already open. Either way the task then runs on a background thread.
-        CompletableFuture<Void> gate;
-        synchronized (startGateLock) {
-            if (serverStarted) {
-                gate = READY_GATE;
-            } else {
-                gate = new CompletableFuture<>();
-                pendingStartGates.add(gate);
-            }
-        }
-        return gate.thenCompose(ignored -> ECScheduler.supplyAsyncFuture(task));
-    }
-
-    /**
-     * Releases every task {@link #runOnMainThreadNextTick(Runnable)} buffered before the start phase -
-     * called from {@code ECHytalePlugin.start()}, which the server runs once every plugin has finished
-     * {@code setup()} and all worlds are loaded. Idempotent: repeated (or per-plugin) calls find
-     * nothing left to release.
-     */
-    public void flushPendingMainThreadTasks() {
-        List<CompletableFuture<Void>> gates;
-        synchronized (startGateLock) {
-            if (serverStarted) {
-                return;
-            }
-            serverStarted = true;
-            gates = new ArrayList<>(pendingStartGates);
-            pendingStartGates.clear();
-        }
-        gates.forEach(gate -> gate.complete(null));
     }
 
     private final ExecuteOnce registerConfigTypesOnce = ExecuteOnce.of(HyConfigTypes::register);
