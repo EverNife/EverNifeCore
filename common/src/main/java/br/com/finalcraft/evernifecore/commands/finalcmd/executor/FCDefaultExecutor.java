@@ -1,6 +1,14 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.executor;
 
+import br.com.finalcraft.evernifecore.action.ActionSupport;
+import br.com.finalcraft.evernifecore.action.Actions;
+import br.com.finalcraft.evernifecore.action.Actor;
+import br.com.finalcraft.evernifecore.action.CommandContext;
+import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.EventSourceUsage;
+import br.com.finalcraft.evernifecore.action.event.CommandActionEvent;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
 import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.CMDAccessValidation;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.CMDHelpType;
@@ -98,6 +106,15 @@ public class FCDefaultExecutor {
             return;
         }
 
+        //Where the platform has no command event of its own (Hytale), the framework raises the command source for its
+        //own commands, past the command's permission and before anything runs; on Bukkit the preprocess event already
+        //raised it, and raising it here too would post every command twice. The regions or a Pre subscriber that deny
+        //it have already told the player why.
+        boolean raisesCommand = raisesCommandSource(sender);
+        if (raisesCommand && Actions.denied(commandAction(sender, label, args), CommandActionEvent.Pre.class, CommandActionEvent.Pre::new)){
+            return;
+        }
+
         if (finalCMD.getHelpType() != CMDHelpType.NONE && root.hasChildren() && opensRootHelp(root, args)){
             root.getHelpContext().render(CommandPath.ofRoot(label)).sendTo(sender, pageAfter(args, 1));
             return;
@@ -168,6 +185,9 @@ public class FCDefaultExecutor {
                 }
 
                 executable.invoke(sender, dispatch, window, helpContext, executable.getHelpLineTemplate().render(walk.getPath()));
+                if (raisesCommand){
+                    Actions.post(CommandActionEvent.Post.class, () -> new CommandActionEvent.Post(commandAction(sender, label, args)));
+                }
             }
         } catch (IllegalAccessException | InvocationTargetException e) {
             //The last surface the framework owns. Rethrowing handed the sender whatever the platform
@@ -178,6 +198,20 @@ public class FCDefaultExecutor {
             finalCommand.getOwningPlugin().getLog().severe("Failed to execute the FinalCMD: {}", commandInfo, cause);
             INTERNAL_COMMAND_ERROR.send(sender);
         }
+    }
+
+    /** Whether this framework raises the command source for {@code sender}: a player standing somewhere, on a platform with no command event. */
+    private static boolean raisesCommandSource(FCommandSender sender) {
+        return sender.isPlayer() && !ActionSupport.isNativeCommandSource() && EventSourceUsage.get().isNeeded(EventSource.COMMAND)
+                && sender.asFPlayer().getLocation() != null;
+    }
+
+    /** The command source's context of this line, as the player typed it; only past {@link #raisesCommandSource}. */
+    private CommandContext commandAction(FCommandSender sender, String label, String[] args) {
+        FPlayer player = sender.asFPlayer();
+        String line = "/" + label + (args.length == 0 ? "" : " " + String.join(" ", args));
+        return new CommandContext(player.getLocation().getWorldLocPos(), Actor.player(player, null), null, line,
+                Arrays.asList(finalCMD.getLabels()));
     }
 
     /**

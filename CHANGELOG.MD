@@ -107,6 +107,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `ConsumeActionListener`, `XpGainActionListener` (a gain only), `EnchantActionListener`, `TameActionListener`,
   `BreedActionListener` (from 1.12; before it `BREED` is declared not raised), `ShearActionListener`,
   `CommandActionListener` (`PlayerCommandPreprocessEvent`, every plugin's commands) and `ExploreActionListener`.
+  Where the platform has no command event (`ActionSupport.isNativeCommandSource()` false: Hytale), the `FinalCMD`
+  executor raises `COMMAND` for its own commands: the `.Pre` past the command's permission and before anything runs (a
+  denial or a cancelled `.Pre` stops the command), the `.Post` after it ran; on Bukkit it never posts, so a command is
+  posted once.
 
 ### Fixed
 
