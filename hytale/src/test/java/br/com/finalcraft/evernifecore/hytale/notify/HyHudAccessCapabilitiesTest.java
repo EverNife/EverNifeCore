@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.hytale.notify;
 
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.notify.HudSounds;
 import br.com.finalcraft.evernifecore.notify.IHudAccess.Capability;
 import br.com.finalcraft.evernifecore.notify.ToastStyle;
 import com.hypixel.hytale.protocol.packets.interface_.NotificationStyle;
@@ -13,6 +14,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** What the Hytale screen answers: title, toast, tracker and sound; nothing else. */
 class HyHudAccessCapabilitiesTest {
@@ -56,5 +58,13 @@ class HyHudAccessCapabilitiesTest {
         assertEquals(HyHudAccess.objectiveId(steve, "quest"), HyHudAccess.objectiveId(steve, "quest"));
         assertNotEquals(HyHudAccess.objectiveId(steve, "quest"), HyHudAccess.objectiveId(steve, "other"));
         assertNotEquals(HyHudAccess.objectiveId(steve, "quest"), HyHudAccess.objectiveId(UUID.randomUUID(), "quest"));
+    }
+
+    @Test
+    void everySoundAliasNamesAShippedSoundEvent() {
+        assertEquals(HudSounds.ALL.size(), HyHudAccess.ALIASES.size());
+        for (String alias : HudSounds.ALL) {
+            assertTrue(HyHudAccess.ALIASES.get(alias).startsWith("SFX_"), alias + " -> " + HyHudAccess.ALIASES.get(alias));
+        }
     }
 }

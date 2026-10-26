@@ -41,11 +41,12 @@ public final class HyHudAccess implements IHudAccess {
 
     private static final Set<Capability> SUPPORTED = EnumSet.of(Capability.TITLE, Capability.TOAST, Capability.TRACKER, Capability.SOUND);
 
-    /**
-     * Sound event ids for the {@link HudSounds} aliases. A null id is an alias with no sound measured on a server yet:
-     * it plays nothing and is logged once.
-     */
-    private static final Map<String, String> ALIASES = Map.of();
+    /** Sound event ids for the {@link HudSounds} aliases: assets the server ships ({@code Server/Audio/SoundEvents}). */
+    static final Map<String, String> ALIASES = Map.of(
+            HudSounds.LEVEL_UP, "SFX_Memories_Unlock_Local",
+            HudSounds.CLICK, "SFX_Lever_Metal_On",
+            HudSounds.PLING, "SFX_MemoryMote",
+            HudSounds.DENIED, "SFX_Creative_Play_Error");
 
     private final Set<String> unknownSounds = ConcurrentHashMap.newKeySet();
 
