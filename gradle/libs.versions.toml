@@ -8,7 +8,7 @@ shadow = "9.4.2"
 # FinalCraft libraries
 everydatabase = "1.5.1"
 everyconfig = "1.4.3"
-everylibs = "1.2.0"
+everylibs = "1.3.0"
 ecnmsutils = "2.1.0"
 
 # FinalCraft fork (same one EveryDatabase/EveryConfig use): hooks a Java 25 javac and only lifts

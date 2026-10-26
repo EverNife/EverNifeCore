@@ -46,37 +46,19 @@ public class VaultEconomyV1 implements IEconomyProvider {
 
     @Override
     public boolean hasEnough(UUID playerUUID, BigDecimal amount) {
-        if (amount.signum() <= 0) {
-            return true;
-        }
         return economy.has(asPlayer.apply(playerUUID), amount.doubleValue());
     }
 
     @Override
     public EcoResponse give(UUID playerUUID, BigDecimal amount) {
-        if (amount.signum() < 0) {
-            return EcoResponse.invalidAmount(amount);
-        }
-
         OfflinePlayer player = asPlayer.apply(playerUUID);
-        if (amount.signum() == 0) {
-            return EcoResponse.success(amount, BigDecimal.valueOf(economy.getBalance(player)));
-        }
-
         return toEcoResponse(amount, economy.depositPlayer(player, amount.doubleValue()), player);
     }
 
     @Override
     public EcoResponse take(UUID playerUUID, BigDecimal amount) {
-        if (amount.signum() < 0) {
-            return EcoResponse.invalidAmount(amount);
-        }
-
         OfflinePlayer player = asPlayer.apply(playerUUID);
         BigDecimal current = BigDecimal.valueOf(economy.getBalance(player));
-        if (amount.signum() == 0) {
-            return EcoResponse.success(amount, current);
-        }
         if (!economy.has(player, amount.doubleValue())) {
             return EcoResponse.insufficientFunds(amount, current);
         }
@@ -86,10 +68,6 @@ public class VaultEconomyV1 implements IEconomyProvider {
 
     @Override
     public EcoResponse set(UUID playerUUID, BigDecimal amount) {
-        if (amount.signum() < 0) {
-            return EcoResponse.invalidAmount(amount);
-        }
-
         BigDecimal current = getBalance(playerUUID);
         int comparison = amount.compareTo(current);
         if (comparison == 0) {

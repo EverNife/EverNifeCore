@@ -4,15 +4,16 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
- * An economy provider that only resolves the real one when someone actually moves money.
+ * An economy bridge that only resolves the real one when someone actually moves money - the {@link IEconomyProvider}
+ * each platform registers behind {@link Currencies#money()}, which asks {@link #isAvailable()} before every verb.
  *
  * <p>Economy plugins may enable after EverNifeCore, so a miss is not final: every call retries the
  * resolution. Once resolved it is never re-resolved - swapping the economy plugin at runtime needs a
  * restart.</p>
  *
- * <p>The diagnostic is logged once, from {@link #warmUp()}; after that the absence speaks through the
- * exception every call throws, which points at the plugin that asked for money instead of drowning the
- * console in EverNifeCore's own warning.</p>
+ * <p>The diagnostic is logged once, from {@link #warmUp()}; after that the absence speaks through
+ * {@link EcoResponse.Reason#UNAVAILABLE} on every {@code money} verb (a direct call here throws), instead of drowning
+ * the console in EverNifeCore's own warning.</p>
  */
 public abstract class LazyEconomyProvider implements IEconomyProvider {
 

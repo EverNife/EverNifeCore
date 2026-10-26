@@ -1,14 +1,21 @@
 package br.com.finalcraft.evernifecore.minecraft.integration;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.economy.Currencies;
+import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
 import br.com.finalcraft.evernifecore.economy.EcoResponse;
 import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
+import br.com.finalcraft.evernifecore.logic.Caller;
+import br.com.finalcraft.evernifecore.minecraft.testkit.BukkitEventWorld;
 import br.com.finalcraft.evernifecore.testing.EconomyConformance;
 import net.milkbowl.vault2.economy.EconomyResponse;
 import org.bukkit.OfflinePlayer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * The two Vault bridges against a fake economy, which is where the historical bugs lived: v1 emulating
  * {@code set} by moving the difference, v2 setting for real, and every v2 transaction being stamped with
- * the same author.
+ * the same author. The contract is checked through {@code Currencies.money()}, the only caller a bridge has.
  *
  * <p>The fakes are dynamic proxies because both Vault interfaces are wide and only a handful of their
  * methods matter here - and because a mock library would be the first one this repository owns.</p>
@@ -32,18 +39,26 @@ public class VaultEconomyBridgeTest {
 
     private static final UUID PLAYER_UUID = UUID.randomUUID();
 
-    @Test
-    void theClassicVaultBridgeConformsToTheContract() {
-        List<String> failures = EconomyConformance.checkMutating(v1Bridge(new FakeEconomy()), PLAYER_UUID);
+    @TempDir
+    Path tempDir;
 
-        assertEquals(Collections.<String>emptyList(), failures);
+    @Test
+    void moneyOverTheClassicVaultBridgeConformsToTheContract() {
+        assertEquals(Collections.<String>emptyList(), conformanceOfMoneyOver(v1Bridge(new FakeEconomy())));
     }
 
     @Test
-    void theVaultUnlockedBridgeConformsToTheContract() {
-        List<String> failures = EconomyConformance.checkMutating(v2Bridge(new FakeEconomy()), PLAYER_UUID);
+    void moneyOverTheVaultUnlockedBridgeConformsToTheContract() {
+        assertEquals(Collections.<String>emptyList(), conformanceOfMoneyOver(v2Bridge(new FakeEconomy())));
+    }
 
-        assertEquals(Collections.<String>emptyList(), failures);
+    //a balance change is a Bukkit event here, so the check runs on a server double that can build one
+    private List<String> conformanceOfMoneyOver(IEconomyProvider bridge) {
+        try (BukkitEventWorld bukkit = BukkitEventWorld.install(tempDir)) {
+            EverNifeCore.getProviders().getBaseProvider().register(IEconomyProvider.class, bridge);
+            return EconomyConformance.checkMutating(Currencies.money(), CurrencyOwner.player(PLAYER_UUID),
+                    Caller.of(bukkit.getPluginData(), "vault-bridge-test"));
+        }
     }
 
     @Test

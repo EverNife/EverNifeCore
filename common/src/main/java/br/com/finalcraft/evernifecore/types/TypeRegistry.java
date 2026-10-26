@@ -143,6 +143,16 @@ public final class TypeRegistry<T> {
         pending.removeIf(each -> each.getCaller() == owner);
     }
 
+    /** Takes out the type keyed {@code key} when {@code owner} registered it; false when it did not. */
+    public synchronized boolean unregister(ECPluginData owner, String key) {
+        Registration<T> registration = key == null ? null : byKey.get(key.trim().toLowerCase(Locale.ROOT));
+        if (registration == null || registration.owner != owner) {
+            return false;
+        }
+        byKey.remove(registration.descriptor.getKey());
+        return true;
+    }
+
     /** By {@code owner:name}, or by a bare name or alias that exactly one registered type has. */
     public synchronized Optional<TypeDescriptor<T>> find(String keyOrAlias) {
         if (keyOrAlias == null) {

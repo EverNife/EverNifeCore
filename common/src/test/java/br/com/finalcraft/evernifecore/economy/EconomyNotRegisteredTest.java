@@ -4,16 +4,15 @@ import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.util.FCEcoUtil;
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A platform that registered no economy provider at all: every call has to fail loudly, reads included.
- * A shop that quietly charges nothing is worse than one that breaks.
+ * A platform that registered no economy bridge at all: nothing moves, nothing throws, and the refusal
+ * names the wiring bug instead of blaming the server for a missing economy plugin.
  */
 @ECoreTest
 public class EconomyNotRegisteredTest {
@@ -21,21 +20,20 @@ public class EconomyNotRegisteredTest {
     private static final UUID PLAYER_UUID = UUID.randomUUID();
 
     @Test
-    void everyCallThrowsAnActionableError() {
-        IllegalStateException error = assertThrows(IllegalStateException.class, () -> FCEcoUtil.ecoGet(PLAYER_UUID));
-        assertTrue(error.getMessage().contains("No economy provider registered"), error.getMessage());
+    void everyMutationIsRefusedAsAWiringBug() {
+        EcoResponse take = FCEcoUtil.ecoTake(PLAYER_UUID, 1);
 
-        assertThrows(IllegalStateException.class, () -> FCEcoUtil.ecoGetInBigDecimal(PLAYER_UUID));
-        assertThrows(IllegalStateException.class, () -> FCEcoUtil.ecoHasEnough(PLAYER_UUID, 1));
-        assertThrows(IllegalStateException.class, () -> FCEcoUtil.ecoGive(PLAYER_UUID, 1));
-        assertThrows(IllegalStateException.class, () -> FCEcoUtil.ecoTake(PLAYER_UUID, 1));
-        assertThrows(IllegalStateException.class, () -> FCEcoUtil.ecoSet(PLAYER_UUID, 1));
-        assertThrows(IllegalStateException.class, () -> FCEcoUtil.ecoFormat(BigDecimal.TEN));
+        assertEquals(EcoResponse.Reason.UNAVAILABLE, take.getReason());
+        assertTrue(take.getDetail().contains("No economy provider registered"), take.getDetail());
+        assertEquals(EcoResponse.Reason.UNAVAILABLE, FCEcoUtil.ecoGive(PLAYER_UUID, 1).getReason());
+        assertEquals(EcoResponse.Reason.UNAVAILABLE, FCEcoUtil.ecoSet(PLAYER_UUID, 1).getReason());
     }
 
     @Test
-    void availabilityIsTheWayToAskWithoutBreaking() {
+    void availabilityIsTheWayToAskAndReadsAreZero() {
         assertFalse(FCEcoUtil.isEcoAvailable());
+        assertEquals(0.0, FCEcoUtil.ecoGet(PLAYER_UUID));
+        assertFalse(FCEcoUtil.ecoHasEnough(PLAYER_UUID, 1));
     }
 
 }

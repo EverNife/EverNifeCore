@@ -2,41 +2,42 @@ package br.com.finalcraft.evernifecore.util;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.economy.Currencies;
+import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
 import br.com.finalcraft.evernifecore.economy.EcoResponse;
-import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
+import br.com.finalcraft.evernifecore.logic.Caller;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
- * The single entry point to economy, on every platform.
+ * The one-liner facade over {@link Currencies#money()}: the server's economy for a player, by uuid, {@link FPlayer} or
+ * {@link IPlayerData}, in {@code double} or {@code BigDecimal}. Every method delegates to the {@code money} currency,
+ * so its rules hold whichever entry point the caller picked; another currency, a group or global wallet, or a
+ * {@link Caller} of the plugin's own (so the move reaches that plugin's audit) means calling a
+ * {@link br.com.finalcraft.evernifecore.economy.Currency Currency} directly.
  *
- * <p>Mutations answer with an {@link EcoResponse} instead of a boolean, so "the balance was already
- * the target" and "the provider refused" stop looking the same. The {@code double} overloads are the
- * convenience layer: they convert to BigDecimal here, once, and everything below this class compares
- * with {@code compareTo} only.</p>
- *
- * <p>With no economy on the server every method throws {@link IllegalStateException} with an
- * actionable message. Use {@link #isEcoAvailable()} to feature-gate instead of catching.</p>
+ * <p>Mutations answer with an {@link EcoResponse}. Nothing throws for a missing economy: a mutation answers
+ * {@link EcoResponse.Reason#UNAVAILABLE}, a read answers zero, and {@link #isEcoAvailable()} tells the two apart.
+ * Moves are made on the core's own caller. Thread: the economy plugin's - main thread to write.</p>
  */
 public class FCEcoUtil {
 
     private FCEcoUtil() {
     }
 
-    private static IEconomyProvider economy() {
-        IEconomyProvider provider = EverNifeCore.getProviders().getEconomyOrNull();
-        if (provider == null) {
-            throw new IllegalStateException("No economy provider registered - this platform never wired one up");
-        }
-        return provider;
+    private static Caller caller() {
+        return Caller.of(EverNifeCore.getEcPluginData(), "fceco-util");
     }
 
-    /** True when money can actually move: the way to gate a shop instead of catching an exception. */
+    private static CurrencyOwner wallet(UUID playerUUID) {
+        return CurrencyOwner.player(playerUUID);
+    }
+
+    /** True when money can actually move: the way to gate a shop instead of reading UNAVAILABLE afterwards. */
     public static boolean isEcoAvailable() {
-        IEconomyProvider provider = EverNifeCore.getProviders().getEconomyOrNull();
-        return provider != null && provider.isAvailable();
+        return Currencies.money().isAvailable();
     }
 
     // =========================================================================
@@ -48,7 +49,7 @@ public class FCEcoUtil {
     }
 
     public static double ecoGet(UUID playerUUID) {
-        return economy().getBalance(playerUUID).doubleValue();
+        return Currencies.money().getBalance(wallet(playerUUID)).doubleValue();
     }
 
     public static double ecoGet(FPlayer player) {
@@ -64,7 +65,7 @@ public class FCEcoUtil {
     }
 
     public static BigDecimal ecoGetInBigDecimal(UUID playerUUID) {
-        return economy().getBalance(playerUUID);
+        return Currencies.money().getBalance(wallet(playerUUID));
     }
 
     public static BigDecimal ecoGetInBigDecimal(FPlayer player) {
@@ -88,7 +89,7 @@ public class FCEcoUtil {
     }
 
     public static EcoResponse ecoGive(UUID playerUUID, BigDecimal amount) {
-        return economy().give(playerUUID, amount);
+        return Currencies.money().give(wallet(playerUUID), amount, caller());
     }
 
     public static EcoResponse ecoGive(FPlayer player, double amount) {
@@ -116,7 +117,7 @@ public class FCEcoUtil {
     }
 
     public static EcoResponse ecoTake(UUID playerUUID, BigDecimal amount) {
-        return economy().take(playerUUID, amount);
+        return Currencies.money().take(wallet(playerUUID), amount, caller());
     }
 
     public static EcoResponse ecoTake(FPlayer player, double amount) {
@@ -144,7 +145,7 @@ public class FCEcoUtil {
     }
 
     public static EcoResponse ecoSet(UUID playerUUID, BigDecimal amount) {
-        return economy().set(playerUUID, amount);
+        return Currencies.money().set(wallet(playerUUID), amount, caller());
     }
 
     public static EcoResponse ecoSet(FPlayer player, double amount) {
@@ -172,7 +173,7 @@ public class FCEcoUtil {
     }
 
     public static boolean ecoHasEnough(UUID playerUUID, BigDecimal amount) {
-        return economy().hasEnough(playerUUID, amount);
+        return Currencies.money().has(wallet(playerUUID), amount);
     }
 
     public static boolean ecoHasEnough(FPlayer player, double amount) {
@@ -187,13 +188,13 @@ public class FCEcoUtil {
     // ecoFormat
     // =========================================================================
 
-    /** Renders an amount the way the economy plugin itself would ({@code "$1,234.50"}). */
+    /** Renders an amount the way the economy plugin itself would ({@code "$1,234.50"}); the plain amount without one. */
     public static String ecoFormat(double amount) {
         return ecoFormat(BigDecimal.valueOf(amount));
     }
 
     public static String ecoFormat(BigDecimal amount) {
-        return economy().format(amount);
+        return Currencies.money().format(amount).getText();
     }
 
 }

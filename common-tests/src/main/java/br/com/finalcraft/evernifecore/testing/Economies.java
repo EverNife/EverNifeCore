@@ -1,9 +1,13 @@
 package br.com.finalcraft.evernifecore.testing;
 
+import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
 import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
 import br.com.finalcraft.evernifecore.economy.LazyEconomyProvider;
+import br.com.finalcraft.everylibs.util.numberwrapper.NumericSpec;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.UUID;
 
 /**
@@ -17,8 +21,11 @@ import java.util.UUID;
  * }</pre>
  *
  * <p>{@link #absent()} is the other world worth testing: a provider IS registered, but there is no
- * economy behind it - what a server with Vault and no economy plugin looks like. Every call throws,
- * which is the contract, and {@code FCEcoUtil.isEcoAvailable()} is the way to see it coming.</p>
+ * economy behind it - what a server with Vault and no economy plugin looks like. {@code Currencies.money()}
+ * then answers {@code UNAVAILABLE} without throwing, and {@code FCEcoUtil.isEcoAvailable()} is false.</p>
+ *
+ * <p>{@link #currency(String)} is the other piece: a plugin's own {@link TestCurrency}, registered with
+ * {@link ECoreTestWorld#withCurrency}.</p>
  */
 public final class Economies {
 
@@ -32,7 +39,19 @@ public final class Economies {
         return new Economies();
     }
 
-    /** A registered provider with nothing behind it: {@code isAvailable()} is false and every call throws. */
+    /**
+     * A plugin's currency {@code id} ({@code owner:name}) in memory, with wallets for every owner kind, scale 2.
+     */
+    public static TestCurrency currency(String id) {
+        return new TestCurrency(id, NumericSpec.MONEY, EnumSet.allOf(CurrencyOwner.Kind.class));
+    }
+
+    /** Like {@link #currency(String)}, with wallets only for {@code kinds} - a clan vault is {@code GROUP} only. */
+    public static TestCurrency currency(String id, CurrencyOwner.Kind... kinds) {
+        return new TestCurrency(id, NumericSpec.MONEY, EnumSet.copyOf(Arrays.asList(kinds)));
+    }
+
+    /** A registered provider with nothing behind it: {@code isAvailable()} is false and every direct call throws. */
     public static IEconomyProvider absent() {
         return new AbsentEconomy();
     }

@@ -4,7 +4,10 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.ECBaseProvider;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
+import br.com.finalcraft.evernifecore.economy.Currencies;
+import br.com.finalcraft.evernifecore.economy.Currency;
 import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECListenerWatch;
 import br.com.finalcraft.evernifecore.eventbus.ECNativeAudience;
@@ -15,6 +18,9 @@ import br.com.finalcraft.evernifecore.spawn.ISpawnProvider;
 import br.com.finalcraft.evernifecore.spawn.SpawnPoints;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -50,6 +56,7 @@ public final class ECoreTestWorld implements AutoCloseable {
     private final ECScheduler.MainThread previousMainThread;
     private final Set<ECListenerWatch> watchesBefore = Collections.newSetFromMap(new IdentityHashMap<>());
     private final List<String> audiencesBefore = new ArrayList<>();
+    private final List<ECPluginData> currencyOwners = new ArrayList<>();
     private boolean closed = false;
 
     private ECoreTestWorld(TestPlatform platform, IPlatform previousPlatform, IECPluginExtractor previousExtractor, IEconomyProvider previousEconomy) {
@@ -80,6 +87,7 @@ public final class ECoreTestWorld implements AutoCloseable {
 
         providers.register(IPlatform.class, platform);
         ECScheduler.setMainThread(platform.mainThread());
+        ensureCorePluginData();
         SpawnPoints.resetWarning(); //a new world is a new boot: its first spawn fallback reports again
         return world;
     }
@@ -100,10 +108,20 @@ public final class ECoreTestWorld implements AutoCloseable {
 
     /**
      * Installs an economy for the lifetime of this world - {@link Economies} builds the usual ones.
-     * Without this call there is no economy at all, and every {@code FCEcoUtil} call throws.
+     * Without this call there is no economy at all: {@code Currencies.money()} answers {@code UNAVAILABLE}.
      */
     public ECoreTestWorld withEconomy(IEconomyProvider economy) {
         EverNifeCore.getProviders().getBaseProvider().register(IEconomyProvider.class, economy);
+        return this;
+    }
+
+    /**
+     * Registers {@code currency} under {@code owner} for the lifetime of this world - {@link Economies#currency} builds
+     * one; {@link #close()} takes out every currency {@code owner} registered.
+     */
+    public ECoreTestWorld withCurrency(ECPluginData owner, Currency currency, String... aliases) {
+        Currencies.register(owner, currency, aliases);
+        currencyOwners.add(owner);
         return this;
     }
 
@@ -134,6 +152,9 @@ public final class ECoreTestWorld implements AutoCloseable {
         //a notify queue writes to the platform it started on: stopped (waiting for a tick in flight) before that platform goes
         Notifier.get().clearAll();
         Waypoints.get().clearAll();
+        for (ECPluginData owner : currencyOwners) {
+            Currencies.unregisterAll(owner);
+        }
         List<String> leaked = leftOnTheGlobalBus();
 
         ECBaseProvider providers = EverNifeCore.getProviders().getBaseProvider();
@@ -149,6 +170,23 @@ public final class ECoreTestWorld implements AutoCloseable {
                     + " before the world closes: ECListenerWatch.stop() for a watch, ECEventBus.removeNativeAudience(name)"
                     + " for an audience - otherwise the next test class inherits it and its gate counts change.");
         }
+    }
+
+    /**
+     * A move through {@code FCEcoUtil} is attributed to the core, whose plugin data only the real bootstrap sets: a world
+     * gives it one when no test did, and takes it out of the plugin registry at once so a later {@code Plugins.fakeCore}
+     * still builds its own.
+     */
+    private static void ensureCorePluginData() {
+        if (EverNifeCore.getEcPluginData() != null) {
+            return;
+        }
+        try {
+            EverNifeCore.instance.onLoaderInstantiate(Plugins.fakeCore(Files.createTempDirectory("ecore-test-core").toFile()));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        Plugins.forget(Plugins.CORE);
     }
 
     private List<String> leftOnTheGlobalBus() {

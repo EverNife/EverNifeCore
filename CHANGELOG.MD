@@ -207,6 +207,27 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **Economy is `Currency`** (`br.com.finalcraft.evernifecore.economy`): plugins read and move money through
+  `Currencies.money()` (or any registered currency, `Currencies.find/require(id)`) with a `CurrencyOwner` -
+  `player(uuid)`, `group(id)`, `global()` - and a `Caller`; `Currency.supports(kind)` says which owners a currency
+  keeps wallets for (`money`: players only). Every implementation extends `AbstractCurrency`, whose final verbs own the
+  rules (negative amount, unsupported owner, unavailable currency, zero as a no-op); `transfer` gives the first leg back
+  when the second fails and posts one `TransferEvent`; every change posts one `BalanceChangeEvent`. A registered
+  currency is also a variable of the same id. `EcoResponse` gains `UNSUPPORTED_OWNER`, `UNAVAILABLE` and
+  `getCurrency()` - no call throws for a missing economy any more: a move answers `UNAVAILABLE`, a read answers zero.
+  `LevelCurve` (`linear`, `quadratic`, `table`) maps exp to level. Config codecs for `Currency` (by id),
+  `CurrencyOwner`, `LevelCurve` and `Balance`. `IEconomyProvider`, `LazyEconomyProvider` and the Vault/VaultUnlocked
+  bridges stay as the internal bridge behind `money` - an economy plugin still registers there - and no longer repeat
+  the amount rules. Bukkit registers the currencies `exp-levels` and `exp-points`. EveryLibs 1.3.0 (`Balance`,
+  `NumericSpec`).
+- `FCEcoUtil` stays as the one-liner facade over `Currencies.money()`: `ecoGive`, `ecoTake`, `ecoSet`,
+  `ecoHasEnough`, `ecoGet` and `ecoFormat` keep their `double` and `BigDecimal` overloads and still answer an
+  `EcoResponse`, on the core's own caller; code that needs another currency, a group owner or its own `Caller` uses
+  `Currency`. `FCMessageUtil.ecoNotEnough` and `EcoResponse.warnIfInsufficient` format with the currency that refused.
+- `EconomyConformance` checks a `Currency` (`check(currency)`, `checkMutating(currency, scratch, caller)`, one
+  `BalanceChangeEvent` per verb that moved money); `Economies.currency(id[, kinds])` builds a `TestCurrency` next to
+  the `TestEconomy` bridge, and `ECoreTestWorld.withCurrency(owner, currency, aliases...)` registers it for the world.
+
 - **Flags are a value model, not a region feature.** `Flag<T>` declares a `FlagScope` (`PLACE` or `ACTOR`); every
   `FlagHolder` (a region, a group of a region, and a holder that follows a player wherever they stand, registered in
   `ActorHolders`) carries values with an envelope: `mode: add|set`, a written `priority`, a `lock` marker and `since`.

@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.loader;
 
+import br.com.finalcraft.evernifecore.economy.Currencies;
+import br.com.finalcraft.evernifecore.minecraft.economy.McExpCurrency;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
@@ -145,6 +147,9 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
 
         EverNifeCore.getLog().info("§aLoading up Configurations...");
         McConfigManager.initialize(ecPluginData);
+
+        Currencies.register(ecPluginData, McExpCurrency.LEVELS, "levels");
+        Currencies.register(ecPluginData, McExpCurrency.POINTS, "xp");
 
         EverNifeCore.getLog().info("§aRegistering Commands!");
         McCommandRegisterer.registerCommands(ecPluginData);

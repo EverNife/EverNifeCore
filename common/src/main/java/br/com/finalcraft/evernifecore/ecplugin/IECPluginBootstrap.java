@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.ecplugin;
 
+import br.com.finalcraft.evernifecore.economy.Currencies;
 import br.com.finalcraft.evernifecore.action.provenance.ProvenanceTracker;
 import br.com.finalcraft.evernifecore.cooldown.Cooldowns;
 import br.com.finalcraft.evernifecore.logic.CustomVariables;
@@ -136,6 +137,7 @@ public interface IECPluginBootstrap {
         Notifier.get().closeOwnedBy(getPluginData());
         Waypoints.get().hideOwnedBy(getPluginData());
         FlagRegistry.get().unregisterAll(getPluginData());
+        Currencies.unregisterAll(getPluginData());
         TypeRegistries.unregisterAll(getPluginData());
         Multipliers.unregisterAll(getPluginData());
         EventSource.unregisterAll(getPluginData());

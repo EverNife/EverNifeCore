@@ -10,11 +10,16 @@ import br.com.finalcraft.evernifecore.conformance.ConformanceCase;
 import br.com.finalcraft.evernifecore.conformance.ConformanceContext;
 import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
 import br.com.finalcraft.evernifecore.conformance.Verdict;
+import br.com.finalcraft.evernifecore.economy.Currencies;
+import br.com.finalcraft.evernifecore.economy.Currency;
+import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
+import br.com.finalcraft.evernifecore.economy.EcoResponse;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.hytale.action.HyActionSystems;
 import br.com.finalcraft.evernifecore.hytale.itemdatapart.datapart.ItemDataPartMetadata;
 import br.com.finalcraft.evernifecore.hytale.itemstack.ComparableItemComplex;
+import br.com.finalcraft.evernifecore.logic.Caller;
 import br.com.finalcraft.evernifecore.notify.IHudAccess;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
@@ -27,6 +32,7 @@ import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.plugin.PluginBase;
 import org.bson.BsonDocument;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -135,6 +141,17 @@ public final class HyPlatformSuite implements ConformanceSuite {
                         refusal = expected.getMessage();
                     }
                     return Verdict.of(!served && refusal.contains("Hytale"), "served=" + served + " refusal=" + refusal);
+                }),
+                //money over VaultUnlocked when an economy is installed; without one a take answers UNAVAILABLE, never throws
+                ConformanceCase.of("economy", () -> {
+                    Currency money = Currencies.money();
+                    CurrencyOwner unknown = CurrencyOwner.player(UUID.randomUUID());
+                    if (money.isAvailable()) {
+                        return Verdict.of(money.getBalance(unknown) != null && money.format(BigDecimal.TEN) != null,
+                                "money over " + EverNifeCore.getProviders().getEconomyOrNull().getClass().getName());
+                    }
+                    EcoResponse take = money.take(unknown, BigDecimal.ONE, Caller.of(EverNifeCore.getEcPluginData(), "conformance/economy"));
+                    return Verdict.of(take.getReason() == EcoResponse.Reason.UNAVAILABLE, "no economy: take=" + take);
                 }));
     }
 

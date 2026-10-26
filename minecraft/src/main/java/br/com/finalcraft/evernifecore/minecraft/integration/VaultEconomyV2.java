@@ -37,34 +37,17 @@ public class VaultEconomyV2 implements IEconomyProvider {
 
     @Override
     public boolean hasEnough(UUID playerUUID, BigDecimal amount) {
-        if (amount.signum() <= 0) {
-            return true;
-        }
         return economyV2.has(TRANSACTION_SOURCE, playerUUID, amount);
     }
 
     @Override
     public EcoResponse give(UUID playerUUID, BigDecimal amount) {
-        if (amount.signum() < 0) {
-            return EcoResponse.invalidAmount(amount);
-        }
-        if (amount.signum() == 0) {
-            return EcoResponse.success(amount, getBalance(playerUUID));
-        }
-
         return toEcoResponse(amount, economyV2.deposit(TRANSACTION_SOURCE, playerUUID, amount), playerUUID);
     }
 
     @Override
     public EcoResponse take(UUID playerUUID, BigDecimal amount) {
-        if (amount.signum() < 0) {
-            return EcoResponse.invalidAmount(amount);
-        }
-
         BigDecimal current = getBalance(playerUUID);
-        if (amount.signum() == 0) {
-            return EcoResponse.success(amount, current);
-        }
         if (!economyV2.has(TRANSACTION_SOURCE, playerUUID, amount)) {
             return EcoResponse.insufficientFunds(amount, current);
         }
@@ -74,10 +57,6 @@ public class VaultEconomyV2 implements IEconomyProvider {
 
     @Override
     public EcoResponse set(UUID playerUUID, BigDecimal amount) {
-        if (amount.signum() < 0) {
-            return EcoResponse.invalidAmount(amount);
-        }
-
         BigDecimal current = getBalance(playerUUID);
         if (amount.compareTo(current) == 0) {
             //Already at the target: skipping the call keeps a no-op out of the provider's ledger.

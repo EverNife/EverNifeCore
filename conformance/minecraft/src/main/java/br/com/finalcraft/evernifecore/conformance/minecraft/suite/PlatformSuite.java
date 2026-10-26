@@ -5,7 +5,8 @@ import br.com.finalcraft.evernifecore.conformance.ConformanceCase;
 import br.com.finalcraft.evernifecore.conformance.ConformanceContext;
 import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
 import br.com.finalcraft.evernifecore.conformance.Verdict;
-import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
+import br.com.finalcraft.evernifecore.economy.Currencies;
+import br.com.finalcraft.evernifecore.economy.Currency;
 import br.com.finalcraft.evernifecore.region.event.RegionChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionCreatedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionEnterEvent;
@@ -44,12 +45,13 @@ public final class PlatformSuite implements ConformanceSuite {
                 RegionRedefinedEvent.class, RegionFlagChangedEvent.class, RegionGroupChangedEvent.class,
                 RegionChangedEvent.class, RegionLoadFailedEvent.class), "9 region events")));
         cases.add(ConformanceCase.of("economy", () -> {
-            IEconomyProvider economy = EverNifeCore.getProviders().getEconomyOrNull();
-            //the core always registers a lazy provider; only one with an economy behind it can be checked
-            if (economy == null || !economy.isAvailable()) {
-                return Verdict.skipped("no economy behind the provider on this server");
+            Currency money = Currencies.money();
+            //the core always registers a lazy bridge; only money with an economy behind it can be checked
+            if (!money.isAvailable()) {
+                return Verdict.skipped("no economy behind the money currency on this server");
             }
-            return fromViolations(EconomyConformance.check(economy), economy.getClass().getName());
+            return fromViolations(EconomyConformance.check(money), money.getId() + " over "
+                    + EverNifeCore.getProviders().getEconomyOrNull().getClass().getName());
         }));
         return cases;
     }

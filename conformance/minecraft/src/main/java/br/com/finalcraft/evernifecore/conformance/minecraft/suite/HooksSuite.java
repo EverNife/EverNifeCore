@@ -5,7 +5,11 @@ import br.com.finalcraft.evernifecore.conformance.ConformanceCase;
 import br.com.finalcraft.evernifecore.conformance.ConformanceContext;
 import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
 import br.com.finalcraft.evernifecore.conformance.Verdict;
-import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
+import br.com.finalcraft.evernifecore.economy.Currencies;
+import br.com.finalcraft.evernifecore.economy.Currency;
+import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
+import br.com.finalcraft.evernifecore.economy.EcoResponse;
+import br.com.finalcraft.evernifecore.logic.Caller;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.integration.placeholders.PAPIIntegration;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
@@ -17,8 +21,10 @@ import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
 import org.bukkit.Bukkit;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -78,10 +84,14 @@ public final class HooksSuite implements ConformanceSuite {
                 ConformanceCase.later("papi-region-placeholder-by-name", () -> loaded.thenApply(done -> regionPlaceholderByName())),
                 ConformanceCase.of("economy-absent", () -> {
                     if (Bukkit.getPluginManager().getPlugin("Vault") != null) return Verdict.skipped("Vault is installed here");
-                    //the lazy provider is always registered; without Vault it must say there is no economy
-                    IEconomyProvider economy = EverNifeCore.getProviders().getEconomyOrNull();
-                    boolean available = economy != null && economy.isAvailable();
-                    return Verdict.of(economy != null && !available, "provider=" + economy + " isAvailable=" + available);
+                    //the lazy bridge is always registered; without Vault money says there is no economy, and a take
+                    //answers UNAVAILABLE instead of throwing
+                    Currency money = Currencies.money();
+                    boolean available = money.isAvailable();
+                    EcoResponse take = money.take(CurrencyOwner.player(UUID.randomUUID()), BigDecimal.ONE,
+                            Caller.of(EverNifeCore.getEcPluginData(), "conformance/economy-absent"));
+                    return Verdict.of(!available && take.getReason() == EcoResponse.Reason.UNAVAILABLE,
+                            "isAvailable=" + available + " take=" + take);
                 }));
     }
 

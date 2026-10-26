@@ -2,6 +2,8 @@ package br.com.finalcraft.evernifecore.util;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.economy.Currencies;
+import br.com.finalcraft.evernifecore.economy.Currency;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
@@ -192,12 +194,16 @@ public class FCMessageUtil {
         ecoNotEnough(sender, FCEcoUtil.ecoGetInBigDecimal(sender), BigDecimal.valueOf(amountNeeded));
     }
 
-    //The amounts are rendered by the economy plugin itself, so the currency name comes from there
-    //instead of being hardcoded in the message.
     public static void ecoNotEnough(FPlayer sender, BigDecimal currentMoney, BigDecimal neededMoney){
+        ecoNotEnough(sender, Currencies.money(), currentMoney, neededMoney);
+    }
+
+    //The amounts are rendered by the currency that refused, so its name comes from there
+    //instead of being hardcoded in the message.
+    public static void ecoNotEnough(FPlayer sender, Currency currency, BigDecimal current, BigDecimal needed){
         ECO_NOT_ENOUGHT
-                .addPlaceholder("current_money", FCEcoUtil.ecoFormat(currentMoney))
-                .addPlaceholder("needed_money", FCEcoUtil.ecoFormat(neededMoney))
+                .addPlaceholder("current_money", currency.format(current).getText())
+                .addPlaceholder("needed_money", currency.format(needed).getText())
                 .send(sender);
     }
 

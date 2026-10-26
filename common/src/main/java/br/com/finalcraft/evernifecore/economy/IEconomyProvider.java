@@ -4,30 +4,24 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
- * The economy contract every platform implements, and the only one the rest of EverNifeCore knows.
+ * The bridge from an economy plugin to {@link Currencies#money()} - internal: plugins read and move money through the
+ * {@code money} {@link Currency} (or {@code FCEcoUtil}, its one-liner facade), never through this interface. An economy
+ * plugin still registers its implementation here ({@code EverNifeCore.getProviders()}), and the Vault, VaultUnlocked
+ * and Hytale VaultUnlocked bridges are the ones the core ships.
  *
- * <p>BigDecimal-only and UUID-keyed on purpose: the {@code double} overloads live on
- * {@link br.com.finalcraft.evernifecore.util.FCEcoUtil} and convert exactly once, so no implementation
- * repeats the conversion and no comparison is ever made on floating point.</p>
- *
- * <p>Single currency by design. A plugin that needs several has to talk to its economy plugin
- * directly - {@link #getHandle()} is the way out.</p>
- *
- * <p>Threading is not enforced - this is a bridge, and thread-safety is whatever the underlying economy
- * plugin offers. Recommended: read and write from the main thread; off it, only read, never write.</p>
- *
- * <p>Semantics every implementation owes, whichever economy sits below it:</p>
+ * <p>BigDecimal-only and UUID-keyed. The rules every verb keeps (negative amounts refused, zero a no-op, an owner kind
+ * other than a player refused) are {@link AbstractCurrency}'s: a bridge only ever sees a positive amount on
+ * {@code give}/{@code take} and a non-negative one on {@code set}. What a bridge still owes:</p>
  * <ul>
- *   <li>a negative amount is {@link EcoResponse.Reason#INVALID_AMOUNT} and never reaches the provider;</li>
- *   <li>{@code give}/{@code take} of zero succeed as a no-op;</li>
  *   <li>{@code set} to the balance the account already has succeeds - reaching the target is not a failure;</li>
- *   <li>{@code take} never leaves a negative balance: without funds it is
+ *   <li>{@code take} checks and withdraws in one step and never leaves a negative balance: without funds it is
  *       {@link EcoResponse.Reason#INSUFFICIENT_FUNDS} and nothing moves;</li>
- *   <li>{@code hasEnough} of zero or less is {@code true};</li>
- *   <li>a transaction the provider refuses is {@link EcoResponse.Reason#PROVIDER_ERROR} carrying its text,
- *       never a silent success;</li>
+ *   <li>a transaction the economy refuses is {@link EcoResponse.Reason#PROVIDER_ERROR} carrying its text, never a
+ *       silent success;</li>
  *   <li>{@link #getBalance(UUID)} never returns null.</li>
  * </ul>
+ *
+ * <p>Thread: whatever the economy plugin below offers - read and write from the main thread; off it, only read.</p>
  */
 public interface IEconomyProvider {
 
