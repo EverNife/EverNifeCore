@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.region.command;
 
+import br.com.finalcraft.evernifecore.flag.FlagMode;
 import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
@@ -185,6 +186,34 @@ class RegionCommandNodeTest extends RegionCommandFixture {
 
         harness.dispatch(fp, steve, "region flag arena deny-pvp -");
         assertNull(arena.getFlagValue(flag("deny-pvp")));
+    }
+
+    @Test
+    void flagWithModePriorityAndLockWritesTheEnvelopeAndReadsItBack() {
+        FinalCMDPluginCommand fp = mount();
+
+        harness.dispatch(fp, steve, "region flag arena heal 2 every 5s --mode set --priority 10 --lock");
+
+        FlagValue<?> value = arena.getFlagValue(flag("heal"));
+        assertNotNull(value, steve.getMessages().toString());
+        assertEquals(FlagMode.SET, value.getMode());
+        assertEquals(10, value.getPriority());
+        assertTrue(value.isLock());
+
+        steve.clearMessages();
+        harness.dispatch(fp, steve, "region flag arena heal");
+        steve.assertAnyMessageContains("2 every 5s mode=set prio=10 lock");
+    }
+
+    @Test
+    void groupFlagTakesThePriorityAndAnUnknownModeIsRefused() {
+        FinalCMDPluginCommand fp = mount();
+        harness.dispatch(fp, steve, "region group arena vip flag heal 7 every 1s -p 3");
+        assertEquals(3, arena.getGroup("vip").getFlagValue(flag("heal")).getPriority(), steve.getMessages().toString());
+
+        harness.dispatch(fp, steve, "region flag arena heal 1 every 1s --mode replace");
+        steve.assertAnyMessageContains("--mode takes add");
+        assertNull(arena.getFlagValue(flag("heal")), "a refused mode sets nothing");
     }
 
     @Test

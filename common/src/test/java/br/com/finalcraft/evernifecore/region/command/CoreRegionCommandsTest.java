@@ -1,5 +1,9 @@
 package br.com.finalcraft.evernifecore.region.command;
 
+import java.util.Collections;
+import br.com.finalcraft.evernifecore.flag.FlagValue;
+import br.com.finalcraft.evernifecore.flag.FlagMode;
+import br.com.finalcraft.evernifecore.flag.AmountEvery;
 import br.com.finalcraft.evernifecore.commands.CoreCommand;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.flag.Flag;
@@ -55,6 +59,23 @@ class CoreRegionCommandsTest extends RegionCommandFixture {
         String hover = steve.hoverTextOfMessageContaining(denyPvp + ":");
         assertNotNull(hover);
         assertTrue(hover.contains("theduel:arena") && hover.contains("LOCAL_VALUE"), hover);
+    }
+
+    @Test
+    void hereListsEveryLayerWithWhatTheResolverDidSoACutLayerReadsCutBySet() {
+        Flag<List<AmountEvery>> heal = (Flag<List<AmountEvery>>) (Flag<?>) flag("heal");
+        duelArena.setFlag(heal, FlagValue.permanent(Collections.singletonList(AmountEvery.of(5, Duration.ofSeconds(1)))).withMode(FlagMode.SET)
+                .withPriority(1));
+        arena.setFlag(heal, Collections.singletonList(AmountEvery.of(2, Duration.ofSeconds(1))));
+
+        harness.dispatch(ecore, steve, "region here");
+
+        String colored = steve.hoverTextOfMessageContaining(heal.getKey() + ":");
+        assertNotNull(colored, steve.getMessages().toString());
+        String hover = colored.replaceAll("§.", "");
+        assertTrue(hover.contains("[COUNTED] theduel:arena") && hover.contains("mode=set"), hover);
+        assertTrue(hover.contains("[CUT_BY_SET] fakeprot:arena"), hover);
+        steve.assertAnyMessageContains("via sum-by-interval");
     }
 
     @Test

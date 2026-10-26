@@ -14,6 +14,8 @@ import br.com.finalcraft.evernifecore.player.state.EffectLevel;
 import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.player.state.PlayerTime;
 import br.com.finalcraft.evernifecore.region.Region;
+import br.com.finalcraft.evernifecore.flag.ActorHolders;
+import br.com.finalcraft.evernifecore.testing.TestActorHolder;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
 import br.com.finalcraft.evernifecore.testing.TestPlatform;
 import br.com.finalcraft.evernifecore.testing.TestPlayerState;
@@ -259,6 +261,31 @@ class PlayerStateFlagsTest extends TrackerFixture {
             assertEquals(20, states.of(outside).food);
         } finally {
             ticker.end();
+        }
+    }
+
+    @Test
+    void aHealGivenOnlyByAHolderThatFollowsThePlayerHealsOutsideEveryRegion(TestPlatform platform) {
+        registered(CoreFlags.HEAL);
+        TestActorHolder party = new TestActorHolder("party", player.getUniqueId());
+        ActorHolders.register(owner, TestActorHolder.providerOf(Collections.singletonList(party)));
+        RegionTicker ticker = new RegionTicker(lookup);
+        try {
+            party.setFlag(CoreFlags.HEAL, Collections.singletonList(AmountEvery.of(3, Duration.ofSeconds(1))));
+            TestPlayerState.State state = platform.getTestPlayerState().of(player);
+            state.health = 10;
+            tracker.onJoin(player, at(30.5));
+            assertTrue(lookup.at(WORLD, 30.5, 5, 5.5).isEmpty(), "the player stands outside every region");
+            assertEquals(party.getFlagValue(CoreFlags.HEAL).getValue(), session().getAppliedSessionValue(CoreFlags.HEAL),
+                    "the session applies a value no region gave");
+
+            ticker.begin();
+            clock.advance(Duration.ofSeconds(1));
+            agenda.runQueued();
+            assertEquals(13.0, state.health);
+        } finally {
+            ticker.end();
+            ActorHolders.unregisterAll(owner);
         }
     }
 
