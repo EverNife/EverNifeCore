@@ -149,6 +149,13 @@ class CurrencyTest {
     }
 
     @Test
+    void whoHoldsExactlyTheAmountHasIt() {
+        assertTrue(gold.has(ALEX, new BigDecimal("100")));
+        assertTrue(gold.has(ALEX, new BigDecimal("100.00")));
+        assertFalse(gold.has(ALEX, new BigDecimal("100.01")));
+    }
+
+    @Test
     void anOwnerKindTheCurrencyHasNoWalletForIsRefusedBeforeItRuns() {
         TestCurrency clanVault = Economies.currency("fakeshop:vault", CurrencyOwner.Kind.GROUP);
 
