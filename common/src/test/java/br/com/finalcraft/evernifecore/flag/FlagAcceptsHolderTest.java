@@ -42,6 +42,23 @@ class FlagAcceptsHolderTest {
         }
     }
 
+    /** A value that follows the player by scope, but read only where a place gives it: a holder of an actor is refused. */
+    private static final class PlacesOnly extends Flag<Integer> {
+        PlacesOnly(ECPluginData owner) {
+            super(FlagKey.of(owner, "places-only"), FlagTypes.INTEGER, Collections.singleton(EventSource.NONE), null);
+        }
+
+        @Override
+        public FlagScope getScope() {
+            return FlagScope.ACTOR;
+        }
+
+        @Override
+        public boolean accepts(FlagHolder holder) {
+            return holder.getHolderScope() == FlagScope.PLACE;
+        }
+    }
+
     @TempDirNobodyCleans
     Path tempDir;
 
@@ -87,5 +104,22 @@ class FlagAcceptsHolderTest {
         hall.getGroup("officers").addMember(officer.getUniqueId());
         hall.getGroup("officers").setFlag(maxMembers, 5);
         assertEquals(Integer.valueOf(5), regions.getLookup().resolve(maxMembers, hall, officer));
+    }
+
+    @Test
+    void aValueOnAnActorHolderTheFlagRefusesIsIgnoredByTheResolution() {
+        Region hall = regions.cuboid("hall", WORLD, 0, 0, 0, 10, 10, 10);
+        PlacesOnly placesOnly = new PlacesOnly(regions.getOwner());
+        FlagRegistry.get().register(regions.getOwner(), placesOnly);
+        TestFPlayerSender member = Senders.player("member").at(WORLD, 5, 5, 5);
+        regions.actorHolder("party", member.getUniqueId()).setFlag(placesOnly, 7);
+
+        Resolution<Integer> fromTheParty = regions.explain(placesOnly, member);
+        assertEquals(null, fromTheParty.getValue(), "the party's value is refused by the flag");
+        assertTrue(fromTheParty.getLayers().isEmpty(), String.valueOf(fromTheParty.getLayers()));
+
+        hall.setFlag(placesOnly, 3);
+        assertEquals(Integer.valueOf(3), regions.getLookup().resolve(placesOnly, member), "the place still counts, alone");
+        assertEquals(1, regions.explain(placesOnly, member).getLayers().size());
     }
 }
