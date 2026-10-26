@@ -1,7 +1,6 @@
 package br.com.finalcraft.evernifecore.ranking;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
-import br.com.finalcraft.evernifecore.integration.placeholders.PAPIIntegration;
 import br.com.finalcraft.evernifecore.placeholder.manipulation.ManipulationContext;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
@@ -42,17 +41,11 @@ public final class RankedPlaceholders {
     }
 
     /**
-     * Serves {@value #CORE_PREFIX}, where {@code [list]} is a full id - only when PlaceholderAPI is there to ask.
-     *
-     * @return the replacer that answers it; null without PlaceholderAPI
+     * Adds the core's form to {@code coreReplacer}, the replacer of {@value #CORE_PREFIX}: {@code [list]} is a full id. The
+     * core hands the replacer its region placeholders live on, since PlaceholderAPI keeps one expansion per prefix.
      */
-    public static @Nullable RegexReplacer<IPlayerData> registerCore(ECPluginData core) {
-        if (!PAPIIntegration.isPresent()) {
-            return null;
-        }
-        RegexReplacer<IPlayerData> replacer = PAPIIntegration.createPlaceholderIntegration(core, CORE_PREFIX, IPlayerData.class);
-        register(replacer, RankedLists::find);
-        return replacer;
+    public static <P extends IPlayerData> void registerCore(RegexReplacer<P> coreReplacer) {
+        register(coreReplacer, RankedLists::find);
     }
 
     private static <P extends IPlayerData> void register(RegexReplacer<P> replacer, Function<String, RankedList<?>> lists) {

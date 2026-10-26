@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.ranking;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.integration.placeholders.PAPIIntegration;
+import br.com.finalcraft.evernifecore.region.placeholder.RegionPlaceholders;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
@@ -147,8 +148,9 @@ class RankedPlaceholdersTest {
     @Test
     void theCorePrefixNamesAListByItsFullId() {
         ECPluginData core = Plugins.fakeCore(tempDir.resolve("core").toFile());
-        RegexReplacer<IPlayerData> coreReplacer = RankedPlaceholders.registerCore(core);
+        RegexReplacer<IPlayerData> coreReplacer = RegionPlaceholders.registerCore(core);
         assertNotNull(coreReplacer, "PlaceholderAPI is present, so the core serves its prefix");
+        RankedPlaceholders.registerCore(coreReplacer);
 
         assertEquals("bob", ask(coreReplacer, "top_[finaljobs:miner]_1_name", alice));
         assertEquals("", ask(coreReplacer, "top_[miner]_1_name", alice), "the core prefix wants the owner too");

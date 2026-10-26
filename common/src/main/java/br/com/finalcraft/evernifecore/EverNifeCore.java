@@ -20,6 +20,8 @@ import br.com.finalcraft.evernifecore.logger.ECLogger;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
+import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
+import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.ranking.RankedPlaceholders;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.region.placeholder.RegionPlaceholders;
@@ -84,8 +86,11 @@ public class EverNifeCore {
         CoreLogic.registerAll(getEcPluginData());
         Notifier.get().registerStock(getEcPluginData());
         Waypoints.get().registerStock(getEcPluginData());
-        RegionPlaceholders.registerCore(getEcPluginData());
-        RankedPlaceholders.registerCore(getEcPluginData());
+        RegexReplacer<IPlayerData> corePlaceholders = RegionPlaceholders.registerCore(getEcPluginData());
+        if (corePlaceholders != null) {
+            //one replacer for the core's prefix: PlaceholderAPI keeps only the last expansion registered under a name
+            RankedPlaceholders.registerCore(corePlaceholders);
+        }
 
         getLog().info("§aRegistering Commands!");
         CommandRegisterer.registerCommands(this.getEcPluginData());
