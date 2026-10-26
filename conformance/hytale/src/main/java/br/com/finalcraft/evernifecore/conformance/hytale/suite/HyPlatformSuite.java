@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Which platform the core detected on this server, that its region Systems went on it once, at setup, and that the
@@ -146,9 +147,11 @@ public final class HyPlatformSuite implements ConformanceSuite {
                 heard.complete(event.getContext().getCommandLine());
             }
         });
+        //the verdict of the run completes inside the command's body, and the Post follows the body: wait for it
         return playerVerbBySudo(player)
-                .thenApply(ran -> Verdict.of(ran.getKind() == Verdict.Kind.PASS && heard.isDone(), "command ran: " + ran.getDetail()
-                        + " | CommandActionEvent.Post=" + (heard.isDone() ? heard.join() : "none")))
+                .thenCompose(ran -> heard.completeOnTimeout("none", 5, TimeUnit.SECONDS)
+                        .thenApply(line -> Verdict.of(ran.getKind() == Verdict.Kind.PASS && !line.equals("none"),
+                                "command ran: " + ran.getDetail() + " | CommandActionEvent.Post=" + line)))
                 .whenComplete((verdict, failed) -> subscription.unsubscribe());
     }
 
