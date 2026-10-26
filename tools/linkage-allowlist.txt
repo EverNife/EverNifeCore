@@ -108,6 +108,7 @@
 * class org/bukkit/NamespacedKey br.com.finalcraft.evernifecore.minecraft.notify.McHudAccess$Toasts  # same guard as above
 * method org/bukkit/UnsafeValues.loadAdvancement(Lorg/bukkit/NamespacedKey;Ljava/lang/String;)Lorg/bukkit/advancement/Advancement; br.com.finalcraft.evernifecore.minecraft.notify.McHudAccess$Toasts  # same guard as above
 * method org/bukkit/UnsafeValues.removeAdvancement(Lorg/bukkit/NamespacedKey;)Z br.com.finalcraft.evernifecore.minecraft.notify.McHudAccess$Toasts  # same guard as above
+* method org/bukkit/Bukkit.getAdvancement(Lorg/bukkit/NamespacedKey;)Lorg/bukkit/advancement/Advancement; br.com.finalcraft.evernifecore.minecraft.notify.McHudAccess$Toasts  # same guard as above
 * method org/bukkit/entity/Player.getAdvancementProgress(Lorg/bukkit/advancement/Advancement;)Lorg/bukkit/advancement/AdvancementProgress; br.com.finalcraft.evernifecore.minecraft.notify.McHudAccess$Toasts  # same guard as above
 * class org/bukkit/advancement/Advancement br.com.finalcraft.evernifecore.conformance.minecraft.suite.HudSuite$Toasts  # arrived in 1.12. The toast-delivers case reaches it only after supports(TOAST)
 * class org/bukkit/NamespacedKey br.com.finalcraft.evernifecore.conformance.minecraft.suite.HudSuite$Toasts  # same guard as above

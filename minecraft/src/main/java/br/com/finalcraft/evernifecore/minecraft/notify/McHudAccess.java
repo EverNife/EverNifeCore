@@ -30,6 +30,7 @@ import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -349,33 +350,45 @@ public final class McHudAccess implements IHudAccess {
     }
 
     /**
-     * A toast is a throwaway advancement: loaded, awarded, and revoked and removed on the next tick. A 1.12 API, only
-     * reached behind {@code require(TOAST)}. Thread: main.
+     * A toast is a hidden advancement awarded and revoked on the next tick. One advancement per distinct toast: the server
+     * cannot unload one ({@code removeAdvancement} only deletes its datapack file), so a repeat reuses the loaded copy and
+     * what stays loaded until the next data reload is bounded by the distinct toasts, not by how many were shown. A 1.12
+     * API, only reached behind {@code require(TOAST)}. Thread: main.
      */
     private static final class Toasts {
         /** @return false when the server refused the advancement (logged) */
         static boolean show(Player player, String json) {
-            NamespacedKey key = new NamespacedKey(EverNifeCoreBukkitPlugin.instance, "toast/" + UUID.randomUUID());
-            Advancement advancement;
-            try {
-                advancement = Bukkit.getUnsafe().loadAdvancement(key, json);
-            } catch (Throwable failure) {
-                advancement = null;
-                EverNifeCore.getLog().warning("This server refused the advancement a toast is drawn with (" + failure
-                        + "); toasts are off until restart and notify chains fall to their next step.");
-            }
+            NamespacedKey key = keyOf(json);
+            Advancement advancement = Bukkit.getAdvancement(key);
             if (advancement == null) {
-                return false;
+                try {
+                    advancement = Bukkit.getUnsafe().loadAdvancement(key, json);
+                } catch (Throwable failure) {
+                    advancement = null;
+                    EverNifeCore.getLog().warning("This server refused the advancement a toast is drawn with (" + failure
+                            + "); toasts are off until restart and notify chains fall to their next step.");
+                }
+                if (advancement == null) {
+                    return false;
+                }
+                //the loaded copy is all the toast needs; the file would load it again on every boot
+                Bukkit.getUnsafe().removeAdvancement(key);
             }
             Advancement shown = advancement;
+            //revoked first: the same toast twice within a tick is still awarded, and so still drawn
+            player.getAdvancementProgress(shown).revokeCriteria("trigger");
             player.getAdvancementProgress(shown).awardCriteria("trigger");
             ECScheduler.onMainThreadLater(() -> {
                 if (player.isOnline()) {
                     player.getAdvancementProgress(shown).revokeCriteria("trigger");
                 }
-                Bukkit.getUnsafe().removeAdvancement(key);
             });
             return true;
+        }
+
+        /** The same title, description and style always name the same advancement. */
+        static NamespacedKey keyOf(String json) {
+            return new NamespacedKey(EverNifeCoreBukkitPlugin.instance, "toast/" + UUID.nameUUIDFromBytes(json.getBytes(StandardCharsets.UTF_8)));
         }
     }
 

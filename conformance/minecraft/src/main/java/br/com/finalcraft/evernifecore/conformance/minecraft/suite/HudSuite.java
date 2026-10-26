@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -82,14 +83,22 @@ public final class HudSuite implements ConformanceSuite {
             if (!hud().supports(Capability.TOAST)) {
                 return CompletableFuture.completedFuture(Verdict.skipped("no TOAST before " + TOAST_SINCE.getLowestRelease()));
             }
-            hud().showToast(FCBukkitUtil.adapt(player), FancyText.of("§aECC toast"), FancyText.of("§7conformance"), ToastStyle.SUCCESS);
+            int before = Toasts.left();
+            String unique = "§7conformance " + UUID.randomUUID();
+            hud().showToast(FCBukkitUtil.adapt(player), FancyText.of("§aECC toast"), FancyText.of(unique), ToastStyle.SUCCESS);
             CompletableFuture<Verdict> answer = new CompletableFuture<>();
-            //the toast advancement goes away on the tick after it is shown; two ticks later none may be left
-            ECScheduler.onMainThreadLater(() -> ECScheduler.onMainThreadLater(() -> {
-                int left = Toasts.left();
-                boolean stillSupported = hud().supports(Capability.TOAST);
-                answer.complete(Verdict.of(left == 0 && stillSupported, "toastAdvancementsLeft=" + left + " supportsAfter=" + stillSupported));
-            }));
+            //the server never unloads an advancement: the toast's stays loaded, and the same toast again must reuse it
+            ECScheduler.onMainThreadLater(() -> {
+                int afterFirst = Toasts.left();
+                hud().showToast(FCBukkitUtil.adapt(player), FancyText.of("§aECC toast"), FancyText.of(unique), ToastStyle.SUCCESS);
+                ECScheduler.onMainThreadLater(() -> ECScheduler.onMainThreadLater(() -> {
+                    int afterSecond = Toasts.left();
+                    boolean stillSupported = hud().supports(Capability.TOAST);
+                    answer.complete(Verdict.of(afterFirst == before + 1 && afterSecond == afterFirst && stillSupported,
+                            "toastAdvancements before=" + before + " afterFirst=" + afterFirst + " afterSameAgain=" + afterSecond
+                                    + " supportsAfter=" + stillSupported));
+                }));
+            });
             return PlayerCases.within(answer, 5000);
         }));
         return cases;
