@@ -34,6 +34,22 @@ public class FlagSettings {
     @JsonProperty
     private @Nullable String bypassPermission;
 
+    @Comment({"The strategy that joins this flag's layers (a region's own value, its groups', a party's...); null keeps",
+            "the flag's own. Only the strategies the flag accepts are taken - the load names them when this one is not."})
+    @JsonProperty
+    private @Nullable String resolve;
+
+    /** The id of the {@link FlagResolver} these settings name; null keeps the flag's own ({@link Flag#getResolver()}). */
+    @JsonIgnore
+    public @Nullable String getResolve() {
+        return resolve == null || resolve.trim().isEmpty() ? null : resolve.trim();
+    }
+
+    @JsonIgnore
+    public void setResolve(@Nullable String resolve) {
+        this.resolve = resolve;
+    }
+
     /**
      * A node that lifts the flag like the standard bypass nodes, read from the settings in effect where the flag is
      * read; null for none. Ignored by a flag that is not {@link Flag#isBypassable() bypassable}.

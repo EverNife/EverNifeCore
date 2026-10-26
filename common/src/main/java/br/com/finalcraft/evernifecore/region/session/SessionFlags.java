@@ -83,8 +83,9 @@ final class SessionFlags {
     private <T> void evaluate(FPlayer player, RegionPlayerSession session, Flag<T> flag, Instant now, boolean revalidateSame) {
         FlagKey key = flag.getKey();
         Resolution<T> resolution = lookup.resolution(flag, session.getCurrent(), player);
-        Region source = resolution.getSource();
-        T value = source == null ? null : resolution.getValue();
+        //a value counts once some holder gave it - a region, or a holder that follows the player outside every region
+        Region source = resolution.getRegion();
+        T value = resolution.getSource() == null ? null : resolution.getValue();
         @SuppressWarnings("unchecked")
         T applied = (T) session.getAppliedValues().get(key);
         Region appliedSource = session.getAppliedSource(key);
@@ -96,26 +97,26 @@ final class SessionFlags {
         if (applied == null) {
             session.setApplied(key, value, source);
             flag.onEnter(new SessionContext(player, source, session), value);
-            notifyHandler(player, source, flag, value, FlagOutcome.APPLIED, resolution.getReason());
+            notifyHandler(player, source, flag, value, FlagOutcome.APPLIED, resolution);
         } else if (value == null) {
             session.setApplied(key, null, null);
             flag.onLeave(new SessionContext(player, appliedSource, session), applied);
-            notifyHandler(player, appliedSource, flag, applied, FlagOutcome.REMOVED, resolution.getReason());
+            notifyHandler(player, appliedSource, flag, applied, FlagOutcome.REMOVED, resolution);
         } else if (revalidateSame || !applied.equals(value)) {
             session.setApplied(key, value, source);
             flag.onRevalidate(new SessionContext(player, source, session), applied, value);
             if (!applied.equals(value)) {
-                notifyHandler(player, source, flag, value, FlagOutcome.APPLIED, resolution.getReason());
+                notifyHandler(player, source, flag, value, FlagOutcome.APPLIED, resolution);
             }
         }
         session.setNextRevalidation(key, value == null ? null : nextCheck(player, session, flag, source, now));
     }
 
-    private static @Nullable Instant nextCheck(FPlayer player, RegionPlayerSession session, Flag<?> flag, Region source, Instant now) {
+    private static @Nullable Instant nextCheck(FPlayer player, RegionPlayerSession session, Flag<?> flag, @Nullable Region source, Instant now) {
         Revalidation revalidation = flag.getRevalidation();
         switch (revalidation.getType()) {
             case INTERVAL:
-                Duration override = source.getEffectiveFlagSettings(flag).getRevalidationInterval();
+                Duration override = new SessionContext(player, source, session).getSettings(flag).getRevalidationInterval();
                 return now.plus(override != null ? override : revalidation.getInterval());
             case CUSTOM:
                 return revalidation.nextCheckAt(new SessionContext(player, source, session));
@@ -131,23 +132,23 @@ final class SessionFlags {
             Region source = session.getAppliedSource(entry.getKey());
             session.setApplied(entry.getKey(), null, null);
             session.setNextRevalidation(entry.getKey(), null);
-            if (flag != null && source != null) {
+            if (flag != null) {
                 leave(player, session, flag, source, entry.getValue());
             }
         }
     }
 
     @SuppressWarnings("unchecked")
-    private <T> void leave(FPlayer player, RegionPlayerSession session, Flag<T> flag, Region source, Object lastValue) {
+    private <T> void leave(FPlayer player, RegionPlayerSession session, Flag<T> flag, @Nullable Region source, Object lastValue) {
         flag.onLeave(new SessionContext(player, source, session), (T) lastValue);
-        notifyHandler(player, source, flag, lastValue, FlagOutcome.REMOVED, Resolution.Reason.DEFAULT);
+        notifyHandler(player, source, flag, lastValue, FlagOutcome.REMOVED, Resolution.ofDefault(flag, Resolution.Reason.DEFAULT));
     }
 
-    private static void notifyHandler(FPlayer player, Region region, Flag<?> flag, Object value, FlagOutcome outcome,
-                                      Resolution.Reason reason) {
-        FlagHandler handler = region.getFlagHandler(flag);
+    private static void notifyHandler(FPlayer player, @Nullable Region region, Flag<?> flag, Object value, FlagOutcome outcome,
+                                      Resolution<?> resolution) {
+        FlagHandler handler = region == null ? null : region.getFlagHandler(flag);
         if (handler != null) {
-            handler.handle(new FlagOutcomeContext(outcome, player, region, flag, value, EventSource.MOVE, null, reason, 0));
+            handler.handle(new FlagOutcomeContext(outcome, player, region, flag, value, EventSource.MOVE, null, resolution, 0));
         }
     }
 

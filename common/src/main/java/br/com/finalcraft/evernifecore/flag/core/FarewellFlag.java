@@ -23,11 +23,6 @@ public final class FarewellFlag extends Flag<String> {
         return FlagCategory.SESSION;
     }
 
-    /** The first. */
-    @Override
-    public String resolveTie(List<String> values) {
-        return values.get(0);
-    }
 
     @Override
     public void onLeave(SessionContext context, String lastValue) {

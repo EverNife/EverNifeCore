@@ -1,5 +1,8 @@
 package br.com.finalcraft.evernifecore.flag.core;
 
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Arrays;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.SessionContext;
 import br.com.finalcraft.evernifecore.flag.FlagSettings;
@@ -47,7 +50,12 @@ public final class TimeLockFlag extends PlayerStateFlag<TimeLock> {
         if (value == null) { //another holder (a held effect) keeps the slot, with the time it set
             return;
         }
-        TimeLockSettings settings = context.getRegion().getEffectiveFlagSettings(this);
+        TimeLockSettings settings = context.getSettings(this);
         access.setTime(context.getPlayer(), new PlayerTime(value.getTime().getTicks(), value.isRelative()), settings.getTransition());
+    }
+
+    @Override
+    public Set<String> getChannels() {
+        return new HashSet<>(Arrays.asList("slot:time"));
     }
 }

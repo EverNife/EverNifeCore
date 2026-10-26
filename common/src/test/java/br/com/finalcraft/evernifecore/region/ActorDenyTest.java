@@ -39,6 +39,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Deny flags by actor: the settings filter every deny flag, the per-actor refinements, and an explosion asked in stages. */
@@ -229,10 +230,9 @@ class ActorDenyTest {
             assertEquals(Resolution.Reason.LOCAL_VALUE, resolution.getReason());
             assertEquals(region, resolution.getSource());
             assertEquals(CoreFlags.DENY_BLOCK_BREAK, resolution.getFlag(), "the value is the parent's");
-            assertTrue(resolution.getSteps().stream().anyMatch(step -> step.getFlag() == CoreFlags.DENY_BLOCK_BREAK_MOBS),
-                    "the refinement's own look comes first");
-            assertTrue(resolution.getSteps().stream().anyMatch(step -> step.getFlag() == CoreFlags.DENY_BLOCK_BREAK
-                    && step.getReason() == Resolution.Reason.LOCAL_VALUE), "then the climb to the parent: " + resolution);
+            assertFalse(resolution.getLayers().isEmpty(), "explain shows the layer the value came from: " + resolution);
+            assertTrue(resolution.getLayers().stream().allMatch(layer -> layer.getFlag() == CoreFlags.DENY_BLOCK_BREAK
+                    && layer.getReason() == Resolution.Reason.LOCAL_VALUE), "the layers are the parent flag's, after the climb: " + resolution);
         }
         assertEquals(Tristate.TRUE, lookup.resolve(CoreFlags.DENY_BLOCK_BREAK_MOBS, region, null), "resolve agrees with explain");
         assertEquals(Tristate.TRUE, lookup.resolve(CoreFlags.DENY_BLOCK_BREAK_MOBS, WORLD, 5, 5, 5, null));

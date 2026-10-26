@@ -10,6 +10,8 @@ import br.com.finalcraft.evernifecore.flag.FlagChangeCause;
 import br.com.finalcraft.evernifecore.flag.FlagHandler;
 import br.com.finalcraft.evernifecore.flag.FlagKey;
 import br.com.finalcraft.evernifecore.flag.FlagSettings;
+import br.com.finalcraft.evernifecore.flag.FlagHolder;
+import br.com.finalcraft.evernifecore.flag.FlagScope;
 import br.com.finalcraft.evernifecore.flag.FlagStore;
 import br.com.finalcraft.evernifecore.flag.FlagValue;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
@@ -49,7 +51,7 @@ import java.util.function.Consumer;
  * <p>Equality is identity on purpose: two regions with the same id are two objects only while one replaces the
  * other. {@link #toString()} is the id.</p>
  */
-public final class Region {
+public final class Region implements FlagHolder {
 
     private final RegionManager manager;
     private final RegionId id;
@@ -64,7 +66,7 @@ public final class Region {
     private volatile @Nullable String description;
     private volatile boolean attached;
     private final Set<String> tags = new CopyOnWriteArraySet<>();
-    private final FlagStore flags = new FlagStore(this::onFlagChanged);
+    private final FlagStore flags = new FlagStore(this, this::onFlagChanged);
     private final ConcurrentHashMap<String, AccessGroup> groups = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<FlagKey, FlagSettings> flagSettings = new ConcurrentHashMap<>();
     /** Overrides of flags not registered, or not yet asked for: kept as stored, by {@code owner:name}. */
@@ -266,7 +268,20 @@ public final class Region {
 
     // ---- flags ----
 
+    /** The region's id: {@code owner:name}. */
+    @Override
+    public String getHolderId() {
+        return id.toString();
+    }
+
+    /** A region speaks about a place. */
+    @Override
+    public FlagScope getHolderScope() {
+        return FlagScope.PLACE;
+    }
+
     /** A read-only snapshot of the live local values: no group values, nothing from the parent. */
+    @Override
     public Map<FlagKey, FlagValue<?>> getFlags() {
         return flags.getFlags();
     }
@@ -280,8 +295,19 @@ public final class Region {
         return value == null ? null : value.getValue();
     }
 
+    @Override
     public <T> @Nullable FlagValue<T> getFlagValue(Flag<T> flag) {
         return flags.getValue(flag);
+    }
+
+    /**
+     * Sets the local value with its envelope ({@link FlagValue#withMode}, {@link FlagValue#withPriority},
+     * {@link FlagValue#withLock}); with a deadline it sits over the permanent value, as {@link #setFlag(Flag, Object, Duration)}.
+     *
+     * @throws IllegalStateException when {@code flag} is not registered
+     */
+    public <T> void setFlag(Flag<T> flag, FlagValue<T> value) {
+        flags.set(flag, value);
     }
 
     /**
@@ -314,6 +340,7 @@ public final class Region {
     }
 
     /** Internal: the store behind the flag methods, shared with the flag registry. */
+    @Override
     public FlagStore getFlagStore() {
         return flags;
     }
@@ -406,7 +433,8 @@ public final class Region {
      * Gives this region its own settings for {@code flag}. The object is kept as given: after changing it, set it
      * again so the change is written.
      *
-     * @throws IllegalArgumentException when {@code settings} is not of the flag's {@link Flag#getSettingsType()}
+     * @throws IllegalArgumentException when {@code settings} is not of the flag's {@link Flag#getSettingsType()}, or name a
+     * resolver the flag does not accept
      */
     public void setFlagSettings(Flag<?> flag, FlagSettings settings) {
         Class<? extends FlagSettings> expected = flag.getSettingsType();
@@ -415,6 +443,7 @@ public final class Region {
                     + (settings == null ? "null" : settings.getClass().getName()) + " - build a " + expected.getSimpleName()
                     + " and pass that.");
         }
+        flag.checkResolve(settings);
         flagSettings.put(flag.getKey(), settings);
         rawFlagSettings.remove(flag.getKey().toString());
         manager.changed(this, RegionChangedEvent.Type.FLAG_SETTINGS);
@@ -479,6 +508,7 @@ public final class Region {
         }
         try {
             FlagSettings read = ConfigFactory.inMemoryCodec().getObjectMapper().treeToValue(raw, flag.getSettingsType());
+            flag.checkResolve(read);
             FlagSettings raced = flagSettings.putIfAbsent(flag.getKey(), read);
             rawFlagSettings.remove(key, raw);
             return raced != null ? raced : read;

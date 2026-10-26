@@ -43,7 +43,8 @@ public final class ProtectionFlagGate {
 
     public static Decision decide(RegionLookup lookup, ActionContext context) {
         List<Region> here = lookup.at(context.getPosition());
-        if (here.isEmpty()) {
+        //outside every region only a holder that follows the player can speak (a party's invincible in the open field)
+        if (here.isEmpty() && (context.getPlayer() == null || !ActorHolders.hasAny(context.getPlayer()))) {
             return Decision.PASS;
         }
         List<Runnable> passed = new ArrayList<>(2);
@@ -65,14 +66,14 @@ public final class ProtectionFlagGate {
         if (value == null) {
             return false;
         }
-        Region source = resolution.getSource();
+        Region source = resolution.getRegion();
         FlagSettings settings = settingsOf(flag, resolution, null);
         if (flag.decide(context, value, settings) == Decision.DENY) {
             fireApplied(flag, context, value, source, settings);
             FlagHandler handler = source == null ? null : source.getFlagHandler(flag);
             if (handler != null) {
                 handler.handle(new FlagOutcomeContext(FlagOutcome.DENIED, player, source, flag, value, context.getSource(), context,
-                        resolution.getReason(), 0));
+                        resolution, 0));
             }
             return true;
         }
@@ -115,7 +116,7 @@ public final class ProtectionFlagGate {
             }
             return MoveVerdict.allowed();
         }
-        Region source = resolution.getSource() != null ? resolution.getSource() : crossed;
+        Region source = resolution.getRegion() != null ? resolution.getRegion() : crossed;
         fireApplied(flag, context, value, source, settings);
         MoveDenySettings moveSettings = settings instanceof MoveDenySettings ? (MoveDenySettings) settings : null;
         int denials = session.noteDenial(flag.getKey(), ECClock.now(), moveSettings != null ? moveSettings.getStuckWindow() : DEFAULT_STUCK_WINDOW);
@@ -123,7 +124,7 @@ public final class ProtectionFlagGate {
         FlagHandler handler = source.getFlagHandler(flag);
         if (handler != null) {
             FlagOutcomeContext outcome = new FlagOutcomeContext(FlagOutcome.DENIED, player, source, flag, value, EventSource.MOVE, context,
-                    resolution.getReason(), denials);
+                    resolution, denials);
             handler.handle(outcome);
             if (outcome.isAllowed()) {
                 return MoveVerdict.allowed();
@@ -180,7 +181,7 @@ public final class ProtectionFlagGate {
                     context.getPlayer().getName(), crossed.getId(), context.getTo().getWorldName());
             return MoveVerdict.allowed();
         }
-        Region source = resolution.getSource() != null ? resolution.getSource() : crossed;
+        Region source = resolution.getRegion() != null ? resolution.getRegion() : crossed;
         fireApplied(flag, context, value, source, settings);
         return MoveVerdict.revert(destination);
     }
@@ -258,11 +259,11 @@ public final class ProtectionFlagGate {
             return;
         }
         Resolution<T> own = lookup.explain(flag, region, null);
-        if (own.getFlag() != flag || own.getSource() == null || own.getValue() == null || flag.decide(context, own.getValue(), region.getEffectiveFlagSettings(flag)) != Decision.DENY) {
+        if (own.getFlag() != flag || own.getRegion() == null || own.getValue() == null || flag.decide(context, own.getValue(), region.getEffectiveFlagSettings(flag)) != Decision.DENY) {
             return;
         }
         handler.handle(new FlagOutcomeContext(FlagOutcome.ALLOWED, context.getPlayer(), region, flag, effective, context.getSource(), context,
-                resolution.getReason(), 0));
+                resolution, 0));
     }
 
     /**
@@ -290,7 +291,7 @@ public final class ProtectionFlagGate {
     private static <T> FlagSettings settingsOf(Flag<T> asked, Resolution<T> resolution, @Nullable Region whereUndefined) {
         Flag<T> definer = resolution.getFlag();
         Flag<T> owner = asked.getSettingsType().isAssignableFrom(definer.getSettingsType()) ? definer : asked;
-        Region source = resolution.getSource() != null ? resolution.getSource() : whereUndefined;
+        Region source = resolution.getRegion() != null ? resolution.getRegion() : whereUndefined;
         return source != null ? source.getEffectiveFlagSettings(owner) : owner.getSettings();
     }
 

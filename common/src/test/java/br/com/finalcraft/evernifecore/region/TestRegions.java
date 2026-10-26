@@ -47,8 +47,9 @@ public final class TestRegions {
         if (type == WorldLocPos.class) {
             return Arrays.asList(WorldLocPos.of(1, 2, 3, "world"), WorldLocPos.of(4, 5, 6, "world"));
         }
-        if (type == AmountEvery.class) {
-            return Arrays.asList(AmountEvery.of(1, Duration.ofSeconds(5)), AmountEvery.of(2, Duration.ofSeconds(5)));
+        if (flag.getType() == FlagTypes.AMOUNT_EVERY_LIST) {
+            return Arrays.asList(Collections.singletonList(AmountEvery.of(1, Duration.ofSeconds(5))),
+                    Collections.singletonList(AmountEvery.of(2, Duration.ofSeconds(5))));
         }
         if (type == TimeLock.class) {
             return Arrays.asList(new TimeLock(TimeLock.TimeOfDay.DAY, false), new TimeLock(TimeLock.TimeOfDay.NIGHT, false));

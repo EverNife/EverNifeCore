@@ -1,5 +1,8 @@
 package br.com.finalcraft.evernifecore.flag.core;
 
+import java.util.Arrays;
+import br.com.finalcraft.evernifecore.flag.FlagResolvers;
+import br.com.finalcraft.evernifecore.flag.FlagResolver;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.SessionContext;
@@ -58,11 +61,6 @@ public final class CommandFlag extends Flag<List<String>> {
         return Collections.singleton(IPlayerStateAccess.Capability.COMMAND);
     }
 
-    /** The first. */
-    @Override
-    public List<String> resolveTie(List<List<String>> values) {
-        return values.get(0);
-    }
 
     @Override
     public void onEnter(SessionContext context, List<String> value) {
@@ -115,5 +113,16 @@ public final class CommandFlag extends Flag<List<String>> {
                 ECDebugModule.REGIONS.debug("Region command '{}' for {} failed: {}", text, player.getName(), failed.toString());
             }
         }
+    }
+
+    /** Overlapping regions each run their own lines, in layer order. */
+    @Override
+    public FlagResolver<List<String>> getResolver() {
+        return FlagResolvers.concat();
+    }
+
+    @Override
+    public List<FlagResolver<List<String>>> getAcceptedResolvers() {
+        return Arrays.asList(getResolver(), FlagResolvers.firstDefined());
     }
 }

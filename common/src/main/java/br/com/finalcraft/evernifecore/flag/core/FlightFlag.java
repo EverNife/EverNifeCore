@@ -1,5 +1,10 @@
 package br.com.finalcraft.evernifecore.flag.core;
 
+import java.util.Set;
+import br.com.finalcraft.evernifecore.flag.FlagKey;
+import br.com.finalcraft.evernifecore.flag.FlagInteraction;
+import br.com.finalcraft.evernifecore.flag.FlagResolvers;
+import br.com.finalcraft.evernifecore.flag.FlagResolver;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.SessionContext;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
@@ -52,12 +57,6 @@ public final class FlightFlag extends PlayerStateFlag<Tristate> {
                 + " The flight they had comes back on the way out.";
     }
 
-    /** {@code force-fly}: TRUE wins a tie. {@code allow-fly}: FALSE wins it. */
-    @Override
-    public Tristate resolveTie(List<Tristate> values) {
-        Tristate winner = forced ? Tristate.TRUE : Tristate.FALSE;
-        return values.contains(winner) ? winner : values.get(0);
-    }
 
     @Override
     protected boolean acts(IPlayerStateAccess access, Tristate value) {
@@ -93,5 +92,27 @@ public final class FlightFlag extends PlayerStateFlag<Tristate> {
 
     private static boolean isSpectator(IPlayerStateAccess access, FPlayer player) {
         return access.supports(IPlayerStateAccess.Capability.GAME_MODE) && access.getGameMode(player) == ECGameMode.SPECTATOR;
+    }
+
+    /** {@code force-fly}: TRUE wins among equals. {@code allow-fly}: FALSE wins. */
+    @Override
+    public FlagResolver<Tristate> getResolver() {
+        return FlagResolvers.preferAmongEquals(forced ? Tristate.TRUE : Tristate.FALSE);
+    }
+
+    @Override
+    public List<FlagResolver<Tristate>> getAcceptedResolvers() {
+        return Arrays.asList(getResolver(), FlagResolvers.firstDefined());
+    }
+
+    @Override
+    public Set<String> getChannels() {
+        return new HashSet<>(Arrays.asList("slot:flight"));
+    }
+
+    @Override
+    public Set<FlagInteraction> getInteractions() {
+        return Collections.singleton(FlagInteraction.with(FlagKey.of(CoreFlags.OWNER, forced ? "allow-fly" : "force-fly"),
+                "force-fly = TRUE flies the player even where allow-fly = FALSE grounds them"));
     }
 }

@@ -67,8 +67,9 @@ public final class FlagRegistry {
      * ({@link Flag#getOwner()}); registering the same object again under the same owner does nothing.
      *
      * @throws IllegalArgumentException when the key names another plugin, when the flag is registered by another owner,
-     * when another flag already holds the key, or when the flag refines a parent that is not registered or that has
-     * another value type
+     * when another flag already holds the key, when the flag refines a parent that is not registered or that has
+     * another value type, when it shares a channel with a registered flag and neither declares how they interact
+     * ({@link Flag#getInteractions()}), or when its settings name a resolver it does not accept
      */
     public synchronized <T> void register(ECPluginData owner, Flag<T> flag) {
         Flag<?> existing = flags.get(flag.getKey());
@@ -101,9 +102,12 @@ public final class FlagRegistry {
                         + " parent's value where it is not defined.");
             }
         }
+        checkInteractions(flag);
         flag.bind(owner);
         try {
-            flag.setSettings(loadSettings(flag));
+            FlagSettings settings = loadSettings(flag);
+            flag.checkResolve(settings);
+            flag.setSettings(settings);
         } catch (RuntimeException unreadable) {
             flag.unbind();
             throw unreadable;
@@ -119,6 +123,11 @@ public final class FlagRegistry {
                 if (!group.getFlagStore().relink(flag)) {
                     unreadable.add(group.toString());
                 }
+            }
+        }
+        for (FlagHolder holder : ActorHolders.all()) {
+            if (!holder.getFlagStore().relink(flag)) {
+                unreadable.add(holder.getHolderId());
             }
         }
         warnIfWithoutEffect(flag);
@@ -148,6 +157,9 @@ public final class FlagRegistry {
             for (AccessGroup group : region.getGroups().values()) {
                 group.getFlagStore().unlink(flag);
             }
+        }
+        for (FlagHolder holder : ActorHolders.all()) {
+            holder.getFlagStore().unlink(flag);
         }
         flag.unbind();
         changed();
@@ -326,8 +338,40 @@ public final class FlagRegistry {
         //EverNifeCore's reload may have flipped the key that decides which files every owner's flags read
         Collection<Flag<?>> affected = reloaded == EverNifeCore.getEcPluginData() ? getAll() : getByOwner(reloaded);
         for (Flag<?> flag : affected) {
-            flag.setSettings(loadSettings(flag));
+            FlagSettings settings = loadSettings(flag);
+            try {
+                flag.checkResolve(settings);
+            } catch (IllegalArgumentException refused) {
+                flag.getOwner().getLog().warning(refused.getMessage() + " The settings it had before the reload stay.");
+                continue;
+            }
+            flag.setSettings(settings);
         }
+    }
+
+    /** Every registered flag that shares a channel with {@code flag} must have one of the two declare how they interact. */
+    private void checkInteractions(Flag<?> flag) {
+        if (flag.getChannels().isEmpty()) {
+            return;
+        }
+        for (Flag<?> other : flags.values()) {
+            for (String channel : other.getChannels()) {
+                if (flag.getChannels().contains(channel) && !declares(flag, other) && !declares(other, flag)) {
+                    throw new IllegalArgumentException("Flags " + other.getKey() + " and " + flag.getKey() + " both act on " + channel
+                            + " and neither declares how they interact. Add FlagInteraction.with(<the other key>, \"<the rule>\") to"
+                            + " getInteractions() of one of them, or give yours another channel.");
+                }
+            }
+        }
+    }
+
+    private static boolean declares(Flag<?> flag, Flag<?> other) {
+        for (FlagInteraction interaction : flag.getInteractions()) {
+            if (interaction.getOther().equals(other.getKey())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Whether {@code flag}'s settings file is written and read now. */

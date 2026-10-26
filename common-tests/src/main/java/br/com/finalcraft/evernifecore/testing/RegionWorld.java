@@ -3,9 +3,14 @@ package br.com.finalcraft.evernifecore.testing;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
+import br.com.finalcraft.evernifecore.flag.ActorHolders;
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagHolder;
+import br.com.finalcraft.evernifecore.flag.Resolution;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.region.CreationResult;
 import br.com.finalcraft.evernifecore.region.Region;
@@ -19,9 +24,11 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -49,6 +56,7 @@ public final class RegionWorld implements AutoCloseable {
     private final RegionManager manager;
     private final List<ECEventSubscription<?>> subscriptions = new ArrayList<>();
     private final Map<Class<?>, List<?>> recorded = new HashMap<>();
+    private final List<TestActorHolder> actorHolders = new CopyOnWriteArrayList<>();
     private boolean closed;
 
     private RegionWorld(String ownerName, Path dataFolder, boolean load) {
@@ -120,6 +128,40 @@ public final class RegionWorld implements AutoCloseable {
         return result.getRegion();
     }
 
+    /**
+     * A holder that follows {@code members} wherever they stand (a party), registered in {@link ActorHolders} under this
+     * world's owner until {@link #close()}.
+     */
+    public TestActorHolder actorHolder(String id, UUID... members) {
+        TestActorHolder holder = new TestActorHolder(id, members);
+        if (actorHolders.isEmpty()) {
+            ActorHolders.register(owner, new ActorHolders.Provider() {
+                @Override
+                public Collection<? extends FlagHolder> holdersOf(FPlayer player) {
+                    List<FlagHolder> theirs = new ArrayList<>();
+                    for (TestActorHolder candidate : actorHolders) {
+                        if (candidate.contains(player)) {
+                            theirs.add(candidate);
+                        }
+                    }
+                    return theirs;
+                }
+
+                @Override
+                public Collection<? extends FlagHolder> all() {
+                    return actorHolders;
+                }
+            });
+        }
+        actorHolders.add(holder);
+        return holder;
+    }
+
+    /** Every layer of {@code flag} where {@code player} stands, and what the resolver did with each. */
+    public <T> Resolution<T> explain(Flag<T> flag, FPlayer player) {
+        return getLookup().resolution(flag, getLookup().at(player), player);
+    }
+
     /** What {@link TestClock#now()} answers - fixed until {@link #advance(Duration)}. */
     public Instant now() {
         return TestClock.now();
@@ -175,6 +217,7 @@ public final class RegionWorld implements AutoCloseable {
         }
         closed = true;
         subscriptions.forEach(ECEventSubscription::unsubscribe);
+        ActorHolders.unregisterAll(owner);
         CompletableFuture<Void> closing = manager.close();
         for (int round = 0; !closing.isDone() && round < 100; round++) {
             runDue();

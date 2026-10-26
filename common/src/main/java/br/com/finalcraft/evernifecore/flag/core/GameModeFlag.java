@@ -1,5 +1,8 @@
 package br.com.finalcraft.evernifecore.flag.core;
 
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Arrays;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.SessionContext;
 import br.com.finalcraft.evernifecore.flag.FlagTypes;
@@ -48,5 +51,10 @@ public final class GameModeFlag extends PlayerStateFlag<ECGameMode> {
         if (mode != null) {
             access.setGameMode(context.getPlayer(), mode);
         }
+    }
+
+    @Override
+    public Set<String> getChannels() {
+        return new HashSet<>(Arrays.asList("slot:game-mode"));
     }
 }

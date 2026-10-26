@@ -309,7 +309,11 @@ public final class RegionPlayerSession {
             appliedSources.remove(flag);
         } else {
             appliedValues.put(flag, value);
-            appliedSources.put(flag, source);
+            if (source == null) {
+                appliedSources.remove(flag);
+            } else {
+                appliedSources.put(flag, source);
+            }
         }
     }
 

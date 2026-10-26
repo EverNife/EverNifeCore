@@ -1,5 +1,8 @@
 package br.com.finalcraft.evernifecore.flag.core;
 
+import java.util.Arrays;
+import br.com.finalcraft.evernifecore.flag.FlagResolvers;
+import br.com.finalcraft.evernifecore.flag.FlagResolver;
 import br.com.finalcraft.evernifecore.action.ActionContext;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.MoveContext;
@@ -26,16 +29,6 @@ public final class DenyEntryWithMessageFlag extends Flag<DenyEntryMessage> {
                 Collections.singleton(EventSource.MOVE), null);
     }
 
-    /** A value that denies wins; otherwise the first. */
-    @Override
-    public DenyEntryMessage resolveTie(List<DenyEntryMessage> values) {
-        for (DenyEntryMessage value : values) {
-            if (value.getDenied() == Tristate.TRUE) {
-                return value;
-            }
-        }
-        return values.get(0);
-    }
 
     /** Denies entering, never leaving: a player already inside walks out freely. */
     @Override
@@ -76,5 +69,16 @@ public final class DenyEntryWithMessageFlag extends Flag<DenyEntryMessage> {
     @Override
     public String getDescription() {
         return "Denies entry and tells the player why, in one value: denied=true message=\"Boss fight in progress\".";
+    }
+
+    /** Among equally specific layers the one that denies wins; otherwise the first. */
+    @Override
+    public FlagResolver<DenyEntryMessage> getResolver() {
+        return FlagResolvers.preferAmongEquals(value -> value.getDenied() == Tristate.TRUE);
+    }
+
+    @Override
+    public List<FlagResolver<DenyEntryMessage>> getAcceptedResolvers() {
+        return Arrays.asList(getResolver(), FlagResolvers.firstDefined());
     }
 }

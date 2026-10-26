@@ -1,5 +1,9 @@
 package br.com.finalcraft.evernifecore.flag.core;
 
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Arrays;
+import br.com.finalcraft.evernifecore.flag.FlagScope;
 import br.com.finalcraft.evernifecore.action.ActionContext;
 import br.com.finalcraft.evernifecore.action.ECEntityType;
 import br.com.finalcraft.evernifecore.action.EventSource;
@@ -25,5 +29,16 @@ public final class DenyPvpFlag extends DenyFlag {
     @Override
     public String getDescription() {
         return "TRUE: players cannot hurt each other in the region. Holds for everyone - the bypass permission does not lift it.";
+    }
+
+    /** It follows the player: a holder that follows them may carry it. */
+    @Override
+    public FlagScope getScope() {
+        return FlagScope.ACTOR;
+    }
+
+    @Override
+    public Set<String> getChannels() {
+        return new HashSet<>(Arrays.asList("damage:pvp"));
     }
 }

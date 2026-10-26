@@ -25,11 +25,6 @@ public final class SpawnPointFlag extends Flag<WorldLocPos> {
         return FlagCategory.DATA;
     }
 
-    /** The first. */
-    @Override
-    public WorldLocPos resolveTie(List<WorldLocPos> values) {
-        return values.get(0);
-    }
 
     @Override
     public String getDescription() {

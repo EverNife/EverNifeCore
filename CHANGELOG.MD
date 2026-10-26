@@ -191,6 +191,37 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **Flags are a value model, not a region feature.** `Flag<T>` declares a `FlagScope` (`PLACE` or `ACTOR`); every
+  `FlagHolder` (a region, a group of a region, and a holder that follows a player wherever they stand, registered in
+  `ActorHolders`) carries values with an envelope: `mode: add|set`, a written `priority`, a `lock` marker and `since`.
+  Resolution orders every defined layer `lock` > `priority` > contextual order (group in the region > region, by
+  priority and hierarchy > holder of the player) > most recent, cuts after the first `set`, and joins what is left with
+  the flag's `FlagResolver` (`first-defined`, `prefer-among-equals`, `sum-by-interval`, `union-max-level`, `concat`,
+  `product-capped`, `max`, `min`); the settings of a flag may name another strategy with `resolve:`, among those the
+  flag accepts - one outside the list fails the load naming them. `Resolution` explains every layer (`getLayers()`,
+  `getCountedLayers()`, `getResolver()`); `getSource()` is a `FlagHolder`, `getRegion()` the region when there is one;
+  `Reason.TIE`, `SKIPPED_ANCESTOR`, `NO_VALUE` and `Resolution.Step`/`getSteps()` are gone, `Reason.ACTOR_VALUE`
+  arrives. `Flag.resolveTie` and `FlagType.resolveTie` are gone: a flag overrides `getResolver()` /
+  `getAcceptedResolvers()`. A layer the flag refuses (`Flag.accepts(FlagHolder)`) is ignored and warned once.
+- **Flags that touch the same slot or channel declare how they interact** (`Flag.getChannels()`, `getInteractions()`,
+  `FlagInteraction`); two undeclared flags on one channel fail to register, naming both. Two `lock` values that disagree
+  where regions overlap are reported at load and on `setFlag`, and in `region info`; the most specific wins.
+- `heal`, `feed`, `damage-over-time` and `hunger-over-time` take a list of `N every T` entries (one is still typed and
+  stored as before); layers with the same interval add up, different intervals run each on its own tick, `heal` and
+  `damage-over-time` (`feed` and `hunger-over-time`) of one interval apply as one net change, `invincible = TRUE` blocks
+  the damage, and `0 every 1s` is a value (meaningful with `mode: set`). `time-lock`, `weather-lock`, `game-mode`,
+  `allow-fly`, `force-fly`, `potion-effects` (now joined by `union-max-level`), `invincible`, `deny-pvp`,
+  `deny-damage-from-mobs`, `deny-item-pickup` and `deny-item-drop` are `ACTOR` flags. `command-on-enter` /
+  `command-on-exit` concatenate across overlapping regions.
+- `region.setFlag(flag, FlagValue)` (and on a group); the `flag` and `group flag` verbs take `--mode`, `--priority`
+  (`-p`), `--lock` and read the envelope back; `info` shows the envelope, the strategy, lock conflicts and declared
+  interactions; `here` shows every layer and what the resolver did with it. Stored values written before this change read
+  unchanged (`add`, priority 0, no lock, oldest).
+- `SessionContext.getRegion()` may be null (a value that came only from a holder that follows the player);
+  `SessionContext.getSettings(flag)` gives the settings in effect either way. `FlagOutcomeContext.getResolution()` gives
+  the layers behind an outcome. Protection and session flags of a holder that follows the player apply outside every region.
+- `common-tests`: `RegionWorld.actorHolder(id, members...)` (`TestActorHolder`) and `RegionWorld.explain(flag, player)`.
+
 - **`VisualStyle.PATH`**: the outline renderers draw a waypoint path with a particle of its own (Bukkit `HEART`,
   Hytale `Lore_Note_Glow`).
 - **Hytale Server 0.7.4** (was 0.7.2; no source change).

@@ -12,6 +12,9 @@ import br.com.finalcraft.evernifecore.flag.Flag;
 import br.com.finalcraft.evernifecore.flag.FlagKey;
 import br.com.finalcraft.evernifecore.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.flag.FlagValue;
+import br.com.finalcraft.evernifecore.flag.FlagHolder;
+import br.com.finalcraft.evernifecore.flag.FlagInteraction;
+import br.com.finalcraft.evernifecore.flag.FlagLayer;
 import br.com.finalcraft.evernifecore.flag.Resolution;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
@@ -155,14 +158,33 @@ public class CoreRegionCommands {
         for (Map.Entry<FlagKey, FlagValue<?>> entry : region.getFlags().entrySet()) {
             Flag<?> flag = FlagRegistry.get().get(entry.getKey());
             StringBuilder line = new StringBuilder(" §7- §f" + entry.getKey() + " §7= §e" + valueText(flag, entry.getValue()));
+            String envelope = entry.getValue().describeEnvelope();
+            if (!envelope.isEmpty()) {
+                line.append(" §7").append(envelope);
+            }
+            if (flag != null) {
+                line.append(" §7resolve: ").append(flag.getResolver(region.getEffectiveFlagSettings(flag)).getId());
+            }
             if (flag != null && region.getFlagSettings(flag) != null) {
                 line.append(" §7settings: §eoverride");
+            }
+            if (flag != null) {
+                for (FlagHolder conflict : RegionLookup.get().findLockConflicts(flag, region)) {
+                    line.append(" §clock conflict with ").append(conflict.getHolderId());
+                }
             }
             ECPluginData handlerOwner = flag == null ? null : region.getFlagHandlerOwner(flag);
             if (handlerOwner != null) {
                 line.append(" §7handler: §e").append(handlerOwner.getMetaInfo().getName());
             }
             sender.sendMessage(line.toString());
+            if (flag != null) {
+                for (FlagInteraction interaction : flag.getInteractions()) {
+                    if (region.getFlags().containsKey(interaction.getOther())) {
+                        sender.sendMessage("    §7interacts: " + interaction.getOther().getName() + " - " + interaction.getRule());
+                    }
+                }
+            }
         }
         for (Flag<?> flag : FlagRegistry.get().getAll()) {
             if (region.getFlagValue(flag) == null && (region.getFlagSettings(flag) != null || region.getFlagHandlerOwner(flag) != null)) {
@@ -205,19 +227,22 @@ public class CoreRegionCommands {
         if (value == null) {
             return;
         }
-        Region source = resolution.getSource();
+        FlagHolder source = resolution.getSource();
         StringBuilder hover = new StringBuilder("§6" + flag.getKey());
-        for (Resolution.Step step : resolution.getSteps()) {
-            hover.append("\n§7- ").append(step.getFlag() == flag ? "" : "§6" + step.getFlag().getKey() + " ")
-                    .append("§f").append(step.getRegion() == null ? "-" : step.getRegion().getId().toString())
-                    .append(" §7prio §f").append(step.getPriority())
-                    .append(Optional.of(step).map(Resolution.Step::getGroup).map(group -> " §7group §f" + group.getName()).orElse(""))
-                    .append(" §7value §f").append(step.getValue() == null ? "-" : FlagValues.format(flag, step.getValue()))
-                    .append(" §7(").append(step.getReason()).append(")");
+        for (FlagLayer<T> layer : resolution.getLayers()) {
+            String envelope = layer.getFlagValue().describeEnvelope();
+            hover.append("\n§7- [").append(layer.getUse()).append("] ")
+                    .append(layer.getFlag() == flag ? "" : "§6" + layer.getFlag().getKey() + " ")
+                    .append("§f").append(layer.getHolder().getHolderId())
+                    .append(" §7prio §f").append(layer.getFlagValue().getPriority())
+                    .append(" §7(").append(layer.getReason()).append(")")
+                    .append(" §7value §f").append(FlagValues.format(flag, layer.getValue()))
+                    .append(envelope.isEmpty() ? "" : " §7" + envelope);
         }
         sender.sendMessage(FancyText.of("§f" + flag.getKey() + ": §e" + flag.getType().format(value) + " §7<- "
-                + (source == null ? "default" : source.getId().toString()) + " (" + resolution.getReason() + ")"
-                + (resolution.getFlag() == flag ? "" : " §7via §f" + resolution.getFlag().getKey())).setHover(hover.toString()));
+                + (source == null ? "default" : source.getHolderId()) + " (" + resolution.getReason() + ")"
+                + (resolution.getFlag() == flag ? "" : " §7of §f" + resolution.getFlag().getKey())
+                + " §7via " + resolution.getResolver().getId()).setHover(hover.toString()));
     }
 
     private static String summary(Region region) {

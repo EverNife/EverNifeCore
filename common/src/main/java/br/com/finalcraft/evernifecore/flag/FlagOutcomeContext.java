@@ -24,7 +24,7 @@ public final class FlagOutcomeContext {
     private final @Nullable Object value;
     private final EventSource source;
     private final @Nullable ActionContext action;
-    private final Resolution.Reason reason;
+    private final Resolution<?> resolution;
     private final int consecutiveDenials;
     private @Nullable WorldLocPos revertTo;
     private @Nullable RevertStrategy revertWith;
@@ -32,7 +32,7 @@ public final class FlagOutcomeContext {
 
     /** Internal: built by the region system for each outcome. */
     public FlagOutcomeContext(FlagOutcome outcome, @Nullable FPlayer player, Region region, Flag<?> flag, @Nullable Object value,
-                              EventSource source, @Nullable ActionContext action, Resolution.Reason reason, int consecutiveDenials) {
+                              EventSource source, @Nullable ActionContext action, Resolution<?> resolution, int consecutiveDenials) {
         this.outcome = Objects.requireNonNull(outcome, "outcome");
         this.player = player;
         this.region = Objects.requireNonNull(region, "region");
@@ -40,7 +40,7 @@ public final class FlagOutcomeContext {
         this.value = value;
         this.source = Objects.requireNonNull(source, "source");
         this.action = action;
-        this.reason = Objects.requireNonNull(reason, "reason");
+        this.resolution = Objects.requireNonNull(resolution, "resolution");
         this.consecutiveDenials = consecutiveDenials;
     }
 
@@ -78,7 +78,12 @@ public final class FlagOutcomeContext {
 
     /** How the value was reached: by a group, the region's own value, a parent's, or the bypass. */
     public Resolution.Reason getReason() {
-        return reason;
+        return resolution.getReason();
+    }
+
+    /** The whole resolution behind the outcome: its layers, what each one did, the resolver that joined them. */
+    public Resolution<?> getResolution() {
+        return resolution;
     }
 
     /** How many times in a row this flag denied this player's movement inside the stuck window; 0 outside movement. */

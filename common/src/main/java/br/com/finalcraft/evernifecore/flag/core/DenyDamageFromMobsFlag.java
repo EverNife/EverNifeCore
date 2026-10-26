@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.flag.core;
 
+import br.com.finalcraft.evernifecore.flag.FlagScope;
 import br.com.finalcraft.evernifecore.action.ActionContext;
 import br.com.finalcraft.evernifecore.action.ECEntityType;
 import br.com.finalcraft.evernifecore.action.EventSource;
@@ -27,5 +28,11 @@ public final class DenyDamageFromMobsFlag extends DenyFlag {
     @Override
     public String getDescription() {
         return "TRUE: animals and monsters cannot hurt players in the region. Falling, lava and the rest of the world still do.";
+    }
+
+    /** It follows the player: a holder that follows them may carry it. */
+    @Override
+    public FlagScope getScope() {
+        return FlagScope.ACTOR;
     }
 }

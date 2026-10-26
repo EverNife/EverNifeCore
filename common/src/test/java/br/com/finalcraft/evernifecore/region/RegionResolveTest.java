@@ -4,12 +4,14 @@ import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.flag.AmountEvery;
 import br.com.finalcraft.evernifecore.flag.Flag;
 import br.com.finalcraft.evernifecore.flag.FlagKey;
+import br.com.finalcraft.evernifecore.flag.FlagLayer;
 import br.com.finalcraft.evernifecore.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.flag.FlagSettings;
+import br.com.finalcraft.evernifecore.flag.FlagValue;
 import br.com.finalcraft.evernifecore.flag.Resolution;
-import br.com.finalcraft.evernifecore.flag.Resolution.Step;
 import br.com.finalcraft.evernifecore.flag.Tristate;
 import br.com.finalcraft.evernifecore.flag.TristateFlag;
 import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
@@ -37,6 +39,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.nio.file.Files;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -46,11 +50,11 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** The effective value of a flag at a point for a subject: bands, parents, groups, ties, bypass and default. */
+/** The effective value of a flag at a point for a subject, joined over layers: bands, parents, groups, bypass and default. */
 @ECoreTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class RegionResolveTest {
@@ -59,26 +63,17 @@ class RegionResolveTest {
     private static final String CORE = "EverNifeCore";
     private static final String WORLD = "world";
 
-    /** Counts the ties it is asked to break. */
-    private static final class CountingFlag extends TristateFlag {
-        int ties;
+    private static final class DenyThing extends TristateFlag {
+        private final boolean bypassable;
 
-        CountingFlag(ECPluginData owner, String name, boolean bypassable) {
+        DenyThing(ECPluginData owner, String name, boolean bypassable) {
             super(FlagKey.of(owner, name), Collections.singleton(EventSource.DAMAGE), Tristate.FALSE, Tristate.TRUE);
             this.bypassable = bypassable;
         }
 
-        private final boolean bypassable;
-
         @Override
         public boolean isBypassable() {
             return bypassable;
-        }
-
-        @Override
-        public Tristate resolveTie(List<Tristate> values) {
-            ties++;
-            return super.resolveTie(values);
         }
     }
 
@@ -102,8 +97,8 @@ class RegionResolveTest {
     private RegionGridOptions previousGrid;
     private RegionIndex index;
     private RegionLookup lookup;
-    private CountingFlag flag;
-    private CountingFlag strict;
+    private DenyThing flag;
+    private DenyThing strict;
     private final List<UUID> players = new ArrayList<>();
     private int stockIterated;
 
@@ -116,7 +111,7 @@ class RegionResolveTest {
     @AfterAll
     void unregisterStock() {
         try {
-            assertTrue(stockIterated >= 18, "the stock tie test must have run over the whole catalog, ran " + stockIterated);
+            assertTrue(stockIterated >= 18, "the stock test must have run over the whole catalog, ran " + stockIterated);
         } finally {
             FlagRegistry.get().unregisterAll(core);
             Plugins.forget(CORE);
@@ -130,8 +125,8 @@ class RegionResolveTest {
         owner = Plugins.fakePluginData(OWNER, Files.createTempDirectory("resolve").toFile());
         index = new RegionIndex();
         lookup = new RegionLookup(index);
-        flag = new CountingFlag(owner, "deny-thing", true);
-        strict = new CountingFlag(owner, "deny-strict", false);
+        flag = new DenyThing(owner, "deny-thing", true);
+        strict = new DenyThing(owner, "deny-strict", false);
         FlagRegistry.get().register(owner, flag);
         FlagRegistry.get().register(owner, strict);
     }
@@ -169,54 +164,52 @@ class RegionResolveTest {
         return region;
     }
 
-    /** resolve and explain at (5, 5, 5) agree with {@code expected}, and explain shows its work. */
-    private <T> void assertResolves(@Nullable T expected, Flag<T> which, @Nullable FPlayer subject) {
+    /** resolve and explain at (5, 5, 5) agree with {@code expected}, and explain shows its layers. */
+    private <T> Resolution<T> assertResolves(@Nullable T expected, Flag<T> which, @Nullable FPlayer subject) {
         assertEquals(expected, lookup.resolve(which, WORLD, 5, 5, 5, subject));
         Resolution<T> resolution = lookup.explain(which, WORLD, 5, 5, 5, subject);
         assertEquals(expected, resolution.getValue(), "explain must agree with resolve: " + resolution);
-        if (!lookup.at(WORLD, 5, 5, 5).isEmpty()) {
-            assertFalse(resolution.getSteps().isEmpty(), "explain must show its steps");
+        if (resolution.getReason() != Resolution.Reason.DEFAULT && resolution.getReason() != Resolution.Reason.BYPASS) {
+            assertFalse(resolution.getLayers().isEmpty(), "explain must show its layers");
         }
+        return resolution;
     }
 
     @Test
     void higherBandWinsEvenWithTheLosingValue() {
         region("high", 10, box(20), null).setFlag(flag, Tristate.FALSE);
         region("low", 0, box(20), null).setFlag(flag, Tristate.TRUE);
-        assertResolves(Tristate.FALSE, flag, null);
-        assertEquals(0, flag.ties);
+        Resolution<Tristate> resolution = assertResolves(Tristate.FALSE, flag, null);
+        assertEquals(FlagLayer.Use.NOT_COUNTED, resolution.getLayers().get(1).getUse(), "the lower band is seen, not counted");
     }
 
     @Test
-    void distinctValuesInOneBandGoToTheFlagsTie() {
+    void equallySpecificRegionsPreferTheFlagsWinner() {
         region("a", 0, box(20), null).setFlag(flag, Tristate.FALSE);
         region("b", 0, box(20), null).setFlag(flag, Tristate.TRUE);
-        assertEquals(Tristate.TRUE, lookup.resolve(flag, WORLD, 5, 5, 5, null));
-        assertEquals(1, flag.ties);
-        Resolution<Tristate> resolution = lookup.explain(flag, WORLD, 5, 5, 5, null);
-        assertEquals(Tristate.TRUE, resolution.getValue());
-        assertEquals("b", resolution.getSource().getId().getName());
-        assertTrue(resolution.getSteps().stream().anyMatch(step -> step.getReason() == Resolution.Reason.TIE));
+        Resolution<Tristate> resolution = assertResolves(Tristate.TRUE, flag, null);
+        assertEquals("b", ((Region) resolution.getSource()).getId().getName());
+        assertEquals("prefer-among-equals", resolution.getResolver().getId());
+        assertEquals(1, resolution.getCountedLayers().size());
+        assertEquals(2, resolution.getLayers().size());
     }
 
     @Test
-    void equalValuesInOneBandDoNotAskForATie() {
+    void equalValuesInOneBandResolveToThatValue() {
         region("a", 0, box(20), null).setFlag(flag, Tristate.TRUE);
         region("b", 0, box(20), null).setFlag(flag, Tristate.TRUE);
         assertResolves(Tristate.TRUE, flag, null);
-        assertEquals(0, flag.ties);
     }
 
     @Test
-    void parentDoesNotCompeteInItsOwnBand() {
+    void parentDoesNotCompeteBesideItsChild() {
         Region parent = region("parent", 100, box(100), null);
         parent.setFlag(flag, Tristate.TRUE);
-        region("child", 0, box(10), parent);
+        Region child = region("child", 0, box(10), parent);
+        child.setFlag(flag, Tristate.FALSE);
         region("neighbour", 50, box(20), null).setFlag(flag, Tristate.FALSE);
-        assertResolves(Tristate.FALSE, flag, null);
-        Resolution<Tristate> resolution = lookup.explain(flag, WORLD, 5, 5, 5, null);
-        assertTrue(resolution.getSteps().stream().anyMatch(step -> step.getReason() == Resolution.Reason.SKIPPED_ANCESTOR
-                && step.getRegion() == parent), resolution.toString());
+        Resolution<Tristate> resolution = assertResolves(Tristate.FALSE, flag, null);
+        assertTrue(resolution.getLayers().stream().noneMatch(layer -> layer.getHolder() == parent), resolution.toString());
     }
 
     @Test
@@ -224,8 +217,10 @@ class RegionResolveTest {
         Region parent = region("parent", 100, box(100), null);
         parent.setFlag(flag, Tristate.TRUE);
         Region child = region("child", 0, box(10), parent);
-        assertResolves(Tristate.TRUE, flag, null);
-        assertSame(parent, lookup.explain(flag, WORLD, 5, 5, 5, null).getSource());
+        Resolution<Tristate> resolution = assertResolves(Tristate.TRUE, flag, null);
+        assertSame(parent, resolution.getSource());
+        assertSame(parent, resolution.getRegion());
+        assertEquals(Resolution.Reason.INHERITED, resolution.getReason());
         assertEquals(Tristate.TRUE, lookup.resolve(flag, child, null));
     }
 
@@ -254,7 +249,9 @@ class RegionResolveTest {
     @Test
     void nothingDefinedGivesTheDefault() {
         region("empty", 0, box(20), null);
-        assertResolves(Tristate.FALSE, flag, null);
+        Resolution<Tristate> resolution = assertResolves(Tristate.FALSE, flag, null);
+        assertEquals(Resolution.Reason.DEFAULT, resolution.getReason());
+        assertTrue(resolution.getLayers().isEmpty());
         assertEquals(Tristate.UNDEFINED, lookup.tristate(new TristateFlag(FlagKey.of(owner, "no-default"), Collections.singleton(EventSource.DAMAGE),
                 Tristate.UNDEFINED, Tristate.TRUE), WORLD, 5, 5, 5, null));
         assertEquals(Tristate.FALSE, lookup.tristate(flag, WORLD, 500, 5, 500, null));
@@ -274,7 +271,9 @@ class RegionResolveTest {
         assertResolves(Tristate.TRUE, flag, none);
         assertResolves(Tristate.TRUE, strict, all);
         assertTrue(lookup.isTrue(flag, WORLD, 5, 5, 5, null), "no subject, no bypass");
-        assertEquals(Resolution.Reason.BYPASS, lookup.explain(flag, WORLD, 5, 5, 5, all).getSteps().get(0).getReason());
+        Resolution<Tristate> bypassed = lookup.explain(flag, WORLD, 5, 5, 5, all);
+        assertEquals(Resolution.Reason.BYPASS, bypassed.getReason());
+        assertTrue(bypassed.getLayers().isEmpty());
         assertEquals(Tristate.FALSE, lookup.resolve(flag, lookup.byId(RegionId.of(OWNER, "arena")), all));
     }
 
@@ -311,16 +310,18 @@ class RegionResolveTest {
         fighters.addMember(fighter.getUniqueId());
         fighters.setFlag(flag, Tristate.FALSE);
 
-        assertResolves(Tristate.FALSE, flag, fighter);
+        Resolution<Tristate> resolution = assertResolves(Tristate.FALSE, flag, fighter);
         assertResolves(Tristate.TRUE, flag, spectator);
         assertResolves(Tristate.TRUE, flag, null);
-        Step groupStep = lookup.explain(flag, WORLD, 5, 5, 5, fighter).getSteps().get(0);
-        assertEquals(Resolution.Reason.GROUP_VALUE, groupStep.getReason());
-        assertSame(fighters, groupStep.getGroup());
+        FlagLayer<Tristate> first = resolution.getLayers().get(0);
+        assertEquals(Resolution.Reason.GROUP_VALUE, first.getReason());
+        assertSame(fighters, first.getHolder());
+        assertSame(arena, first.getRegion());
+        assertEquals(FlagLayer.Use.NOT_COUNTED, resolution.getLayers().get(1).getUse(), "the region's own value is seen under the group's");
     }
 
     @Test
-    void highestGroupWinsAndEqualGroupsTie() {
+    void highestGroupComesFirstAndEqualGroupsPreferTheWinner() {
         Region arena = region("arena", 0, box(20), null);
         TestFPlayerSender alice = player("alice");
         AccessGroup low = arena.getGroup("low");
@@ -331,11 +332,9 @@ class RegionResolveTest {
         high.setFlag(flag, Tristate.FALSE);
         high.setPriority(5);
         assertResolves(Tristate.FALSE, flag, alice);
-        assertEquals(0, flag.ties);
 
         high.setPriority(0);
         assertResolves(Tristate.TRUE, flag, alice);
-        assertTrue(flag.ties > 0);
     }
 
     @Test
@@ -363,38 +362,73 @@ class RegionResolveTest {
         assertEquals(Tristate.FALSE, lookup.resolve(flag, outside));
     }
 
+    @Test
+    void aJoiningFlagCountsEveryBand() {
+        region("high", 10, box(20), null).setFlag(CoreFlags.HEAL, Collections.singletonList(AmountEvery.of(2, Duration.ofSeconds(1))));
+        region("low", 0, box(20), null).setFlag(CoreFlags.HEAL, Collections.singletonList(AmountEvery.of(10, Duration.ofSeconds(1))));
+        Resolution<List<AmountEvery>> resolution = assertResolves(Collections.singletonList(AmountEvery.of(12, Duration.ofSeconds(1))),
+                CoreFlags.HEAL, null);
+        assertEquals(2, resolution.getCountedLayers().size());
+        assertEquals("sum-by-interval", resolution.getResolver().getId());
+    }
+
+    /** Sets {@code value} as if written {@code second} seconds after the epoch. */
+    private static <T> void put(Region region, Flag<T> flag, T value, long second) {
+        region.setFlag(flag, FlagValue.permanent(value).withSince(Instant.EPOCH.plusSeconds(second)));
+    }
+
     Stream<Flag<?>> stockFlags() {
         return FlagRegistry.get().getByOwner(core).stream();
     }
 
+    /**
+     * Two equally specific regions, {@code b} written after {@code a}: a {@code prefer-among-equals} flag keeps the value
+     * that won the old tie, a first-defined one takes the newest, a joining one counts both.
+     */
     @ParameterizedTest(name = "{0}")
     @MethodSource("stockFlags")
     @SuppressWarnings("unchecked")
-    void stockFlagTieResolvesThroughTheLookup(Flag<?> stock) {
+    void stockFlagResolvesTwoEqualRegions(Flag<?> stock) {
         stockIterated++;
         Region a = region(core, "a-" + stock.getKey().getName(), 0, box(20), null);
         Region b = region(core, "b-" + stock.getKey().getName(), 0, box(20), null);
         Class<?> valueType = stock.getType().getValueType();
         Object first;
         Object second;
-        Object expected;
         if (valueType == Tristate.class) {
             first = Tristate.FALSE;
             second = Tristate.TRUE;
-            expected = stock == CoreFlags.ALLOW_FLY ? Tristate.FALSE : Tristate.TRUE; //allow-fly: the grounding wins
         } else if (valueType == DenyEntryMessage.class) {
-            first = new DenyEntryMessage(Tristate.FALSE, "welcome");
-            second = new DenyEntryMessage(Tristate.TRUE, "stay out");
-            expected = second;
+            first = new DenyEntryMessage(Tristate.TRUE, "stay out");
+            second = new DenyEntryMessage(Tristate.FALSE, "welcome");
         } else {
             List<Object> values = TestRegions.twoValues(stock);
             first = values.get(0);
             second = values.get(1);
-            expected = first;
         }
         Flag<Object> typed = (Flag<Object>) stock;
-        a.setFlag(typed, first);
-        b.setFlag(typed, second);
-        assertEquals(expected, lookup.resolve(typed, WORLD, 5, 5, 5, null), stock.getKey().toString());
+        put(a, typed, first, 1);
+        put(b, typed, second, 2);
+        Resolution<Object> resolution = lookup.explain(typed, WORLD, 5, 5, 5, null);
+        Object value = resolution.getValue();
+        String name = stock.getKey().toString();
+        switch (resolution.getResolver().getId()) {
+            case "prefer-among-equals":
+                Object expected = valueType == DenyEntryMessage.class ? first
+                        : stock == CoreFlags.ALLOW_FLY ? Tristate.FALSE : Tristate.TRUE; //allow-fly: the grounding wins
+                assertEquals(expected, value, name);
+                break;
+            case "first-defined":
+                assertEquals(second, value, name + ": the newest of two equals comes first");
+                break;
+            case "concat":
+                List<Object> joined = new ArrayList<>((List<Object>) second);
+                joined.addAll((List<Object>) first);
+                assertEquals(joined, value, name);
+                break;
+            default:
+                assertNotNull(value, name);
+                assertEquals(2, resolution.getCountedLayers().size(), name + " joins both layers");
+        }
     }
 }

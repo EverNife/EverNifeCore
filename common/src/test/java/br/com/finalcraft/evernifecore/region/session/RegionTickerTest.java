@@ -53,11 +53,6 @@ class RegionTickerTest {
         }
 
         @Override
-        public Tristate resolveTie(List<Tristate> values) {
-            return values.get(0);
-        }
-
-        @Override
         public void onTick(SessionContext context, Tristate value) {
             ticked.add(context.getPlayer().getName());
         }

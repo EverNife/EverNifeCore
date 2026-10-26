@@ -1,5 +1,8 @@
 package br.com.finalcraft.evernifecore.flag.core;
 
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Arrays;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.SessionContext;
 import br.com.finalcraft.evernifecore.flag.FlagTypes;
@@ -32,5 +35,10 @@ public final class WeatherLockFlag extends PlayerStateFlag<String> {
         if (weather != null) { //null: another holder (a held effect) keeps the slot, with the weather it set
             access.setWeather(context.getPlayer(), (String) weather);
         }
+    }
+
+    @Override
+    public Set<String> getChannels() {
+        return new HashSet<>(Arrays.asList("slot:weather"));
     }
 }

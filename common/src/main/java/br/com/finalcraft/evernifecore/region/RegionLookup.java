@@ -5,10 +5,16 @@ import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.flag.Decision;
+import br.com.finalcraft.evernifecore.flag.ActorHolders;
 import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagHolder;
+import br.com.finalcraft.evernifecore.flag.FlagLayer;
+import br.com.finalcraft.evernifecore.flag.FlagMode;
+import br.com.finalcraft.evernifecore.flag.FlagResolver;
+import br.com.finalcraft.evernifecore.flag.FlagValue;
+import br.com.finalcraft.evernifecore.flag.LayerRank;
 import br.com.finalcraft.evernifecore.flag.FlagSettings;
 import br.com.finalcraft.evernifecore.flag.Resolution;
-import br.com.finalcraft.evernifecore.flag.Resolution.Step;
 import br.com.finalcraft.evernifecore.flag.Tristate;
 import br.com.finalcraft.evernifecore.flag.TristateFlag;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
@@ -26,8 +32,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,11 +52,13 @@ import java.util.function.Function;
  * re-published. {@code byOwner}, {@code byTag} and {@code all} are unordered. Every returned collection is
  * read-only; a query that finds nothing returns the shared empty list.</p>
  *
- * <p>{@code resolve} answers a flag's effective value at a point for a subject: regions are taken in bands of
- * their current priority, highest first; a parent never competes in its own band - its children carry its values
- * down as defaults; inside a region, the highest-priority group that contains the subject and defines the flag
- * overrides the region's own value; distinct values tied in one band go to {@link Flag#resolveTie}; nothing
- * defined gives {@link Flag#getDefault()}. A subject holding {@code evernifecore.region.bypass.*} or
+ * <p>{@code resolve} answers a flag's effective value at a point for a subject by layers ({@link Resolution#getLayers()}):
+ * every defined value of the candidate regions (a parent never competes beside its child - the child carries its values
+ * down), of their groups that contain the subject, and of the holders that follow the subject ({@link ActorHolders}),
+ * ordered by {@link LayerRank} - lock, written priority, then group in the region > region (by priority) > holder of the
+ * player - and the newest first; cut after the first {@link FlagMode#SET}, and joined by the flag's
+ * {@link FlagResolver} (the one the settings in effect name, when they name one). Nothing defined gives
+ * {@link Flag#getDefault()}. A subject holding {@code evernifecore.region.bypass.*} or
  * {@code evernifecore.region.bypass.<owner>.<name>} reads the default of every {@link Flag#isBypassable()
  * bypassable} flag - both nodes are checked literally, since plain SuperPerms does not expand the wildcard - and so
  * does one holding the {@link FlagSettings#getBypassPermission() extra node} the flag's settings name where it is read.</p>
@@ -223,43 +234,55 @@ public final class RegionLookup {
     //  Values
     // ------------------------------------------------------------------
 
+    /** Layers by rank, then the newest first; the stable sort keeps the snapshot's order among full equals. */
+    private static final Comparator<FlagLayer<?>> LAYER_ORDER = (a, b) -> {
+        int compared = a.getRank().compareTo(b.getRank());
+        return compared != 0 ? compared : b.getFlagValue().getSince().compareTo(a.getFlagValue().getSince());
+    };
+
     /**
-     * The effective value of {@code flag} at the point for {@code subject}; a null subject skips groups and bypass.
-     * Where nothing defines a refinement, it is the value of its nearest defined ancestor, as {@link #decide} reads it.
+     * The effective value of {@code flag} at the point for {@code subject}; a null subject skips groups, the holders
+     * that follow a player and bypass. Where nothing defines a refinement, it is the value of its nearest defined
+     * ancestor, as {@link #decide} reads it. Thread: any; it takes no lock.
      */
     public <T> @Nullable T resolve(Flag<T> flag, String world, double x, double y, double z, @Nullable FPlayer subject) {
         return resolution(flag, at(world, x, y, z), subject).getValue();
     }
 
-    /** As the point overload, at the subject's current location. */
+    /** As the point overload, at the subject's current location. Thread: any; it takes no lock. */
     public <T> @Nullable T resolve(Flag<T> flag, FPlayer subject) {
         return resolution(flag, at(subject), subject).getValue();
     }
 
-    /** The value {@code region} alone gives - its groups, its own value, its ancestors - ignoring the regions around it. */
+    /**
+     * The value {@code region} alone gives - its groups, its own value, its ancestors - ignoring the regions around it
+     * and the holders that follow the subject. Thread: any; it takes no lock.
+     */
     public <T> @Nullable T resolve(Flag<T> flag, Region region, @Nullable FPlayer subject) {
-        return climb(flag, asked -> own(asked, region, subject, null)).getValue();
+        return explain(flag, region, subject).getValue();
+    }
+
+    /** {@link #resolve(Flag, Region, FPlayer)} with its layers. Thread: any; it takes no lock. */
+    public <T> Resolution<T> explain(Flag<T> flag, Region region, @Nullable FPlayer subject) {
+        List<Region> alone = Collections.singletonList(region);
+        return climb(flag, asked -> join(asked, alone, subject, false));
     }
 
     /**
-     * {@link #resolve(Flag, Region, FPlayer)} step by step: the value {@code region} alone gives, the region of
-     * its chain that gave it, and every step.
+     * {@link #resolve} over regions already looked up, with every layer: the candidate regions of {@code at} (an
+     * ancestor of another candidate speaks through it), then the holders that follow {@code subject}
+     * ({@link ActorHolders}). Thread: any; it takes no lock.
      */
-    public <T> Resolution<T> explain(Flag<T> flag, Region region, @Nullable FPlayer subject) {
-        return climb(flag, asked -> own(asked, region, subject, new ArrayList<>()));
-    }
-
-    /** Internal: {@link #resolve} over regions already looked up, with the source and reason but no steps. */
     public <T> Resolution<T> resolution(Flag<T> flag, List<Region> at, @Nullable FPlayer subject) {
-        return climb(flag, asked -> walk(asked, at, subject, null));
+        return climb(flag, asked -> join(asked, at, subject, true));
     }
 
     /**
      * Whether the action is denied where it happens: the first protection flag that needs its source and denies
      * it wins, the flags after it are not asked. Each flag that took part runs its {@link Flag#onApplied},
-     * at most once per its trigger interval. A point outside every region passes without asking any flag. The native
-     * handles of the context's actors are closed when it returns; an event asked in stages goes through one
-     * {@link #dispatch()} instead. Thread: the thread of the event; it takes no lock.
+     * at most once per its trigger interval. A point outside every region passes without asking any flag, unless a
+     * holder that follows the player speaks. The native handles of the context's actors are closed when it returns; an
+     * event asked in stages goes through one {@link #dispatch()} instead. Thread: the thread of the event; it takes no lock.
      */
     public Decision decide(ActionContext context) {
         try (RegionDispatch dispatch = dispatch()) {
@@ -282,166 +305,133 @@ public final class RegionLookup {
         return tristate(flag, world, x, y, z, subject) == Tristate.TRUE;
     }
 
-    /** {@link #resolve} step by step: the same value, plus every region, group, rule and refined flag it went through. */
+    /** {@link #resolve} with every layer it saw and what the resolver did with each. Thread: any; it takes no lock. */
     public <T> Resolution<T> explain(Flag<T> flag, String world, double x, double y, double z, @Nullable FPlayer subject) {
-        List<Region> at = at(world, x, y, z);
-        return climb(flag, asked -> walk(asked, at, subject, new ArrayList<>()));
+        return resolution(flag, at(world, x, y, z), subject);
     }
 
     /**
      * {@code own}'s answer for {@code flag}; where nothing defines it, the answer for its nearest registered ancestor
-     * that is defined - an undefined refinement reads its parent's value - with the steps of the whole climb. A bypass
-     * met on the way up stops the climb at {@code flag}'s default.
+     * that is defined - an undefined refinement reads its parent's value. A bypass met on the way up stops the climb at
+     * {@code flag}'s default.
      */
     private static <T> Resolution<T> climb(Flag<T> flag, Function<Flag<T>, Resolution<T>> own) {
         Resolution<T> asked = own.apply(flag);
         if (asked.getReason() != Resolution.Reason.DEFAULT || flag.getParent() == null) {
             return asked;
         }
-        List<Step> steps = new ArrayList<>(asked.getSteps());
         for (Flag<T> ancestor = flag.getParent(); ancestor != null && ancestor.isRegistered(); ancestor = ancestor.getParent()) {
             Resolution<T> theirs = own.apply(ancestor);
             if (theirs.getReason() == Resolution.Reason.BYPASS) {
                 break;
             }
-            steps.addAll(theirs.getSteps());
             if (theirs.getReason() != Resolution.Reason.DEFAULT) {
-                return new Resolution<>(ancestor, theirs.getValue(), theirs.getSource(), theirs.getReason(), steps);
+                return theirs;
             }
         }
         return asked;
     }
 
-    /** The value {@code region} alone gives for {@code flag} itself, without climbing to the flag's ancestors. */
-    private <T> Resolution<T> own(Flag<T> flag, Region region, @Nullable FPlayer subject, @Nullable List<Step> steps) {
-        List<Step> recorded = steps == null ? Collections.emptyList() : steps;
-        if (bypasses(subject, flag, Collections.singletonList(region))) {
-            step(steps, flag, null, 0, null, flag.getDefault(), Resolution.Reason.BYPASS);
-            return new Resolution<>(flag, flag.getDefault(), null, Resolution.Reason.BYPASS, recorded);
-        }
-        Hit<T> hit = effective(region, region.getPriority(), flag, subject, steps);
-        if (hit == null) {
-            step(steps, flag, null, 0, null, flag.getDefault(), Resolution.Reason.DEFAULT);
-            return new Resolution<>(flag, flag.getDefault(), null, Resolution.Reason.DEFAULT, recorded);
-        }
-        return new Resolution<>(flag, hit.value, hit.source, hit.reason, recorded);
-    }
-
-    private static final class Hit<T> {
-        final T value;
-        final Region source;
-        final @Nullable AccessGroup group;
-        final Resolution.Reason reason;
-
-        Hit(T value, Region source, @Nullable AccessGroup group, Resolution.Reason reason) {
-            this.value = value;
-            this.source = source;
-            this.group = group;
-            this.reason = reason;
-        }
-    }
-
-    /** @param steps where to record each step, or null to record nothing */
-    private <T> Resolution<T> walk(Flag<T> flag, List<Region> at, @Nullable FPlayer subject, @Nullable List<Step> steps) {
-        List<Step> recorded = steps == null ? Collections.emptyList() : steps;
+    /** Collects the layers of {@code flag} itself, without climbing to its ancestors, and joins them. */
+    private <T> Resolution<T> join(Flag<T> flag, List<Region> at, @Nullable FPlayer subject, boolean withActors) {
         if (bypasses(subject, flag, at)) {
-            step(steps, flag, null, 0, null, flag.getDefault(), Resolution.Reason.BYPASS);
-            return new Resolution<>(flag, flag.getDefault(), null, Resolution.Reason.BYPASS, recorded);
+            return Resolution.ofDefault(flag, Resolution.Reason.BYPASS);
         }
-        List<Region> candidates = new ArrayList<>(at.size());
+        List<FlagLayer<T>> layers = new ArrayList<>(4);
         for (Region region : at) {
-            if (isAncestorOfAny(region, at)) {
-                step(steps, flag, region, region.getPriority(), null, null, Resolution.Reason.SKIPPED_ANCESTOR);
-            } else {
-                candidates.add(region);
+            if (!isAncestorOfAny(region, at)) {
+                collect(flag, region, subject, layers);
             }
         }
-        //bands by the live priority - the snapshot may predate a setPriority; the stable sort keeps its order inside a band
-        candidates.sort((a, b) -> Integer.compare(b.getPriority(), a.getPriority()));
-        for (int start = 0; start < candidates.size(); ) {
-            int band = candidates.get(start).getPriority();
-            List<T> values = new ArrayList<>(2);
-            List<Hit<T>> hits = new ArrayList<>(2);
-            int next = start;
-            for (; next < candidates.size() && candidates.get(next).getPriority() == band; next++) {
-                Region region = candidates.get(next);
-                Hit<T> hit = effective(region, band, flag, subject, steps);
-                if (hit == null) {
-                    step(steps, flag, region, band, null, null, Resolution.Reason.NO_VALUE);
-                } else {
-                    values.add(hit.value);
-                    hits.add(hit);
+        if (withActors && subject != null) {
+            List<FlagHolder> holders = ActorHolders.holdersOf(subject);
+            for (int i = 0; i < holders.size(); i++) {
+                FlagHolder holder = holders.get(i);
+                FlagValue<T> value = holder.accepts(flag) && flag.accepts(holder) ? holder.getFlagValue(flag) : null;
+                if (value != null) {
+                    layers.add(new FlagLayer<>(flag, holder, null, value, Resolution.Reason.ACTOR_VALUE, LayerRank.actor(value, i), FlagLayer.Use.COUNTED));
                 }
             }
-            if (!values.isEmpty()) {
-                T value = pick(flag, values);
-                if (!allEqual(values)) {
-                    step(steps, flag, null, band, null, value, Resolution.Reason.TIE);
-                }
-                int index = values.indexOf(value);
-                Hit<T> winner = index < 0 ? null : hits.get(index);
-                return new Resolution<>(flag, value, winner == null ? null : winner.source, winner == null ? Resolution.Reason.TIE : winner.reason, recorded);
-            }
-            start = next;
         }
-        step(steps, flag, null, 0, null, flag.getDefault(), Resolution.Reason.DEFAULT);
-        return new Resolution<>(flag, flag.getDefault(), null, Resolution.Reason.DEFAULT, recorded);
+        return layers.isEmpty() ? Resolution.ofDefault(flag, Resolution.Reason.DEFAULT) : joinLayers(flag, layers);
     }
 
-    /** The value {@code region} gives: its groups' for the subject, else its own, else its nearest ancestor's (groups included). */
-    private <T> @Nullable Hit<T> effective(Region region, int band, Flag<T> flag, @Nullable FPlayer subject, @Nullable List<Step> steps) {
+    /**
+     * The layers {@code region} gives: the nearest of it and its ancestors that defines anything for the subject - its
+     * groups that contain the subject, and its own value. An undefined level reads the next one up (inherited).
+     */
+    private static <T> void collect(Flag<T> flag, Region region, @Nullable FPlayer subject, List<FlagLayer<T>> layers) {
+        int band = region.getPriority();
         for (Region current = region; current != null; current = current.getParent()) {
-            Hit<T> hit = subject == null ? null : groupValue(current, flag, subject);
-            if (hit != null) {
-                step(steps, flag, current, band, hit.group, hit.value, Resolution.Reason.GROUP_VALUE);
-                return hit;
+            boolean found = false;
+            if (subject != null) {
+                for (AccessGroup group : current.getGroups().values()) {
+                    FlagValue<T> value = group.getFlagValue(flag);
+                    if (value != null && flag.accepts(group) && group.contains(subject)) {
+                        layers.add(new FlagLayer<>(flag, group, current, value, Resolution.Reason.GROUP_VALUE,
+                                LayerRank.place(value, band, group.getPriority()), FlagLayer.Use.COUNTED));
+                        found = true;
+                    }
+                }
             }
-            T local = current.getFlag(flag);
-            if (local != null) {
-                step(steps, flag, current, band, null, local, current == region ? Resolution.Reason.LOCAL_VALUE : Resolution.Reason.INHERITED);
-                return new Hit<>(local, current, null, current == region ? Resolution.Reason.LOCAL_VALUE : Resolution.Reason.INHERITED);
+            FlagValue<T> local = current.getFlagValue(flag);
+            if (local != null && flag.accepts(current)) {
+                layers.add(new FlagLayer<>(flag, current, current, local, current == region ? Resolution.Reason.LOCAL_VALUE : Resolution.Reason.INHERITED,
+                        LayerRank.place(local, band, null), FlagLayer.Use.COUNTED));
+                found = true;
+            }
+            if (found) {
+                return;
             }
         }
-        return null;
     }
 
-    /** Among the groups of {@code region} that contain the subject and define the flag, the highest priority's value. */
-    private static <T> @Nullable Hit<T> groupValue(Region region, Flag<T> flag, FPlayer subject) {
-        List<T> values = null;
-        List<AccessGroup> groups = null;
-        int best = Integer.MIN_VALUE;
-        for (AccessGroup group : region.getGroups().values()) {
-            T value = group.getFlag(flag);
-            if (value == null || group.getPriority() < best || !group.contains(subject)) {
+    /**
+     * Orders the layers ({@link LayerRank}, then the newest), sets aside every lock that disagrees with the first lock,
+     * cuts after the first {@link FlagMode#SET}, and joins the rest with the resolver the settings in effect name - those
+     * of the region of the first layer that has one, else the server's.
+     */
+    private static <T> Resolution<T> joinLayers(Flag<T> flag, List<FlagLayer<T>> layers) {
+        layers.sort(LAYER_ORDER);
+        List<FlagLayer<T>> ordered = new ArrayList<>(layers.size());
+        List<FlagLayer<T>> live = new ArrayList<>(layers.size());
+        FlagLayer<T> firstLock = null;
+        boolean cut = false;
+        for (FlagLayer<T> layer : layers) {
+            if (cut) {
+                ordered.add(layer.withUse(FlagLayer.Use.CUT_BY_SET));
                 continue;
             }
-            if (values == null || group.getPriority() > best) {
-                values = new ArrayList<>(2);
-                groups = new ArrayList<>(2);
-                best = group.getPriority();
+            if (layer.getFlagValue().isLock()) {
+                if (firstLock == null) {
+                    firstLock = layer;
+                } else if (!firstLock.getValue().equals(layer.getValue())) {
+                    ordered.add(layer.withUse(FlagLayer.Use.LOCK_OVERRULED));
+                    continue;
+                }
             }
-            values.add(value);
-            groups.add(group);
+            ordered.add(layer);
+            live.add(layer);
+            cut = layer.getFlagValue().getMode() == FlagMode.SET;
         }
-        if (values == null) {
-            return null;
-        }
-        T value = pick(flag, values);
-        int index = values.indexOf(value);
-        return new Hit<>(value, region, index < 0 ? null : groups.get(index), Resolution.Reason.GROUP_VALUE);
-    }
-
-    private static <T> T pick(Flag<T> flag, List<T> values) {
-        return allEqual(values) ? values.get(0) : flag.resolveTie(values);
-    }
-
-    private static boolean allEqual(List<?> values) {
-        for (int i = 1; i < values.size(); i++) {
-            if (!values.get(i).equals(values.get(0))) {
-                return false;
+        FlagSettings settings = flag.getSettings();
+        for (FlagLayer<T> layer : live) {
+            if (layer.getRegion() != null) {
+                settings = layer.getRegion().getEffectiveFlagSettings(flag);
+                break;
             }
         }
-        return true;
+        FlagResolver<T> resolver = flag.getResolver(settings);
+        FlagResolver.Resolved<T> resolved = resolver.resolve(live);
+        Set<FlagLayer<T>> counted = Collections.newSetFromMap(new IdentityHashMap<>());
+        counted.addAll(resolved.getCounted());
+        for (int i = 0; i < ordered.size(); i++) {
+            FlagLayer<T> layer = ordered.get(i);
+            if (layer.getUse() == FlagLayer.Use.COUNTED && !counted.contains(layer)) {
+                ordered.set(i, layer.withUse(FlagLayer.Use.NOT_COUNTED));
+            }
+        }
+        return new Resolution<>(flag, resolved.getValue(), Resolution.Reason.DEFAULT, resolver, ordered);
     }
 
     private static boolean isAncestorOfAny(Region region, List<Region> regions) {
@@ -473,11 +463,44 @@ public final class RegionLookup {
         return false;
     }
 
-    private static void step(@Nullable List<Step> steps, Flag<?> flag, @Nullable Region region, int priority,
-                             @Nullable AccessGroup group, @Nullable Object value, Resolution.Reason reason) {
-        if (steps != null) {
-            steps.add(new Step(flag, region, priority, group, value, reason));
+    /**
+     * The holders of other regions of {@code region}'s world that overlap it (by bounding box) and lock {@code flag} to
+     * another value than a lock {@code region} (or one of its groups) holds - where they meet, the first lock in the
+     * order wins and the other has no effect. Empty when {@code region} locks nothing for the flag.
+     */
+    public <T> List<FlagHolder> findLockConflicts(Flag<T> flag, Region region) {
+        Set<T> mine = lockedValues(flag, region).keySet();
+        if (mine.isEmpty()) {
+            return Collections.emptyList();
         }
+        List<FlagHolder> conflicts = new ArrayList<>(1);
+        for (Region other : in(region.getWorld(), region.getShape())) {
+            if (other == region) {
+                continue;
+            }
+            for (Map.Entry<T, FlagHolder> theirs : lockedValues(flag, other).entrySet()) {
+                if (!mine.contains(theirs.getKey()) || mine.size() > 1) {
+                    conflicts.add(theirs.getValue());
+                }
+            }
+        }
+        return conflicts;
+    }
+
+    /** Every locked value of {@code flag} on {@code region} and its groups, with the holder that locks it. */
+    static <T> Map<T, FlagHolder> lockedValues(Flag<T> flag, Region region) {
+        Map<T, FlagHolder> locked = new LinkedHashMap<>(2);
+        FlagValue<T> own = region.getFlagValue(flag);
+        if (own != null && own.isLock()) {
+            locked.put(own.getValue(), region);
+        }
+        for (AccessGroup group : region.getGroups().values()) {
+            FlagValue<T> value = group.getFlagValue(flag);
+            if (value != null && value.isLock()) {
+                locked.putIfAbsent(value.getValue(), group);
+            }
+        }
+        return locked;
     }
 
     // ------------------------------------------------------------------

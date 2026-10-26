@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -221,10 +222,10 @@ class PlayerStateFlagsTest extends TrackerFixture {
     void timedFlagsActOncePerIntervalStopAtFullAndSkipWhoIsOutside(TestPlatform platform) {
         Region spa = region("spa", 0, 10);
         Region swamp = region("swamp", 40, 50);
-        spa.setFlag(registered(CoreFlags.HEAL), AmountEvery.of(2, Duration.ofSeconds(5)));
-        spa.setFlag(registered(CoreFlags.FEED), AmountEvery.of(3, Duration.ofSeconds(5)));
-        swamp.setFlag(registered(CoreFlags.DAMAGE_OVER_TIME), AmountEvery.of(1, Duration.ofSeconds(2)));
-        swamp.setFlag(registered(CoreFlags.HUNGER_OVER_TIME), AmountEvery.of(2, Duration.ofSeconds(2)));
+        spa.setFlag(registered(CoreFlags.HEAL), Collections.singletonList(AmountEvery.of(2, Duration.ofSeconds(5))));
+        spa.setFlag(registered(CoreFlags.FEED), Collections.singletonList(AmountEvery.of(3, Duration.ofSeconds(5))));
+        swamp.setFlag(registered(CoreFlags.DAMAGE_OVER_TIME), Collections.singletonList(AmountEvery.of(1, Duration.ofSeconds(2))));
+        swamp.setFlag(registered(CoreFlags.HUNGER_OVER_TIME), Collections.singletonList(AmountEvery.of(2, Duration.ofSeconds(2))));
         TestFPlayerSender sick = new TestFPlayerSender("sick");
         TestFPlayerSender outside = new TestFPlayerSender("outside");
         TestPlayerState states = platform.getTestPlayerState();
@@ -264,7 +265,7 @@ class PlayerStateFlagsTest extends TrackerFixture {
     @Test
     void damageOverTimeCountsArmorUnlessTheSettingsIgnoreIt(TestPlatform platform) {
         Region swamp = region("swamp", 0, 10);
-        swamp.setFlag(registered(CoreFlags.DAMAGE_OVER_TIME), AmountEvery.of(4, Duration.ofSeconds(1)));
+        swamp.setFlag(registered(CoreFlags.DAMAGE_OVER_TIME), Collections.singletonList(AmountEvery.of(4, Duration.ofSeconds(1))));
         TestPlayerState.State state = platform.getTestPlayerState().of(player);
         state.armor = 0.5;
         tracker.onJoin(player, at(5.5));

@@ -7,6 +7,9 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.flag.Flag;
 import br.com.finalcraft.evernifecore.flag.FlagChangeCause;
+import br.com.finalcraft.evernifecore.flag.FlagHolder;
+import br.com.finalcraft.evernifecore.flag.FlagKey;
+import br.com.finalcraft.evernifecore.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.flag.FlagValue;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.region.event.RegionChangedEvent;
@@ -43,6 +46,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -290,6 +295,7 @@ public final class RegionManager {
             current.reading = false;
             attemptDone = current.nextAttempt;
         }
+        warnLockConflicts();
         loadedOnce.complete(null);
         attemptDone.complete(null);
         current.done.complete(null);
@@ -868,12 +874,77 @@ public final class RegionManager {
         if (newValue != null && newValue.getExpiresAt() != null) {
             RegionSweeper.wake();
         }
+        if (newValue != null && newValue.isLock() && cause == FlagChangeCause.SET) {
+            warnLockConflicts(region, flag, new HashSet<>());
+        }
         if (cause == FlagChangeCause.EXPIRED) {
             ECDebugModule.REGIONS.debug("Region {}{}: the temporary value of {} expired (now {}).", region.getId(),
                     group == null ? "" : "/" + group.getName(), flag.getKey(), newValue == null ? "unset" : newValue);
         }
         ECEventBus.global().postIfListened(RegionFlagChangedEvent.class,
                 () -> new RegionFlagChangedEvent(region, group, flag, oldValue, newValue, cause));
+    }
+
+    /** One warning per pair of this owner's overlapping regions that lock a flag to different values. */
+    private void warnLockConflicts() {
+        Set<String> warned = new HashSet<>();
+        for (Region region : RegionLookup.get().byOwner(owner)) {
+            Set<Flag<?>> locked = new LinkedHashSet<>();
+            collectLocked(region, region.getFlags(), locked);
+            for (AccessGroup group : region.getGroups().values()) {
+                collectLocked(region, group.getFlags(), locked);
+            }
+            for (Flag<?> flag : locked) {
+                warnLockConflicts(region, flag, warned);
+            }
+        }
+    }
+
+    private static void collectLocked(Region region, Map<FlagKey, FlagValue<?>> values, Set<Flag<?>> locked) {
+        values.forEach((key, value) -> {
+            Flag<?> flag = FlagRegistry.get().get(key);
+            if (flag != null && value.isLock()) {
+                locked.add(flag);
+            }
+        });
+    }
+
+    /** @param warned the pairs already reported, so each pair warns once */
+    private <T> void warnLockConflicts(Region region, Flag<T> flag, Set<String> warned) {
+        Map<T, FlagHolder> mine = RegionLookup.lockedValues(flag, region);
+        for (FlagHolder other : RegionLookup.get().findLockConflicts(flag, region)) {
+            FlagValue<T> theirs = other.getFlagValue(flag);
+            if (theirs == null) {
+                continue;
+            }
+            for (Map.Entry<T, FlagHolder> lock : mine.entrySet()) {
+                FlagValue<T> ours = lock.getValue().getFlagValue(flag);
+                String a = lock.getValue().getHolderId();
+                String b = other.getHolderId();
+                if (ours == null || ours.getValue().equals(theirs.getValue()) || !warned.add(a.compareTo(b) < 0 ? a + "|" + b : b + "|" + a)) {
+                    continue;
+                }
+                FlagHolder winner = wins(ours, regionOf(lock.getValue()), theirs, regionOf(other)) ? lock.getValue() : other;
+                owner.getLog().warning("Flag {} is locked to '{}' in {} and to '{}' in {}, which overlap: the most specific wins where they"
+                                + " meet ({}), and the other lock has no effect there. Drop one of the locks, or move the loser's value to priority.",
+                        flag.getKey(), flag.getType().format(ours.getValue()), a, flag.getType().format(theirs.getValue()), b, winner.getHolderId());
+            }
+        }
+    }
+
+    /** Whether lock {@code a} comes before lock {@code b} where they meet: written priority, region priority, then the newest. */
+    private static boolean wins(FlagValue<?> a, Region regionA, FlagValue<?> b, Region regionB) {
+        if (a.getPriority() != b.getPriority()) {
+            return a.getPriority() > b.getPriority();
+        }
+        if (regionA.getPriority() != regionB.getPriority()) {
+            return regionA.getPriority() > regionB.getPriority();
+        }
+        return !a.getSince().isBefore(b.getSince());
+    }
+
+    private static Region regionOf(FlagHolder holder) {
+        return holder instanceof AccessGroup ? ((AccessGroup) holder).getRegion() : (Region) holder;
     }
 
     void groupChanged(Region region, AccessGroup group, GroupChange change, @Nullable UUID player) {

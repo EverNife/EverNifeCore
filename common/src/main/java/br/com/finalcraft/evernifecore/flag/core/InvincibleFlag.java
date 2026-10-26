@@ -1,5 +1,11 @@
 package br.com.finalcraft.evernifecore.flag.core;
 
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Collections;
+import java.util.Arrays;
+import br.com.finalcraft.evernifecore.flag.FlagInteraction;
+import br.com.finalcraft.evernifecore.flag.FlagScope;
 import br.com.finalcraft.evernifecore.action.ActionContext;
 import br.com.finalcraft.evernifecore.action.ECEntityType;
 import br.com.finalcraft.evernifecore.action.EventSource;
@@ -20,5 +26,22 @@ public final class InvincibleFlag extends DenyFlag {
     @Override
     public String getDescription() {
         return "TRUE: players in the region take no damage, whatever hurts them.";
+    }
+
+    /** It follows the player: a holder that follows them may carry it. */
+    @Override
+    public FlagScope getScope() {
+        return FlagScope.ACTOR;
+    }
+
+    @Override
+    public Set<String> getChannels() {
+        return new HashSet<>(Arrays.asList("damage:player-victim"));
+    }
+
+    @Override
+    public Set<FlagInteraction> getInteractions() {
+        return Collections.singleton(FlagInteraction.with(FlagKey.of(CoreFlags.OWNER, "damage-over-time"),
+                "invincible = TRUE: no damage over time"));
     }
 }

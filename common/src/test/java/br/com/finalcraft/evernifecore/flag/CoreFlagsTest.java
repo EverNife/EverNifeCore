@@ -113,33 +113,90 @@ class CoreFlagsTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("coreFlags")
     @SuppressWarnings("unchecked")
-    void tieResolvesAsTheCatalogSays(Flag<?> flag) {
+    void equalLayersResolveAsTheCatalogSays(Flag<?> flag) {
         iterated++;
         String expectation = CATALOG.get(flag.getKey().getName());
         if ("tristate-true".equals(expectation)) {
-            Flag<Tristate> tristate = (Flag<Tristate>) flag;
-            assertEquals(Tristate.TRUE, tristate.resolveTie(Arrays.asList(Tristate.FALSE, Tristate.TRUE)));
-            assertEquals(Tristate.TRUE, tristate.resolveTie(Arrays.asList(Tristate.TRUE, Tristate.FALSE)));
-            assertEquals(Tristate.FALSE, tristate.getDefault());
+            assertEquals(Tristate.TRUE, equals(flag, Tristate.FALSE, Tristate.TRUE));
+            assertEquals(Tristate.TRUE, equals(flag, Tristate.TRUE, Tristate.FALSE));
+            assertEquals(Tristate.FALSE, flag.getDefault());
         } else if ("tristate-false-open".equals(expectation) || "tristate-true-open".equals(expectation)) {
             Tristate winner = expectation.startsWith("tristate-true") ? Tristate.TRUE : Tristate.FALSE;
-            Flag<Tristate> tristate = (Flag<Tristate>) flag;
-            assertEquals(winner, tristate.resolveTie(Arrays.asList(Tristate.FALSE, Tristate.TRUE)));
-            assertEquals(winner, tristate.resolveTie(Arrays.asList(Tristate.TRUE, Tristate.FALSE)));
-            assertEquals(Tristate.UNDEFINED, tristate.getDefault(), "where no region defines it, it holds nothing");
+            assertEquals(winner, equals(flag, Tristate.FALSE, Tristate.TRUE));
+            assertEquals(winner, equals(flag, Tristate.TRUE, Tristate.FALSE));
+            assertEquals(Tristate.UNDEFINED, flag.getDefault(), "where no region defines it, it holds nothing");
         } else if ("denied-true".equals(expectation)) {
-            Flag<DenyEntryMessage> hybrid = (Flag<DenyEntryMessage>) flag;
             DenyEntryMessage open = new DenyEntryMessage(Tristate.FALSE, "welcome");
             DenyEntryMessage closed = new DenyEntryMessage(Tristate.TRUE, "stay out");
-            assertEquals(closed, hybrid.resolveTie(Arrays.asList(open, closed)));
-            assertEquals(open, hybrid.resolveTie(Arrays.asList(open, new DenyEntryMessage(Tristate.UNDEFINED, null))));
+            assertEquals(closed, equals(flag, open, closed));
+            assertEquals(open, equals(flag, open, new DenyEntryMessage(Tristate.UNDEFINED, null)));
         } else if ("first".equals(expectation)) {
             List<Object> values = TestRegions.twoValues(flag);
-            assertEquals(values.get(0), ((Flag<Object>) flag).resolveTie(values));
+            String resolver = JOINING.getOrDefault(flag.getKey().getName(), "first-defined");
+            assertEquals(resolver, flag.getResolver().getId(), flag.getKey().toString());
+            if (resolver.equals("first-defined")) {
+                assertEquals(values.get(0), equals(flag, values.get(0), values.get(1)));
+            }
         } else {
             throw new AssertionError("Flag " + flag.getKey() + " is not in the catalog");
         }
     }
+
+    /** The flags that join their layers instead of taking the first, by the resolver they join with. */
+    private static final Map<String, String> JOINING = new HashMap<>();
+
+    static {
+        for (String name : Arrays.asList("heal", "feed", "damage-over-time", "hunger-over-time")) {
+            JOINING.put(name, "sum-by-interval");
+        }
+        JOINING.put("potion-effects", "union-max-level");
+        JOINING.put("command-on-enter", "concat");
+        JOINING.put("command-on-exit", "concat");
+    }
+
+    /** What the flag's own resolver answers for two layers of equal rank, {@code a} first. */
+    @SuppressWarnings("unchecked")
+    private static <T> T equals(Flag<?> flag, Object a, Object b) {
+        Flag<T> typed = (Flag<T>) flag;
+        return typed.getResolver().resolve(Arrays.asList(layer(typed, (T) a), layer(typed, (T) b))).getValue();
+    }
+
+    private static <T> FlagLayer<T> layer(Flag<T> flag, T value) {
+        FlagValue<T> held = FlagValue.permanent(value);
+        return new FlagLayer<>(flag, HOLDER, null, held, Resolution.Reason.LOCAL_VALUE, LayerRank.place(held, 0, null), FlagLayer.Use.COUNTED);
+    }
+
+    private static final FlagHolder HOLDER = new FlagHolder() {
+        @Override
+        public String getHolderId() {
+            return "test:holder";
+        }
+
+        @Override
+        public FlagScope getHolderScope() {
+            return FlagScope.PLACE;
+        }
+
+        @Override
+        public int getPriority() {
+            return 0;
+        }
+
+        @Override
+        public <V> FlagValue<V> getFlagValue(Flag<V> flag) {
+            return null;
+        }
+
+        @Override
+        public Map<FlagKey, FlagValue<?>> getFlags() {
+            return Collections.emptyMap();
+        }
+
+        @Override
+        public FlagStore getFlagStore() {
+            throw new UnsupportedOperationException("a layer's holder for a resolver test has no store");
+        }
+    };
 
     @Test
     void onlyDenyPvpIgnoresTheBypass() {

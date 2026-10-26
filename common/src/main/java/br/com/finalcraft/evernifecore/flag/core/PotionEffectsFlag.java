@@ -1,5 +1,8 @@
 package br.com.finalcraft.evernifecore.flag.core;
 
+import br.com.finalcraft.evernifecore.flag.FlagScope;
+import br.com.finalcraft.evernifecore.flag.FlagResolvers;
+import br.com.finalcraft.evernifecore.flag.FlagResolver;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.SessionContext;
@@ -60,11 +63,6 @@ public final class PotionEffectsFlag extends Flag<List<EffectLevel>> implements 
         return PlayerStateSettings.class;
     }
 
-    /** The first. */
-    @Override
-    public List<EffectLevel> resolveTie(List<List<EffectLevel>> values) {
-        return values.get(0);
-    }
 
     @Override
     public void onEnter(SessionContext context, List<EffectLevel> value) {
@@ -72,7 +70,7 @@ public final class PotionEffectsFlag extends Flag<List<EffectLevel>> implements 
         if (access == null) {
             return;
         }
-        PlayerStateSettings settings = context.getRegion().getEffectiveFlagSettings(this);
+        PlayerStateSettings settings = context.getSettings(this);
         HeldPlayerState held = context.getSession().getHeldState();
         for (EffectLevel effect : value) {
             if (access.isEffect(effect.getEffect())) {
@@ -131,5 +129,27 @@ public final class PotionEffectsFlag extends Flag<List<EffectLevel>> implements 
     private static @Nullable IPlayerStateAccess access() {
         IPlayerStateAccess access = EverNifeCore.getPlatform().getPlayerState();
         return access.supports(IPlayerStateAccess.Capability.EFFECTS) ? access : null;
+    }
+
+    /** It follows the player: a holder that follows them may carry it. */
+    @Override
+    public FlagScope getScope() {
+        return FlagScope.ACTOR;
+    }
+
+    /** One entry per effect across the layers, at the highest level. */
+    @Override
+    public FlagResolver<List<EffectLevel>> getResolver() {
+        return FlagResolvers.unionMaxLevel();
+    }
+
+    @Override
+    public List<FlagResolver<List<EffectLevel>>> getAcceptedResolvers() {
+        return Arrays.asList(getResolver(), FlagResolvers.concat(), FlagResolvers.firstDefined());
+    }
+
+    @Override
+    public Set<String> getChannels() {
+        return new HashSet<>(Arrays.asList("slot:effects"));
     }
 }

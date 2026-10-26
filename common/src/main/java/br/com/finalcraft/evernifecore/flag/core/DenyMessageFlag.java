@@ -21,11 +21,6 @@ public final class DenyMessageFlag extends Flag<String> {
         return FlagCategory.DATA;
     }
 
-    /** The first. */
-    @Override
-    public String resolveTie(List<String> values) {
-        return values.get(0);
-    }
 
     @Override
     public String getDescription() {

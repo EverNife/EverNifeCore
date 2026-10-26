@@ -9,6 +9,7 @@ import br.com.finalcraft.evernifecore.player.state.StateHolder;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -18,7 +19,8 @@ import java.util.Set;
 /**
  * A flag a region (or one of its groups) can carry. A new flag is a new subclass that overrides what it does -
  * {@link #decide} for protection, {@link #onEnter}/{@link #onLeave}/{@link #onRevalidate} for a session effect -
- * never a listener of its own. Each flag declares its default and how ties resolve; there is no global rule.
+ * never a listener of its own. Each flag declares its default, where its value may live ({@link #getScope()}) and how
+ * the layers of its value join ({@link #getResolver()}); there is no global rule.
  *
  * <p>The flag's name says what TRUE does: {@code deny-pvp = TRUE} denies PvP.</p>
  *
@@ -141,8 +143,75 @@ public abstract class Flag<T> implements StateHolder {
         return true;
     }
 
-    /** Picks one of several distinct values defined at the same priority, in a deterministic order. */
-    public abstract T resolveTie(List<T> values);
+    /** Where the value may live: a PLACE flag only on a region or a group of one; an ACTOR flag on a holder that follows the player too. */
+    public FlagScope getScope() {
+        return FlagScope.PLACE;
+    }
+
+    /**
+     * Whether this flag serves {@code holder} at all; a value on a holder it refuses is kept but ignored, and its load
+     * warns once. Default: every holder.
+     */
+    public boolean accepts(FlagHolder holder) {
+        return true;
+    }
+
+    /** How the layers of the value join when the settings in effect name none. Default {@link FlagResolvers#firstDefined()}. */
+    public FlagResolver<T> getResolver() {
+        return FlagResolvers.firstDefined();
+    }
+
+    /** The strategies the settings may name with {@code resolve:}; the flag's own one among them. */
+    public List<FlagResolver<T>> getAcceptedResolvers() {
+        return Collections.singletonList(getResolver());
+    }
+
+    /** The resolver {@code settings} name, or the flag's own when they name none (or one this flag does not accept). */
+    public FlagResolver<T> getResolver(FlagSettings settings) {
+        String id = settings.getResolve();
+        if (id != null) {
+            for (FlagResolver<T> accepted : getAcceptedResolvers()) {
+                if (accepted.getId().equals(id)) {
+                    return accepted;
+                }
+            }
+        }
+        return getResolver();
+    }
+
+    /**
+     * Internal: refuses settings that name a resolver this flag does not accept, teaching the accepted ids.
+     *
+     * @throws IllegalArgumentException naming the accepted ids
+     */
+    public void checkResolve(FlagSettings settings) {
+        String id = settings.getResolve();
+        if (id == null) {
+            return;
+        }
+        List<String> ids = new ArrayList<>();
+        for (FlagResolver<T> accepted : getAcceptedResolvers()) {
+            if (accepted.getId().equals(id)) {
+                return;
+            }
+            ids.add(accepted.getId());
+        }
+        throw new IllegalArgumentException("The settings of flag " + key + " name resolve: " + id + ", which this flag does not accept."
+                + " Write one of: " + String.join(", ", ids) + " - or remove the key to use the flag's own (" + getResolver().getId() + ").");
+    }
+
+    /**
+     * What the flag acts on that another flag may act on too ({@code slot:flight}, {@code vital:health}, ...). Two flags
+     * sharing a channel must declare how they interact ({@link #getInteractions()}), or the second fails to register.
+     */
+    public Set<String> getChannels() {
+        return Collections.emptySet();
+    }
+
+    /** How this flag meets the flags it shares a channel with. */
+    public Set<FlagInteraction> getInteractions() {
+        return Collections.emptySet();
+    }
 
     /** {@link Decision#DENY} cancels the action. */
     public Decision decide(ActionContext context, T value) {

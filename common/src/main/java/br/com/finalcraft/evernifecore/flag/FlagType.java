@@ -26,9 +26,4 @@ public interface FlagType<T> {
     T fromJson(JsonNode node) throws FlagParseException;
 
     List<String> tabComplete(String partial);
-
-    /** Picks one of several distinct values tied on priority; the first, in the caller's deterministic order. */
-    default T resolveTie(List<T> values) {
-        return values.get(0);
-    }
 }

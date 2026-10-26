@@ -52,7 +52,7 @@ public final class FlagTypes {
             "world|x|y|z, e.g. world|10.5|64|-3", FlagTypes::parseLocation, WorldLocPos::serialize, Collections.emptyList());
 
     public static final FlagType<AmountEvery> AMOUNT_EVERY = new ScalarType<>("amount-every", AmountEvery.class,
-            "<amount> every <duration>, the amount above 0 and the duration 1s or more, e.g. 2 every 5s", AmountEvery::parse,
+            "<amount> every <duration>, the amount 0 or more and the duration 1s or more, e.g. 2 every 5s", AmountEvery::parse,
             AmountEvery::toString, Arrays.asList("1 every 1s", "1 every 5s", "2 every 5s"));
 
     public static final FlagType<EffectLevel> EFFECT = new ScalarType<>("effect", EffectLevel.class,
@@ -68,6 +68,9 @@ public final class FlagTypes {
             Arrays.asList(IPlayerStateAccess.CLEAR, IPlayerStateAccess.RAIN));
 
     /** Lines of text, typed separated by {@code ;} - {@code console:say hi; player:spawn}. */
+    /** A list of {@link #AMOUNT_EVERY} separated by commas; a single {@code 2 every 5s} is a list of one. */
+    public static final FlagType<List<AmountEvery>> AMOUNT_EVERY_LIST = listOf(AMOUNT_EVERY, ",");
+
     public static final FlagType<List<String>> TEXT_LIST = listOf(TEXT, ";");
 
     /** Effects with their level, typed separated by {@code ,} - {@code speed:2, night_vision}. */

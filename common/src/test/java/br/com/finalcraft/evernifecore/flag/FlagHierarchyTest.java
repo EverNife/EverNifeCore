@@ -52,11 +52,6 @@ class FlagHierarchyTest {
         TextFlag(ECPluginData owner, String name) {
             super(FlagKey.of(owner, name), FlagTypes.TEXT, Collections.singleton(EventSource.BREAK), null);
         }
-
-        @Override
-        public String resolveTie(List<String> values) {
-            return values.get(0);
-        }
     }
 
     @TempDir

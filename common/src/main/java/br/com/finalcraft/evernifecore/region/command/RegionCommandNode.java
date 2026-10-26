@@ -12,10 +12,12 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.tab.ITabParser.TabContex
 import br.com.finalcraft.evernifecore.commands.finalcmd.tree.CommandPath;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagMode;
 import br.com.finalcraft.evernifecore.flag.FlagParseException;
 import br.com.finalcraft.evernifecore.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.flag.FlagSettings;
 import br.com.finalcraft.evernifecore.flag.FlagValue;
+import br.com.finalcraft.evernifecore.time.ECClock;
 import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.ILocaleMessageBase;
@@ -386,19 +388,21 @@ public class RegionCommandNode implements RegionScope {
     }
 
     @FinalCMD.SubCMD(subcmd = "flag", validation = RegionVerbAccess.class, locales = {
-            @FCLocale(lang = LocaleType.EN_US, text = "Set, replace or clear (-) a flag of a region; -t gives the value a time to live, --fs k=v or {json} sets how it acts"),
-            @FCLocale(lang = LocaleType.PT_BR, text = "Define, troca ou limpa (-) uma flag da região; -t dá prazo ao valor, --fs k=v ou {json} define como ela age")
+            @FCLocale(lang = LocaleType.EN_US, text = "Set, replace or clear (-) a flag of a region; -t gives the value a time to live, --mode add|set, -p <priority> and --lock place it among the layers, --fs k=v or {json} sets how it acts"),
+            @FCLocale(lang = LocaleType.PT_BR, text = "Define, troca ou limpa (-) uma flag da região; -t dá prazo ao valor, --mode add|set, -p <prioridade> e --lock o situam entre as camadas, --fs k=v ou {json} define como ela age")
     })
     public void flag(FCommandSender sender, @Arg("<region>") Region region,
                      @Arg(value = "<flag>", parser = ArgParserRegionFlag.OrShortcut.class) String flagName,
                      @Arg(value = "[value...]", parser = ArgParserFlagValue.class) String valueText,
                      @Arg.Flag(value = "--ttl", aliases = {"-t"}, insideTail = true) FCTimeFrame ttl,
+                     @Arg.Flag(value = "--mode", insideTail = true) String mode,
+                     @Arg.Flag(value = "--priority", aliases = {"-p"}, insideTail = true) Integer priority,
+                     @Arg.Flag(value = "--lock", insideTail = true) Boolean lock,
                      @Arg.Flag(value = "--flag-settings", aliases = {"--fs"}, insideTail = true) List<ObjectNode> flagSettings) {
         if (valueText.isEmpty() && flagSettings == null) {
             for (Flag<?> flag : FlagValues.targets(flagName)) {
-                FlagValue<?> value = region.getFlagValue(flag);
                 FLAG_VALUE.addPlaceholder("flag", flag.getKey()).addPlaceholder("target", region.getId())
-                        .addPlaceholder("value", value == null ? "-" : FlagValues.format(flag, value.getValue())).send(sender);
+                        .addPlaceholder("value", describe(flag, region.getFlagValue(flag))).send(sender);
             }
             return;
         }
@@ -406,7 +410,7 @@ public class RegionCommandNode implements RegionScope {
             return;
         }
         boolean valueApplied = !valueText.isEmpty();
-        if (valueApplied && !applyFlags(sender, region, null, flagName, valueText, ttl)) {
+        if (valueApplied && !applyFlags(sender, region, null, flagName, valueText, ttl, mode, priority, lock)) {
             return;
         }
         if (flagSettings != null) {
@@ -699,26 +703,28 @@ public class RegionCommandNode implements RegionScope {
         }
 
         @FinalCMD.SubCMD(subcmd = "flag", validation = RegionVerbAccess.class, locales = {
-                @FCLocale(lang = LocaleType.EN_US, text = "Set or clear (-) a flag for the members of a group; -t gives it a time to live"),
-                @FCLocale(lang = LocaleType.PT_BR, text = "Define ou limpa (-) uma flag para os membros do grupo; -t dá prazo ao valor")
+                @FCLocale(lang = LocaleType.EN_US, text = "Set or clear (-) a flag for the members of a group; -t gives it a time to live, --mode add|set, -p <priority> and --lock place it among the layers"),
+                @FCLocale(lang = LocaleType.PT_BR, text = "Define ou limpa (-) uma flag para os membros do grupo; -t dá prazo ao valor, --mode add|set, -p <prioridade> e --lock o situam entre as camadas")
         })
         public void flag(FCommandSender sender, @Arg.NodeCaptured GroupTarget target,
                          @Arg(value = "<flag>", parser = ArgParserRegionFlag.OrShortcut.class) String flagName,
                          @Arg(value = "[value...]", parser = ArgParserFlagValue.class) String valueText,
-                         @Arg.Flag(value = "--ttl", aliases = {"-t"}, insideTail = true) FCTimeFrame ttl) {
+                         @Arg.Flag(value = "--ttl", aliases = {"-t"}, insideTail = true) FCTimeFrame ttl,
+                         @Arg.Flag(value = "--mode", insideTail = true) String mode,
+                         @Arg.Flag(value = "--priority", aliases = {"-p"}, insideTail = true) Integer priority,
+                         @Arg.Flag(value = "--lock", insideTail = true) Boolean lock) {
             if (valueText.isEmpty()) {
                 AccessGroup group = target.region.getGroupIfPresent(target.groupName);
                 for (Flag<?> flag : FlagValues.targets(flagName)) {
-                    Object value = group == null ? null : group.getFlag(flag);
                     FLAG_VALUE.addPlaceholder("flag", flag.getKey()).addPlaceholder("target", target.region.getId() + "/" + target.groupName)
-                            .addPlaceholder("value", value == null ? "-" : FlagValues.format(flag, value)).send(sender);
+                            .addPlaceholder("value", describe(flag, group == null ? null : group.getFlagValue(flag))).send(sender);
                 }
                 return;
             }
             if (!requireWritable(sender, target.region)) {
                 return;
             }
-            applyFlags(sender, target.region, target.groupName, flagName, valueText, ttl);
+            applyFlags(sender, target.region, target.groupName, flagName, valueText, ttl, mode, priority, lock);
         }
 
         @FinalCMD.SubCMD(subcmd = "list", validation = RegionVerbAccess.class, locales = {
@@ -951,7 +957,17 @@ public class RegionCommandNode implements RegionScope {
     /** Parses every target flag first, so a shortcut over two flags sets both or neither. */
     /** @return false when the value was refused and nothing was set */
     private boolean applyFlags(FCommandSender sender, Region region, @Nullable String groupName, String flagName, String valueText,
-                               @Nullable FCTimeFrame ttl) {
+                               @Nullable FCTimeFrame ttl, @Nullable String modeText, @Nullable Integer priority, @Nullable Boolean lock) {
+        FlagMode mode = FlagMode.ADD;
+        if (modeText != null) {
+            try {
+                mode = FlagMode.valueOf(modeText.trim().toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException unknown) {
+                REFUSED.addPlaceholder("reason", "--mode takes add (join the layers after it) or set (replace them), not '" + modeText + "'.")
+                        .send(sender);
+                return false;
+            }
+        }
         List<Flag<?>> flags = FlagValues.targets(flagName);
         List<Object> values = new ArrayList<>();
         for (Flag<?> flag : flags) {
@@ -979,9 +995,15 @@ public class RegionCommandNode implements RegionScope {
                 FLAG_CLEARED.addPlaceholder("flag", flag.getKey()).addPlaceholder("target", target).send(sender);
                 continue;
             }
-            setFlag(region, groupName, flag, value, timeToLive);
+            FlagValue<?> written;
+            try {
+                written = setFlag(region, groupName, flag, value, timeToLive, mode, priority == null ? 0 : priority, Boolean.TRUE.equals(lock));
+            } catch (IllegalArgumentException refused) {
+                REFUSED.addPlaceholder("reason", refused.getMessage()).send(sender);
+                return false;
+            }
             FLAG_SET.addPlaceholder("flag", flag.getKey()).addPlaceholder("target", target)
-                    .addPlaceholder("value", FlagValues.format(flag, value))
+                    .addPlaceholder("value", describe(flag, written))
                     .addPlaceholder("ttl", ttl == null ? "" : " for " + ttl.toConfigString())
                     .send(sender);
         }
@@ -989,22 +1011,26 @@ public class RegionCommandNode implements RegionScope {
     }
 
     @SuppressWarnings("unchecked")
-    private static <T> void setFlag(Region region, @Nullable String groupName, Flag<T> flag, Object value, @Nullable Duration ttl) {
+    private static <T> FlagValue<T> setFlag(Region region, @Nullable String groupName, Flag<T> flag, Object value, @Nullable Duration ttl,
+                                            FlagMode mode, int priority, boolean lock) {
         T typed = (T) value;
+        FlagValue<T> written = (ttl == null ? FlagValue.permanent(typed) : FlagValue.until(typed, ECClock.now().plus(ttl)))
+                .withMode(mode).withPriority(priority).withLock(lock);
         if (groupName == null) {
-            if (ttl == null) {
-                region.setFlag(flag, typed);
-            } else {
-                region.setFlag(flag, typed, ttl);
-            }
-            return;
-        }
-        AccessGroup group = region.getGroup(groupName);
-        if (ttl == null) {
-            group.setFlag(flag, typed);
+            region.setFlag(flag, written);
         } else {
-            group.setFlag(flag, typed, ttl);
+            region.getGroup(groupName).setFlag(flag, written);
         }
+        return written;
+    }
+
+    /** The value with its envelope ({@code 2 every 5s mode=set prio=10 lock}); {@code -} for none. */
+    private static String describe(Flag<?> flag, @Nullable FlagValue<?> value) {
+        if (value == null) {
+            return "-";
+        }
+        String envelope = value.describeEnvelope();
+        return FlagValues.format(flag, value.getValue()) + (envelope.isEmpty() ? "" : " " + envelope);
     }
 
     private static void sendSettings(FCommandSender sender, Region region, Flag<?> flag) {

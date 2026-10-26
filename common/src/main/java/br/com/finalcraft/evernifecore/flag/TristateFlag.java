@@ -4,11 +4,15 @@ import br.com.finalcraft.evernifecore.action.EventSource;
 
 import jakarta.annotation.Nullable;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-/** A yes/no flag. Both the default and the value that wins a tie are the flag's own call. */
+/**
+ * A yes/no flag. Both the default and the value that wins among equally specific layers
+ * ({@link FlagResolvers#preferAmongEquals}) are the flag's own call.
+ */
 public class TristateFlag extends Flag<Tristate> {
 
     private final Tristate winner;
@@ -29,9 +33,14 @@ public class TristateFlag extends Flag<Tristate> {
         return winner;
     }
 
-    /** The winner when any tied value is the winner; otherwise the first. */
+    /** The winner when one of the equally specific leading layers holds it; otherwise the first. */
     @Override
-    public Tristate resolveTie(List<Tristate> values) {
-        return values.contains(winner) ? winner : values.get(0);
+    public FlagResolver<Tristate> getResolver() {
+        return FlagResolvers.preferAmongEquals(winner);
+    }
+
+    @Override
+    public List<FlagResolver<Tristate>> getAcceptedResolvers() {
+        return Arrays.asList(getResolver(), FlagResolvers.firstDefined());
     }
 }

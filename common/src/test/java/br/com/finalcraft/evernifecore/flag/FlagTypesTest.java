@@ -109,14 +109,18 @@ class FlagTypesTest {
     }
 
     @Test
-    void amountEveryParsesFormatsAndRefusesANonPositiveAmount() throws Exception {
+    void amountEveryParsesFormatsTakesZeroAndRefusesANegativeAmount() throws Exception {
         AmountEvery value = FlagTypes.AMOUNT_EVERY.parse("2 every 5s");
         assertEquals(2, value.getAmount());
         assertEquals(Duration.ofSeconds(5), value.getInterval());
         assertEquals("2 every 5s", FlagTypes.AMOUNT_EVERY.format(value));
         assertEquals(value, FlagTypes.AMOUNT_EVERY.fromJson(FlagTypes.AMOUNT_EVERY.toJson(value)));
         assertEquals(value, FlagTypes.AMOUNT_EVERY.parse(FlagTypes.AMOUNT_EVERY.format(value)));
-        for (String refused : Arrays.asList("0 every 5s", "-1 every 5s", "2 every 500ms", "2 each 5s", "two every 5s")) {
+        assertEquals(0, FlagTypes.AMOUNT_EVERY.parse("0 every 1s").getAmount(), "0 is nothing - a set layer that silences the rest");
+        assertEquals(Arrays.asList(AmountEvery.of(2, Duration.ofSeconds(5))), FlagTypes.AMOUNT_EVERY_LIST.fromJson(
+                FlagTypes.AMOUNT_EVERY.toJson(value)), "a value stored as one entry reads as a list of one");
+        assertEquals(Arrays.asList(value, AmountEvery.of(7, Duration.ofSeconds(1))), FlagTypes.AMOUNT_EVERY_LIST.parse("2 every 5s, 7 every 1s"));
+        for (String refused : Arrays.asList("-1 every 5s", "2 every 500ms", "2 each 5s", "two every 5s")) {
             FlagParseException error = assertThrows(FlagParseException.class, () -> FlagTypes.AMOUNT_EVERY.parse(refused), refused);
             assertTrue(error.getMessage().contains("every <duration>"), error.getMessage());
         }

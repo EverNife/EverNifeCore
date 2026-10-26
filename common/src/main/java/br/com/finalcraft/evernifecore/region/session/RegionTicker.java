@@ -10,6 +10,8 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.flag.Flag;
 import br.com.finalcraft.evernifecore.flag.FlagKey;
 import br.com.finalcraft.evernifecore.flag.FlagRegistry;
+import br.com.finalcraft.evernifecore.flag.ActorHolders;
+import br.com.finalcraft.evernifecore.flag.FlagHolder;
 import br.com.finalcraft.evernifecore.flag.Resolution;
 import br.com.finalcraft.evernifecore.flag.TickingFlag;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
@@ -78,7 +80,8 @@ public final class RegionTicker {
         }
         Map<String, List<RegionPlayerSession>> byWorld = new HashMap<>();
         for (RegionPlayerSession session : lookup.getSessions()) {
-            if (session.getPosition() != null && session.getOnlinePlayer() != null && holdsTickingFlag(session.getCurrent())) {
+            FPlayer online = session.getOnlinePlayer();
+            if (session.getPosition() != null && online != null && (holdsTickingFlag(session.getCurrent()) || holdsTickingFlag(online))) {
                 byWorld.computeIfAbsent(session.getPosition().getWorldName(), world -> new ArrayList<>()).add(session);
             }
         }
@@ -111,6 +114,16 @@ public final class RegionTicker {
         return false;
     }
 
+    /** Whether a holder that follows {@code player} carries a ticking flag - a party's heal works outside every region. */
+    private static boolean holdsTickingFlag(FPlayer player) {
+        for (FlagHolder holder : ActorHolders.holdersOf(player)) {
+            if (anyTicks(holder.getFlags().keySet())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static boolean anyTicks(Iterable<FlagKey> keys) {
         for (FlagKey key : keys) {
             Flag<?> flag = FlagRegistry.get().get(key);
@@ -137,7 +150,7 @@ public final class RegionTicker {
     private <T> void tickFlag(FPlayer player, RegionPlayerSession session, Flag<T> flag) {
         Resolution<T> resolution = lookup.resolution(flag, session.getCurrent(), player);
         if (resolution.getSource() != null && resolution.getValue() != null) {
-            ((TickingFlag<T>) flag).onTick(new SessionContext(player, resolution.getSource(), session), resolution.getValue());
+            ((TickingFlag<T>) flag).onTick(new SessionContext(player, resolution.getRegion(), session), resolution.getValue());
         }
     }
 }

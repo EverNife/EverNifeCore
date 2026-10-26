@@ -23,11 +23,6 @@ public final class GreetingFlag extends Flag<String> {
         return FlagCategory.SESSION;
     }
 
-    /** The first. */
-    @Override
-    public String resolveTie(List<String> values) {
-        return values.get(0);
-    }
 
     @Override
     public void onEnter(SessionContext context, String value) {

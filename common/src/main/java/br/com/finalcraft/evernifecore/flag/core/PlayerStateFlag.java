@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.flag.core;
 
+import br.com.finalcraft.evernifecore.flag.FlagScope;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.SessionContext;
@@ -58,11 +59,6 @@ public abstract class PlayerStateFlag<T> extends Flag<T> {
         return PlayerStateSettings.class;
     }
 
-    /** The first. */
-    @Override
-    public T resolveTie(List<T> values) {
-        return values.get(0);
-    }
 
     @Override
     public void onEnter(SessionContext context, T value) {
@@ -70,7 +66,7 @@ public abstract class PlayerStateFlag<T> extends Flag<T> {
         if (access == null || !acts(access, value)) {
             return;
         }
-        PlayerStateSettings settings = context.getRegion().getEffectiveFlagSettings(this);
+        PlayerStateSettings settings = context.getSettings(this);
         HeldPlayerState held = context.getSession().getHeldState();
         held.hold(getSlot(), this, value, settings.isPersistent(), context.getPlayer());
         apply(context, access, held);
@@ -105,5 +101,11 @@ public abstract class PlayerStateFlag<T> extends Flag<T> {
     private @Nullable IPlayerStateAccess access() {
         IPlayerStateAccess access = EverNifeCore.getPlatform().getPlayerState();
         return access.supports(capability) ? access : null;
+    }
+
+    /** It follows the player: a holder that follows them may carry it. */
+    @Override
+    public FlagScope getScope() {
+        return FlagScope.ACTOR;
     }
 }

@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.flag.core;
 
+import br.com.finalcraft.evernifecore.flag.FlagScope;
 import br.com.finalcraft.evernifecore.action.ActionContext;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.ItemContext;
@@ -38,5 +39,11 @@ public final class DenyItemFlag extends DenyFlag {
     @Override
     public String getDescription() {
         return description;
+    }
+
+    /** It follows the player: a holder that follows them may carry it. */
+    @Override
+    public FlagScope getScope() {
+        return FlagScope.ACTOR;
     }
 }

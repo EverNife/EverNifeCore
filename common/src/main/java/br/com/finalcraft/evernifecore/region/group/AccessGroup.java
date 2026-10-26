@@ -4,6 +4,8 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.flag.Flag;
 import br.com.finalcraft.evernifecore.flag.FlagChangeCause;
 import br.com.finalcraft.evernifecore.flag.FlagKey;
+import br.com.finalcraft.evernifecore.flag.FlagHolder;
+import br.com.finalcraft.evernifecore.flag.FlagScope;
 import br.com.finalcraft.evernifecore.flag.FlagStore;
 import br.com.finalcraft.evernifecore.flag.FlagValue;
 import br.com.finalcraft.evernifecore.region.Region;
@@ -31,7 +33,7 @@ import java.util.function.Predicate;
  *
  * <p>Equality is identity on purpose: sessions cache membership by group object.</p>
  */
-public final class AccessGroup {
+public final class AccessGroup implements FlagHolder {
 
     /** Every mutation of a group lands here, after the fact. */
     public interface ChangeHook {
@@ -57,7 +59,7 @@ public final class AccessGroup {
         this.region = Objects.requireNonNull(region, "region");
         this.name = Objects.requireNonNull(name, "name");
         this.hook = Objects.requireNonNull(hook, "hook");
-        this.flags = new FlagStore(this::onFlagChanged);
+        this.flags = new FlagStore(this, this::onFlagChanged);
     }
 
     public String getName() {
@@ -68,7 +70,8 @@ public final class AccessGroup {
         return region;
     }
 
-    /** Default 0; among the groups of one player that define a flag, the highest priority wins. */
+    /** Default 0; among the groups of one region that hold a player and define a flag, the highest priority comes first. */
+    @Override
     public int getPriority() {
         return priority;
     }
@@ -80,7 +83,20 @@ public final class AccessGroup {
 
     // ---- flags ----
 
+    /** {@code owner:region/group}. */
+    @Override
+    public String getHolderId() {
+        return toString();
+    }
+
+    /** A group of a region is public in that place: it speaks about the place, for its members. */
+    @Override
+    public FlagScope getHolderScope() {
+        return FlagScope.PLACE;
+    }
+
     /** A read-only snapshot of the group's live values. */
+    @Override
     public Map<FlagKey, FlagValue<?>> getFlags() {
         return flags.getFlags();
     }
@@ -91,7 +107,18 @@ public final class AccessGroup {
         return value == null ? null : value.getValue();
     }
 
+    /** The group's own live value with its envelope, member or not; null when unset or expired. */
+    @Override
+    public <T> @Nullable FlagValue<T> getFlagValue(Flag<T> flag) {
+        return flags.getValue(flag);
+    }
+
     public <T> void setFlag(Flag<T> flag, T value) {
+        flags.set(flag, value);
+    }
+
+    /** Sets the group's value with its envelope; see {@link Region#setFlag(Flag, FlagValue)}. */
+    public <T> void setFlag(Flag<T> flag, FlagValue<T> value) {
         flags.set(flag, value);
     }
 
@@ -104,6 +131,7 @@ public final class AccessGroup {
     }
 
     /** Internal: the store behind the flag methods, shared with the flag registry. */
+    @Override
     public FlagStore getFlagStore() {
         return flags;
     }

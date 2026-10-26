@@ -6,8 +6,8 @@ import java.time.Duration;
 import java.util.Objects;
 
 /**
- * An amount applied once per interval - {@code 2 every 5s}. The amount is always positive: what it does (heal, harm)
- * is the flag's name to tell. The interval is at least {@link #MIN_INTERVAL}, the period the region tick runs at.
+ * An amount applied once per interval - {@code 2 every 5s}. The amount is never negative: what it does (heal, harm)
+ * is the flag's name to tell; 0 is "nothing", meaningful as a {@link FlagMode#SET} layer that silences the ones after it. The interval is at least {@link #MIN_INTERVAL}, the period the region tick runs at.
  */
 public final class AmountEvery {
 
@@ -21,10 +21,11 @@ public final class AmountEvery {
         this.interval = interval;
     }
 
-    /** @throws IllegalArgumentException when {@code amount} is not above zero or {@code interval} is under {@link #MIN_INTERVAL} */
+    /** @throws IllegalArgumentException when {@code amount} is negative or {@code interval} is under {@link #MIN_INTERVAL} */
     public static AmountEvery of(int amount, Duration interval) {
-        if (amount <= 0) {
-            throw new IllegalArgumentException("The amount " + amount + " must be above zero: the flag's name says whether it adds or takes.");
+        if (amount < 0) {
+            throw new IllegalArgumentException("The amount " + amount + " cannot be negative: the flag's name says whether it adds or takes"
+                    + " - write the amount without a sign, or 0 for nothing.");
         }
         if (interval.compareTo(MIN_INTERVAL) < 0) {
             throw new IllegalArgumentException("The interval " + FCTimeFrame.of(interval).toConfigString() + " is under the region tick of 1s:"

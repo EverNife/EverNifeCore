@@ -2,28 +2,53 @@ package br.com.finalcraft.evernifecore.flag;
 
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
-import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import jakarta.annotation.Nullable;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/** How {@link RegionLookup#explain} reached a flag's value: the value, the region it came from, and every step on the way. */
+/**
+ * How {@link RegionLookup} reached a flag's value: the value, the layers it was joined from - every defined value it saw,
+ * in resolution order, each with what the resolver did with it - and the resolver that joined them.
+ */
 public final class Resolution<T> {
 
     private final Flag<T> flag;
     private final @Nullable T value;
-    private final @Nullable Region source;
     private final Reason reason;
-    private final List<Step> steps;
+    private final FlagResolver<T> resolver;
+    private final List<FlagLayer<T>> layers;
+    private final @Nullable FlagLayer<T> first;
+    private final @Nullable Region region;
 
-    /** Internal: built by {@link br.com.finalcraft.evernifecore.region.RegionLookup}. */
-    public Resolution(Flag<T> flag, @Nullable T value, @Nullable Region source, Reason reason, List<Step> steps) {
+    /** Internal: built by {@link RegionLookup}. */
+    public Resolution(Flag<T> flag, @Nullable T value, Reason reason, FlagResolver<T> resolver, List<FlagLayer<T>> layers) {
         this.flag = flag;
         this.value = value;
-        this.source = source;
         this.reason = reason;
-        this.steps = Collections.unmodifiableList(steps);
+        this.resolver = resolver;
+        this.layers = layers.isEmpty() ? Collections.emptyList() : Collections.unmodifiableList(layers);
+        FlagLayer<T> firstCounted = null;
+        Region firstRegion = null;
+        for (FlagLayer<T> layer : layers) {
+            if (layer.getUse() != FlagLayer.Use.COUNTED) {
+                continue;
+            }
+            if (firstCounted == null) {
+                firstCounted = layer;
+            }
+            if (firstRegion == null && layer.getRegion() != null) {
+                firstRegion = layer.getRegion();
+            }
+        }
+        this.first = firstCounted;
+        this.region = firstRegion;
+    }
+
+    /** Internal: the flag's default, for a bypass or where nothing defines it. */
+    public static <T> Resolution<T> ofDefault(Flag<T> flag, Reason reason) {
+        return new Resolution<>(flag, flag.getDefault(), reason, flag.getResolver(), Collections.emptyList());
     }
 
     /**
@@ -39,100 +64,58 @@ public final class Resolution<T> {
         return value;
     }
 
-    /** The region whose value (or group's value) won; null for the default or a bypass. */
-    public @Nullable Region getSource() {
-        return source;
+    /** The holder of the first counted layer; null for the default and a bypass. */
+    public @Nullable FlagHolder getSource() {
+        return first == null ? null : first.getHolder();
     }
 
-    /**
-     * Why the value is what it is: {@link Reason#GROUP_VALUE}, {@link Reason#LOCAL_VALUE} or
-     * {@link Reason#INHERITED} for a value some region gave, {@link Reason#BYPASS} or
-     * {@link Reason#DEFAULT} for the flag's default.
-     */
+    /** The region of the first counted layer that has one; null when the value came only from holders that follow the player. */
+    public @Nullable Region getRegion() {
+        return region;
+    }
+
+    /** The reason of the first counted layer; {@link Reason#BYPASS} or {@link Reason#DEFAULT} for the flag's default. */
     public Reason getReason() {
-        return reason;
+        return first == null ? reason : first.getReason();
     }
 
-    /** Every step looked at; empty when the resolution was not asked to record them. */
-    public List<Step> getSteps() {
-        return steps;
+    /** The strategy that joined the layers: the one the settings in effect name, or the flag's own. */
+    public FlagResolver<T> getResolver() {
+        return resolver;
+    }
+
+    /** Every defined layer in resolution order, each with its {@link FlagLayer#getUse()}; empty for the default. */
+    public List<FlagLayer<T>> getLayers() {
+        return layers;
+    }
+
+    public List<FlagLayer<T>> getCountedLayers() {
+        List<FlagLayer<T>> counted = new ArrayList<>(layers.size());
+        for (FlagLayer<T> layer : layers) {
+            if (layer.getUse() == FlagLayer.Use.COUNTED) {
+                counted.add(layer);
+            }
+        }
+        return counted;
     }
 
     @Override
     public String toString() {
-        return value + " of " + flag.getKey() + " from " + source + " " + steps;
+        return value + " of " + flag.getKey() + " (" + getReason() + ", " + resolver.getId() + ") " + layers;
     }
 
     public enum Reason {
         /** The subject holds a bypass permission: the flag reads as its default. */
         BYPASS,
-        /** A group of the region that contains the subject defines the flag. */
+        /** A group of a region that contains the subject defines the flag. */
         GROUP_VALUE,
         /** The region defines the flag itself. */
         LOCAL_VALUE,
         /** The region does not define it; an ancestor does. */
         INHERITED,
-        /** A parent of another candidate: its child speaks for it. */
-        SKIPPED_ANCESTOR,
-        /** Neither the region, its groups nor its ancestors define it. */
-        NO_VALUE,
-        /** Regions of the same priority disagree; the flag picked this one. */
-        TIE,
+        /** A holder that follows the subject wherever they stand ({@link ActorHolders}) defines it. */
+        ACTOR_VALUE,
         /** Nothing defines it: the flag's default. */
         DEFAULT
-    }
-
-    /** One thing the resolution looked at. */
-    public static final class Step {
-
-        private final Flag<?> flag;
-        private final @Nullable Region region;
-        private final int priority;
-        private final @Nullable AccessGroup group;
-        private final @Nullable Object value;
-        private final Reason reason;
-
-        /** Internal: built by {@link br.com.finalcraft.evernifecore.region.RegionLookup}. */
-        public Step(Flag<?> flag, @Nullable Region region, int priority, @Nullable AccessGroup group, @Nullable Object value, Reason reason) {
-            this.flag = flag;
-            this.region = region;
-            this.priority = priority;
-            this.group = group;
-            this.value = value;
-            this.reason = reason;
-        }
-
-        /** The flag asked at this step: the asked flag, or an ancestor of it once a refinement climbs. */
-        public Flag<?> getFlag() {
-            return flag;
-        }
-
-        /** The region looked at; for {@link Reason#INHERITED} the ancestor that gave the value; null for bypass and default. */
-        public @Nullable Region getRegion() {
-            return region;
-        }
-
-        /** The priority band the step belongs to. */
-        public int getPriority() {
-            return priority;
-        }
-
-        public @Nullable AccessGroup getGroup() {
-            return group;
-        }
-
-        public @Nullable Object getValue() {
-            return value;
-        }
-
-        public Reason getReason() {
-            return reason;
-        }
-
-        @Override
-        public String toString() {
-            return reason + "(" + flag.getKey() + " " + (region == null ? "-" : region.getId()) + (group == null ? "" : "/" + group.getName())
-                    + ", p" + priority + ", " + value + ")";
-        }
     }
 }

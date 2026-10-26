@@ -25,8 +25,15 @@ import java.util.function.UnaryOperator;
  * underneath, and it counts again once the temporary one expires. Values of flags whose owner is not registered
  * stay raw, exactly as stored, until the flag registers.</p>
  *
- * <p>The raw form of a value is a JSON object: {@code value}, plus {@code expiresAt} (ISO-8601) when temporary,
- * plus {@code permanent} when a temporary value sits over a permanent one.</p>
+ * <p>The raw form of a value is a JSON object: {@code value} and {@code since} (ISO-8601), plus the envelope keys that
+ * are not the default - {@code mode: set}, {@code priority} when not 0, {@code lock: true} - plus {@code expiresAt} when
+ * temporary, plus {@code permanent} (the bare value) when a temporary value sits over a permanent one. A missing key
+ * reads as its default, {@code since} as {@link Instant#EPOCH}: a value stored before the envelope existed reads the
+ * same, and as the oldest. The envelope belongs to the live layer; the permanent one under a temporary value keeps
+ * only its value in storage.</p>
+ *
+ * <p>The store refuses what its holder cannot carry ({@link FlagHolder#accepts}) and a lock on an ACTOR holder; a
+ * value whose flag refuses the holder ({@link Flag#accepts(FlagHolder)}) is kept but ignored, with one warning.</p>
  */
 public final class FlagStore {
 
@@ -54,10 +61,16 @@ public final class FlagStore {
 
     private final ConcurrentHashMap<FlagKey, Layers> values = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, JsonNode> unknown = new ConcurrentHashMap<>();
+    private final FlagHolder holder;
     private final ChangeHook hook;
 
-    public FlagStore(ChangeHook hook) {
+    public FlagStore(FlagHolder holder, ChangeHook hook) {
+        this.holder = Objects.requireNonNull(holder, "holder");
         this.hook = Objects.requireNonNull(hook, "hook");
+    }
+
+    public FlagHolder getHolder() {
+        return holder;
     }
 
     /** The live value: the temporary layer while it lasts, then the permanent one; null when neither. */
@@ -81,8 +94,7 @@ public final class FlagStore {
 
     /** Sets the permanent value; a temporary layer over it is dropped - what was set is what reads. */
     public <T> void set(Flag<T> flag, T value) {
-        FlagValue<T> permanent = FlagValue.permanent(value);
-        mutate(flag, previous -> new Layers(flag, permanent, null), FlagChangeCause.SET);
+        set(flag, FlagValue.permanent(value));
     }
 
     /** Sets a temporary value over the permanent one, until now + {@code ttl}. */
@@ -91,8 +103,26 @@ public final class FlagStore {
             throw new IllegalArgumentException("A temporary value of flag " + flag.getKey() + " needs a positive duration, not " + ttl
                     + ": use setFlag(flag, value) for a permanent value.");
         }
-        FlagValue<T> timed = FlagValue.until(value, ECClock.now().plus(ttl));
-        mutate(flag, previous -> new Layers(flag, previous == null ? null : previous.permanent, timed), FlagChangeCause.SET);
+        set(flag, FlagValue.until(value, ECClock.now().plus(ttl)));
+    }
+
+    /**
+     * Sets {@code value} with its envelope: over the permanent value while it has a deadline, else as the permanent value
+     * (a temporary layer over it is dropped).
+     *
+     * @throws IllegalArgumentException when the holder cannot carry the flag, or the value is locked on an ACTOR holder
+     */
+    public <T> void set(Flag<T> flag, FlagValue<T> value) {
+        if (value.isLock() && holder.getHolderScope() == FlagScope.ACTOR) {
+            throw new IllegalArgumentException("Flag " + flag.getKey() + " cannot be locked on " + holder.getHolderId() + ": lock belongs to"
+                    + " places (regions), where it wins over every layer. A value of a holder that follows the player wins its ties with"
+                    + " priority: <n> instead.");
+        }
+        if (value.getExpiresAt() == null) {
+            mutate(flag, previous -> new Layers(flag, value, null), FlagChangeCause.SET);
+        } else {
+            mutate(flag, previous -> new Layers(flag, previous == null ? null : previous.permanent, value), FlagChangeCause.SET);
+        }
     }
 
     /** Removes both layers; false when the flag had no value here. */
@@ -198,6 +228,10 @@ public final class FlagStore {
     private boolean link(Flag<?> flag, JsonNode raw) {
         try {
             values.put(flag.getKey(), fromRaw(flag, raw));
+            if (!flag.accepts(holder) && flag.isRegistered()) {
+                flag.getOwner().getLog().warning("Flag {} does not apply to {}: its value there is kept but ignored. Remove it from {},"
+                        + " or post it on a holder the flag serves.", flag.getKey(), holder.getHolderId(), holder.getHolderId());
+            }
             return true;
         } catch (FlagParseException unreadable) {
             return false;
@@ -208,6 +242,11 @@ public final class FlagStore {
         if (!flag.isRegistered()) {
             throw new IllegalStateException("Flag " + flag.getKey() + " is not registered: register it first with"
                     + " FlagRegistry.get().register(owner, flag), usually in the owner's enable.");
+        }
+        if (!holder.accepts(flag)) {
+            throw new IllegalArgumentException("Flag " + flag.getKey() + " is a PLACE flag: it says what happens in a place, so "
+                    + holder.getHolderId() + ", which follows its players wherever they stand, cannot carry it. Post it on a region,"
+                    + " or on a group of that region.");
         }
         FlagValue<?>[] old = new FlagValue<?>[1];
         Layers updated = values.compute(flag.getKey(), (key, previous) -> {
@@ -224,6 +263,16 @@ public final class FlagStore {
         }
         ObjectNode raw = JsonNodeFactory.instance.objectNode();
         raw.set("value", json(layers.flag, top.getValue()));
+        if (top.getMode() == FlagMode.SET) {
+            raw.put("mode", "set");
+        }
+        if (top.getPriority() != 0) {
+            raw.put("priority", top.getPriority());
+        }
+        if (top.isLock()) {
+            raw.put("lock", true);
+        }
+        raw.put("since", top.getSince().toString());
         if (top.getExpiresAt() != null) {
             raw.put("expiresAt", top.getExpiresAt().toString());
             if (layers.permanent != null) {
@@ -243,19 +292,39 @@ public final class FlagStore {
             throw new FlagParseException("Stored value " + raw + " of flag " + flag.getKey() + " is not {value: ..., expiresAt: ...}.");
         }
         T value = flag.getType().fromJson(raw.get("value"));
-        JsonNode expiresAt = raw.get("expiresAt");
-        if (expiresAt == null || expiresAt.isNull()) {
-            return new Layers(flag, FlagValue.permanent(value), null);
-        }
-        Instant deadline;
+        JsonNode modeNode = raw.get("mode");
+        FlagMode mode;
         try {
-            deadline = Instant.parse(expiresAt.asText());
-        } catch (DateTimeParseException notAnInstant) {
-            throw new FlagParseException("Stored deadline '" + expiresAt.asText() + "' of flag " + flag.getKey()
-                    + " is not an ISO-8601 instant such as 2026-10-06T12:00:00Z.", notAnInstant);
+            mode = modeNode == null || modeNode.isNull() ? FlagMode.ADD : FlagMode.valueOf(modeNode.asText().trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException unknown) {
+            throw new FlagParseException("Stored mode '" + modeNode.asText() + "' of flag " + flag.getKey() + " is neither add nor set.", unknown);
+        }
+        JsonNode priority = raw.get("priority");
+        JsonNode lock = raw.get("lock");
+        Instant since = instant(flag, raw.get("since"), "time");
+        Instant expiresAt = instant(flag, raw.get("expiresAt"), "deadline");
+        FlagValue<T> live = (expiresAt == null ? FlagValue.permanent(value) : FlagValue.until(value, expiresAt))
+                .withMode(mode)
+                .withPriority(priority == null || priority.isNull() ? 0 : priority.asInt())
+                .withLock(lock != null && lock.asBoolean())
+                .withSince(since == null ? Instant.EPOCH : since);
+        if (expiresAt == null) {
+            return new Layers(flag, live, null);
         }
         JsonNode permanent = raw.get("permanent");
-        return new Layers(flag, permanent == null || permanent.isNull() ? null : FlagValue.permanent(flag.getType().fromJson(permanent)),
-                FlagValue.until(value, deadline));
+        return new Layers(flag, permanent == null || permanent.isNull() ? null
+                : FlagValue.permanent(flag.getType().fromJson(permanent)).withSince(Instant.EPOCH), live);
+    }
+
+    private static @Nullable Instant instant(Flag<?> flag, @Nullable JsonNode node, String what) throws FlagParseException {
+        if (node == null || node.isNull()) {
+            return null;
+        }
+        try {
+            return Instant.parse(node.asText());
+        } catch (DateTimeParseException notAnInstant) {
+            throw new FlagParseException("Stored " + what + " '" + node.asText() + "' of flag " + flag.getKey()
+                    + " is not an ISO-8601 instant such as 2026-10-06T12:00:00Z.", notAnInstant);
+        }
     }
 }
