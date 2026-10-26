@@ -23,6 +23,8 @@ import br.com.finalcraft.evernifecore.flag.core.EntryDenySettings;
 import br.com.finalcraft.evernifecore.flag.core.TrackChangesSettings;
 import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.hytale.region.HySelectionItems;
+import br.com.finalcraft.evernifecore.logic.audit.EffectApplyEvent;
+import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
@@ -82,6 +84,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -126,6 +129,8 @@ public final class HyRegionsSuite implements ConformanceSuite {
                 withPlayer("wand-closes-a-shape", ctx, this::wandClosesAShape),
                 withPlayer("denied-spawn-never-ticks", ctx, this::deniedSpawnNeverTicks),
                 withPlayer("outline-is-sent", ctx, this::outlineIsSent),
+                withPlayer("effects-on-enter-runs-message", ctx, this::effectsOnEnterRunsMessage),
+                withPlayer("damage-multiplier-scales-damage", ctx, this::damageMultiplierScalesDamage),
                 withPlayer("deny-item-drop-inside-only", ctx, player -> itemDeniedInsideOnly(player, "ecc-item-drop", CoreFlags.DENY_ITEM_DROP,
                         () -> new DropItemEvent.Drop(new ItemStack(SOLID), 1F))),
                 withPlayer("deny-item-pickup-inside-only", ctx, player -> itemDeniedInsideOnly(player, "ecc-item-pickup", CoreFlags.DENY_ITEM_PICKUP,
@@ -879,6 +884,89 @@ public final class HyRegionsSuite implements ConformanceSuite {
                         + " message='" + BREAK_MESSAGE + "'"));
             });
         });
+    }
+
+    /**
+     * A {@code message} effect on {@code effects-on-enter}: the player teleported into the region gets it applied once,
+     * and teleported back out not again.
+     */
+    private CompletableFuture<Verdict> effectsOnEnterRunsMessage(FPlayer fplayer) {
+        PlayerRef player = HyWorld.player(fplayer);
+        World world = HyWorld.worldOf(player);
+        return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(start -> {
+            Vector3i center = block(start, 8, 0, 0);
+            List<String> applied = new CopyOnWriteArrayList<>();
+            int[] onEntering = new int[1];
+            return inRegion(regions, "ecc-effects", world.getName(), pos(center).add(-2, -3, -2), pos(center).add(2, 4, 2), region -> {
+                try {
+                    region.setFlag(CoreFlags.EFFECTS_ON_ENTER,
+                            CoreFlags.EFFECTS_ON_ENTER.getType().parse("[{type: message, text: 'ECC effects-on-enter'}]"));
+                } catch (Exception thrown) {
+                    throw new IllegalStateException(thrown);
+                }
+            }, region -> {
+                ECEventSubscription<EffectApplyEvent> effects = ECEventBus.global().subscribe(EffectApplyEvent.class, event -> {
+                    FPlayer who = event.getPlayer();
+                    if (who != null && who.getUniqueId().equals(fplayer.getUniqueId())
+                            && event.getCaller().getOrigin().equals("region/" + region.getId() + "#effects-on-enter")) {
+                        applied.add(String.valueOf(event.getEffect()));
+                    }
+                });
+                return HyWorld.ticks(world, 3)   //the move System seeds the player on the first tick MOVE is needed
+                        .thenCompose(seeded -> HyWorld.on(world, () -> {
+                            HyWorld.teleport(player, world, new Vector3d(center.x + 0.5, start.y, center.z + 0.5));
+                            return null;
+                        }))
+                        .thenCompose(sent -> HyWorld.ticks(world, 15))
+                        .thenCompose(entered -> HyWorld.on(world, () -> {
+                            onEntering[0] = applied.size();
+                            HyWorld.teleport(player, world, start);
+                            return null;
+                        }))
+                        .thenCompose(sent -> HyWorld.ticks(world, 15))
+                        .thenApply(left -> Verdict.of(onEntering[0] == 1 && applied.size() == 1, "appliedOnEntering=" + onEntering[0]
+                                + " appliedAfterLeaving=" + applied.size() + " effects=" + applied))
+                        .whenComplete((verdict, failed) -> effects.unsubscribe());
+            });
+        });
+    }
+
+    /**
+     * The same environment hit on the player, before and after its region gets {@code damage-multiplier = 2.0}: the
+     * second takes twice the health of the first. Health is put back after each hit.
+     */
+    private CompletableFuture<Verdict> damageMultiplierScalesDamage(FPlayer fplayer) {
+        PlayerRef player = HyWorld.player(fplayer);
+        World world = HyWorld.worldOf(player);
+        IPlayerStateAccess state = EverNifeCore.getPlatform().getPlayerState();
+        return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(start -> {
+            Vector3i here = block(start, 0, 0, 0);
+            double[] lost = new double[2];
+            return inRegion(regions, "ecc-damage-multiplier", world.getName(), pos(here).add(-2, -3, -2), pos(here).add(2, 4, 2),
+                    region -> { }, region -> hitAndHeal(world, fplayer, state, lost, 0)
+                            .thenCompose(plain -> HyWorld.on(world, () -> {
+                                region.setFlag(CoreFlags.DAMAGE_MULTIPLIER, 2.0);
+                                return null;
+                            }))
+                            .thenCompose(set -> hitAndHeal(world, fplayer, state, lost, 1))
+                            .thenApply(scaled -> Verdict.of(lost[0] > 1 && Math.abs(lost[1] - 2 * lost[0]) < 0.25,
+                                    "hit of 2 lost " + lost[0] + " without the flag and " + lost[1] + " with damage-multiplier = 2.0 (want twice)")));
+        });
+    }
+
+    /** Fills the player's health, deals 2 environment damage, reads what it took into {@code lost[slot]} a tick later, and heals back. */
+    private static CompletableFuture<Void> hitAndHeal(World world, FPlayer fplayer, IPlayerStateAccess state, double[] lost, int slot) {
+        double[] before = new double[1];
+        return HyWorld.on(world, () -> {
+            state.setHealth(fplayer, state.getMaxHealth(fplayer));
+            before[0] = state.getHealth(fplayer);
+            state.damage(fplayer, 2, false);
+            return null;
+        }).thenCompose(hit -> HyWorld.ticks(world, 1)).thenCompose(read -> HyWorld.on(world, () -> {
+            lost[slot] = before[0] - state.getHealth(fplayer);
+            state.setHealth(fplayer, state.getMaxHealth(fplayer));
+            return null;
+        }));
     }
 
     /**

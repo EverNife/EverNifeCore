@@ -73,8 +73,8 @@ import org.bukkit.potion.PotionEffectType;
  * source putting its listener on the server only while a region needs it, a break inside a denying region cancelled,
  * a bot found inside a region that starts denying entry sent out, a real TNT held whole by {@code deny-explosion} and
  * cut at a {@code deny-block-break} border, the registry's own block and entity keys, outside water kept out by a FLUID
- * flag, a region's {@code deny-message} and own flag settings read back after a restart, and the terrain cases of
- * {@link TerrainCases}. Every region a case creates is removed by it, except the one the write half leaves for the read half.
+ * flag, a region's {@code deny-message} and own flag settings read back after a restart, the terrain cases of
+ * {@link TerrainCases} and the flag value cases of {@link FlagValueCases}. Every region a case creates is removed by it, except the one the write half leaves for the read half.
  */
 public final class RegionsSuite implements ConformanceSuite {
 
@@ -139,6 +139,7 @@ public final class RegionsSuite implements ConformanceSuite {
                 ConformanceCase.of("vehicle-listener-follows-need", () -> listenerFollowsNeed(CoreFlags.DENY_VEHICLE,
                         region -> region.setFlag(CoreFlags.DENY_VEHICLE, Tristate.TRUE), "VehicleActionListeners$BreakAndEnter"))));
         cases.addAll(new TerrainCases(regions).cases(ctx));
+        cases.addAll(new FlagValueCases(regions).cases(ctx));
         return cases;
     }
 
