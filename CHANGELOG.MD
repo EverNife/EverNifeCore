@@ -220,7 +220,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - `SessionContext.getRegion()` may be null (a value that came only from a holder that follows the player);
   `SessionContext.getSettings(flag)` gives the settings in effect either way. `FlagOutcomeContext.getResolution()` gives
   the layers behind an outcome. Protection and session flags of a holder that follows the player apply outside every region.
-- `common-tests`: `RegionWorld.actorHolder(id, members...)` (`TestActorHolder`) and `RegionWorld.explain(flag, player)`.
+- `common-tests`: `RegionWorld.actorHolder(id, members...)` (`TestActorHolder`, also usable alone through
+  `TestActorHolder.providerOf(holders)`) and `RegionWorld.explain(flag, player)`.
 
 - **`VisualStyle.PATH`**: the outline renderers draw a waypoint path with a particle of its own (Bukkit `HEART`,
   Hytale `Lore_Note_Glow`).

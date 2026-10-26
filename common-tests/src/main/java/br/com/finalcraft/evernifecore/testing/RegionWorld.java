@@ -9,7 +9,6 @@ import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.flag.ActorHolders;
 import br.com.finalcraft.evernifecore.flag.Flag;
-import br.com.finalcraft.evernifecore.flag.FlagHolder;
 import br.com.finalcraft.evernifecore.flag.Resolution;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.region.CreationResult;
@@ -24,7 +23,6 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -135,23 +133,7 @@ public final class RegionWorld implements AutoCloseable {
     public TestActorHolder actorHolder(String id, UUID... members) {
         TestActorHolder holder = new TestActorHolder(id, members);
         if (actorHolders.isEmpty()) {
-            ActorHolders.register(owner, new ActorHolders.Provider() {
-                @Override
-                public Collection<? extends FlagHolder> holdersOf(FPlayer player) {
-                    List<FlagHolder> theirs = new ArrayList<>();
-                    for (TestActorHolder candidate : actorHolders) {
-                        if (candidate.contains(player)) {
-                            theirs.add(candidate);
-                        }
-                    }
-                    return theirs;
-                }
-
-                @Override
-                public Collection<? extends FlagHolder> all() {
-                    return actorHolders;
-                }
-            });
+            ActorHolders.register(owner, TestActorHolder.providerOf(actorHolders));
         }
         actorHolders.add(holder);
         return holder;

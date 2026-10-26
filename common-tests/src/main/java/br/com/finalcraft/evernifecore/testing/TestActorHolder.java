@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.testing;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.flag.ActorHolders;
 import br.com.finalcraft.evernifecore.flag.Flag;
 import br.com.finalcraft.evernifecore.flag.FlagHolder;
 import br.com.finalcraft.evernifecore.flag.FlagKey;
@@ -10,8 +11,11 @@ import br.com.finalcraft.evernifecore.flag.FlagValue;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import jakarta.annotation.Nullable;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -29,7 +33,8 @@ public final class TestActorHolder implements FlagHolder {
     private final FlagStore flags;
     private volatile int priority;
 
-    TestActorHolder(String id, UUID... members) {
+    /** A holder outside any {@link RegionWorld}; register it with {@link #providerOf} under the test's plugin. */
+    public TestActorHolder(String id, UUID... members) {
         this.id = id;
         this.members.addAll(Arrays.asList(members));
         this.flags = new FlagStore(this, (flag, oldValue, newValue, cause) -> revalidateMembers());
@@ -96,6 +101,27 @@ public final class TestActorHolder implements FlagHolder {
 
     public boolean contains(FPlayer player) {
         return members.contains(player.getUniqueId());
+    }
+
+    /** An {@link ActorHolders.Provider} over {@code holders} (read live): each player gets the holders that contain them. */
+    public static ActorHolders.Provider providerOf(Collection<TestActorHolder> holders) {
+        return new ActorHolders.Provider() {
+            @Override
+            public Collection<? extends FlagHolder> holdersOf(FPlayer player) {
+                List<FlagHolder> theirs = new ArrayList<>();
+                for (TestActorHolder holder : holders) {
+                    if (holder.contains(player)) {
+                        theirs.add(holder);
+                    }
+                }
+                return theirs;
+            }
+
+            @Override
+            public Collection<? extends FlagHolder> all() {
+                return holders;
+            }
+        };
     }
 
     private void revalidateMembers() {
