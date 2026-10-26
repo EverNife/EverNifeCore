@@ -45,6 +45,12 @@ public class TestFPlayerSender implements FPlayer {
         return this;
     }
 
+    /** Takes back a permission {@link #grant} gave. */
+    public TestFPlayerSender revoke(String permission) {
+        permissions.remove(permission);
+        return this;
+    }
+
     /** Whether this player is still connected - the answer anything that keeps ticking for them reads. */
     public TestFPlayerSender online(boolean online) {
         this.online = online;
