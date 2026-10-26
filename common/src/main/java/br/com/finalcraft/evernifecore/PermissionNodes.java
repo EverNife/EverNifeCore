@@ -17,6 +17,8 @@ public class PermissionNodes {
     public static final String EVERNIFECORE_COMMAND_EVENTS              = "evernifecore.command.events";
     public static final String EVERNIFECORE_COMMAND_REGION              = "evernifecore.command.region";
     public static final String EVERNIFECORE_COMMAND_LOGIC               = "evernifecore.command.logic";
+    public static final String EVERNIFECORE_COMMAND_LOGIC_AUDIT         = "evernifecore.command.logic.audit";
+    public static final String EVERNIFECORE_COMMAND_DELIVERIES          = "evernifecore.command.deliveries";
     public static final String EVERNIFECORE_COMMAND_TYPES               = "evernifecore.command.types";
     public static final String EVERNIFECORE_COMMAND_I18N                = "evernifecore.command.i18n";
     public static final String EVERNIFECORE_PAGEVIEWER_ALL              = "evernifecore.pageviewer.all";

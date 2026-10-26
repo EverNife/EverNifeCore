@@ -1,5 +1,8 @@
 package br.com.finalcraft.evernifecore.logic.value;
 
+import br.com.finalcraft.evernifecore.logic.audit.AuditEntry;
+import br.com.finalcraft.evernifecore.logic.audit.AuditKind;
+import br.com.finalcraft.evernifecore.logic.audit.AuditLog;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.logic.Effect;
@@ -47,7 +50,8 @@ public final class Contribution<T> {
     /**
      * Takes from the context's player up to what is missing (consuming) or counts what they hold beyond what they
      * already counted (checking), posts a {@link ContributionDepositEvent} when something counted, and applies the
-     * completion effects once, posting a {@link ContributionCompletedEvent}, when the target is reached.
+     * completion effects once, posting a {@link ContributionCompletedEvent}, when the target is reached. What counted is
+     * recorded as a {@code DEPOSIT} in the {@link AuditLog} of the contributions' plugin, when it has one.
      *
      * @throws IllegalStateException when the context has no player - a deposit is always somebody's
      */
@@ -80,6 +84,13 @@ public final class Contribution<T> {
         BigDecimal deposited = counted;
         BigDecimal reached = total;
         ECEventBus.global().postIfListened(ContributionDepositEvent.class, () -> new ContributionDepositEvent(this, ctx, deposited, reached));
+        AuditLog.ofIfPresent(contributions.getPlugin()).ifPresent(log -> log.record(AuditEntry.builder(AuditKind.DEPOSIT, ctx.getCaller())
+                .owner(target)
+                .player(player.getUniqueId())
+                .subject(id)
+                .amount(deposited)
+                .text(deposited.toPlainString() + " of " + requirement + " toward " + target + ", " + reached.toPlainString() + " in all")
+                .build()));
         if (completedNow) {
             ECEventBus.global().postIfListened(ContributionCompletedEvent.class, () -> new ContributionCompletedEvent(this, ctx));
             for (Effect effect : onComplete) {

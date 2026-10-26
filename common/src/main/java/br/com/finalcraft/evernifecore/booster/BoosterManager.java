@@ -1,5 +1,8 @@
 package br.com.finalcraft.evernifecore.booster;
 
+import br.com.finalcraft.evernifecore.logic.audit.AuditEntry;
+import br.com.finalcraft.evernifecore.logic.audit.AuditKind;
+import br.com.finalcraft.evernifecore.logic.audit.AuditLog;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
@@ -125,12 +128,22 @@ public final class BoosterManager implements BoosterSource {
         }
     }
 
-    /** Keeps {@code booster} under a new id and posts a {@link BoosterGrantedEvent}; completes with the kept booster once stored. */
+    /**
+     * Keeps {@code booster} under a new id, posts a {@link BoosterGrantedEvent} and records it in the plugin's
+     * {@link AuditLog} when it has one; completes with the kept booster once stored.
+     */
     public CompletableFuture<Booster> grant(Booster booster) {
         Booster kept = booster.withId(UUID.randomUUID());
         boosters.put(kept.getId(), kept);
         CompletableFuture<?> write = manager == null ? CompletableFuture.completedFuture(null) : track(manager.saveAndCache(Row.of(kept)));
         ECEventBus.global().postIfListened(BoosterGrantedEvent.class, () -> new BoosterGrantedEvent(this, kept));
+        AuditLog.ofIfPresent(plugin).ifPresent(log -> log.record(AuditEntry.builder(AuditKind.BOOSTER_GRANTED,
+                        kept.getOrigin() != null ? kept.getOrigin() : Caller.of(plugin, "booster"))
+                .owner(kept.getOwner())
+                .subject(kept.getVariableId())
+                .amount(kept.getFactor() != null ? kept.getFactor() : kept.getBonus())
+                .text(kept.toString())
+                .build()));
         return write.thenApply(ignored -> kept);
     }
 

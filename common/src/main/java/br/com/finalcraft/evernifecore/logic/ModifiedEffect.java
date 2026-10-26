@@ -52,8 +52,9 @@ final class ModifiedEffect implements Effect {
         }
         boolean self = modifiers.getTarget().equals("self");
         for (ExecutionContext target : targets(ctx)) {
-            ExecutionContext run = modifiers.getSender() == null ? target
-                    : target.derive().attribute(EffectModifiers.SENDER_ATTRIBUTE, modifiers.getSender()).build();
+            ExecutionContext run = modifiers.getSender() == null && modifiers.getDestination() == null ? target
+                    : target.derive().attribute(EffectModifiers.SENDER_ATTRIBUTE, modifiers.getSender())
+                            .attribute(EffectModifiers.DESTINATION_ATTRIBUTE, modifiers.getDestination()).build();
             long delay = modifiers.getDelay() == null ? 0 : modifiers.getDelay().toMillis();
             long every = modifiers.getEvery() == null ? 0 : modifiers.getEvery().toMillis();
             for (int i = 0; i < modifiers.getRepeat(); i++) {

@@ -101,6 +101,7 @@ public class TestPlatform extends AbstractTestPlatform {
     IHudAccess hud;
     Boolean hudConfigured;
     final TestHud testHud = new TestHud();
+    TestInventory testInventory;
     ISelectionItems selectionItems;
 
     private boolean forceRegisterFailure = false;
@@ -557,6 +558,13 @@ public class TestPlatform extends AbstractTestPlatform {
     /** The in-memory players {@link Platforms#playerState()} put behind {@code getPlayerState}. */
     public TestPlayerState getTestPlayerState() {
         return testPlayerState;
+    }
+
+    /**
+     * The inventories {@link Platforms#withInventory(int)} registered as {@code evernifecore:inventory}; null without it.
+     */
+    public TestInventory getTestInventory() {
+        return testInventory;
     }
 
     /** The in-memory world {@link Platforms#terrain()} put behind {@code getTerrainAccess}. */

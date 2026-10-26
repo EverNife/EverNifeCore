@@ -17,11 +17,15 @@ import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 import br.com.finalcraft.evernifecore.logic.Variables;
 import br.com.finalcraft.evernifecore.logic.audit.LogicTrace;
 import br.com.finalcraft.evernifecore.logic.core.CoreLogic;
+import br.com.finalcraft.evernifecore.logic.audit.AuditLog;
+import br.com.finalcraft.evernifecore.logic.delivery.Deliveries;
 import br.com.finalcraft.evernifecore.logic.value.Contributions;
 import br.com.finalcraft.evernifecore.logic.value.DynamicValues;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
-import br.com.finalcraft.everydatabase.Storages;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
@@ -34,7 +38,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 /**
  * One plugin that owns logic, for a test: its plugin data, an in-memory storage that counts calls, contexts already
  * carrying its {@link Caller}, players that are online on the platform, the core's stock types registered, and the
- * clock and scheduler of {@link TestClock}, the booster engine with its stock sources, and the lines a trace of a player would send ({@link #trace}). Needs a platform with {@code ignoringPlatformRegistrations()} and
+ * clock and scheduler of {@link TestClock}, the booster engine with its stock sources, the pending deliveries ({@link #deliveries}),
+ * an audit log ({@link #auditLog}) and the lines a trace of a player would send ({@link #trace}). Needs a platform with {@code ignoringPlatformRegistrations()} and
  * {@code mainThreadInline()}, {@code platformProviderId(...)} for a type that names platforms or capabilities (and
  * {@code playerState()} for what reads a player's state); {@code offWorldThread()} proves the dispatch of effects.
  *
@@ -61,10 +66,13 @@ public final class LogicWorld implements AutoCloseable {
     private final List<ECEventSubscription<?>> subscriptions = new ArrayList<>();
     private final Map<Class<?>, List<?>> recorded = new HashMap<>();
     private final List<String> traceWatchers = new ArrayList<>();
+    private final Path dataFolder;
+    private PlayerDataWorld playerData;
     private boolean closed;
 
     private LogicWorld(String ownerName, Path dataFolder) {
         this.ownerName = ownerName;
+        this.dataFolder = dataFolder;
         TestClock.acquire();
         acquireStock(dataFolder);
         IECPluginExtractor previous = EverNifeCore.getProviders().getBaseProvider().provideOrNull(IECPluginExtractor.class);
@@ -73,7 +81,7 @@ public final class LogicWorld implements AutoCloseable {
             //the owner is built; whoever answered for classes before keeps answering for them
             EverNifeCore.getProviders().getBaseProvider().register(IECPluginExtractor.class, previous);
         }
-        this.backend = ScriptedStorage.wrapping(Storages.createInMemory());
+        this.backend = ScriptedStorage.inMemory();
         backend.init().join();
         this.storage = backend.asECStorage();
     }
@@ -120,6 +128,28 @@ public final class LogicWorld implements AutoCloseable {
     /** The owner's contributions, kept in {@link #getStorage()}: {@code Contributions.of(owner, storage)}. */
     public Contributions contributions() {
         return Contributions.of(owner, storage);
+    }
+
+    /**
+     * The pending deliveries, kept in the {@code deliveries} section of an in-memory PlayerData layer booted on the first
+     * call and torn down at {@link #close()}: {@code Deliveries.get()}.
+     */
+    public synchronized Deliveries deliveries() {
+        if (playerData == null) {
+            Path folder = dataFolder.resolve("playerdata");
+            try {
+                Files.createDirectories(folder);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+            playerData = PlayerDataWorld.with(Storages.memory()).boot(folder);
+        }
+        return Deliveries.get();
+    }
+
+    /** The owner's audit log, kept in {@link #getStorage()}: {@code AuditLog.of(owner, storage)}. */
+    public AuditLog auditLog() {
+        return AuditLog.of(owner, storage);
     }
 
     /** A caller of this world's plugin at {@code origin}. */
@@ -222,7 +252,12 @@ public final class LogicWorld implements AutoCloseable {
         BoosterManager.closeOwnedBy(owner);
         DynamicValues.closeOwnedBy(owner);
         Contributions.closeOwnedBy(owner);
+        AuditLog.closeOwnedBy(owner);
         storage.close().join();
+        if (playerData != null) {
+            Deliveries.closeAll();
+            playerData.close();
+        }
         Plugins.forget(ownerName);
         releaseStock();
         TestClock.release();

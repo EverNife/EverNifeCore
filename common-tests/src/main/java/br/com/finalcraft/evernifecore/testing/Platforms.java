@@ -192,6 +192,16 @@ public final class Platforms {
         return terrainAccess(platform.testTerrain);
     }
 
+    /**
+     * Registers a {@link TestInventory} of {@code slots} slots per player as {@code evernifecore:inventory} while the
+     * world lives, read back by {@link TestPlatform#getTestInventory()}. Without it there is no inventory: an item effect
+     * or cost fails naming this call.
+     */
+    public Platforms withInventory(int slots) {
+        platform.testInventory = new TestInventory(slots);
+        return this;
+    }
+
     /** What {@code getPlayerState} answers; {@code null} is kept, as the violation a conformance test needs. */
     public Platforms playerStateAccess(IPlayerStateAccess playerState) {
         platform.playerStateConfigured = Boolean.TRUE;

@@ -16,6 +16,7 @@ public enum ECDebugModule implements IDebugModule {
     COMMAND_REGISTRY("Logs every command path removed, and every alias overridden, by a 'commands/<PluginName>.yml' file.", true),
     REGIONS("Logs what the region sweeper expires and what each RegionManager loads, flushes and drops.", true),
     LOGIC("Logs every gate checked, cost taken, refund and effect applied, with the caller.", false),
+    AUDIT("Logs how many entries each audit log's retention sweep deleted.", false),
     ;
 
     private final String comment;

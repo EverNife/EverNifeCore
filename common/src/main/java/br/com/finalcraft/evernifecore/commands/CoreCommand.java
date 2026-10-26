@@ -22,6 +22,7 @@ import br.com.finalcraft.evernifecore.pageviewer.theme.PageTheme;
 import br.com.finalcraft.evernifecore.ranking.RankedList;
 import br.com.finalcraft.evernifecore.logic.command.CoreLogicCommands;
 import br.com.finalcraft.evernifecore.region.command.CoreRegionCommands;
+import br.com.finalcraft.evernifecore.logic.delivery.command.CoreDeliveriesCommands;
 import br.com.finalcraft.evernifecore.types.command.CoreTypesCommands;
 
 import java.util.ArrayList;
@@ -45,10 +46,16 @@ public class CoreCommand {
     private final CoreRegionCommands region = new CoreRegionCommands();
 
     @FinalCMD.Node(subcmd = "logic", permission = PermissionNodes.EVERNIFECORE_COMMAND_LOGIC, locales = {
-            @FCLocale(lang = LocaleType.EN_US, text = "Watch the logic of every plugin as it runs: trace"),
-            @FCLocale(lang = LocaleType.PT_BR, text = "Acompanha a lógica de todo plugin enquanto roda: trace")
+            @FCLocale(lang = LocaleType.EN_US, text = "Watch the logic of every plugin as it runs: trace, audit"),
+            @FCLocale(lang = LocaleType.PT_BR, text = "Acompanha a lógica de todo plugin enquanto roda: trace, audit")
     })
     private final CoreLogicCommands logic = new CoreLogicCommands();
+
+    @FinalCMD.Node(subcmd = "deliveries", permission = PermissionNodes.EVERNIFECORE_COMMAND_DELIVERIES, locales = {
+            @FCLocale(lang = LocaleType.EN_US, text = "The pending deliveries plugins left: list and purge, per plugin"),
+            @FCLocale(lang = LocaleType.PT_BR, text = "As entregas pendentes que os plugins deixaram: list e purge, por plugin")
+    })
+    private final CoreDeliveriesCommands deliveries = new CoreDeliveriesCommands();
 
     @FinalCMD.Node(subcmd = "types", permission = PermissionNodes.EVERNIFECORE_COMMAND_TYPES, locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "The registered condition, cost, effect, variable and owner types: export"),

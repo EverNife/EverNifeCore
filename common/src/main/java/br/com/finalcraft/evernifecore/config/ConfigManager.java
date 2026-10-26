@@ -1,5 +1,9 @@
 package br.com.finalcraft.evernifecore.config;
 
+import br.com.finalcraft.evernifecore.logic.audit.command.AuditCommandNode;
+import br.com.finalcraft.evernifecore.logic.command.CoreLogicCommands;
+import br.com.finalcraft.evernifecore.logic.delivery.command.CoreDeliveriesCommands;
+import br.com.finalcraft.evernifecore.logic.delivery.command.DeliveriesCommandNode;
 import br.com.finalcraft.evernifecore.region.command.CoreRegionCommands;
 import br.com.finalcraft.evernifecore.region.command.RegionCommandNode;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSession;
@@ -49,7 +53,11 @@ public class ConfigManager {
                 SelectionTool.class,
                 SelectionSession.class,
                 RegionCommandNode.class,
-                CoreRegionCommands.class
+                CoreRegionCommands.class,
+                CoreLogicCommands.class,
+                AuditCommandNode.class,
+                DeliveriesCommandNode.class,
+                CoreDeliveriesCommands.class
         );
 
         FCLocaleManager.updateEverNifeCoreLocale();

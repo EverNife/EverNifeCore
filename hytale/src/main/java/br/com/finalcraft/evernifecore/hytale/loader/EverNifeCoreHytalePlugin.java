@@ -1,11 +1,13 @@
 package br.com.finalcraft.evernifecore.hytale.loader;
-
+
+import br.com.finalcraft.evernifecore.logic.delivery.DeliveryDestinations;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
-import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.hytale.delivery.HyInventoryDestination;
 import br.com.finalcraft.evernifecore.hytale.action.HyActionSystems;
 import br.com.finalcraft.evernifecore.hytale.commands.HyCommandRegisterer;
 import br.com.finalcraft.evernifecore.hytale.ecplugin.ECHytalePlugin;
@@ -74,6 +76,8 @@ public class EverNifeCoreHytalePlugin extends ECHytalePlugin {
         //From here on the bus mirrors into this server. Keyed by name, so a re-enable replaces the
         //audience instead of stacking a second copy that would deliver every event twice.
         ECEventBus.global().addNativeAudience(new HyHytaleAudience());
+
+        DeliveryDestinations.register(ecPluginData, new HyInventoryDestination());
 
         HyCommandRegisterer.registerCommands(ecPluginData);
 

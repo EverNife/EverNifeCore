@@ -14,6 +14,7 @@ import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.logic.core.CoreLogic;
+import br.com.finalcraft.evernifecore.logic.delivery.Deliveries;
 import br.com.finalcraft.evernifecore.notify.Notifier;
 import br.com.finalcraft.evernifecore.waypoint.Waypoints;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
@@ -88,6 +89,7 @@ public class EverNifeCore {
         CoreLogic.registerAll(getEcPluginData());
         Currencies.registerCore(getEcPluginData());
         Boosters.registerCore(getEcPluginData());
+        Deliveries.start();
         Notifier.get().registerStock(getEcPluginData());
         Waypoints.get().registerStock(getEcPluginData());
         RegexReplacer<IPlayerData> corePlaceholders = RegionPlaceholders.registerCore(getEcPluginData());
@@ -123,6 +125,7 @@ public class EverNifeCore {
 
     public void onUnload() {
         ProvenanceTracker.closeShared();
+        Deliveries.closeAll();
         RegionManager.closeAll(); //what no plugin shutdown closed, and the region system's hold on the global bus
         PlayerController.shutdown(); //flush dirty players + close storage backends
     }

@@ -7,7 +7,11 @@ import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.economy.Currencies;
 import br.com.finalcraft.evernifecore.economy.Currency;
 import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
+import br.com.finalcraft.evernifecore.logic.delivery.Deliveries;
+import br.com.finalcraft.evernifecore.logic.delivery.DeliveryDestinations;
+import br.com.finalcraft.evernifecore.logic.delivery.InventoryDestination;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECListenerWatch;
 import br.com.finalcraft.evernifecore.eventbus.ECNativeAudience;
@@ -18,6 +22,7 @@ import br.com.finalcraft.evernifecore.spawn.ISpawnProvider;
 import br.com.finalcraft.evernifecore.spawn.SpawnPoints;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -58,6 +63,7 @@ public final class ECoreTestWorld implements AutoCloseable {
     private final List<String> audiencesBefore = new ArrayList<>();
     private final List<ECPluginData> currencyOwners = new ArrayList<>();
     private boolean closed = false;
+    private ECPluginData inventoryOwner;
 
     private ECoreTestWorld(TestPlatform platform, IPlatform previousPlatform, IECPluginExtractor previousExtractor, IEconomyProvider previousEconomy) {
         this.platform = platform;
@@ -89,6 +95,17 @@ public final class ECoreTestWorld implements AutoCloseable {
         ECScheduler.setMainThread(platform.mainThread());
         ensureCorePluginData();
         SpawnPoints.resetWarning(); //a new world is a new boot: its first spawn fallback reports again
+        if (platform.testInventory != null) {
+            //the core already registered owns it; else a core of its own, out of the registry, that no forget reaches
+            ECPluginData registered = ECPluginManager.getECPluginsMap().get(Plugins.CORE);
+            if (registered != null) {
+                world.inventoryOwner = registered;
+            } else {
+                world.inventoryOwner = Plugins.fakeCore(tempFolder("ecore-test-inventory"));
+                Plugins.forget(Plugins.CORE);
+            }
+            DeliveryDestinations.register(world.inventoryOwner, platform.testInventory);
+        }
         return world;
     }
 
@@ -155,6 +172,10 @@ public final class ECoreTestWorld implements AutoCloseable {
         for (ECPluginData owner : currencyOwners) {
             Currencies.unregisterAll(owner);
         }
+        if (inventoryOwner != null) {
+            DeliveryDestinations.unregister(inventoryOwner, InventoryDestination.ID);
+        }
+        Deliveries.closeAll();
         List<String> leaked = leftOnTheGlobalBus();
 
         ECBaseProvider providers = EverNifeCore.getProviders().getBaseProvider();
@@ -181,12 +202,16 @@ public final class ECoreTestWorld implements AutoCloseable {
         if (EverNifeCore.getEcPluginData() != null) {
             return;
         }
+        EverNifeCore.instance.onLoaderInstantiate(Plugins.fakeCore(tempFolder("ecore-test-core")));
+        Plugins.forget(Plugins.CORE);
+    }
+
+    private static File tempFolder(String prefix) {
         try {
-            EverNifeCore.instance.onLoaderInstantiate(Plugins.fakeCore(Files.createTempDirectory("ecore-test-core").toFile()));
+            return Files.createTempDirectory(prefix).toFile();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-        Plugins.forget(Plugins.CORE);
     }
 
     private List<String> leftOnTheGlobalBus() {

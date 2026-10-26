@@ -11,12 +11,19 @@ import br.com.finalcraft.evernifecore.logic.ConditionResult;
 import br.com.finalcraft.evernifecore.logic.Cost;
 import br.com.finalcraft.evernifecore.logic.Costs;
 import br.com.finalcraft.evernifecore.logic.Effect;
+import br.com.finalcraft.evernifecore.logic.EffectModifiers;
 import br.com.finalcraft.evernifecore.logic.Effects;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 import br.com.finalcraft.evernifecore.logic.audit.AuditKind;
+import br.com.finalcraft.evernifecore.logic.delivery.Deliveries;
+import br.com.finalcraft.evernifecore.logic.delivery.DeliveryDestination;
+import br.com.finalcraft.evernifecore.logic.delivery.DeliveryDestinations;
+import br.com.finalcraft.evernifecore.logic.delivery.DeliveryPolicy;
+import br.com.finalcraft.evernifecore.logic.delivery.PendingDestination;
 import br.com.finalcraft.evernifecore.types.ParamSpec;
 import br.com.finalcraft.evernifecore.types.TypeDescriptor;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.annotation.Nullable;
 
 import java.math.BigDecimal;
@@ -162,7 +169,15 @@ final class StockEconomy {
             this.share = share;
         }
 
-        /** A wallet that is missing or cannot move is audited and logged, never thrown: the other effects still apply. */
+        @Override
+        public boolean acceptsDestination() {
+            return true;
+        }
+
+        /**
+         * A wallet that is missing or cannot move is audited and logged, never thrown: the other effects still apply. A
+         * {@code to:} that names no registered destination keeps the amount, already multiplied, as a pending delivery.
+         */
         @Override
         public void apply(ExecutionContext ctx) {
             Currency currency = currency(currencyId);
@@ -170,15 +185,33 @@ final class StockEconomy {
             if (boosted) {
                 given = given.multiply(ctx.getMultiplier(currency.getId()));
             }
+            String to = ctx.getAttribute(EffectModifiers.DESTINATION_ATTRIBUTE, String.class);
+            if (to != null) {
+                Optional<DeliveryDestination> destination = DeliveryDestinations.find(to);
+                if (!destination.isPresent()) {
+                    ObjectNode kept = (ObjectNode) PendingDestination.moneyNode(currency, given);
+                    kept.put("to", to);
+                    Deliveries.get().keepFor(ctx, DeliveryPolicy.KEEP_SELF_CONTAINED, null, kept);
+                    return;
+                }
+                EcoResponse response = destination.get().deliverAmount(ctx, currency, given);
+                if (!response.isSuccess()) {
+                    notGiven(ctx, currency, given, to + " refused it: " + response);
+                }
+                return;
+            }
             String noWallet = noWallet(currency, ctx);
             EcoResponse response = noWallet != null ? null : currency.give(CurrencyOwner.of(ctx.getOwner()).get(), given, ctx.getCaller());
             if (response == null || !response.isSuccess()) {
-                String why = noWallet != null ? noWallet : String.valueOf(response);
-                ctx.getAudit().add(ctx, AuditKind.EFFECT_FAILED, "money " + currency.format(given).getText() + " to " + ctx.getOwner()
-                        + " not given: " + why, given, null);
-                EverNifeCore.getLog().warning("[" + ctx.getCaller() + "] money " + currency.format(given).getText() + " to " + ctx.getOwner()
-                        + " was not given: " + why);
+                notGiven(ctx, currency, given, noWallet != null ? noWallet : String.valueOf(response));
             }
+        }
+
+        private static void notGiven(ExecutionContext ctx, Currency currency, BigDecimal given, String why) {
+            ctx.getAudit().add(ctx, AuditKind.EFFECT_FAILED, "money " + currency.format(given).getText() + " to " + ctx.getOwner()
+                    + " not given: " + why, given, null);
+            EverNifeCore.getLog().warning("[" + ctx.getCaller() + "] money " + currency.format(given).getText() + " to " + ctx.getOwner()
+                    + " was not given: " + why);
         }
 
         @Override

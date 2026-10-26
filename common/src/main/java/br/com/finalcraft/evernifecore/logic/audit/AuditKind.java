@@ -16,5 +16,19 @@ public enum AuditKind {
     GATE_DENIED,
     GATE_PAID,
     HELD,
-    RELEASED
+    RELEASED,
+    /** A currency balance moved; the subject is the currency. */
+    BALANCE_CHANGE,
+    /** A currency moved between two owners: the player paid, the counterparty received. */
+    TRANSFER,
+    /** A player counted toward a contribution; the subject is the contribution. */
+    DEPOSIT,
+    /** A plugin's booster manager granted a booster; the subject is the boosted gain. */
+    BOOSTER_GRANTED,
+    DELIVERY_ENQUEUED,
+    DELIVERY_CLAIMED,
+    DELIVERY_EXPIRED,
+    DELIVERY_PURGED,
+    /** A delayed effect whose player left was thrown away: only the core's own effects can wait in a delivery. */
+    DELIVERY_DISCARDED
 }

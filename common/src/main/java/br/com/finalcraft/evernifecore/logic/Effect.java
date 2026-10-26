@@ -24,6 +24,11 @@ public interface Effect {
         return false;
     }
 
+    /** Whether the {@code to: <destination>} modifier means something to it (an effect that gives an item or an amount does). */
+    default boolean acceptsDestination() {
+        return false;
+    }
+
     /**
      * This effect with its amount multiplied by {@code share}, to split it among several players; one without an amount
      * goes whole, which is this default.

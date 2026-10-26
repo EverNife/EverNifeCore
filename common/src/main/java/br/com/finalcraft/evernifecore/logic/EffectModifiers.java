@@ -26,9 +26,15 @@ public final class EffectModifiers {
     /** The attribute under which an effect that {@link Effect#acceptsSender() accepts a sender} reads {@code as}. */
     public static final String SENDER_ATTRIBUTE = "evernifecore:as";
 
+    /**
+     * The attribute under which an effect that {@link Effect#acceptsDestination() accepts a destination} reads
+     * {@code to}: a delivery destination id, resolved when the effect applies.
+     */
+    public static final String DESTINATION_ATTRIBUTE = "evernifecore:to";
+
     public static final List<String> TARGETS = Arrays.asList("self", "group", "region-players", "world-players");
 
-    private static final EffectModifiers NONE = new EffectModifiers(null, null, null, 1, null, null, "self", EffectScope.PERMANENT);
+    private static final EffectModifiers NONE = new EffectModifiers(null, null, null, 1, null, null, "self", EffectScope.PERMANENT, null);
 
     private final @Nullable Duration delay;
     private final @Nullable BigDecimal chance;
@@ -38,9 +44,11 @@ public final class EffectModifiers {
     private final @Nullable String sender;
     private final String target;
     private final EffectScope scope;
+    private final @Nullable String destination;
 
     private EffectModifiers(@Nullable Duration delay, @Nullable BigDecimal chance, @Nullable Condition condition, int repeat,
-                            @Nullable Duration every, @Nullable String sender, String target, EffectScope scope) {
+                            @Nullable Duration every, @Nullable String sender, String target, EffectScope scope,
+                            @Nullable String destination) {
         this.delay = delay;
         this.chance = chance;
         this.condition = condition;
@@ -49,6 +57,7 @@ public final class EffectModifiers {
         this.sender = sender;
         this.target = target;
         this.scope = scope;
+        this.destination = destination;
     }
 
     public static EffectModifiers none() {
@@ -61,9 +70,14 @@ public final class EffectModifiers {
      * @throws TypeRegistryException naming the key, the value and what it expects
      */
     static EffectModifiers parse(ECPluginData caller, String type, JsonNode node, ZoneId zone) {
-        if (node.has("to")) {
-            throw new TypeRegistryException("The effect '" + type + "' writes to: " + node.get("to") + ", but to: needs a delivery"
-                    + " destination, which no plugin registered yet. Remove it, or install the plugin that delivers.");
+        String destination = null;
+        JsonNode toNode = node.get("to");
+        if (toNode != null) {
+            destination = toNode.isTextual() ? toNode.asText().trim().toLowerCase(Locale.ROOT) : "";
+            if (destination.isEmpty() || destination.contains(" ")) {
+                throw new TypeRegistryException("The effect '" + type + "' cannot read to = " + toNode + ": it expects a delivery"
+                        + " destination id, e.g. pending, inventory or finalcolonies:warehouse.");
+            }
         }
         Duration delay = duration(type, node, "delay");
         BigDecimal chance = null;
@@ -99,10 +113,11 @@ public final class EffectModifiers {
         String target = choice(type, node, "target", TARGETS);
         String scopeText = choice(type, node, "scope", Arrays.asList("permanent", "held"));
         EffectScope scope = "held".equals(scopeText) ? EffectScope.HELD : EffectScope.PERMANENT;
-        if (delay == null && chance == null && condition == null && repeat == 1 && sender == null && target == null && scope == EffectScope.PERMANENT) {
+        if (delay == null && chance == null && condition == null && repeat == 1 && sender == null && target == null && scope == EffectScope.PERMANENT
+                && destination == null) {
             return NONE;
         }
-        return new EffectModifiers(delay, chance, condition, repeat, every, sender, target == null ? "self" : target, scope);
+        return new EffectModifiers(delay, chance, condition, repeat, every, sender, target == null ? "self" : target, scope, destination);
     }
 
     private static @Nullable Duration duration(String type, JsonNode node, String key) {
@@ -172,5 +187,10 @@ public final class EffectModifiers {
 
     public EffectScope getScope() {
         return scope;
+    }
+
+    /** The {@code to} delivery destination id; null when not written. */
+    public @Nullable String getDestination() {
+        return destination;
     }
 }

@@ -57,6 +57,11 @@ public final class Effects {
                 throw new TypeRegistryException("The effect '" + type + "' writes as: " + modifiers.getSender() + ", but it runs no"
                         + " command, so it has no sender to choose. Remove as:, or use an effect that takes it, like command.");
             }
+            if (modifiers.getDestination() != null && !effect.acceptsDestination()) {
+                throw new TypeRegistryException("The effect '" + type + "' writes to: " + modifiers.getDestination() + ", but it hands"
+                        + " nothing over, so it has no destination to choose. Remove to:, or use an effect that takes it, like"
+                        + " give-item or money.");
+            }
             if (modifiers.getScope() == EffectScope.HELD && !effect.isHoldable()) {
                 throw new TypeRegistryException("The effect '" + type + "' writes scope: held, but it cannot be held and given back:"
                         + " only gamemode, fly, potion-effect, player-time and player-weather can. Use it in effects-on-enter, or"

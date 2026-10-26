@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.storage.ECStorageHandles;
 import br.com.finalcraft.everydatabase.EntityDescriptor;
 import br.com.finalcraft.everydatabase.HealthStatus;
 import br.com.finalcraft.everydatabase.Repository;
+import br.com.finalcraft.everydatabase.Storages;
 import br.com.finalcraft.everydatabase.Storage;
 import br.com.finalcraft.everydatabase.SyncParticipation;
 import br.com.finalcraft.everydatabase.log.StorageLogConfig;
@@ -51,6 +52,11 @@ public final class ScriptedStorage implements Storage {
 
     private ScriptedStorage(Storage delegate) {
         this.delegate = delegate;
+    }
+
+    /** Wraps a new in-memory backend - {@code init()} still has to be called. */
+    public static ScriptedStorage inMemory() {
+        return new ScriptedStorage(Storages.createInMemory());
     }
 
     /** Wraps a real backend - {@code init()} still has to be called (on this, or on the delegate). */

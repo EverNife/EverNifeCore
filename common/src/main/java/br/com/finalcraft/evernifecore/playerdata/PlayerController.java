@@ -11,6 +11,7 @@ import br.com.finalcraft.evernifecore.cooldown.server.ServerCooldownRow;
 import br.com.finalcraft.evernifecore.cooldown.server.ServerCooldowns;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.locale.LocalePDSection;
+import br.com.finalcraft.evernifecore.logic.delivery.DeliveriesSection;
 import br.com.finalcraft.evernifecore.player.state.PlayerStateBackup;
 import br.com.finalcraft.evernifecore.playerdata.account.Account;
 import br.com.finalcraft.evernifecore.playerdata.account.Accounts;
@@ -779,6 +780,15 @@ public class PlayerController {
                 .builder(EverNifeCore.getEcPluginData(), PlayerStateBackup.class, PlayerStateBackup.SECTION_ID)
                 .lifecycle(SectionLifecycle.ONLINE)
                 .description("What the region session flags changed on a player, to give it back")
+                .build());
+        }
+
+        //ONLINE: a login claims the pending deliveries right away, and a give to an online player lands in memory
+        if (!REGISTERED_SECTIONS.containsKey(DeliveriesSection.class)){
+            PlayerController.registerPDSectionCfg(PDSectionConfiguration
+                .builder(EverNifeCore.getEcPluginData(), DeliveriesSection.class, DeliveriesSection.SECTION_ID)
+                .lifecycle(SectionLifecycle.ONLINE)
+                .description("What plugins owe a player that could not be handed over yet")
                 .build());
         }
 

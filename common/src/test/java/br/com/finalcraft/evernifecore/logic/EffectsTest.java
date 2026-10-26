@@ -253,12 +253,12 @@ class EffectsTest {
     }
 
     @Test
-    void toIsRefusedWhileNoDeliveryDestinationExists() {
+    void toIsRefusedOnAnEffectThatHandsNothingOver() {
         open();
 
         TypeRegistryException refused = assertThrows(TypeRegistryException.class, () -> parse("{'type': 'reward', 'to': 'mailbox'}"));
 
-        assertTrue(refused.getMessage().contains("delivery destination"), refused.getMessage());
+        assertTrue(refused.getMessage().contains("hands nothing over") && refused.getMessage().contains("give-item"), refused.getMessage());
     }
 
     @Test

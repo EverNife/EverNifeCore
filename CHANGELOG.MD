@@ -37,6 +37,39 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - Stock cost and effect `money` (`amount` a number or a `{variable}`, `currency` default `money`; the effect is boosted
   unless `boosted: false`, a missing wallet or economy is audited and never thrown; the cost names what to install when
   there is no economy).
+- **Pending deliveries** (`br.com.finalcraft.evernifecore.logic.delivery`): what cannot be handed over now (a full
+  inventory, an offline recipient, a delayed effect whose player left) becomes a `Delivery` - raw effect nodes with
+  origin (`DeliveryOrigin` plugin, emitter, reason), date, optional expiry and policy (`KEEP_SELF_CONTAINED` hands out
+  the core's effects and keeps a missing plugin's ones raw; `REQUIRES_ORIGIN` waits whole for every plugin) - kept by
+  the core in the player's `deliveries` section (`ONLINE`). `Deliveries.get()` `enqueue`, `listOf`, `claim`, `claimAll`
+  (run on every login), `purge`, `listFrom`, `enqueueSelfContained` (keeps only the core's nodes and audits the rest as
+  `DELIVERY_DISCARDED`); expired ones are swept once a minute; every step posts a `DeliveryEvent`. A claim keeps what
+  still does not fit in the same delivery. `DeliveriesCommandNode` (`list`, `claim <id>|all`) mounts on a plugin's
+  command; `/ecore deliveries list|purge <plugin>` (`evernifecore.command.deliveries`) is the admin side.
+- **Delivery destinations**: the effect modifier `to: <destination>` (accepted by effects whose
+  `Effect.acceptsDestination()` is true - `give-item` and `money`; refused, naming them, on any other) sends what the
+  effect gives to a `DeliveryDestination` of `DeliveryDestinations` (a `TypeRegistry` "destination"):
+  `evernifecore:inventory` (an `InventoryDestination` each platform registers - Bukkit and Hytale), `evernifecore:pending`
+  or a plugin's own. A destination nobody registered keeps the whole node, `to:` included, as a pending delivery.
+- Stock effect `give-item` (`item` id, `amount`, `expires`; what does not fit becomes a pending delivery from the
+  caller) and stock cost `item` (`item` id - a bare name matches any namespace - and `amount`: counted and taken from the
+  inventory all or nothing, given back through it on a refund). `item.ItemMatcher`, `ItemSpec.getAmount()`/`withAmount`/
+  `of(id, amount)` (that factory keeps the id's case: Hytale ids are case-sensitive), `logic.value.ItemRequirement` for
+  item contributions.
+- **Audit log** (`br.com.finalcraft.evernifecore.logic.audit`): `AuditLog.of(plugin, storage[, AuditRetention])` keeps
+  (`ec_audit`) what the plugin's own gates paid or denied, refunds that failed, balance changes, transfers (the payer as
+  `player`, the receiver as `getCounterparty()`) and deliveries, plus the boosters its `BoosterManager` grants and the
+  deposits to its contributions; `record(entry|trail)` adds more. `query(AuditQuery)` filters by player, counterparty,
+  `between(a, b)` (who traded with whom, in either order), `since`, kind and limit, newest first. Retention (30 days by
+  default, `AuditRetention.forever()`) is swept hourly (`ECDebugModule.AUDIT` logs the count). A plugin shows its log
+  through the mountable `AuditCommandNode` (`/<cmd> log [--player] [--since] [--kind] [--page]` or `log view [player]
+  [since] [kind] [page]`, gated on `<base>.view`); `/ecore logic audit <plugin> [player] [since]`
+  (`evernifecore.command.logic.audit`) stays for debugging. `AuditEntry` gains an id, `getPlayer()`, `getCounterparty()`
+  and `getSubject()`, and `AuditEntry.builder(kind, caller)`; `AuditKind` gains the kinds of balances, transfers,
+  deposits, boosters and deliveries. `AuditLog.closeOwnedBy` runs at the owner's shutdown.
+- Engine: `Platforms.withInventory(slots)` registers a `TestInventory` as `evernifecore:inventory` for the life of the
+  world; `LogicWorld.deliveries()` (an in-memory PlayerData layer) and `LogicWorld.auditLog()`;
+  `ScriptedStorage.inMemory()`.
 
 - **Six core flags over the logic module** (56 in `CoreFlags.all()`): `effects-on-enter` / `effects-on-exit` (a list of
   effects of any plugin, `{type: <name>, ...}` maps, applied as a player enters or leaves; one whose plugin is absent is
