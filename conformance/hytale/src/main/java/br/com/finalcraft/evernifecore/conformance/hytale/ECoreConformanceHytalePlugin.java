@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.conformance.hytale;
 
 import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
 import br.com.finalcraft.evernifecore.conformance.hytale.suite.HyCostSuite;
+import br.com.finalcraft.evernifecore.conformance.hytale.suite.HyDeliveriesSuite;
 import br.com.finalcraft.evernifecore.conformance.hytale.suite.HyLogicSuite;
 import br.com.finalcraft.evernifecore.conformance.hytale.suite.HyPlatformSuite;
 import br.com.finalcraft.evernifecore.conformance.hytale.suite.HyRegionsSuite;
@@ -49,7 +50,8 @@ public final class ECoreConformanceHytalePlugin extends ECHytalePlugin {
         RegionManager regions = RegionManager.of(getPluginData(), regionStorage);
         regions.load();
         FinalCMDManager.registerCommand(getPluginData(), new HyConformanceCommand(
-                Arrays.asList(new HyPlatformSuite(this), new HyRegionsSuite(regions), new HyCostSuite(regions), new HyLogicSuite(getPluginData())),
+                Arrays.asList(new HyPlatformSuite(this), new HyRegionsSuite(regions), new HyCostSuite(regions), new HyLogicSuite(getPluginData()),
+                        new HyDeliveriesSuite(getPluginData())),
                 dataFolder, () -> "Hytale " + ManifestUtil.getImplementationVersion(), RAW_STDOUT::println,
                 line -> getLogger().at(Level.INFO).log(line), task -> HyWorld.getDefault().execute(task)));
     }

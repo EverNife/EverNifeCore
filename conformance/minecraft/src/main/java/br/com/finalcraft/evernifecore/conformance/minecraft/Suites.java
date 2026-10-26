@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.conformance.minecraft;
 import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ActionsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.CommandsSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.DeliveriesSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.EventsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.GuiSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.HooksSuite;
@@ -33,7 +34,7 @@ public final class Suites {
     }
 
     /**
-     * @param plugin  the plugin itself, the caller of the {@code logic} suite
+     * @param plugin  the plugin itself, the caller of the {@code logic} and {@code deliveries} suites
      * @param regions the plugin's own region manager, for the {@code regions} suite
      * @param loaded  that manager's {@code load()}
      */
@@ -56,6 +57,7 @@ public final class Suites {
                 new RegionsSuite(regions, loaded),
                 new LogicSuite(plugin),
                 new ActionsSuite(),
+                new DeliveriesSuite(plugin),
                 new HudSuite());
     }
 }
