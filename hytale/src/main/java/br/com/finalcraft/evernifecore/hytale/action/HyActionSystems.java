@@ -203,6 +203,22 @@ public final class HyActionSystems {
         return false;
     }
 
+    /** Judges a hit like {@link #judge}; one let through is scaled by the factor a flag wrote on its context (damage-multiplier). */
+    static boolean judgeDamage(String world, Damage damage, Supplier<DamageContext> context) {
+        DamageContext[] asked = new DamageContext[1];
+        boolean denied = judge(EventSource.DAMAGE, world, damage, () -> {
+            DamageContext built = context.get();
+            if (asked[0] == null) {
+                asked[0] = built; //the one the regions decided on; a listened Post builds its own
+            }
+            return built;
+        });
+        if (!denied && asked[0] != null && asked[0].getDamageMultiplier() != 1.0) {
+            damage.setAmount((float) (damage.getAmount() * asked[0].getDamageMultiplier()));
+        }
+        return denied;
+    }
+
     /** An outcome with no point before it (a death): its {@code Post} only, built only past the source gate. */
     static void posted(EventSource source, String world, Supplier<? extends ActionContext> context) {
         if (EventSourceUsage.get().isNeeded(source) && !HyActionContexts.isDisabled(world)) {
@@ -745,19 +761,8 @@ public final class HyActionSystems {
             Vector3d at = chunk.getComponent(index, TransformComponent.getComponentType()).getPosition();
             Ref<EntityStore> victim = chunk.getReferenceTo(index);
             String world = worldOf(store);
-            DamageContext[] asked = new DamageContext[1];
-            boolean denied = judge(EventSource.DAMAGE, world, damage, () -> {
-                DamageContext context = new DamageContext(EventSource.DAMAGE, HyActionContexts.position(world, at),
-                        attacker(damage, store), damage, HyActionContexts.actor(victim, store));
-                if (asked[0] == null) {
-                    asked[0] = context; //the one the regions decided on; a listened Post builds its own
-                }
-                return context;
-            });
-            //a hit let through takes the factor a flag wrote on it (damage-multiplier)
-            if (!denied && asked[0] != null && asked[0].getDamageMultiplier() != 1.0) {
-                damage.setAmount((float) (damage.getAmount() * asked[0].getDamageMultiplier()));
-            }
+            judgeDamage(world, damage, () -> new DamageContext(EventSource.DAMAGE, HyActionContexts.position(world, at),
+                    attacker(damage, store), damage, HyActionContexts.actor(victim, store)));
         }
 
         private static Actor attacker(Damage damage, Store<EntityStore> store) {

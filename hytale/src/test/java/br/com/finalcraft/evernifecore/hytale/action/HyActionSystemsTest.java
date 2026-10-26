@@ -19,6 +19,7 @@ import br.com.finalcraft.evernifecore.hytale.region.HyRegionMoveSystem;
 import br.com.finalcraft.evernifecore.math.game.vector.chunkpos.ChunkPos;
 import br.com.finalcraft.evernifecore.region.session.RegionMovementTracker;
 import com.hypixel.hytale.server.core.event.events.ecs.CraftRecipeEvent;
+import com.hypixel.hytale.server.core.modules.entity.damage.Damage;
 import com.hypixel.hytale.server.core.event.events.ecs.RespawnEvent;
 import com.hypixel.hytale.server.core.inventory.MaterialQuantity;
 import org.joml.Vector3d;
@@ -503,5 +504,26 @@ class HyActionSystemsTest {
         } finally {
             post.unsubscribe();
         }
+    }
+
+    /** A hit by nobody on {@code miner}, standing at {@code x}. */
+    private DamageContext hitAt(int x, Damage damage) {
+        return new DamageContext(EventSource.DAMAGE, HyActionContexts.position(WORLD, new Vector3d(x, 5, 5)),
+                Actor.environment(HyActionSystems.UNKNOWN_DEATH), damage, HyActionContexts.actor(miner, null, null, null));
+    }
+
+    @Test
+    void aHitLetThroughInsideADamageMultiplierIsScaledAndOutsideItIsNot() {
+        FlagRegistry.get().register(core, CoreFlags.INVINCIBLE);
+        FlagRegistry.get().register(core, CoreFlags.DAMAGE_MULTIPLIER);
+        regions.cuboid("arena", WORLD, 0, 0, 0, 10, 10, 10).setFlag(CoreFlags.DAMAGE_MULTIPLIER, 2.0);
+        Damage inside = new Damage(Damage.NULL_SOURCE, 0, 5f);
+        Damage outside = new Damage(Damage.NULL_SOURCE, 0, 5f);
+
+        assertFalse(HyActionSystems.judgeDamage(WORLD, inside, () -> hitAt(5, inside)));
+        assertFalse(HyActionSystems.judgeDamage(WORLD, outside, () -> hitAt(50, outside)));
+
+        assertEquals(10f, inside.getAmount(), "the region doubles the hit");
+        assertEquals(5f, outside.getAmount(), "outside the region the hit is untouched");
     }
 }
