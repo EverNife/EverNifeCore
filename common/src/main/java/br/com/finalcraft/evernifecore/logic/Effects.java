@@ -13,6 +13,7 @@ import br.com.finalcraft.evernifecore.types.PendingDefinition;
 import br.com.finalcraft.evernifecore.types.TypeRegistry;
 import br.com.finalcraft.evernifecore.types.TypeRegistryException;
 import com.fasterxml.jackson.databind.JsonNode;
+import jakarta.annotation.Nullable;
 
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -63,6 +64,12 @@ public final class Effects {
             }
         }
         return modifiers.isNone() ? effect : new ModifiedEffect(effect, modifiers);
+    }
+
+    /** The type {@code effect} (as {@link #parse} gave it) still waits for, or null when it reads - it resolves by itself. */
+    public static @Nullable String getPendingType(Effect effect) {
+        Effect inner = effect instanceof ModifiedEffect ? ((ModifiedEffect) effect).getEffect() : effect;
+        return inner instanceof Pending ? ((Pending) inner).definition.getMissingType() : null;
     }
 
     /** Reads a list of effects (a single node reads as a list of one); each keeps its own pending state. */

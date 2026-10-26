@@ -29,9 +29,8 @@ public final class DamageActionListener implements ECListener {
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onDamage(EntityDamageByEntityEvent event) {
-        if (!McActionContexts.isDisabled(event.getEntity().getWorld())
-                && Actions.denied(context(event), DamageActionEvent.Pre.class, DamageActionEvent.Pre::new)) {
-            event.setCancelled(true);
+        if (!McActionContexts.isDisabled(event.getEntity().getWorld())) {
+            judge(event, context(event));
         }
     }
 
@@ -45,8 +44,17 @@ public final class DamageActionListener implements ECListener {
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onBlockExplosionDamage(EntityDamageByBlockEvent event) {
         DamageContext context = context(event);
-        if (context != null && Actions.denied(context, DamageActionEvent.Pre.class, DamageActionEvent.Pre::new)) {
+        if (context != null) {
+            judge(event, context);
+        }
+    }
+
+    //a denial cancels the hit; one let through takes the factor a flag wrote on it (damage-multiplier)
+    private static void judge(EntityDamageEvent event, DamageContext context) {
+        if (Actions.denied(context, DamageActionEvent.Pre.class, DamageActionEvent.Pre::new)) {
             event.setCancelled(true);
+        } else if (context.getDamageMultiplier() != 1.0) {
+            event.setDamage(event.getDamage() * context.getDamageMultiplier());
         }
     }
 

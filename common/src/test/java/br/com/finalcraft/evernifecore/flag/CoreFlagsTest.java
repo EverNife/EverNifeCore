@@ -62,7 +62,8 @@ class CoreFlagsTest {
         CATALOG.put("allow-fly", "tristate-false-open");
         CATALOG.put("force-fly", "tristate-true-open");
         for (String name : Arrays.asList("greeting", "farewell", "deny-message", "teleport-point", "spawn-point", "time-lock", "weather-lock",
-                "game-mode", "potion-effects", "command-on-enter", "command-on-exit", "heal", "feed", "damage-over-time", "hunger-over-time")) {
+                "game-mode", "potion-effects", "command-on-enter", "command-on-exit", "heal", "feed", "damage-over-time", "hunger-over-time",
+                "effects-on-enter", "effects-on-exit", "effects-while-inside", "entry-gate", "boosters", "damage-multiplier")) {
             CATALOG.put(name, "first");
         }
     }
@@ -80,7 +81,7 @@ class CoreFlagsTest {
     void tearDown() {
         try {
             assertTrue(iterated >= 18, "the tie test must have run over the whole catalog, ran " + iterated);
-            assertEquals(50, iterated, "the catalog holds 50 flags");
+            assertEquals(56, iterated, "the catalog holds 56 flags");
         } finally {
             FlagRegistry.get().reset();
             Plugins.forget(CORE);
@@ -152,6 +153,10 @@ class CoreFlagsTest {
         JOINING.put("potion-effects", "union-max-level");
         JOINING.put("command-on-enter", "concat");
         JOINING.put("command-on-exit", "concat");
+        for (String name : Arrays.asList("effects-on-enter", "effects-on-exit", "effects-while-inside", "boosters")) {
+            JOINING.put(name, "concat");
+        }
+        JOINING.put("damage-multiplier", "product-capped");
     }
 
     /** What the flag's own resolver answers for two layers of equal rank, {@code a} first. */
@@ -226,7 +231,7 @@ class CoreFlagsTest {
         assertEquals(FlagCategory.SESSION, FlagRegistry.get().find("greeting").get().getCategory());
         assertEquals(FlagCategory.DATA, FlagRegistry.get().find("teleport-point").get().getCategory());
         assertEquals(FlagCategory.PROTECTION, FlagRegistry.get().find("deny-exit").get().getCategory());
-        assertEquals(5, FlagRegistry.get().getBySource(EventSource.MOVE).stream()
+        assertEquals(6, FlagRegistry.get().getBySource(EventSource.MOVE).stream()
                 .filter(flag -> flag.getOwner() == core && flag.getCategory() == FlagCategory.PROTECTION).count());
     }
 
@@ -321,6 +326,6 @@ class CoreFlagsTest {
             }
         }
         assertEquals(new TreeSet<>(Arrays.asList("deny-entry", "deny-exit", "deny-teleport-in", "deny-teleport-out", "deny-entry-with-message",
-                "deny-block-break")), paced);
+                "deny-block-break", "entry-gate")), paced);
     }
 }

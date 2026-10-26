@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.flag.Decision;
 import br.com.finalcraft.evernifecore.flag.FlagKey;
 import br.com.finalcraft.evernifecore.flag.Tristate;
 import br.com.finalcraft.evernifecore.flag.TristateFlag;
+import br.com.finalcraft.evernifecore.flag.core.DamageMultiplierFlag;
 import br.com.finalcraft.evernifecore.flag.core.DenyPvpFlag;
 import br.com.finalcraft.evernifecore.flag.core.InvincibleFlag;
 import br.com.finalcraft.evernifecore.minecraft.region.RegionServer;
@@ -121,6 +122,21 @@ class DamageActionListenerTest {
 
             assertTrue(server.call(hit(zombie, inside)).isCancelled(), "no player behind the hit, and the flag still decides");
             assertFalse(server.call(hit(zombie, server.player("outside", 20, 5, 20))).isCancelled());
+        }
+    }
+
+    @Test
+    void aHitLetThroughIsScaledByTheDamageMultiplier() {
+        try (RegionServer server = RegionServer.open(tempDir)) {
+            DamageMultiplierFlag multiplier = server.flag(new DamageMultiplierFlag());
+            server.regions.cuboid("arena", RegionServer.WORLD, 0, 0, 0, 10, 10, 10).setFlag(multiplier, 2.5);
+            server.listen(new DamageActionListener());
+            Zombie zombie = RegionServer.entity(Zombie.class, EntityType.ZOMBIE, server.at(5, 5, 5)).build();
+
+            EntityDamageByEntityEvent inside = server.call(hit(zombie, server.player("inside", 5, 5, 5)));
+            assertFalse(inside.isCancelled());
+            assertEquals(2.5, inside.getDamage(), "1.0 times the arena's 2.5");
+            assertEquals(1.0, server.call(hit(zombie, server.player("outside", 20, 5, 20))).getDamage(), "outside, untouched");
         }
     }
 

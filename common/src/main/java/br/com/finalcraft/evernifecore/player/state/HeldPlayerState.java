@@ -144,6 +144,13 @@ public final class HeldPlayerState {
         return true;
     }
 
+    /** {@code holder} lets go of every slot it holds, each as {@link #release} does - for a holder that does not track its slots. */
+    public synchronized void releaseAll(StateHolder holder, FPlayer online) {
+        for (String slot : new ArrayList<>(slots.keySet())) {
+            release(slot, holder, online);
+        }
+    }
+
     /** On join, once the session flags applied: gives back every slot the backup kept that nobody holds now. */
     public synchronized void restoreLeftovers(FPlayer online) {
         PlayerStateBackup backup = backup();

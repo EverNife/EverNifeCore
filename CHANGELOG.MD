@@ -18,6 +18,22 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **Six core flags over the logic module** (56 in `CoreFlags.all()`): `effects-on-enter` / `effects-on-exit` (a list of
+  effects of any plugin, `{type: <name>, ...}` maps, applied as a player enters or leaves; one whose plugin is absent is
+  kept as written, skipped and shown as `(pending: <type>)` in `region info` until it registers), `effects-while-inside`
+  (`ACTOR`; holdable effects only - `gamemode`, `fly`, `potion-effect`, `player-time`, `player-weather` - held while the
+  value applies and given back on leaving or quitting; any other effect is refused when read, naming `effects-on-enter`),
+  `entry-gate` (a `Gate`, `{require: [...], cost: [...]}`: the conditions are checked on every entry, the costs charged
+  through the gate's own audited `pay` as `EntryGateSettings.charge` says - `ONCE_PER_SESSION`, `EVERY_ENTRY` or
+  `PER_WINDOW` with a `window`; a player who fails is sent back and told why), `boosters` (`ACTOR`, `DATA`: a list of
+  `BoosterEntry` `on=<gain> factor=<n>` or `bonus=<n>`, exactly one of the two, joined by `concat` for the booster engine
+  to read) and `damage-multiplier` (`ACTOR`: scales the damage a player takes; layers multiply within
+  `DamageMultiplierSettings` `floor`/`cap`, written on the hit by `DamageContext.multiplyDamage` and applied by the damage
+  listener on Bukkit and Hytale; an `invincible` player is denied first).
+- `FlagTypes.effects(flag, holdableOnly)`, `FlagTypes.gate(flag)` and `FlagTypes.BOOSTERS`; `FlagDefinition` keeps a logic
+  definition with the node it was written as (what is stored, shown and compared). `Effects.getPendingType(effect)`,
+  `HeldPlayerState.releaseAll(holder, player)`, `RegionPlayerSession.getPaidGates()`.
+
 - **`ranking`**: `RankedList<T>` is the data half of a ranked list - id `owner:name` (`RankedList.of(plugin, name, type)`,
   or `anonymous(type)` for a list that depends on a command argument), a plain or `CompletableFuture` source
   (`source`/`sourceAsync`), ceiling, order, `addValue` keys and a `CachePolicy` (`ttl`/`none`/`manual`), with one
@@ -212,7 +228,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   the damage, and `0 every 1s` is a value (meaningful with `mode: set`). `time-lock`, `weather-lock`, `game-mode`,
   `allow-fly`, `force-fly`, `potion-effects` (now joined by `union-max-level`), `invincible`, `deny-pvp`,
   `deny-damage-from-mobs`, `deny-item-pickup` and `deny-item-drop` are `ACTOR` flags. `command-on-enter` /
-  `command-on-exit` concatenate across overlapping regions.
+  `command-on-exit` concatenate across overlapping regions, and each line runs through the logic's `command` effect
+  (`{variables}` resolve in it too).
 - `region.setFlag(flag, FlagValue)` (and on a group); the `flag` and `group flag` verbs take `--mode`, `--priority`
   (`-p`), `--lock` and read the envelope back; `info` shows the envelope, the strategy, lock conflicts and declared
   interactions; `here` shows every layer and what the resolver did with it. Stored values written before this change read

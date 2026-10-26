@@ -724,7 +724,8 @@ public final class HyActionSystems {
 
     /**
      * Damage to an entity, asked where the victim stands, in the filter group where the game's own protection runs; a
-     * denial cancels it - the amount is never zeroed, which would still knock back and play the hit.
+     * denial cancels it - the amount is never zeroed, which would still knock back and play the hit - and one let through
+     * is scaled by the factor the regions wrote on it.
      */
     private static final class DamageSystem extends DamageEventSystem {
 
@@ -744,8 +745,19 @@ public final class HyActionSystems {
             Vector3d at = chunk.getComponent(index, TransformComponent.getComponentType()).getPosition();
             Ref<EntityStore> victim = chunk.getReferenceTo(index);
             String world = worldOf(store);
-            judge(EventSource.DAMAGE, world, damage, () -> new DamageContext(EventSource.DAMAGE, HyActionContexts.position(world, at),
-                    attacker(damage, store), damage, HyActionContexts.actor(victim, store)));
+            DamageContext[] asked = new DamageContext[1];
+            boolean denied = judge(EventSource.DAMAGE, world, damage, () -> {
+                DamageContext context = new DamageContext(EventSource.DAMAGE, HyActionContexts.position(world, at),
+                        attacker(damage, store), damage, HyActionContexts.actor(victim, store));
+                if (asked[0] == null) {
+                    asked[0] = context; //the one the regions decided on; a listened Post builds its own
+                }
+                return context;
+            });
+            //a hit let through takes the factor a flag wrote on it (damage-multiplier)
+            if (!denied && asked[0] != null && asked[0].getDamageMultiplier() != 1.0) {
+                damage.setAmount((float) (damage.getAmount() * asked[0].getDamageMultiplier()));
+            }
         }
 
         private static Actor attacker(Damage damage, Store<EntityStore> store) {

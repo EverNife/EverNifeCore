@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.region;
 
+import br.com.finalcraft.evernifecore.flag.FlagParseException;
+import br.com.finalcraft.evernifecore.flag.core.BoosterEntry;
 import br.com.finalcraft.evernifecore.flag.AmountEvery;
 import br.com.finalcraft.evernifecore.flag.Flag;
 import br.com.finalcraft.evernifecore.flag.FlagTypes;
@@ -59,6 +61,23 @@ public final class TestRegions {
         }
         if (flag.getType() == FlagTypes.EFFECT_LIST) {
             return Arrays.asList(Collections.singletonList(EffectLevel.of("speed", 1)), Collections.singletonList(EffectLevel.of("haste", 2)));
+        }
+        if (flag.getType() == FlagTypes.BOOSTERS) {
+            return Arrays.asList(Collections.singletonList(BoosterEntry.factor("finaljobs:money", 1.25)),
+                    Collections.singletonList(BoosterEntry.bonus("exp-points", 0.5)));
+        }
+        if (flag.getType().getId().equals("effect-list") || flag.getType().getId().equals("gate")) {
+            //read as typed: without the logic's stock types registered an effect stays pending, still a value
+            String[] typed = flag.getType().getId().equals("gate") ? new String[]{"{require: []}", "{cost: []}"}
+                    : new String[]{"{gamemode: creative}", "{gamemode: adventure}"};
+            try {
+                return Arrays.asList(flag.getType().parse(typed[0]), flag.getType().parse(typed[1]));
+            } catch (FlagParseException unreadable) {
+                throw new IllegalStateException(unreadable);
+            }
+        }
+        if (type == Double.class) {
+            return Arrays.asList(1.5, 2.0);
         }
         if (List.class.isAssignableFrom(type)) {
             return Arrays.asList(Collections.singletonList("say one"), Collections.singletonList("say two"));

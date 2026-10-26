@@ -9,6 +9,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagDefinition;
 import br.com.finalcraft.evernifecore.flag.FlagKey;
 import br.com.finalcraft.evernifecore.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.flag.FlagValue;
@@ -37,6 +38,7 @@ import jakarta.annotation.Nullable;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -273,6 +275,12 @@ public class CoreRegionCommands {
 
     private static String valueText(@Nullable Flag<?> flag, FlagValue<?> value) {
         String text = flag == null ? String.valueOf(value.getValue()) : FlagValues.format(flag, value.getValue());
+        for (Object part : value.getValue() instanceof List ? (List<?>) value.getValue() : Collections.singletonList(value.getValue())) {
+            String pending = part instanceof FlagDefinition ? ((FlagDefinition<?>) part).getPendingType() : null;
+            if (pending != null) {
+                text += " §6(pending: " + pending + ")"; //kept as written until a plugin registers the type
+            }
+        }
         Duration left = value.getRemaining();
         return left == null ? text : text + " §7(" + remaining(left) + ")";
     }

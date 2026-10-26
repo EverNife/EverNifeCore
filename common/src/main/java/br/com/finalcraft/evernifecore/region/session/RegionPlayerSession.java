@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.player.state.HeldPlayerState;
 import br.com.finalcraft.evernifecore.region.Region;
+import br.com.finalcraft.evernifecore.region.RegionId;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.region.group.MembershipCheck;
 import br.com.finalcraft.evernifecore.time.ECClock;
@@ -21,6 +22,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BooleanSupplier;
@@ -121,6 +123,12 @@ public final class RegionPlayerSession {
     private final Map<FlagKey, Region> appliedSources = new ConcurrentHashMap<>();
     private final Map<FlagKey, Instant> nextRevalidation = new ConcurrentHashMap<>();
     private volatile boolean revalidateAll;
+    private final Set<RegionId> paidGates = ConcurrentHashMap.newKeySet();
+
+    /** The regions whose {@code entry-gate} the player paid in this session - from login to quit. Live. */
+    public Set<RegionId> getPaidGates() {
+        return paidGates;
+    }
 
     /** The player as the tracker last saw them; null before the first join or move. */
     public @Nullable FPlayer getOnlinePlayer() {

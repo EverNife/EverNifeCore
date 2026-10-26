@@ -93,6 +93,12 @@ public final class CoreFlags {
                     + " is set in the settings.");
     public static AmountEveryFlag HUNGER_OVER_TIME = new AmountEveryFlag("hunger-over-time", AmountEveryFlag.Effect.HUNGER,
             "Takes the amount of food from whoever stands in the region once per interval (2 every 5s).");
+    public static EffectsFlag EFFECTS_ON_ENTER = EffectsFlag.onEnter();
+    public static EffectsFlag EFFECTS_ON_EXIT = EffectsFlag.onExit();
+    public static EffectsWhileInsideFlag EFFECTS_WHILE_INSIDE = new EffectsWhileInsideFlag();
+    public static EntryGateFlag ENTRY_GATE = new EntryGateFlag();
+    public static BoostersFlag BOOSTERS = new BoostersFlag();
+    public static DamageMultiplierFlag DAMAGE_MULTIPLIER = new DamageMultiplierFlag();
 
     private CoreFlags() {
     }
@@ -106,7 +112,8 @@ public final class CoreFlags {
                 DENY_SPAWN, DENY_SPAWN_MONSTER, DENY_SPAWN_ANIMAL, DENY_ITEM_PICKUP, DENY_ITEM_DROP, DENY_VEHICLE, DENY_VEHICLE_PLACE,
                 DENY_VEHICLE_BREAK, DENY_VEHICLE_ENTER, DENY_ENTRY_WITH_MESSAGE, GREETING, FAREWELL, DENY_MESSAGE, TELEPORT_POINT,
                 SPAWN_POINT, TRACK_CHANGES, TIME_LOCK, WEATHER_LOCK, GAME_MODE, ALLOW_FLY, FORCE_FLY, POTION_EFFECTS, COMMAND_ON_ENTER,
-                COMMAND_ON_EXIT, HEAL, FEED, DAMAGE_OVER_TIME, HUNGER_OVER_TIME);
+                COMMAND_ON_EXIT, HEAL, FEED, DAMAGE_OVER_TIME, HUNGER_OVER_TIME, EFFECTS_ON_ENTER, EFFECTS_ON_EXIT, EFFECTS_WHILE_INSIDE,
+                ENTRY_GATE, BOOSTERS, DAMAGE_MULTIPLIER);
     }
 
     /** Registers every core flag under {@code owner} - EverNifeCore's own plugin data. */

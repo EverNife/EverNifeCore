@@ -2,6 +2,14 @@ package br.com.finalcraft.evernifecore.flag;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.flag.core.BoosterEntry;
+import br.com.finalcraft.evernifecore.logic.Effect;
+import br.com.finalcraft.evernifecore.logic.Effects;
+import br.com.finalcraft.evernifecore.logic.Gate;
+import br.com.finalcraft.evernifecore.time.Window;
+import br.com.finalcraft.evernifecore.types.TypeRegistry;
+import br.com.finalcraft.evernifecore.types.TypeRegistryException;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.player.state.EffectLevel;
 import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
@@ -20,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
@@ -76,7 +85,137 @@ public final class FlagTypes {
     /** Effects with their level, typed separated by {@code ,} - {@code speed:2, night_vision}. */
     public static final FlagType<List<EffectLevel>> EFFECT_LIST = listOf(EFFECT, ",");
 
+    /**
+     * What a region boosts for whoever stands in it, typed {@code on=finaljobs:money factor=1.25, on=exp-points bonus=0.5};
+     * each entry names exactly one of {@code factor} and {@code bonus}.
+     */
+    public static final FlagType<List<BoosterEntry>> BOOSTERS = listOf(checked(jackson("booster", BoosterEntry.class), BoosterEntry::check), ",");
+
     private FlagTypes() {
+    }
+
+    /**
+     * Effects of any plugin, each written as {@code {type: <name>, <parameter>: <value>...}} (or {@code <name>: <value>}),
+     * typed as one such map or a {@code [...]} list of them. An effect whose type no plugin registered yet is kept as
+     * written and reads once it registers; it is skipped meanwhile. They are read as definitions of the plugin that
+     * registered {@code flag}.
+     *
+     * @param holdableOnly refuse an effect that cannot be held and given back, naming {@code flag}
+     */
+    public static FlagType<List<FlagDefinition<Effect>>> effects(FlagKey flag, boolean holdableOnly) {
+        return new NodeType<List<FlagDefinition<Effect>>>("effect-list", "{type: message, text: hi} or a [...] list of such effects") {
+            @Override
+            List<FlagDefinition<Effect>> read(JsonNode node) throws FlagParseException {
+                List<FlagDefinition<Effect>> effects = new ArrayList<>();
+                for (JsonNode each : node.isArray() ? node : (Iterable<JsonNode>) Collections.singletonList(node)) {
+                    effects.add(effect(flag, holdableOnly, each));
+                }
+                if (effects.isEmpty()) {
+                    throw new FlagParseException("The list of effects of " + flag + " is empty: write at least one, e.g. " + accepted + ".");
+                }
+                return Collections.unmodifiableList(effects);
+            }
+
+            @Override
+            public JsonNode toJson(List<FlagDefinition<Effect>> value) {
+                ArrayNode array = mapper().createArrayNode();
+                value.forEach(effect -> array.add(effect.getRaw()));
+                return array;
+            }
+        };
+    }
+
+    /** A {@link Gate} - {@code {require: [<condition>...], cost: [<cost>...]}} - read as a definition of the plugin that registered {@code flag}. */
+    public static FlagType<FlagDefinition<Gate>> gate(FlagKey flag) {
+        return new NodeType<FlagDefinition<Gate>>("gate", "{require: [{permission: vip.mine}], cost: [{type: money, amount: 100}]}") {
+            @Override
+            FlagDefinition<Gate> read(JsonNode node) throws FlagParseException {
+                try {
+                    return new FlagDefinition<>(node, Gate.parse(callerOf(flag), node, Window.getServerZone()), () -> null);
+                } catch (TypeRegistryException refused) {
+                    throw new FlagParseException("The gate of " + flag + " does not read: " + refused.getMessage(), refused);
+                }
+            }
+
+            @Override
+            public JsonNode toJson(FlagDefinition<Gate> value) {
+                return value.getRaw();
+            }
+        };
+    }
+
+    private static FlagDefinition<Effect> effect(FlagKey flag, boolean holdableOnly, JsonNode node) throws FlagParseException {
+        Effect effect;
+        try {
+            effect = Effects.parse(callerOf(flag), node, Window.getServerZone());
+        } catch (TypeRegistryException refused) {
+            throw new FlagParseException("An effect of " + flag + " does not read: " + refused.getMessage(), refused);
+        }
+        if (holdableOnly && Effects.getPendingType(effect) == null && !effect.isHoldable()) {
+            String type = node.has(TypeRegistry.TYPE_FIELD) ? node.get(TypeRegistry.TYPE_FIELD).asText() : node.fieldNames().next();
+            throw new FlagParseException(flag.getName() + " holds effects that can be given back when the player leaves, and '" + type
+                    + "' cannot: it is not holdable. Put it in effects-on-enter, or use a holdable effect (gamemode, potion-effect, fly,"
+                    + " player-time, player-weather).");
+        }
+        return new FlagDefinition<>(node, effect, () -> Effects.getPendingType(effect));
+    }
+
+    private static ECPluginData callerOf(FlagKey flag) throws FlagParseException {
+        Flag<?> registered = FlagRegistry.get().get(flag);
+        if (registered == null) {
+            throw new FlagParseException("Flag " + flag + " is not registered, so nobody owns the definitions in its value yet:"
+                    + " register it first with FlagRegistry.get().register(owner, flag).");
+        }
+        return registered.getOwner();
+    }
+
+    /** {@code type}, with {@code check} run on every value it reads; an {@link IllegalArgumentException} of it refuses the value. */
+    private static <T> FlagType<T> checked(FlagType<T> type, Consumer<T> check) {
+        return new FlagType<T>() {
+            @Override
+            public String getId() {
+                return type.getId();
+            }
+
+            @Override
+            public Class<T> getValueType() {
+                return type.getValueType();
+            }
+
+            @Override
+            public T parse(String text) throws FlagParseException {
+                return checked(type.parse(text));
+            }
+
+            @Override
+            public String format(T value) {
+                return type.format(value);
+            }
+
+            @Override
+            public JsonNode toJson(T value) {
+                return type.toJson(value);
+            }
+
+            @Override
+            public T fromJson(JsonNode node) throws FlagParseException {
+                return checked(type.fromJson(node));
+            }
+
+            @Override
+            public List<String> tabComplete(String partial) {
+                return type.tabComplete(partial);
+            }
+
+            private T checked(T value) throws FlagParseException {
+                try {
+                    check.accept(value);
+                    return value;
+                } catch (IllegalArgumentException refused) {
+                    throw new FlagParseException(refused.getMessage(), refused);
+                }
+            }
+        };
     }
 
     /**
@@ -192,6 +331,69 @@ public final class FlagTypes {
                 }
             }
             return matches;
+        }
+    }
+
+    /**
+     * A value written as a YAML/JSON node, typed in the same form ({@code {type: message, text: hi}}); shown back as the
+     * stored node, which reads again as typed.
+     */
+    private abstract static class NodeType<T> implements FlagType<T> {
+
+        private final String id;
+        final String accepted;
+
+        NodeType(String id, String accepted) {
+            this.id = id;
+            this.accepted = accepted;
+        }
+
+        abstract T read(JsonNode node) throws FlagParseException;
+
+        @Override
+        public String getId() {
+            return id;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public Class<T> getValueType() {
+            return (Class<T>) (Class<?>) Object.class;
+        }
+
+        @Override
+        public T parse(String text) throws FlagParseException {
+            JsonNode node;
+            try {
+                node = mapper().readTree(text == null ? "" : text);
+            } catch (Exception unreadable) {
+                throw new FlagParseException("'" + text + "' does not read as a " + id + ": write it as " + accepted + ".", unreadable);
+            }
+            if (node == null || !(node.isObject() || node.isArray())) {
+                throw new FlagParseException("'" + text + "' is not a " + id + ": write it as " + accepted + ".");
+            }
+            return read(node);
+        }
+
+        @Override
+        public String format(T value) {
+            return toJson(value).toString();
+        }
+
+        @Override
+        public T fromJson(JsonNode node) throws FlagParseException {
+            if (node != null && node.isTextual()) {
+                return parse(node.asText()); //a hand-edited file may hold the typed form
+            }
+            if (node == null || !(node.isObject() || node.isArray())) {
+                throw new FlagParseException("Stored " + id + " value " + node + " is not one: write it as " + accepted + ".");
+            }
+            return read(node);
+        }
+
+        @Override
+        public List<String> tabComplete(String partial) {
+            return Collections.emptyList();
         }
     }
 

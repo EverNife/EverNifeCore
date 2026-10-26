@@ -1,8 +1,12 @@
 package br.com.finalcraft.evernifecore.action;
 
+import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagKey;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import jakarta.annotation.Nullable;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -13,6 +17,7 @@ import java.util.Objects;
 public final class DamageContext extends ActionContext {
 
     private final Actor victim;
+    private final Map<FlagKey, Double> damageFactors = new LinkedHashMap<>();
 
     /**
      * @param source   {@link EventSource#DAMAGE} or {@link EventSource#KILL}
@@ -31,6 +36,23 @@ public final class DamageContext extends ActionContext {
     /** Who is about to be hurt, or who was killed. */
     public Actor getVictim() {
         return victim;
+    }
+
+    /**
+     * {@code flag} scales the damage by {@code factor}; the listener applies the product of every flag's factor once the
+     * regions let the hit through. A flag asked again about the same hit keeps its first factor.
+     */
+    public synchronized void multiplyDamage(Flag<?> flag, double factor) {
+        damageFactors.putIfAbsent(flag.getKey(), factor);
+    }
+
+    /** What the damage is multiplied by: the product of every {@link #multiplyDamage} factor, 1.0 for none. */
+    public synchronized double getDamageMultiplier() {
+        double product = 1.0;
+        for (double factor : damageFactors.values()) {
+            product *= factor;
+        }
+        return product;
     }
 
     @Override

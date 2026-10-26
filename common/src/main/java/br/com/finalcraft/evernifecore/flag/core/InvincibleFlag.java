@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.flag.core;
 
 import java.util.Set;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Collections;
 import java.util.Arrays;
 import br.com.finalcraft.evernifecore.flag.FlagInteraction;
@@ -41,7 +42,8 @@ public final class InvincibleFlag extends DenyFlag {
 
     @Override
     public Set<FlagInteraction> getInteractions() {
-        return Collections.singleton(FlagInteraction.with(FlagKey.of(CoreFlags.OWNER, "damage-over-time"),
-                "invincible = TRUE: no damage over time"));
+        return new LinkedHashSet<>(Arrays.asList(
+                FlagInteraction.with(FlagKey.of(CoreFlags.OWNER, "damage-over-time"), "invincible = TRUE: no damage over time"),
+                FlagInteraction.with(FlagKey.of(CoreFlags.OWNER, "damage-multiplier"), "invincible = TRUE: nothing to multiply")));
     }
 }

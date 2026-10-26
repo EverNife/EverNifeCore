@@ -1,20 +1,27 @@
 package br.com.finalcraft.evernifecore.flag.core;
 
-import java.util.Arrays;
-import br.com.finalcraft.evernifecore.flag.FlagResolvers;
-import br.com.finalcraft.evernifecore.flag.FlagResolver;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.SessionContext;
-import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.flag.Flag;
 import br.com.finalcraft.evernifecore.flag.FlagCategory;
 import br.com.finalcraft.evernifecore.flag.FlagKey;
+import br.com.finalcraft.evernifecore.flag.FlagResolver;
+import br.com.finalcraft.evernifecore.flag.FlagResolvers;
 import br.com.finalcraft.evernifecore.flag.FlagTypes;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
+import br.com.finalcraft.evernifecore.logic.Effect;
+import br.com.finalcraft.evernifecore.logic.Effects;
+import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
+import br.com.finalcraft.evernifecore.time.Window;
+import br.com.finalcraft.evernifecore.types.TypeRegistry;
+import br.com.finalcraft.evernifecore.types.TypeRegistryException;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.annotation.Nullable;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -22,8 +29,9 @@ import java.util.Set;
 
 /**
  * {@code command-on-enter} and {@code command-on-exit}: commands run when a player enters or leaves the region, one per
- * line. A line starting {@code player:} runs as the player, {@code console:} or no prefix as the console; placeholders
- * in the line (the region ones included) are resolved for the player first.
+ * line, each through the {@code command} effect. A line starting {@code player:} runs as the player, {@code console:} or no
+ * prefix as the console; {@code {variables}} and placeholders in the line (the region ones included) are resolved for the
+ * player. Overlapping regions each run their own lines.
  */
 public final class CommandFlag extends Flag<List<String>> {
 
@@ -65,14 +73,14 @@ public final class CommandFlag extends Flag<List<String>> {
     @Override
     public void onEnter(SessionContext context, List<String> value) {
         if (!onExit) {
-            run(context.getPlayer(), value);
+            run(context, value);
         }
     }
 
     @Override
     public void onLeave(SessionContext context, List<String> lastValue) {
         if (onExit) {
-            run(context.getPlayer(), lastValue);
+            run(context, lastValue);
         }
     }
 
@@ -82,35 +90,43 @@ public final class CommandFlag extends Flag<List<String>> {
         if (oldValue == null || newValue == null || oldValue.equals(newValue)) {
             return; //an unchanged value asked again runs nothing
         }
-        run(context.getPlayer(), onExit ? oldValue : newValue);
+        run(context, onExit ? oldValue : newValue);
     }
 
-    private static void run(FPlayer player, List<String> lines) {
-        IPlayerStateAccess access = EverNifeCore.getPlatform().getPlayerState();
-        if (!access.supports(IPlayerStateAccess.Capability.COMMAND)) {
+    /** Each line runs through the {@code command} effect, in the context {@link EffectsFlag#contextOf} gives. */
+    private void run(SessionContext context, List<String> lines) {
+        if (!EverNifeCore.getPlatform().getPlayerState().supports(IPlayerStateAccess.Capability.COMMAND)) {
             return;
         }
+        ExecutionContext ctx = EffectsFlag.contextOf(this, context, false);
         for (String line : lines) {
             String text = line.trim();
-            FPlayer as = null;
             String lower = text.toLowerCase(Locale.ROOT);
-            if (lower.startsWith(AS_PLAYER)) {
-                as = player;
-                text = text.substring(AS_PLAYER.length());
+            boolean asPlayer = lower.startsWith(AS_PLAYER);
+            if (asPlayer) {
+                text = text.substring(AS_PLAYER.length()).trim();
             } else if (lower.startsWith(AS_CONSOLE)) {
-                text = text.substring(AS_CONSOLE.length());
+                text = text.substring(AS_CONSOLE.length()).trim();
             }
-            text = EverNifeCore.getPlatform().parse(player, text.trim());
             if (text.startsWith("/")) {
                 text = text.substring(1);
             }
             if (text.isEmpty()) {
                 continue;
             }
+            ObjectNode node = JsonNodeFactory.instance.objectNode().put(TypeRegistry.TYPE_FIELD, "command").put("command", text)
+                    .put("as", asPlayer ? "player" : "console");
             try {
-                access.dispatchCommand(as, text);
-            } catch (RuntimeException failed) {
-                ECDebugModule.REGIONS.debug("Region command '{}' for {} failed: {}", text, player.getName(), failed.toString());
+                Effect effect = Effects.parse(getOwner(), node, Window.getServerZone());
+                if (Effects.getPendingType(effect) != null) {
+                    ECDebugModule.REGIONS.debug("Region command '{}' for {} does not run: the command effect is not registered.", text,
+                            context.getPlayer().getName());
+                    continue;
+                }
+                Effects.apply(ctx, effect);
+            } catch (TypeRegistryException unreadable) {
+                ECDebugModule.REGIONS.debug("Region command '{}' for {} does not read: {}", text, context.getPlayer().getName(),
+                        unreadable.getMessage());
             }
         }
     }

@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.flag.core;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.flag.FlagRegistry;
+import br.com.finalcraft.evernifecore.logic.core.CoreLogic;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -65,6 +67,7 @@ class CommandFlagTest {
                 .install();
         state = world.platform().getTestPlayerState();
         core = Plugins.fakeCore(tempDir.resolve("core").toFile());
+        CoreLogic.registerAll(core); //the command effect the lines run through
         CoreFlags.registerAll(core);
         regions = RegionWorld.open("Arenas", tempDir.resolve("arenas"));
         replacer.set(RegionPlaceholders.registerCore(core));
@@ -94,5 +97,18 @@ class CommandFlagTest {
         RegionMovementTracker.get().onMove(alice, INSIDE, OUTSIDE, MoveCause.MOVE, null);
         assertEquals("console: bye arenas:arena", state.getCommands().get(2), "the exit line runs as the console, resolved");
         assertEquals(3, state.getCommands().size());
+    }
+
+    @Test
+    void twoOverlappingRegionsEachRunTheirOwnLines() {
+        Region arena = regions.cuboid("arena", WORLD, 0, 0, 0, 10, 10, 10);
+        Region ring = regions.cuboid("ring", WORLD, 0, 0, 0, 10, 10, 10);
+        arena.setFlag(CoreFlags.COMMAND_ON_ENTER, Collections.singletonList("say arena"));
+        ring.setFlag(CoreFlags.COMMAND_ON_ENTER, Arrays.asList("say ring", "player: wave"));
+
+        RegionMovementTracker.get().onJoin(alice, OUTSIDE);
+        RegionMovementTracker.get().onMove(alice, OUTSIDE, INSIDE, MoveCause.MOVE, null);
+        assertEquals(new HashSet<>(Arrays.asList("console: say arena", "console: say ring", "alice: wave")), new HashSet<>(state.getCommands()));
+        assertEquals(3, state.getCommands().size(), "both lists ran, each line once");
     }
 }
