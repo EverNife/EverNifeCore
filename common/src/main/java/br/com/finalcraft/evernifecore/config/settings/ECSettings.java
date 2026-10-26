@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.config.settings;
 
 import br.com.finalcraft.evernifecore.action.EventSourceUsage;
+import br.com.finalcraft.evernifecore.booster.BoosterJoin;
+import br.com.finalcraft.evernifecore.booster.Boosters;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpWords;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
 import br.com.finalcraft.evernifecore.cooldown.CooldownRetention;
@@ -18,6 +20,7 @@ import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import br.com.finalcraft.everylibs.util.FCTimeUtil;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -204,6 +207,7 @@ public class ECSettings {
         loadProvenanceSettings(ConfigManager.getMainConfig());
         loadNotifySettings(ConfigManager.getMainConfig());
         loadWaypointSettings(ConfigManager.getMainConfig());
+        loadBoosterSettings(ConfigManager.getMainConfig());
 
         if (ConfigManager.getMainConfig().hasNewSeededDefaults()){
             ConfigManager.getMainConfig().save();
@@ -388,6 +392,47 @@ public class ECSettings {
         WAYPOINT_CHANNELS = Collections.unmodifiableList(new ArrayList<>(channels));
         WAYPOINT_REFRESH_TICKS = Math.max(1, refreshTicks);
         WAYPOINT_PARTICLE_PATH_LENGTH = Math.max(1, pathLength);
+    }
+
+    /**
+     * Reads every {@code Boosters.*} key of {@code config}, seeding what is absent, and hands them to {@link Boosters}.
+     *
+     * @throws IllegalArgumentException when a factor is not a number or a join names no strategy
+     */
+    public static void loadBoosterSettings(Config config){
+        List<Object> written = config.getOrSetValueIfAbsent(
+                "Boosters.permission-factors", new ArrayList<Object>(Arrays.asList(1.1, 1.25, 1.5, 2.0, 3.0)),
+                "The factors the permission vip.booster.<gain>.<factor> may grant (vip.booster.money.1.25 is x1.25 on money)." +
+                        "\nA platform cannot list a player's permissions, so only these are tested; the largest held counts."
+        );
+        List<BigDecimal> factors = new ArrayList<>();
+        for (Object factor : written) {
+            try {
+                factors.add(new BigDecimal(String.valueOf(factor).trim()));
+            } catch (NumberFormatException notANumber) {
+                throw new IllegalArgumentException("Boosters.permission-factors: " + written + " lists '" + factor + "', which is not a"
+                        + " number. List factors like [1.1, 1.25, 1.5, 2.0, 3.0].");
+            }
+        }
+        if (!config.contains("Boosters.join")) {
+            config.getOrSetValueIfAbsent("Boosters.join.money.strategy", "sum-bonus",
+                    "How the boosters of a gain join: sum-bonus (1 + every bonus), max (the largest alone) or product (every factor" +
+                            "\nmultiplied), optionally capped (cap: 3.0). Only within what the plugin of the gain accepts; outside it," +
+                            "\na warning names what it accepts and its own choice stays.");
+        }
+        Map<String, BoosterJoin> joins = new LinkedHashMap<>();
+        for (String gain : config.getKeys("Boosters.join")) {
+            String path = "Boosters.join." + gain;
+            BoosterJoin join;
+            try {
+                join = BoosterJoin.parse(String.valueOf(config.getValue(path + ".strategy")));
+            } catch (IllegalArgumentException invalid) {
+                throw new IllegalArgumentException(path + ".strategy: " + invalid.getMessage());
+            }
+            Object cap = config.getValue(path + ".cap");
+            joins.put(gain, cap == null ? join : join.cap(new BigDecimal(String.valueOf(cap).trim())));
+        }
+        Boosters.applySettings(factors, joins);
     }
 
     private static NotifyChain readChain(Config config, String key, NotifyKind kind, String comment){

@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.commands.CommandRegisterer;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
 import br.com.finalcraft.evernifecore.cooldown.Cooldowns;
+import br.com.finalcraft.evernifecore.booster.Boosters;
 import br.com.finalcraft.evernifecore.economy.Currencies;
 import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
@@ -86,6 +87,7 @@ public class EverNifeCore {
         CoreFlags.registerAll(getEcPluginData());
         CoreLogic.registerAll(getEcPluginData());
         Currencies.registerCore(getEcPluginData());
+        Boosters.registerCore(getEcPluginData());
         Notifier.get().registerStock(getEcPluginData());
         Waypoints.get().registerStock(getEcPluginData());
         RegexReplacer<IPlayerData> corePlaceholders = RegionPlaceholders.registerCore(getEcPluginData());

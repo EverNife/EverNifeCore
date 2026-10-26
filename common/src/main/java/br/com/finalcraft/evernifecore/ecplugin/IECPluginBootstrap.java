@@ -1,6 +1,10 @@
 package br.com.finalcraft.evernifecore.ecplugin;
 
+import br.com.finalcraft.evernifecore.booster.BoosterManager;
+import br.com.finalcraft.evernifecore.booster.Boosters;
 import br.com.finalcraft.evernifecore.economy.Currencies;
+import br.com.finalcraft.evernifecore.logic.value.Contributions;
+import br.com.finalcraft.evernifecore.logic.value.DynamicValues;
 import br.com.finalcraft.evernifecore.action.provenance.ProvenanceTracker;
 import br.com.finalcraft.evernifecore.cooldown.Cooldowns;
 import br.com.finalcraft.evernifecore.logic.CustomVariables;
@@ -132,6 +136,9 @@ public interface IECPluginBootstrap {
         RegionManager.closeOwnedBy(getPluginData());
         Cooldowns.closeOwnedBy(getPluginData());
         CustomVariables.closeOwnedBy(getPluginData());
+        BoosterManager.closeOwnedBy(getPluginData());
+        DynamicValues.closeOwnedBy(getPluginData());
+        Contributions.closeOwnedBy(getPluginData());
         RankedLists.closeOwnedBy(getPluginData());
         LocaleOverlay.closeOwnedBy(getPluginData());
         Notifier.get().closeOwnedBy(getPluginData());
@@ -140,6 +147,7 @@ public interface IECPluginBootstrap {
         Currencies.unregisterAll(getPluginData());
         TypeRegistries.unregisterAll(getPluginData());
         Multipliers.unregisterAll(getPluginData());
+        Boosters.unregisterAll(getPluginData());
         EventSource.unregisterAll(getPluginData());
         EventSourceUsage.stopAll(getPluginData());
         ECListener.unregisterAll(getPluginData());

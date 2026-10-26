@@ -4,6 +4,8 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
+import br.com.finalcraft.evernifecore.booster.BoosterManager;
+import br.com.finalcraft.evernifecore.booster.Boosters;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
@@ -15,6 +17,8 @@ import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 import br.com.finalcraft.evernifecore.logic.Variables;
 import br.com.finalcraft.evernifecore.logic.audit.LogicTrace;
 import br.com.finalcraft.evernifecore.logic.core.CoreLogic;
+import br.com.finalcraft.evernifecore.logic.value.Contributions;
+import br.com.finalcraft.evernifecore.logic.value.DynamicValues;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
 import br.com.finalcraft.everydatabase.Storages;
 
@@ -30,7 +34,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 /**
  * One plugin that owns logic, for a test: its plugin data, an in-memory storage that counts calls, contexts already
  * carrying its {@link Caller}, players that are online on the platform, the core's stock types registered, and the
- * clock and scheduler of {@link TestClock}, and the lines a trace of a player would send ({@link #trace}). Needs a platform with {@code ignoringPlatformRegistrations()} and
+ * clock and scheduler of {@link TestClock}, the booster engine with its stock sources, and the lines a trace of a player would send ({@link #trace}). Needs a platform with {@code ignoringPlatformRegistrations()} and
  * {@code mainThreadInline()}, {@code platformProviderId(...)} for a type that names platforms or capabilities (and
  * {@code playerState()} for what reads a player's state); {@code offWorldThread()} proves the dispatch of effects.
  *
@@ -101,6 +105,21 @@ public final class LogicWorld implements AutoCloseable {
     /** The owner's counters of region, world and group owners, kept in {@link #getStorage()}: {@code Cooldowns.of(owner, storage)}. */
     public Cooldowns cooldowns() {
         return Cooldowns.of(owner, storage);
+    }
+
+    /** The owner's boosters, in memory: {@code BoosterManager.of(owner)}, a source of the booster engine while this world is open. */
+    public BoosterManager boosters() {
+        return BoosterManager.of(owner);
+    }
+
+    /** The owner's dynamic values, kept in {@link #getStorage()}: {@code DynamicValues.of(owner, storage)}. */
+    public DynamicValues dynamicValues() {
+        return DynamicValues.of(owner, storage);
+    }
+
+    /** The owner's contributions, kept in {@link #getStorage()}: {@code Contributions.of(owner, storage)}. */
+    public Contributions contributions() {
+        return Contributions.of(owner, storage);
     }
 
     /** A caller of this world's plugin at {@code origin}. */
@@ -200,6 +219,9 @@ public final class LogicWorld implements AutoCloseable {
         }
         Cooldowns.closeOwnedBy(owner);
         CustomVariables.closeOwnedBy(owner);
+        BoosterManager.closeOwnedBy(owner);
+        DynamicValues.closeOwnedBy(owner);
+        Contributions.closeOwnedBy(owner);
         storage.close().join();
         Plugins.forget(ownerName);
         releaseStock();
@@ -209,7 +231,9 @@ public final class LogicWorld implements AutoCloseable {
     private static void acquireStock(Path dataFolder) {
         synchronized (STOCK_LOCK) {
             if (stockUsers++ == 0 && !Conditions.registry().find("evernifecore:all").isPresent()) {
-                CoreLogic.registerAll(Plugins.fakeCore(dataFolder.resolve("evernifecore").toFile()));
+                ECPluginData core = Plugins.fakeCore(dataFolder.resolve("evernifecore").toFile());
+                CoreLogic.registerAll(core);
+                Boosters.registerCore(core);
                 stockRegisteredHere = true;
             }
         }

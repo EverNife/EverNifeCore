@@ -1,0 +1,195 @@
+package br.com.finalcraft.evernifecore.logic.core;
+
+import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.economy.Currencies;
+import br.com.finalcraft.evernifecore.economy.Currency;
+import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
+import br.com.finalcraft.evernifecore.economy.EcoResponse;
+import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.logic.ConditionResult;
+import br.com.finalcraft.evernifecore.logic.Cost;
+import br.com.finalcraft.evernifecore.logic.Costs;
+import br.com.finalcraft.evernifecore.logic.Effect;
+import br.com.finalcraft.evernifecore.logic.Effects;
+import br.com.finalcraft.evernifecore.logic.ExecutionContext;
+import br.com.finalcraft.evernifecore.logic.audit.AuditKind;
+import br.com.finalcraft.evernifecore.types.ParamSpec;
+import br.com.finalcraft.evernifecore.types.TypeDescriptor;
+import br.com.finalcraft.evernifecore.util.FCMessageUtil;
+import jakarta.annotation.Nullable;
+
+import java.math.BigDecimal;
+import java.util.Optional;
+
+/**
+ * The stock cost and effect {@code money}: a cost takes an amount of a currency from the context owner's wallet (and
+ * gives it back on a refund), never boosted; an effect gives it, multiplied by {@code ctx.getMultiplier(currency)}
+ * unless {@code boosted: false}. Both resolve the currency when they run, so a currency registered later is found.
+ */
+final class StockEconomy {
+
+    private static final String DEFAULT_CURRENCY = "money";
+
+    private StockEconomy() {
+    }
+
+    static void register(ECPluginData core) {
+        Costs.register(core, TypeDescriptor.<Cost>of("evernifecore:money")
+                .describe("Takes an amount of a currency from the owner's wallet; gives it back when a later cost does not come out.")
+                .param(ParamSpec.required("amount", ParamSpec.Kind.STRING, "The amount: a number, or a {variable}."))
+                .param(ParamSpec.optional("currency", ParamSpec.Kind.ID, DEFAULT_CURRENCY, "The currency, e.g. money or finaleconomy:gold."))
+                .factory(params -> new MoneyCost(params.getString("amount"), params.getString("currency")))
+                .build());
+        Effects.registry().register(core, TypeDescriptor.<Effect>of("evernifecore:money")
+                .describe("Gives an amount of a currency to the owner's wallet, multiplied by the owner's boosters of that currency.")
+                .param(ParamSpec.required("amount", ParamSpec.Kind.STRING, "The amount: a number, or a {variable}."))
+                .param(ParamSpec.optional("currency", ParamSpec.Kind.ID, DEFAULT_CURRENCY, "The currency, e.g. money or finaleconomy:gold."))
+                .param(ParamSpec.optional("boosted", ParamSpec.Kind.BOOLEAN, true, "Whether the boosters of the currency multiply it."))
+                .factory(params -> new MoneyEffect(params.getString("amount"), params.getString("currency"), params.getBoolean("boosted"),
+                        BigDecimal.ONE))
+                .build());
+    }
+
+    /** The currency {@code id} names, {@code money} answering even before its registration. */
+    static Currency currency(String id) {
+        if (DEFAULT_CURRENCY.equals(id) || ("evernifecore:" + DEFAULT_CURRENCY).equals(id)) {
+            return Currencies.money();
+        }
+        return Currencies.require(id);
+    }
+
+    /**
+     * The amount written, its {@code {variables}} resolved.
+     *
+     * @throws IllegalStateException naming the text when it does not read as a number
+     */
+    static BigDecimal amount(ExecutionContext ctx, String written) {
+        String resolved = ctx.resolve(written).trim();
+        try {
+            return new BigDecimal(resolved);
+        } catch (NumberFormatException notANumber) {
+            throw new IllegalStateException("The amount '" + written + "' reads as '" + resolved + "', which is not a number: write a number"
+                    + " like 250, or a {variable} that holds one.");
+        }
+    }
+
+    /** Why the context owner has no wallet of {@code currency}, or null when it has one and the currency can move. */
+    static @Nullable String noWallet(Currency currency, ExecutionContext ctx) {
+        Optional<CurrencyOwner> owner = CurrencyOwner.of(ctx.getOwner());
+        if (!owner.isPresent() || !currency.supports(owner.get().getKind())) {
+            return currency.getId() + " has no wallet for " + ctx.getOwner().getKind() + ": " + ctx.getOwner()
+                    + " cannot pay or be paid in it. Name a currency that keeps wallets for it, or run the logic for a player.";
+        }
+        if (!currency.isAvailable()) {
+            return "No economy on this server: install Vault and an economy plugin (FinalEconomy works), or name another currency.";
+        }
+        return null;
+    }
+
+    private static final class MoneyCost implements Cost {
+        private final String amount;
+        private final String currencyId;
+
+        MoneyCost(String amount, String currencyId) {
+            this.amount = amount;
+            this.currencyId = currencyId;
+        }
+
+        @Override
+        public ConditionResult test(ExecutionContext ctx) {
+            Currency currency = currency(currencyId);
+            String noWallet = noWallet(currency, ctx);
+            if (noWallet != null) {
+                return ConditionResult.fail(FancyText.of(noWallet));
+            }
+            CurrencyOwner owner = CurrencyOwner.of(ctx.getOwner()).get();
+            BigDecimal needed = amount(ctx, amount);
+            if (currency.has(owner, needed)) {
+                return ConditionResult.pass();
+            }
+            return ConditionResult.fail(notEnough(ctx, currency, currency.getBalance(owner), needed));
+        }
+
+        @Override
+        public boolean take(ExecutionContext ctx) {
+            Currency currency = currency(currencyId);
+            Optional<CurrencyOwner> owner = CurrencyOwner.of(ctx.getOwner());
+            return owner.isPresent() && currency.take(owner.get(), amount(ctx, amount), ctx.getCaller()).isSuccess();
+        }
+
+        @Override
+        public void refund(ExecutionContext ctx) {
+            Currency currency = currency(currencyId);
+            EcoResponse given = currency.give(CurrencyOwner.of(ctx.getOwner()).get(), amount(ctx, amount), ctx.getCaller());
+            if (!given.isSuccess()) {
+                throw new IllegalStateException("The refund of " + describe(ctx).getText() + " to " + ctx.getOwner() + " failed: " + given);
+            }
+        }
+
+        @Override
+        public FancyText describe(ExecutionContext ctx) {
+            return currency(currencyId).format(amount(ctx, amount));
+        }
+
+        @Override
+        public String toString() {
+            return "money(" + amount + " " + currencyId + ")";
+        }
+    }
+
+    private static FancyText notEnough(ExecutionContext ctx, Currency currency, BigDecimal balance, BigDecimal needed) {
+        if (FCMessageUtil.ECO_NOT_ENOUGHT != null && FCMessageUtil.ECO_NOT_ENOUGHT.isDefined()) {
+            //a message's placeholders resolve only when it is sent; a failure text is kept, so it is filled here
+            return FancyText.of(FCMessageUtil.ECO_NOT_ENOUGHT.getFancyText(ctx.getPlayer()).getText()
+                    .replace("${current_money}", currency.format(balance).getText())
+                    .replace("${needed_money}", currency.format(needed).getText()));
+        }
+        return FancyText.of("Not enough " + currency.getDisplayName().getText() + ": " + currency.format(balance).getText() + " of "
+                + currency.format(needed).getText() + ".");
+    }
+
+    private static final class MoneyEffect implements Effect {
+        private final String amount;
+        private final String currencyId;
+        private final boolean boosted;
+        private final BigDecimal share;
+
+        MoneyEffect(String amount, String currencyId, boolean boosted, BigDecimal share) {
+            this.amount = amount;
+            this.currencyId = currencyId;
+            this.boosted = boosted;
+            this.share = share;
+        }
+
+        /** A wallet that is missing or cannot move is audited and logged, never thrown: the other effects still apply. */
+        @Override
+        public void apply(ExecutionContext ctx) {
+            Currency currency = currency(currencyId);
+            BigDecimal given = amount(ctx, amount).multiply(share);
+            if (boosted) {
+                given = given.multiply(ctx.getMultiplier(currency.getId()));
+            }
+            String noWallet = noWallet(currency, ctx);
+            EcoResponse response = noWallet != null ? null : currency.give(CurrencyOwner.of(ctx.getOwner()).get(), given, ctx.getCaller());
+            if (response == null || !response.isSuccess()) {
+                String why = noWallet != null ? noWallet : String.valueOf(response);
+                ctx.getAudit().add(ctx, AuditKind.EFFECT_FAILED, "money " + currency.format(given).getText() + " to " + ctx.getOwner()
+                        + " not given: " + why, given, null);
+                EverNifeCore.getLog().warning("[" + ctx.getCaller() + "] money " + currency.format(given).getText() + " to " + ctx.getOwner()
+                        + " was not given: " + why);
+            }
+        }
+
+        @Override
+        public Effect withShare(BigDecimal newShare) {
+            return new MoneyEffect(amount, currencyId, boosted, share.multiply(newShare));
+        }
+
+        @Override
+        public String toString() {
+            return "money(" + amount + " " + currencyId + (boosted ? "" : ", not boosted")
+                    + (share.compareTo(BigDecimal.ONE) == 0 ? ")" : " x " + share + ")");
+        }
+    }
+}

@@ -18,6 +18,26 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **Boosters** (`br.com.finalcraft.evernifecore.booster`): `Booster.on(gain).factor/bonus.forOwner(...).lasting/until/during(season)`,
+  `BoosterManager.of(plugin, storage)` keeps a plugin's boosters in its own storage (`ec_boosters`; `of(plugin)` in memory),
+  `grant` posts a `BoosterGrantedEvent`, a booster past its end stops counting at once and a sweep drops it once a minute.
+  `BoosterSource` SPI, stock sources by permission (`vip.booster.<gain>.<factor>`, the factors listed in `config.yml`
+  `Boosters.permission-factors`, the largest held counts) and by the region flag `boosters`; `BoosterJoin` (sum of
+  bonuses, max, product, cap) declared per gain with `Boosters.declareJoin` and swappable in `config.yml`
+  (`Boosters.join.<gain>`) only within what the declaration accepts. `ExecutionContext.getMultiplier` joins them and the
+  trace names each parcel. A booster multiplies at the source of the gain (`money` effect `boosted: true`), never inside
+  `Currency.give`. A `Booster` is written in a config as `{on: money, factor: 1.5, owner: global, lasting: 1h}`.
+- **Dynamic values and contributions** (`br.com.finalcraft.evernifecore.logic.value`): `DynamicValues.of(plugin,
+  storage).define(id, spec)` - base, min/max, step per bump, decay toward the base computed on read from the clock, one
+  state per `ProgressOwner`, persisted (`ec_dynamic_values`), readable as the variable `{plugin:id}`; a `DynamicValueSpec`
+  is written as `{base, min, max, step, decay: {amount, every}}`. `Contributions.of(plugin, storage).define(id, target,
+  requirement)` collects deposits per member up to the target (`CurrencyRequirement.of(currency, amount)`, `consume` or
+  `check()`), posts a `ContributionDepositEvent` per deposit and applies its completion effects once
+  (`ContributionCompletedEvent`).
+- Stock cost and effect `money` (`amount` a number or a `{variable}`, `currency` default `money`; the effect is boosted
+  unless `boosted: false`, a missing wallet or economy is audited and never thrown; the cost names what to install when
+  there is no economy).
+
 - **Six core flags over the logic module** (56 in `CoreFlags.all()`): `effects-on-enter` / `effects-on-exit` (a list of
   effects of any plugin, `{type: <name>, ...}` maps, applied as a player enters or leaves; one whose plugin is absent is
   kept as written, skipped and shown as `(pending: <type>)` in `region info` until it registers), `effects-while-inside`

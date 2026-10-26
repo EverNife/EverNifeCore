@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.EventSourceUsage;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
+import br.com.finalcraft.evernifecore.booster.Boosters;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.api.events.reload.ECPluginReloadEvent;
 import br.com.finalcraft.evernifecore.region.RegionManager;
@@ -149,6 +150,7 @@ public class ECPluginManager {
         Waypoints.get().hideOwnedBy(removed);
         TypeRegistries.unregisterAll(removed);
         Multipliers.unregisterAll(removed);
+        Boosters.unregisterAll(removed);
         EventSourceUsage.stopAll(removed);
 
         //by value, not by removed.getPlugin(): a plugin re-instantiated at runtime leaves two objects

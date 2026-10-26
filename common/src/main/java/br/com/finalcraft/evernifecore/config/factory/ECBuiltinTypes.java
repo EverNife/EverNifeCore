@@ -32,6 +32,7 @@ public final class ECBuiltinTypes {
         CFPositionFamily.register();
         CFShapeFamily.register();
         CFEconomyFamily.register();
+        CFBoosterFamily.register();
         registerCooldown();
         registerNumberWrapper();
         FancyTextConfigCodec.register();
