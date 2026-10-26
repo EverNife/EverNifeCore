@@ -1,0 +1,30 @@
+{
+  "v": 1,
+  "name": "arena",
+  "world": "world",
+  "priority": 3,
+  "parent": null,
+  "persistence": "PERSISTENT",
+  "expiresAt": null,
+  "shape": {"type": "cuboid", "min": "0|0|0", "max": "20|100|20", "unboundedY": false},
+  "flags": {},
+  "groups": {
+    "fighters": {
+      "priority": 2,
+      "permission": "arena.fight",
+      "check": "on-boundary",
+      "members": {
+        "6f1c2a3e-1111-4a5b-9c0d-000000000001": {"joinedAt": "2026-01-02T03:04:05Z", "expiresAt": null},
+        "6f1c2a3e-2222-4a5b-9c0d-000000000002": {"joinedAt": "2026-01-02T03:04:05Z", "expiresAt": "2031-02-03T04:05:06Z"}
+      },
+      "flags": {
+        "regionowner:room": {"value": "false"}
+      }
+    }
+  },
+  "flagSettings": {},
+  "tags": ["arena"],
+  "metadata": null,
+  "displayName": null,
+  "description": null
+}
