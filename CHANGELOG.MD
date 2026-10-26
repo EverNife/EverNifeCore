@@ -165,7 +165,6 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   (`Notifier.validate`), and a misspelled channel in the config fails the boot naming the key. Channels are a
   `TypeRegistry` (`Notifier.register`); a player who quits is forgotten by every channel, and a queued channel writes
   only to the platform it started on.
-
 ### Fixed
 
 - **Player tab-complete no longer reveals vanished players**: the `FPlayer` and Bukkit `Player` parsers, and the
@@ -183,6 +182,7 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **Hytale Server 0.7.4** (was 0.7.2; no source change).
 - **`PageViewer` is now the chat renderer of a `RankedList`**: `PageViewer.of(rankedList)` keeps the format, theme,
   navigation, page size and viewer placeholders; `source`, `maxEntries`, `orderBy`, `cache`, `id` and `addRowPlaceholder`
   moved to `RankedList` (`addRowPlaceholder` is `RankedList.Builder.addValue`). `PageViewer.of(Class)` and `PageRegistry`
