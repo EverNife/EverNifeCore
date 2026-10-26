@@ -100,8 +100,8 @@ class RegionPlaceholdersTest {
         arena1.setDisplayName("&6Arena Vermelha");
         arena1.setDescription("Two teams");
         arena1.setExpiresAt(duel.now().plusSeconds(90));
-        arena1.getGroup("fighters").addMember(alice.getUniqueId());
-        arena1.getGroup("fighters").addMember(bob.getUniqueId());
+        arena1.getGroup("fighters").add(alice.getUniqueId());
+        arena1.getGroup("fighters").add(bob.getUniqueId());
 
         join(carol);
         duel.advance(Duration.ofSeconds(10));

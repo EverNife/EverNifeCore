@@ -165,7 +165,7 @@ class ArgParserRegionTest extends RegionCommandFixture {
         harness.dispatch(fp, steve, "region group arena membros add " + member);
 
         assertNotNull(protArena.getGroupIfPresent("membros"), steve.getMessages().toString());
-        assertNotNull(protArena.getGroupIfPresent("membros").getMembership(member));
+        assertNotNull(protArena.getGroupIfPresent("membros").getMember(member));
         assertEquals(null, duelArena.getGroupIfPresent("membros"));
     }
 

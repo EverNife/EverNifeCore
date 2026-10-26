@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.region;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.region.event.RegionRemovedEvent;
-import br.com.finalcraft.evernifecore.region.group.AccessGroup;
+import br.com.finalcraft.evernifecore.group.Group;
 import br.com.finalcraft.evernifecore.time.ECClock;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 import jakarta.annotation.Nullable;
@@ -109,16 +109,15 @@ public final class RegionSweeper {
             return;
         }
         region.getFlagStore().expire(now);
-        for (AccessGroup group : region.getGroups().values()) {
-            group.getFlagStore().expire(now);
-            group.expireMembers(now);
+        for (Group group : region.getGroups().values()) {
+            group.expire(now);
         }
     }
 
     private static @Nullable Instant nextDeadline(Region region) {
         Instant next = earliest(region.getExpiresAt(), region.getFlagStore().getNextDeadline());
-        for (AccessGroup group : region.getGroups().values()) {
-            next = earliest(next, earliest(group.getFlagStore().getNextDeadline(), group.getNextMemberDeadline()));
+        for (Group group : region.getGroups().values()) {
+            next = earliest(next, group.getNextDeadline());
         }
         return next;
     }

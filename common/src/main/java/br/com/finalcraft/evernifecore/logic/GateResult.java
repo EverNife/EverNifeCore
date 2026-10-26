@@ -34,6 +34,18 @@ public final class GateResult {
         this.notes = Collections.unmodifiableList(new ArrayList<>(notes));
     }
 
+    /** PASSED over the {@link Gate#open() open gate}: what a path answers when no gate stood in it. */
+    public static GateResult passed(ExecutionContext ctx) {
+        return new GateResult(Gate.open(), ctx, Outcome.PASSED, Collections.<ConditionResult>emptyList(),
+                Collections.<ConditionResult>emptyList());
+    }
+
+    /** DENIED over the {@link Gate#open() open gate} by a rule outside any gate; {@link #explain()} answers {@code why}. */
+    public static GateResult denied(ExecutionContext ctx, FancyText why) {
+        return new GateResult(Gate.open(), ctx, Outcome.DENIED, Collections.singletonList(ConditionResult.fail(why)),
+                Collections.<ConditionResult>emptyList());
+    }
+
     GateResult as(Outcome newOutcome, List<ConditionResult> newFailures) {
         return new GateResult(gate, context, newOutcome, newFailures, notes);
     }

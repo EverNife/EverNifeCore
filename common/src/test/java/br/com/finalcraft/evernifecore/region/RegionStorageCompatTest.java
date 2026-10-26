@@ -2,8 +2,8 @@ package br.com.finalcraft.evernifecore.region;
 
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.flag.Tristate;
-import br.com.finalcraft.evernifecore.region.group.AccessGroup;
-import br.com.finalcraft.evernifecore.region.group.MembershipCheck;
+import br.com.finalcraft.evernifecore.group.Group;
+import br.com.finalcraft.evernifecore.group.MembershipCheck;
 import br.com.finalcraft.evernifecore.region.storage.RegionRecord;
 import br.com.finalcraft.evernifecore.region.storage.RegionStorage;
 import org.junit.jupiter.api.Test;
@@ -38,15 +38,18 @@ class RegionStorageCompatTest extends ManagedRegionFixture {
 
         Region arena = reader.get("arena");
         assertNotNull(arena, "the region of the old record is indexed");
-        AccessGroup fighters = arena.getGroupIfPresent("fighters");
+        Group fighters = arena.getGroupIfPresent("fighters");
         assertNotNull(fighters);
         assertEquals(2, fighters.getPriority());
         assertEquals("arena.fight", fighters.getPermission());
         assertEquals(MembershipCheck.onBoundary(), fighters.getMembershipCheck());
         assertEquals(2, fighters.getMembers().size());
-        assertNull(fighters.getMembership(PERMANENT).getExpiresAt());
-        assertEquals(Instant.parse("2031-02-03T04:05:06Z"), fighters.getMembership(TIMED).getExpiresAt());
-        assertEquals(Instant.parse("2026-01-02T03:04:05Z"), fighters.getMembership(TIMED).getJoinedAt());
+        assertNull(fighters.getMember(PERMANENT).getExpiresAt());
+        assertEquals(Instant.parse("2031-02-03T04:05:06Z"), fighters.getMember(TIMED).getExpiresAt());
+        assertEquals(Instant.parse("2026-01-02T03:04:05Z"), fighters.getMember(TIMED).getJoinedAt());
         assertEquals(Tristate.FALSE, fighters.getFlag(flag), "the raw flag value relinks once its flag is registered");
+        assertNull(fighters.getLeader(), "a record without a leader reads as none");
+        assertEquals(0, fighters.getMember(PERMANENT).getRoles().size());
+        assertEquals(0, fighters.getInvites().size());
     }
 }

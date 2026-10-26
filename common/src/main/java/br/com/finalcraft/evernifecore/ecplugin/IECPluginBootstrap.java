@@ -25,6 +25,7 @@ import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ECLogger;
 import br.com.finalcraft.evernifecore.locale.LocaleOverlay;
 import br.com.finalcraft.evernifecore.ranking.RankedLists;
+import br.com.finalcraft.evernifecore.group.GroupManager;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 
@@ -121,7 +122,8 @@ public interface IECPluginBootstrap {
 
     /**
      * Optional shutdown extras that run BEFORE the shared teardown. The default first closes the plugin's
-     * {@link RegionManager} - writing its regions while the plugin's storage is still open - unregisters
+     * {@link RegionManager} and its {@link GroupManager} - writing its regions and groups while the plugin's storage is
+     * still open - unregisters
      * its region flags, its types ({@link TypeRegistries}) and event sources and stops its {@link EventSourceUsage#watch usage watches}, then takes back every entry point this plugin opened - the listeners registered through {@link ECListener#register},
      * the commands registered through {@link FinalCMDManager}, the argument parsers registered through
      * {@link ArgParserManager} (its own and the global ones it owns) and the subscriptions taken in this
@@ -136,6 +138,7 @@ public interface IECPluginBootstrap {
         //the writers first: provenance and regions write to the plugin's storage, which the plugin closes right after this hook
         ProvenanceTracker.closeOwnedBy(getPluginData());
         RegionManager.closeOwnedBy(getPluginData());
+        GroupManager.closeOwnedBy(getPluginData());
         Cooldowns.closeOwnedBy(getPluginData());
         CustomVariables.closeOwnedBy(getPluginData());
         BoosterManager.closeOwnedBy(getPluginData());

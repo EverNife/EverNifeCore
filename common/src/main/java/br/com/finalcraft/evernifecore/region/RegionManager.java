@@ -15,13 +15,11 @@ import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.region.event.RegionChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionCreatedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionFlagChangedEvent;
-import br.com.finalcraft.evernifecore.region.event.RegionGroupChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionLoadFailedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionRedefinedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionRemovedEvent;
-import br.com.finalcraft.evernifecore.region.group.AccessGroup;
-import br.com.finalcraft.evernifecore.region.group.GroupChange;
-import br.com.finalcraft.evernifecore.region.group.Membership;
+import br.com.finalcraft.evernifecore.group.Group;
+import br.com.finalcraft.evernifecore.group.GroupManager;
 import br.com.finalcraft.evernifecore.region.overlap.Overlap;
 import br.com.finalcraft.evernifecore.region.overlap.OverlapProvider;
 import br.com.finalcraft.evernifecore.region.overlap.OverlapProviders;
@@ -584,6 +582,7 @@ public final class RegionManager {
             changed(orphan, RegionChangedEvent.Type.PARENT);
         }
         for (Region leaving : gone) {
+            leaving.dissolveGroups();
             ECEventBus.global().postIfListened(RegionRemovedEvent.class, () -> new RegionRemovedEvent(leaving, cause));
         }
         scheduleFlush();
@@ -865,7 +864,7 @@ public final class RegionManager {
         ECEventBus.global().postIfListened(RegionChangedEvent.class, () -> new RegionChangedEvent(region, type));
     }
 
-    void flagChanged(Region region, @Nullable AccessGroup group, Flag<?> flag, @Nullable FlagValue<?> oldValue,
+    void flagChanged(Region region, @Nullable Group group, Flag<?> flag, @Nullable FlagValue<?> oldValue,
                      @Nullable FlagValue<?> newValue, FlagChangeCause cause) {
         if (!region.isAttached()) {
             return;
@@ -891,7 +890,7 @@ public final class RegionManager {
         for (Region region : RegionLookup.get().byOwner(owner)) {
             Set<Flag<?>> locked = new LinkedHashSet<>();
             collectLocked(region, region.getFlags(), locked);
-            for (AccessGroup group : region.getGroups().values()) {
+            for (Group group : region.getGroups().values()) {
                 collectLocked(region, group.getFlags(), locked);
             }
             for (Flag<?> flag : locked) {
@@ -944,26 +943,24 @@ public final class RegionManager {
     }
 
     private static Region regionOf(FlagHolder holder) {
-        return holder instanceof AccessGroup ? ((AccessGroup) holder).getRegion() : (Region) holder;
+        return holder instanceof Group ? ((Group) holder).getRegion() : (Region) holder;
     }
 
-    void groupChanged(Region region, AccessGroup group, GroupChange change, @Nullable UUID player) {
+    /**
+     * A group local to {@code region} changed: written with the region when the change is stored, the sweeper woken for a
+     * new deadline, and the players under the region looked at again (a group may let them in or keep them out).
+     */
+    void groupChanged(Region region, Group group, boolean stored, @Nullable Instant deadline) {
         if (!region.isAttached()) {
             return;
         }
-        if (change != GroupChange.PREDICATE_SET) {   //the predicate is code, never stored
+        if (stored) {
             markDirty(region);
         }
-        if (change == GroupChange.MEMBER_ADDED && player != null) {
-            Membership membership = group.getMembership(player);
-            if (membership != null && membership.getExpiresAt() != null) {
-                RegionSweeper.wake();
-            }
+        if (deadline != null) {
+            RegionSweeper.wake();
         }
-        if (change == GroupChange.MEMBER_EXPIRED) {
-            ECDebugModule.REGIONS.debug("Region {}/{}: the membership of {} expired.", region.getId(), group.getName(), player);
-        }
-        ECEventBus.global().postIfListened(RegionGroupChangedEvent.class, () -> new RegionGroupChangedEvent(region, group, change, player));
+        RegionMovementTracker.groupChanged(region);
     }
 
     // ------------------------------------------------------------------
@@ -1039,6 +1036,7 @@ public final class RegionManager {
         for (ECPluginData owner : new ArrayList<>(MANAGERS.keySet())) {
             closeOwnedBy(owner);
         }
+        GroupManager.closeAll();
         RegionSweeper.reset();
         EventSourceUsage.shutdown();
         RegionMovementTracker.shutdown();

@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.region.group;
+package br.com.finalcraft.evernifecore.group;
 
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
@@ -38,11 +38,14 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Membership by UUID, predicate and permission, each under the three checks; deadlines; the group's own values. */
+/**
+ * A region's group: membership by UUID, predicate and permission, each under the three checks; deadlines; the group's
+ * own values.
+ */
 @ECoreTest
-class AccessGroupTest {
+class GroupTest {
 
-    private static final String OWNER = "AccessGroupOwner";
+    private static final String OWNER = "GroupTestOwner";
     private static final String PERMISSION = "arena.fighter";
 
     enum Mode { UUID, PREDICATE, PERMISSION }
@@ -108,7 +111,7 @@ class AccessGroupTest {
     @MethodSource("modesTimesChecks")
     void membershipFollowsTheCheck(Mode mode, Check checkKind) {
         TestFPlayerSender alice = player("alice");
-        AccessGroup group = region.getGroup("fighters");
+        Group group = region.getGroup("fighters");
         AtomicBoolean predicateSays = new AtomicBoolean(false);
         if (mode == Mode.PREDICATE) {
             group.setPredicate(p -> predicateSays.get());
@@ -121,7 +124,7 @@ class AccessGroupTest {
         //the change below goes around the group, so only the check decides when the group notices
         switch (mode) {
             case UUID:
-                group.addMember(alice.getUniqueId());
+                group.add(alice.getUniqueId());
                 assertTrue(group.contains(alice), "an explicit member is a set lookup, never cached");
                 assertNull(RegionLookup.get().getSession(alice).getCachedMembership(group));
                 return;
@@ -155,7 +158,7 @@ class AccessGroupTest {
     @Test
     void intervalCheckAlsoRefreshesOnTheBoundary() {
         TestFPlayerSender alice = player("alice");
-        AccessGroup group = region.getGroup("fighters");
+        Group group = region.getGroup("fighters");
         group.setPermission(PERMISSION);
         group.setMembershipCheck(MembershipCheck.interval(Duration.ofMinutes(5)));
         assertFalse(group.contains(alice));
@@ -168,18 +171,19 @@ class AccessGroupTest {
     @Test
     void temporaryMemberDisappearsOnReadOnceExpired() {
         TestFPlayerSender alice = player("alice");
-        AccessGroup group = region.getGroup("fighters");
-        Membership membership = group.addMember(alice.getUniqueId(), Duration.ofMinutes(15));
+        Group group = region.getGroup("fighters");
+        assertTrue(group.add(alice.getUniqueId(), Duration.ofMinutes(15)));
+        GroupMember membership = group.getMember(alice.getUniqueId());
         assertEquals(Duration.ofMinutes(15), membership.getRemaining());
         assertTrue(group.contains(alice));
 
         clock.advance(Duration.ofMinutes(10));
-        assertEquals(Duration.ofMinutes(5), group.getMembership(alice.getUniqueId()).getRemaining());
+        assertEquals(Duration.ofMinutes(5), group.getMember(alice.getUniqueId()).getRemaining());
         assertEquals(1, group.getMembers().size());
 
         clock.advance(Duration.ofMinutes(5));
         assertFalse(group.contains(alice));
-        assertNull(group.getMembership(alice.getUniqueId()));
+        assertNull(group.getMember(alice.getUniqueId()));
         assertTrue(group.getMembers().isEmpty());
         assertTrue(membership.isExpired());
     }
@@ -187,23 +191,24 @@ class AccessGroupTest {
     @Test
     void permanentMemberAndRemoval() {
         TestFPlayerSender alice = player("alice");
-        AccessGroup group = region.getGroup("fighters");
-        Membership membership = group.addMember(alice.getUniqueId());
+        Group group = region.getGroup("fighters");
+        assertTrue(group.add(alice.getUniqueId()));
+        GroupMember membership = group.getMember(alice.getUniqueId());
         assertNull(membership.getExpiresAt());
         assertNull(membership.getRemaining());
-        assertTrue(group.removeMember(alice.getUniqueId()));
-        assertFalse(group.removeMember(alice.getUniqueId()));
+        assertTrue(group.remove(alice.getUniqueId(), LeaveCause.PLUGIN));
+        assertFalse(group.remove(alice.getUniqueId(), LeaveCause.PLUGIN));
         assertFalse(group.contains(alice));
-        assertThrows(IllegalArgumentException.class, () -> group.addMember(alice.getUniqueId(), Duration.ZERO));
+        assertThrows(IllegalArgumentException.class, () -> group.add(alice.getUniqueId(), Duration.ZERO));
     }
 
     @Test
     void groupValueOnlyForMembers() {
         TestFPlayerSender alice = player("alice");
         TestFPlayerSender bob = player("bob");
-        AccessGroup group = region.getGroup("fighters");
+        Group group = region.getGroup("fighters");
         group.setFlag(flag, Tristate.FALSE);
-        group.addMember(alice.getUniqueId());
+        group.add(alice.getUniqueId());
         assertEquals(Tristate.FALSE, group.resolve(flag, alice));
         assertNull(group.resolve(flag, bob));
         assertEquals(Tristate.FALSE, group.getFlags().get(flag.getKey()).getValue());
@@ -213,11 +218,13 @@ class AccessGroupTest {
 
     @Test
     void getGroupAppliesTheNameRuleAndCreatesOnce() {
-        AccessGroup fighters = region.getGroup("Fighters");
+        Group fighters = region.getGroup("Fighters");
         assertEquals("fighters", fighters.getName());
         assertSame(fighters, region.getGroup("fighters"));
         assertSame(fighters, region.getGroupIfPresent("FIGHTERS"));
         assertSame(region, fighters.getRegion());
+        assertSame(GroupKind.REGION_LOCAL, fighters.getKind());
+        assertEquals("grouptestowner:arena/fighters", fighters.getId().toString());
         assertEquals(0, fighters.getPriority());
         assertEquals(MembershipCheck.exact(), fighters.getMembershipCheck());
         IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> region.getGroup("a b"));

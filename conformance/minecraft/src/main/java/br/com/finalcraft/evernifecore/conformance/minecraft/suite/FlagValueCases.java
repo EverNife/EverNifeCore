@@ -256,7 +256,7 @@ final class FlagValueCases {
         List<Double> changes = new ArrayList<>();
         try {
             arena.region.setFlag(CoreFlags.HEAL, CoreFlags.HEAL.getType().parse("2 every 1s"));
-            arena.region.getGroup("ecc-party").addMember(player.getUniqueId());
+            arena.region.getGroup("ecc-party").add(player.getUniqueId());
             arena.region.getGroup("ecc-party").setFlag(CoreFlags.HEAL, CoreFlags.HEAL.getType().parse("10 every 1s"));
         } catch (Throwable thrown) {
             arena.close();

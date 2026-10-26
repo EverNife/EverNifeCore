@@ -17,7 +17,6 @@ import br.com.finalcraft.evernifecore.region.event.RegionChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionCrossedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionEnterEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionFlagChangedEvent;
-import br.com.finalcraft.evernifecore.region.event.RegionGroupChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionLeaveEvent;
 import jakarta.annotation.Nullable;
 
@@ -66,7 +65,6 @@ public final class RegionMovementTracker {
         subscriptions.add(bus.subscribe(ECPlayerQuitEvent.class, event -> onQuit(event.getPlayerData().getUniqueId())));
         //what a region change means for the players under it: their session flags, and whether it now expels them
         subscriptions.add(bus.subscribe(RegionFlagChangedEvent.class, event -> invalidateUnder(event.getRegion())));
-        subscriptions.add(bus.subscribe(RegionGroupChangedEvent.class, event -> invalidateUnder(event.getRegion())));
         subscriptions.add(bus.subscribe(RegionChangedEvent.class, event -> {
             if (event.getType() == RegionChangedEvent.Type.FLAG_SETTINGS) {
                 invalidateUnder(event.getRegion());
@@ -89,6 +87,17 @@ public final class RegionMovementTracker {
             }
         }
         return tracker;
+    }
+
+    /**
+     * Internal: a group local to {@code region} changed - its members, permission, predicate or check - so the players
+     * under it are looked at again, as a flag change has them. Nothing when no tracker runs.
+     */
+    public static void groupChanged(Region region) {
+        RegionMovementTracker tracker = global;
+        if (tracker != null) {
+            tracker.invalidateUnder(region);
+        }
     }
 
     /** Internal: stops the global tracker, if one was created; the next {@link #get()} starts a fresh one. */

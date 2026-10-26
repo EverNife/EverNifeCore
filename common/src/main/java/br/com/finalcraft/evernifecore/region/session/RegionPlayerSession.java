@@ -8,8 +8,8 @@ import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.player.state.HeldPlayerState;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionId;
-import br.com.finalcraft.evernifecore.region.group.AccessGroup;
-import br.com.finalcraft.evernifecore.region.group.MembershipCheck;
+import br.com.finalcraft.evernifecore.group.Group;
+import br.com.finalcraft.evernifecore.group.MembershipCheck;
 import br.com.finalcraft.evernifecore.time.ECClock;
 import jakarta.annotation.Nullable;
 
@@ -46,7 +46,7 @@ public final class RegionPlayerSession {
     }
 
     private final UUID player;
-    private final ConcurrentHashMap<AccessGroup, Cached> memberships = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Group, Cached> memberships = new ConcurrentHashMap<>();
     //bumped whenever the set of regions the player is in changes; a cached answer from an older epoch is stale
     private volatile long boundaryEpoch;
     private final HeldPlayerState heldState;
@@ -67,7 +67,7 @@ public final class RegionPlayerSession {
     }
 
     /** The cached answer of {@code group.contains(player)}; null when nothing valid is cached - always so for an exact check. */
-    public @Nullable Boolean getCachedMembership(AccessGroup group) {
+    public @Nullable Boolean getCachedMembership(Group group) {
         Cached cached = memberships.get(group);
         return cached == null || !isFresh(cached, group.getMembershipCheck()) ? null : cached.value;
     }
@@ -78,7 +78,7 @@ public final class RegionPlayerSession {
     }
 
     /** Internal: forgets the cached answer for {@code group}. */
-    public void invalidate(AccessGroup group) {
+    public void invalidate(Group group) {
         memberships.remove(group);
     }
 
@@ -91,7 +91,7 @@ public final class RegionPlayerSession {
      * Internal: the answer for {@code group} under {@code check} - the cached one while it is fresh, otherwise
      * {@code compute}'s, cached. An exact check is never cached.
      */
-    public boolean membership(AccessGroup group, MembershipCheck check, BooleanSupplier compute) {
+    public boolean membership(Group group, MembershipCheck check, BooleanSupplier compute) {
         if (check.getType() == MembershipCheck.Type.EXACT) {
             return compute.getAsBoolean();
         }

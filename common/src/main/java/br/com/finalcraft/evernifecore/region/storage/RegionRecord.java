@@ -42,6 +42,7 @@ public final class RegionRecord {
     public @Nullable String displayName;
     public @Nullable String description;
 
+    /** A group local to the region. {@code leader}, {@code displayName}, the members' roles and the invites are optional. */
     @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static final class GroupRecord {
@@ -52,6 +53,10 @@ public final class RegionRecord {
         /** By the member's UUID. */
         public Map<String, MemberRecord> members = new LinkedHashMap<>();
         public Map<String, JsonNode> flags = new LinkedHashMap<>();
+        public @Nullable String leader;
+        public @Nullable String displayName;
+        /** By the invited player's UUID. */
+        public Map<String, InviteRecord> invites = new LinkedHashMap<>();
     }
 
     @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
@@ -59,13 +64,32 @@ public final class RegionRecord {
     public static final class MemberRecord {
         public Instant joinedAt;
         public @Nullable Instant expiresAt;
+        public List<String> roles = new ArrayList<>();
 
         public MemberRecord() {
         }
 
-        public MemberRecord(Instant joinedAt, @Nullable Instant expiresAt) {
+        public MemberRecord(Instant joinedAt, @Nullable Instant expiresAt, List<String> roles) {
             this.joinedAt = joinedAt;
             this.expiresAt = expiresAt;
+            this.roles = roles;
+        }
+    }
+
+    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static final class InviteRecord {
+        public Instant invitedAt;
+        public Instant expiresAt;
+        public @Nullable String invitedBy;
+
+        public InviteRecord() {
+        }
+
+        public InviteRecord(Instant invitedAt, Instant expiresAt, @Nullable String invitedBy) {
+            this.invitedAt = invitedAt;
+            this.expiresAt = expiresAt;
+            this.invitedBy = invitedBy;
         }
     }
 }

@@ -13,7 +13,7 @@ import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionId;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
-import br.com.finalcraft.evernifecore.region.group.AccessGroup;
+import br.com.finalcraft.evernifecore.group.Group;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.everyconfig.config.Config;
 import jakarta.annotation.Nullable;
@@ -119,7 +119,7 @@ public final class FlagRegistry {
             if (!region.getFlagStore().relink(flag)) {
                 unreadable.add(region.getId().toString());
             }
-            for (AccessGroup group : region.getGroups().values()) {
+            for (Group group : region.getGroups().values()) {
                 if (!group.getFlagStore().relink(flag)) {
                     unreadable.add(group.toString());
                 }
@@ -154,7 +154,7 @@ public final class FlagRegistry {
         indexChildren();
         for (Region region : RegionLookup.get().all()) {
             region.getFlagStore().unlink(flag);
-            for (AccessGroup group : region.getGroups().values()) {
+            for (Group group : region.getGroups().values()) {
                 group.getFlagStore().unlink(flag);
             }
         }

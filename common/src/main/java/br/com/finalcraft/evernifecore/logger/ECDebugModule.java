@@ -15,6 +15,7 @@ public enum ECDebugModule implements IDebugModule {
     SV_WORLD_DATA("Logs what every SVWorldDataManager block store preloads and flushes.", true),
     COMMAND_REGISTRY("Logs every command path removed, and every alias overridden, by a 'commands/<PluginName>.yml' file.", true),
     REGIONS("Logs what the region sweeper expires and what each RegionManager loads, flushes and drops.", true),
+    GROUPS("Logs what each GroupManager loads, flushes, sweeps and dissolves.", true),
     LOGIC("Logs every gate checked, cost taken, refund and effect applied, with the caller.", false),
     AUDIT("Logs how many entries each audit log's retention sweep deleted.", false),
     ;

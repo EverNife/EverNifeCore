@@ -4,10 +4,10 @@ import br.com.finalcraft.evernifecore.flag.FlagChangeCause;
 import br.com.finalcraft.evernifecore.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.TestRegions.ManualClock;
 import br.com.finalcraft.evernifecore.region.event.RegionFlagChangedEvent;
-import br.com.finalcraft.evernifecore.region.event.RegionGroupChangedEvent;
+import br.com.finalcraft.evernifecore.group.LeaveCause;
+import br.com.finalcraft.evernifecore.group.event.GroupMemberLeftEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionRemovedEvent;
-import br.com.finalcraft.evernifecore.region.group.AccessGroup;
-import br.com.finalcraft.evernifecore.region.group.GroupChange;
+import br.com.finalcraft.evernifecore.group.Group;
 import br.com.finalcraft.evernifecore.testing.TestPlatform;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 import org.junit.jupiter.api.BeforeEach;
@@ -102,17 +102,17 @@ class RegionSweeperTest extends ManagedRegionFixture {
     @Test
     void anExpiredMembershipIsSweptAsMemberExpired() {
         Region region = created(manager().create("club", WORLD, box(0, 0, 9, 9)));
-        AccessGroup members = region.getGroup("members");
+        Group members = region.getGroup("members");
         UUID guest = UUID.randomUUID();
-        members.addMember(guest, Duration.ofMinutes(1));
-        List<RegionGroupChangedEvent> changes = record(RegionGroupChangedEvent.class);
+        members.add(guest, Duration.ofMinutes(1));
+        List<GroupMemberLeftEvent> changes = record(GroupMemberLeftEvent.class);
 
         clock.advance(Duration.ofMinutes(2));
         runAgenda();
 
         assertEquals(1, changes.size());
-        assertEquals(GroupChange.MEMBER_EXPIRED, changes.get(0).getChange());
+        assertEquals(LeaveCause.EXPIRED, changes.get(0).getCause());
         assertEquals(guest, changes.get(0).getPlayer());
-        assertNull(members.getNextMemberDeadline());
+        assertNull(members.getNextDeadline());
     }
 }

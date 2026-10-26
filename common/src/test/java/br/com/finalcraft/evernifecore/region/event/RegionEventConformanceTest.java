@@ -14,12 +14,11 @@ class RegionEventConformanceTest {
 
     private static final List<Class<?>> EVENTS = Arrays.asList(
             RegionEnterEvent.class, RegionLeaveEvent.class, RegionCreatedEvent.class, RegionRemovedEvent.class,
-            RegionRedefinedEvent.class, RegionFlagChangedEvent.class, RegionGroupChangedEvent.class,
-            RegionChangedEvent.class, RegionLoadFailedEvent.class);
+            RegionRedefinedEvent.class, RegionFlagChangedEvent.class, RegionChangedEvent.class, RegionLoadFailedEvent.class);
 
     @Test
     void everyRegionEventConforms() {
-        assertTrue(EVENTS.size() >= 9, "the list must name every region event, it names " + EVENTS.size());
+        assertTrue(EVENTS.size() >= 8, "the list must name every region event, it names " + EVENTS.size());
         assertEquals(Arrays.asList(), ECEventConformance.checkAll(EVENTS.toArray(new Class<?>[0])));
     }
 }

@@ -95,7 +95,7 @@ class FlagLayerOrderTest {
     @Test
     void writtenPriority10ComesBeforeAMoreSpecificLayerWithout() {
         Region arena = region("arena", 0, 20);
-        arena.getGroup("vip").addMember(alice.getUniqueId());
+        arena.getGroup("vip").add(alice.getUniqueId());
         arena.getGroup("vip").setFlag(text, "group");
         region("ring", 30, 10).setFlag(text, "ring");
         arena.setFlag(text, FlagValue.permanent("written").withPriority(10));

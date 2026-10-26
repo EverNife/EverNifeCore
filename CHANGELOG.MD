@@ -18,6 +18,18 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **Group engine (`br.com.finalcraft.evernifecore.group`)**: `GroupManager.of(owner, storage)` keeps a plugin's groups in
+  its own storage (collection `groups`; `of(owner)` holds TRANSIENT groups only and refuses a PERSISTENT one saying how
+  to persist it); `GroupKind` declares cardinality (`ONE` refuses a second group of the kind on `add` and `join`), a roles
+  ladder and flag defaults, registered before `load()` - a stored group of a kind not registered stays unread and is read
+  when the kind registers. A `Group` has members with roles and an optional deadline, a transferable leader, invites with
+  expiry, its own flag values (ACTOR: they follow the members) and the virtual membership (predicate, permission,
+  `MembershipCheck`). The owner's `add`/`remove` and the player's `join`/`leave`/`accept` (a `GateResult` that explains a
+  refusal) post `GroupMemberPreJoinEvent` (cancellable, `setDenyReason`), `GroupMemberJoinedEvent`, `GroupMemberLeftEvent`
+  (with its `LeaveCause`), `GroupRoleChangedEvent`, `GroupLeaderChangedEvent`, `GroupInviteEvent`, `GroupFlagChangedEvent`,
+  `GroupCreatedEvent` and `GroupDissolvedEvent` (with the last members). The core closes each plugin's manager on its
+  shutdown, right after its regions. `GroupWorld` in `evernifecore-common-tests`. `GateResult.passed/denied(ctx, ...)`
+  answer for a path with no gate in it.
 - **Boosters** (`br.com.finalcraft.evernifecore.booster`): `Booster.on(gain).factor/bonus.forOwner(...).lasting/until/during(season)`,
   `BoosterManager.of(plugin, storage)` keeps a plugin's boosters in its own storage (`ec_boosters`; `of(plugin)` in memory),
   `grant` posts a `BoosterGrantedEvent`, a booster past its end stops counting at once and a sweep drops it once a minute.
@@ -260,6 +272,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **`AccessGroup` is gone**: `Region.getGroup(name)` returns a `Group` of `GroupKind.REGION_LOCAL` (same stored format,
+  now with optional leader, roles - free tags in a region's group - and invites; a record written before still reads);
+  `Membership` is `GroupMember` (`getMembership(uuid)` -> `getMember(uuid)`, `addMember` -> `add`, `removeMember` ->
+  `remove(uuid, LeaveCause)`); `RegionGroupChangedEvent` and `GroupChange` are replaced by the `Group*Event`s, whose
+  `getGroup().getRegion()` names the region; `MembershipCheck` moved to `group`. Removing a group or its region dissolves
+  it (`DissolveCause.REGION_REMOVED`). The region `group` command node gains `leader <player|->` and `role <player> <role|->`.
 - **Economy is `Currency`** (`br.com.finalcraft.evernifecore.economy`): plugins read and move money through
   `Currencies.money()` (or any registered currency, `Currencies.find/require(id)`) with a `CurrencyOwner` -
   `player(uuid)`, `group(id)`, `global()` - and a `Caller`; `Currency.supports(kind)` says which owners a currency

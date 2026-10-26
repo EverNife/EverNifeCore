@@ -18,7 +18,7 @@ import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.command.FlagValues;
 import br.com.finalcraft.evernifecore.region.event.RegionRemovedEvent;
-import br.com.finalcraft.evernifecore.region.group.AccessGroup;
+import br.com.finalcraft.evernifecore.group.Group;
 import br.com.finalcraft.evernifecore.region.session.RegionPlayerSession;
 import br.com.finalcraft.evernifecore.region.shape.BoundingBox;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
@@ -222,7 +222,7 @@ public final class RegionPlaceholders {
         op("flags_count", (region, viewer, ctx, scope) -> region.getFlags().size());
         op("groups_count", (region, viewer, ctx, scope) -> region.getGroups().size());
         op("group_[group]_members_count", (region, viewer, ctx, scope) -> {
-            AccessGroup group = region.getGroupIfPresent(ctx.getArgs("[group]").getValue());
+            Group group = region.getGroupIfPresent(ctx.getArgs("[group]").getValue());
             return group == null ? "" : group.getMembers().size();
         });
     }

@@ -11,7 +11,7 @@ import br.com.finalcraft.evernifecore.flag.Tristate;
 import br.com.finalcraft.evernifecore.flag.core.EntryDenySettings;
 import br.com.finalcraft.evernifecore.flag.core.MoveDenySettings;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.group.AccessGroup;
+import br.com.finalcraft.evernifecore.group.Group;
 import br.com.finalcraft.evernifecore.testing.Senders;
 import br.com.finalcraft.evernifecore.testing.TestCommandSender;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
@@ -93,8 +93,8 @@ class CoreRegionCommandsTest extends RegionCommandFixture {
     void infoPrintsFlagsGroupsMembersAndRemaining() {
         UUID alex = UUID.randomUUID();
         arena.setFlag((Flag<Tristate>) flag("deny-pvp"), Tristate.FALSE, Duration.ofMinutes(10));
-        AccessGroup members = arena.getGroup("membros");
-        members.addMember(alex, Duration.ofMinutes(15));
+        Group members = arena.getGroup("membros");
+        members.add(alex, Duration.ofMinutes(15));
         members.setFlag((Flag<Tristate>) flag("deny-block-break"), Tristate.TRUE);
         arena.addTag("spawn");
 

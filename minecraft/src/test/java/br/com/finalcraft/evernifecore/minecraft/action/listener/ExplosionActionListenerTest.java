@@ -105,7 +105,7 @@ class ExplosionActionListenerTest {
     private static Region home(RegionServer server, Player member) {
         Region home = server.box("home", 0, 0, 0, 10, 10, 10, server.flag(CoreFlags.DENY_BLOCK_BREAK));
         home.getGroup("members").setFlag(CoreFlags.DENY_BLOCK_BREAK, Tristate.FALSE);
-        home.getGroup("members").addMember(member.getUniqueId());
+        home.getGroup("members").add(member.getUniqueId());
         return home;
     }
 

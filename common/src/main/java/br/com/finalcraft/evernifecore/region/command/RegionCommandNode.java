@@ -30,8 +30,10 @@ import br.com.finalcraft.evernifecore.region.RegionId;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.region.RemoveStrategy;
-import br.com.finalcraft.evernifecore.region.group.AccessGroup;
-import br.com.finalcraft.evernifecore.region.group.Membership;
+import br.com.finalcraft.evernifecore.group.Group;
+import br.com.finalcraft.evernifecore.group.GroupMember;
+import br.com.finalcraft.evernifecore.group.GroupRole;
+import br.com.finalcraft.evernifecore.group.LeaveCause;
 import br.com.finalcraft.evernifecore.region.overlap.Overlap;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSession;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSpec;
@@ -54,6 +56,7 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -646,7 +649,7 @@ public class RegionCommandNode implements RegionScope {
     }
 
     @FinalCMD.Node(subcmd = "group", locales = {
-            @FCLocale(lang = LocaleType.EN_US, text = "The access groups of a region: members, flags, priority and permission"),
+            @FCLocale(lang = LocaleType.EN_US, text = "The groups of a region: members, leader, roles, flags, priority and permission"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Os grupos de acesso de uma região: membros, flags, prioridade e permissão")
     })
     public class GroupBranch implements RegionScope {
@@ -684,8 +687,9 @@ public class RegionCommandNode implements RegionScope {
                 PLAYER_UNKNOWN.addPlaceholder("player", player).send(sender);
                 return;
             }
-            target.region.getGroup(target.groupName).addMember(uuid, ttl == null ? null : Duration.ofMillis(ttl.getMillis()));
-            groupDone(sender, target, "added " + player + (ttl == null ? "" : " for " + ttl.toConfigString()));
+            boolean added = target.region.getGroup(target.groupName).add(uuid, ttl == null ? null : Duration.ofMillis(ttl.getMillis()));
+            groupDone(sender, target, added ? "added " + player + (ttl == null ? "" : " for " + ttl.toConfigString())
+                    : "adding " + player + " was refused by a listener");
         }
 
         @FinalCMD.SubCMD(subcmd = "remove", validation = RegionVerbAccess.class, locales = {
@@ -697,8 +701,8 @@ public class RegionCommandNode implements RegionScope {
                 return;
             }
             UUID uuid = playerUuid(player);
-            AccessGroup group = target.region.getGroupIfPresent(target.groupName);
-            boolean removed = uuid != null && group != null && group.removeMember(uuid);
+            Group group = target.region.getGroupIfPresent(target.groupName);
+            boolean removed = uuid != null && group != null && group.remove(uuid, LeaveCause.KICKED);
             groupDone(sender, target, removed ? "removed " + player : player + " was not a member");
         }
 
@@ -714,7 +718,7 @@ public class RegionCommandNode implements RegionScope {
                          @Arg.Flag(value = "--priority", aliases = {"-p"}, insideTail = true) Integer priority,
                          @Arg.Flag(value = "--lock", insideTail = true) Boolean lock) {
             if (valueText.isEmpty()) {
-                AccessGroup group = target.region.getGroupIfPresent(target.groupName);
+                Group group = target.region.getGroupIfPresent(target.groupName);
                 for (Flag<?> flag : FlagValues.targets(flagName)) {
                     FLAG_VALUE.addPlaceholder("flag", flag.getKey()).addPlaceholder("target", target.region.getId() + "/" + target.groupName)
                             .addPlaceholder("value", describe(flag, group == null ? null : group.getFlagValue(flag))).send(sender);
@@ -732,13 +736,13 @@ public class RegionCommandNode implements RegionScope {
                 @FCLocale(lang = LocaleType.PT_BR, text = "Os membros e as flags de um grupo")
         })
         public void list(FCommandSender sender, @Arg.NodeCaptured GroupTarget target) {
-            AccessGroup group = target.region.getGroupIfPresent(target.groupName);
+            Group group = target.region.getGroupIfPresent(target.groupName);
             if (group == null) {
                 groupDone(sender, target, "does not exist yet");
                 return;
             }
             groupDone(sender, target, "priority " + group.getPriority() + ", permission " + (group.getPermission() == null ? "-" : group.getPermission()));
-            for (Membership member : group.getMembers()) {
+            for (GroupMember member : group.getMembers()) {
                 Duration left = member.getRemaining();
                 sender.sendMessage(" §7member §f" + member.getUuid() + (left == null ? "" : " §7(" + CoreRegionCommands.remaining(left) + ")"));
             }
@@ -773,6 +777,56 @@ public class RegionCommandNode implements RegionScope {
             String value = permission.equals(FlagValues.CLEAR) ? null : permission;
             target.region.getGroup(target.groupName).setPermission(value);
             groupDone(sender, target, "permission " + (value == null ? "-" : value));
+        }
+
+        @FinalCMD.SubCMD(subcmd = "leader", validation = RegionVerbAccess.class, locales = {
+                @FCLocale(lang = LocaleType.EN_US, text = "Hand the lead of the group to a member, or clear it (-)"),
+                @FCLocale(lang = LocaleType.PT_BR, text = "Passa a liderança do grupo a um membro, ou a limpa (-)")
+        })
+        public void leader(FCommandSender sender, @Arg.NodeCaptured GroupTarget target, @Arg(value = "<player>", parser = MemberName.class) String player) {
+            if (!requireWritable(sender, target.region)) {
+                return;
+            }
+            Group group = target.region.getGroupIfPresent(target.groupName);
+            if (player.equals(FlagValues.CLEAR)) {
+                if (group != null) {
+                    group.setLeader(null);
+                }
+                groupDone(sender, target, "no leader");
+                return;
+            }
+            UUID uuid = playerUuid(player);
+            if (uuid == null || group == null || !group.isMember(uuid)) {
+                groupDone(sender, target, player + " is not a member: add them first");
+                return;
+            }
+            group.setLeader(uuid);
+            groupDone(sender, target, "led by " + player);
+        }
+
+        @FinalCMD.SubCMD(subcmd = "role", validation = RegionVerbAccess.class, locales = {
+                @FCLocale(lang = LocaleType.EN_US, text = "Give a member a role (a free tag in a region's group), or clear their roles (-)"),
+                @FCLocale(lang = LocaleType.PT_BR, text = "Dá um papel a um membro (uma marca livre no grupo de uma região), ou limpa os papéis dele (-)")
+        })
+        public void role(FCommandSender sender, @Arg.NodeCaptured GroupTarget target, @Arg(value = "<player>", parser = MemberName.class) String player,
+                         @Arg("<role>") String role) {
+            if (!requireWritable(sender, target.region)) {
+                return;
+            }
+            UUID uuid = playerUuid(player);
+            Group group = target.region.getGroupIfPresent(target.groupName);
+            if (uuid == null || group == null || !group.isMember(uuid)) {
+                groupDone(sender, target, player + " is not a member: add them first");
+                return;
+            }
+            boolean clear = role.equals(FlagValues.CLEAR);
+            try {
+                group.setRoles(uuid, clear ? Collections.<GroupRole>emptySet() : Collections.singleton(GroupRole.of(role, 0)));
+            } catch (IllegalArgumentException invalid) {
+                groupDone(sender, target, invalid.getMessage());
+                return;
+            }
+            groupDone(sender, target, clear ? player + " has no role" : player + " is " + role.toLowerCase(Locale.ROOT));
         }
     }
 
@@ -987,7 +1041,7 @@ public class RegionCommandNode implements RegionScope {
                 if (groupName == null) {
                     region.removeFlag(flag);
                 } else {
-                    AccessGroup group = region.getGroupIfPresent(groupName);
+                    Group group = region.getGroupIfPresent(groupName);
                     if (group != null) {
                         group.removeFlag(flag);
                     }

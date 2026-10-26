@@ -16,7 +16,7 @@ import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.group.AccessGroup;
+import br.com.finalcraft.evernifecore.group.Group;
 import br.com.finalcraft.evernifecore.region.overlap.Overlap;
 import br.com.finalcraft.evernifecore.region.overlap.OverlapProvider;
 import br.com.finalcraft.evernifecore.region.overlap.OverlapProviders;
@@ -85,7 +85,7 @@ class RegionCommandNodeTest extends RegionCommandFixture {
         FinalCMDPluginCommand fp = mount();
         harness.tree(fp).at("region").hasChildren("define", "description", "displayname", "flag", "group", "here", "info", "list", "parent", "priority",
                 "redefine", "remove", "select", "settings", "tag", "terrain", "tp", "view");
-        harness.tree(fp).at("region.group").hasChildren("add", "flag", "list", "permission", "priority", "remove");
+        harness.tree(fp).at("region.group").hasChildren("add", "flag", "leader", "list", "permission", "priority", "remove", "role");
         harness.tree(fp).at("region.terrain").hasChildren("restore", "snapshot", "snapshots", "undo");
     }
 
@@ -328,9 +328,9 @@ class RegionCommandNodeTest extends RegionCommandFixture {
         UUID alex = UUID.randomUUID();
 
         harness.dispatch(fp, steve, "region group garden membros add " + alex + " -t 15m");
-        AccessGroup group = garden.getGroupIfPresent("membros");
+        Group group = garden.getGroupIfPresent("membros");
         assertNotNull(group, steve.getMessages().toString());
-        assertEquals(prot.now().plus(Duration.ofMinutes(15)), group.getMembership(alex).getExpiresAt());
+        assertEquals(prot.now().plus(Duration.ofMinutes(15)), group.getMember(alex).getExpiresAt());
 
         harness.dispatch(fp, steve, "region group garden membros flag deny-pvp false");
         assertEquals(Tristate.FALSE, group.getFlag(flag("deny-pvp")));
@@ -339,7 +339,7 @@ class RegionCommandNodeTest extends RegionCommandFixture {
         steve.assertAnyMessageContains(alex.toString());
 
         harness.dispatch(fp, steve, "region group garden membros remove " + alex);
-        assertNull(group.getMembership(alex));
+        assertNull(group.getMember(alex));
     }
 
     @Test

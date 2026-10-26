@@ -5,7 +5,7 @@ import br.com.finalcraft.evernifecore.flag.Flag;
 import br.com.finalcraft.evernifecore.flag.FlagChangeCause;
 import br.com.finalcraft.evernifecore.flag.FlagValue;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.group.AccessGroup;
+import br.com.finalcraft.evernifecore.group.Group;
 import jakarta.annotation.Nullable;
 
 /** A local flag value of a region, or of one of its groups, changed. */
@@ -16,13 +16,13 @@ public class RegionFlagChangedEvent extends RegionEvent {
         return ECEvent.getHandlerListOf(RegionFlagChangedEvent.class);
     }
 
-    private final @Nullable AccessGroup group;
+    private final @Nullable Group group;
     private final Flag<?> flag;
     private final @Nullable FlagValue<?> oldValue;
     private final @Nullable FlagValue<?> newValue;
     private final FlagChangeCause cause;
 
-    public RegionFlagChangedEvent(Region region, @Nullable AccessGroup group, Flag<?> flag,
+    public RegionFlagChangedEvent(Region region, @Nullable Group group, Flag<?> flag,
                                   @Nullable FlagValue<?> oldValue, @Nullable FlagValue<?> newValue, FlagChangeCause cause) {
         super(region);
         this.group = group;
@@ -33,7 +33,7 @@ public class RegionFlagChangedEvent extends RegionEvent {
     }
 
     /** The group whose value changed; null when it is the region's own value. */
-    public @Nullable AccessGroup getGroup() {
+    public @Nullable Group getGroup() {
         return group;
     }
 

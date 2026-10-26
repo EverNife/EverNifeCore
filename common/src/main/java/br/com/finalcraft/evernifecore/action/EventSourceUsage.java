@@ -14,7 +14,7 @@ import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.event.RegionEnterEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionFlagChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionLeaveEvent;
-import br.com.finalcraft.evernifecore.region.group.AccessGroup;
+import br.com.finalcraft.evernifecore.group.Group;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 import jakarta.annotation.Nullable;
 
@@ -194,7 +194,7 @@ public final class EventSourceUsage {
         for (Region region : lookup.all()) {
             seen.clear();
             collect(region.getFlags().keySet(), seen);
-            for (AccessGroup group : region.getGroups().values()) {
+            for (Group group : region.getGroups().values()) {
                 collect(group.getFlags().keySet(), seen);
             }
             for (EventSource source : seen) {

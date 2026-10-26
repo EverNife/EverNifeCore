@@ -4,8 +4,9 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.TestRegions;
-import br.com.finalcraft.evernifecore.region.group.AccessGroup;
-import br.com.finalcraft.evernifecore.region.group.MembershipCheck;
+import br.com.finalcraft.evernifecore.group.Group;
+import br.com.finalcraft.evernifecore.group.LeaveCause;
+import br.com.finalcraft.evernifecore.group.MembershipCheck;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.Senders;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
@@ -35,8 +36,8 @@ class RegionPlayerSessionTest {
     Path tempDir;
 
     private Region region;
-    private AccessGroup group;
-    private AccessGroup otherGroup;
+    private Group group;
+    private Group otherGroup;
     private TestFPlayerSender alice;
     private TestFPlayerSender bob;
 
@@ -66,7 +67,7 @@ class RegionPlayerSessionTest {
     }
 
     /** Both players have a cached answer for the group; after {@code mutation} neither has. */
-    private void assertClearsBothSessions(Consumer<AccessGroup> mutation) {
+    private void assertClearsBothSessions(Consumer<Group> mutation) {
         group.contains(alice);
         group.contains(bob);
         assertNotNull(session(alice).getCachedMembership(group));
@@ -80,14 +81,14 @@ class RegionPlayerSessionTest {
 
     @Test
     void addMemberClearsEverySession() {
-        assertClearsBothSessions(g -> g.addMember(UUID.randomUUID()));
+        assertClearsBothSessions(g -> g.add(UUID.randomUUID()));
     }
 
     @Test
     void removeMemberClearsEverySession() {
         UUID carol = UUID.randomUUID();
-        group.addMember(carol);
-        assertClearsBothSessions(g -> g.removeMember(carol));
+        group.add(carol);
+        assertClearsBothSessions(g -> g.remove(carol, LeaveCause.PLUGIN));
     }
 
     @Test

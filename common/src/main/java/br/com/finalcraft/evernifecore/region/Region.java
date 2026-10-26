@@ -17,9 +17,14 @@ import br.com.finalcraft.evernifecore.flag.FlagValue;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.event.RegionChangedEvent;
-import br.com.finalcraft.evernifecore.region.group.AccessGroup;
-import br.com.finalcraft.evernifecore.region.group.GroupChange;
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.group.DissolveCause;
+import br.com.finalcraft.evernifecore.group.Group;
+import br.com.finalcraft.evernifecore.group.GroupId;
+import br.com.finalcraft.evernifecore.group.GroupKind;
+import br.com.finalcraft.evernifecore.group.event.GroupCreatedEvent;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
+import br.com.finalcraft.evernifecore.time.ECClock;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -67,7 +72,7 @@ public final class Region implements FlagHolder {
     private volatile boolean attached;
     private final Set<String> tags = new CopyOnWriteArraySet<>();
     private final FlagStore flags = new FlagStore(this, this::onFlagChanged);
-    private final ConcurrentHashMap<String, AccessGroup> groups = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Group> groups = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<FlagKey, FlagSettings> flagSettings = new ConcurrentHashMap<>();
     /** Overrides of flags not registered, or not yet asked for: kept as stored, by {@code owner:name}. */
     private final ConcurrentHashMap<String, JsonNode> rawFlagSettings = new ConcurrentHashMap<>();
@@ -522,61 +527,99 @@ public final class Region implements FlagHolder {
 
     // ---- groups ----
 
-    /** A read-only view of the groups, by name. */
-    public Map<String, AccessGroup> getGroups() {
+    /** A read-only view of the groups local to the region, by name. */
+    public Map<String, Group> getGroups() {
         return Collections.unmodifiableMap(groups);
     }
 
     /**
-     * The group named {@code name}, created when absent. Names follow the region name rule and are lowercased.
+     * The group local to the region named {@code name}, created when absent ({@link GroupCreatedEvent}): a {@link Group} of
+     * {@link GroupKind#REGION_LOCAL} with the region's owner and persistence, id {@code owner:region/name}, stored with the
+     * region. Names follow the region name rule and are lowercased.
      *
      * @throws IllegalArgumentException when the name breaks the rule; the message shows it and an example
      */
-    public AccessGroup getGroup(String name) {
+    public Group getGroup(String name) {
         String key = RegionId.requireName("group", name);
-        AccessGroup existing = groups.get(key);
+        Group existing = groups.get(key);
         if (existing != null) {
             return existing;
         }
-        AccessGroup created = new AccessGroup(this, key, groupHook);
-        AccessGroup raced = groups.putIfAbsent(key, created);
+        Group created = new Group(GroupId.regionLocal(id, key), GroupKind.REGION_LOCAL, getOwner(), persistence, this, ECClock.now(),
+                groupHost);
+        Group raced = groups.putIfAbsent(key, created);
         if (raced != null) {
             return raced;
         }
-        onGroupChanged(created, GroupChange.CREATED, null);
+        groupHost.changed(created, true, null);
+        if (attached) {
+            ECEventBus.global().postIfListened(GroupCreatedEvent.class, () -> new GroupCreatedEvent(created));
+        }
         return created;
     }
 
-    public @Nullable AccessGroup getGroupIfPresent(String name) {
+    public @Nullable Group getGroupIfPresent(String name) {
         return name == null ? null : groups.get(name.toLowerCase(Locale.ROOT));
     }
 
-    /** False when there was no such group. */
+    /** Dissolves the group ({@link DissolveCause#REGION_REMOVED}); false when there was no such group. */
     public boolean removeGroup(String name) {
-        AccessGroup removed = name == null ? null : groups.remove(name.toLowerCase(Locale.ROOT));
-        if (removed == null) {
+        Group group = getGroupIfPresent(name);
+        if (group == null) {
             return false;
         }
-        onGroupChanged(removed, GroupChange.REMOVED, null);
+        group.dissolve(DissolveCause.REGION_REMOVED);
         return true;
     }
 
-    /** Every change of a group lands here, after the fact; the cached memberships of the group go, in every session. */
-    void onGroupChanged(AccessGroup group, GroupChange change, @Nullable UUID player) {
-        RegionLookup.get().invalidate(group);
-        manager.groupChanged(this, group, change, player);
+    private volatile boolean dissolvingGroups;
+
+    /** Dissolves every group of the region, evented although the region just left the index - it is going away. */
+    void dissolveGroups() {
+        dissolvingGroups = true;
+        try {
+            for (Group group : groups.values()) {
+                group.dissolve(DissolveCause.REGION_REMOVED);
+            }
+        } finally {
+            dissolvingGroups = false;
+        }
     }
 
-    private final AccessGroup.ChangeHook groupHook = new AccessGroup.ChangeHook() {
+    private final Group.Host groupHost = new Group.Host() {
         @Override
-        public void onGroupChanged(AccessGroup group, GroupChange change, @Nullable UUID player) {
-            Region.this.onGroupChanged(group, change, player);
+        public boolean isLive(Group group) {
+            return (attached || dissolvingGroups) && groups.get(group.getName()) == group;
         }
 
         @Override
-        public void onGroupFlagChanged(AccessGroup group, Flag<?> flag, @Nullable FlagValue<?> oldValue, @Nullable FlagValue<?> newValue,
-                                       FlagChangeCause cause) {
+        public Object lock() {
+            return groups;
+        }
+
+        @Override
+        public void changed(Group group, boolean stored, @Nullable Instant deadline) {
+            RegionLookup.get().invalidate(group);
+            manager.groupChanged(Region.this, group, stored, deadline);
+        }
+
+        @Override
+        public void flagChanged(Group group, Flag<?> flag, @Nullable FlagValue<?> oldValue, @Nullable FlagValue<?> newValue,
+                                FlagChangeCause cause) {
             manager.flagChanged(Region.this, group, flag, oldValue, newValue, cause);
+        }
+
+        @Override
+        public @Nullable Group groupOf(UUID player, GroupKind kind) {
+            return null;   //REGION_LOCAL is MANY
+        }
+
+        @Override
+        public void dissolved(Group group, DissolveCause cause) {
+            if (groups.remove(group.getName(), group)) {
+                RegionLookup.get().invalidate(group);
+                manager.groupChanged(Region.this, group, true, null);
+            }
         }
     };
 

@@ -11,7 +11,15 @@ import br.com.finalcraft.evernifecore.region.event.RegionChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionCreatedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionEnterEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionFlagChangedEvent;
-import br.com.finalcraft.evernifecore.region.event.RegionGroupChangedEvent;
+import br.com.finalcraft.evernifecore.group.event.GroupCreatedEvent;
+import br.com.finalcraft.evernifecore.group.event.GroupDissolvedEvent;
+import br.com.finalcraft.evernifecore.group.event.GroupFlagChangedEvent;
+import br.com.finalcraft.evernifecore.group.event.GroupInviteEvent;
+import br.com.finalcraft.evernifecore.group.event.GroupLeaderChangedEvent;
+import br.com.finalcraft.evernifecore.group.event.GroupMemberJoinedEvent;
+import br.com.finalcraft.evernifecore.group.event.GroupMemberLeftEvent;
+import br.com.finalcraft.evernifecore.group.event.GroupMemberPreJoinEvent;
+import br.com.finalcraft.evernifecore.group.event.GroupRoleChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionLeaveEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionLoadFailedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionRedefinedEvent;
@@ -42,8 +50,10 @@ public final class PlatformSuite implements ConformanceSuite {
                 PlatformConformance.summarize(EverNifeCore.getPlatform()))));
         cases.add(ConformanceCase.of("region-events", () -> fromViolations(ECEventConformance.checkAll(
                 RegionEnterEvent.class, RegionLeaveEvent.class, RegionCreatedEvent.class, RegionRemovedEvent.class,
-                RegionRedefinedEvent.class, RegionFlagChangedEvent.class, RegionGroupChangedEvent.class,
-                RegionChangedEvent.class, RegionLoadFailedEvent.class), "9 region events")));
+                RegionRedefinedEvent.class, RegionFlagChangedEvent.class, RegionChangedEvent.class, RegionLoadFailedEvent.class,
+                GroupCreatedEvent.class, GroupMemberPreJoinEvent.class, GroupMemberJoinedEvent.class, GroupMemberLeftEvent.class,
+                GroupRoleChangedEvent.class, GroupLeaderChangedEvent.class, GroupInviteEvent.class, GroupFlagChangedEvent.class,
+                GroupDissolvedEvent.class), "8 region events and 9 group events")));
         cases.add(ConformanceCase.of("economy", () -> {
             Currency money = Currencies.money();
             //the core always registers a lazy bridge; only money with an economy behind it can be checked

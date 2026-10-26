@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.region.group;
+package br.com.finalcraft.evernifecore.group;
 
 import jakarta.annotation.Nullable;
 

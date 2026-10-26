@@ -101,7 +101,7 @@ class FlagAcceptsHolderTest {
         MaxMembers maxMembers = new MaxMembers(regions.getOwner());
         FlagRegistry.get().register(regions.getOwner(), maxMembers);
         TestFPlayerSender officer = Senders.player("officer");
-        hall.getGroup("officers").addMember(officer.getUniqueId());
+        hall.getGroup("officers").add(officer.getUniqueId());
         hall.getGroup("officers").setFlag(maxMembers, 5);
         assertEquals(Integer.valueOf(5), regions.getLookup().resolve(maxMembers, hall, officer));
     }

@@ -20,7 +20,7 @@ import br.com.finalcraft.evernifecore.flag.core.DenySettings;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
-import br.com.finalcraft.evernifecore.region.group.AccessGroup;
+import br.com.finalcraft.evernifecore.group.Group;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.region.shape.WorldShape;
@@ -306,8 +306,8 @@ class RegionResolveTest {
         arena.setFlag(flag, Tristate.TRUE);
         TestFPlayerSender fighter = player("fighter");
         TestFPlayerSender spectator = player("spectator");
-        AccessGroup fighters = arena.getGroup("fighters");
-        fighters.addMember(fighter.getUniqueId());
+        Group fighters = arena.getGroup("fighters");
+        fighters.add(fighter.getUniqueId());
         fighters.setFlag(flag, Tristate.FALSE);
 
         Resolution<Tristate> resolution = assertResolves(Tristate.FALSE, flag, fighter);
@@ -324,10 +324,10 @@ class RegionResolveTest {
     void highestGroupComesFirstAndEqualGroupsPreferTheWinner() {
         Region arena = region("arena", 0, box(20), null);
         TestFPlayerSender alice = player("alice");
-        AccessGroup low = arena.getGroup("low");
-        AccessGroup high = arena.getGroup("high");
-        low.addMember(alice.getUniqueId());
-        high.addMember(alice.getUniqueId());
+        Group low = arena.getGroup("low");
+        Group high = arena.getGroup("high");
+        low.add(alice.getUniqueId());
+        high.add(alice.getUniqueId());
         low.setFlag(flag, Tristate.TRUE);
         high.setFlag(flag, Tristate.FALSE);
         high.setPriority(5);
@@ -342,7 +342,7 @@ class RegionResolveTest {
         Region arena = region("arena", 0, box(20), null);
         arena.setFlag(flag, Tristate.TRUE);
         TestFPlayerSender alice = player("alice");
-        arena.getGroup("fighters").addMember(alice.getUniqueId());
+        arena.getGroup("fighters").add(alice.getUniqueId());
         assertResolves(Tristate.TRUE, flag, alice);
     }
 

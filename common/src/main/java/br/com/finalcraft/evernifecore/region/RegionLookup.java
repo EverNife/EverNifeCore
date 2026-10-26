@@ -22,7 +22,7 @@ import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.chunkpos.ChunkPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.RegionIndex.WorldSnapshot;
-import br.com.finalcraft.evernifecore.region.group.AccessGroup;
+import br.com.finalcraft.evernifecore.group.Group;
 import br.com.finalcraft.evernifecore.region.session.RegionPlayerSession;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.region.shape.ShapeType;
@@ -365,7 +365,7 @@ public final class RegionLookup {
         for (Region current = region; current != null; current = current.getParent()) {
             boolean found = false;
             if (subject != null) {
-                for (AccessGroup group : current.getGroups().values()) {
+                for (Group group : current.getGroups().values()) {
                     FlagValue<T> value = group.getFlagValue(flag);
                     if (value != null && flag.accepts(group) && group.contains(subject)) {
                         layers.add(new FlagLayer<>(flag, group, current, value, Resolution.Reason.GROUP_VALUE,
@@ -494,7 +494,7 @@ public final class RegionLookup {
         if (own != null && own.isLock()) {
             locked.put(own.getValue(), region);
         }
-        for (AccessGroup group : region.getGroups().values()) {
+        for (Group group : region.getGroups().values()) {
             FlagValue<T> value = group.getFlagValue(flag);
             if (value != null && value.isLock()) {
                 locked.putIfAbsent(value.getValue(), group);
@@ -538,7 +538,7 @@ public final class RegionLookup {
      * of every player inside it looked at again.
      */
     public void invalidate(Region region) {
-        for (AccessGroup group : region.getGroups().values()) {
+        for (Group group : region.getGroups().values()) {
             invalidate(group);
         }
         for (RegionPlayerSession session : sessions.values()) {
@@ -582,7 +582,8 @@ public final class RegionLookup {
         return index.snapshot(world).version;
     }
 
-    void invalidate(AccessGroup group) {
+    /** Internal: forgets the cached membership answers of {@code group}, in every session. */
+    public void invalidate(Group group) {
         for (RegionPlayerSession session : sessions.values()) {
             session.invalidate(group);
         }

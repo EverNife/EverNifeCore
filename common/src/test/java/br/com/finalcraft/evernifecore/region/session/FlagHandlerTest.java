@@ -115,7 +115,7 @@ class FlagHandlerTest extends TrackerFixture {
         arena.setFlag(denyEntry, Tristate.TRUE);
         TestFPlayerSender fighter = new TestFPlayerSender("fighter");
         TestFPlayerSender admin = new TestFPlayerSender("admin").grant("evernifecore.region.bypass.*");
-        arena.getGroup("fighters").addMember(fighter.getUniqueId());
+        arena.getGroup("fighters").add(fighter.getUniqueId());
         arena.getGroup("fighters").setFlag(denyEntry, Tristate.FALSE);
         arena.setFlagHandler(other, denyEntry, heard::add);
         plain.setFlagHandler(other, denyEntry, heard::add);

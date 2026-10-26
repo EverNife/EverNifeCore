@@ -17,7 +17,7 @@ import br.com.finalcraft.evernifecore.flag.TickingFlag;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
-import br.com.finalcraft.evernifecore.region.group.AccessGroup;
+import br.com.finalcraft.evernifecore.group.Group;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 
 import java.util.ArrayList;
@@ -105,7 +105,7 @@ public final class RegionTicker {
             if (anyTicks(region.getFlags().keySet())) {
                 return true;
             }
-            for (AccessGroup group : region.getGroups().values()) {
+            for (Group group : region.getGroups().values()) {
                 if (anyTicks(group.getFlags().keySet())) {
                     return true;
                 }

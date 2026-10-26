@@ -7,10 +7,17 @@ import br.com.finalcraft.evernifecore.region.event.RegionChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionCreatedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionFlagChangedEvent;
-import br.com.finalcraft.evernifecore.region.event.RegionGroupChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionRemovedEvent;
-import br.com.finalcraft.evernifecore.region.group.AccessGroup;
-import br.com.finalcraft.evernifecore.region.group.GroupChange;
+import br.com.finalcraft.evernifecore.group.DissolveCause;
+import br.com.finalcraft.evernifecore.group.Group;
+import br.com.finalcraft.evernifecore.group.GroupKind;
+import br.com.finalcraft.evernifecore.group.JoinCause;
+import br.com.finalcraft.evernifecore.group.LeaveCause;
+import br.com.finalcraft.evernifecore.group.event.GroupCreatedEvent;
+import br.com.finalcraft.evernifecore.group.event.GroupDissolvedEvent;
+import br.com.finalcraft.evernifecore.group.event.GroupEvent;
+import br.com.finalcraft.evernifecore.group.event.GroupMemberJoinedEvent;
+import br.com.finalcraft.evernifecore.group.event.GroupMemberLeftEvent;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import org.junit.jupiter.api.Test;
 
@@ -72,7 +79,7 @@ class RegionEventsTest extends ManagedRegionFixture {
     void flagChangesOfTheRegionAndOfItsGroupsAreFlagChangedEvents() {
         RoomFlag flag = registeredRoomFlag(owner);
         Region region = created(manager().create("region", WORLD, box(0, 0, 9, 9)));
-        AccessGroup group = region.getGroup("members");
+        Group group = region.getGroup("members");
         List<RegionFlagChangedEvent> changes = record(RegionFlagChangedEvent.class);
 
         region.setFlag(flag, Tristate.TRUE);
@@ -92,27 +99,51 @@ class RegionEventsTest extends ManagedRegionFixture {
     }
 
     @Test
-    void groupChangesAreGroupChangedEventsWithThePlayerWhenThereIsOne() {
+    void groupChangesOfARegionAreGroupEventsThatNameTheRegionAndThePlayer() {
         Region region = created(manager().create("region", WORLD, box(0, 0, 9, 9)));
-        List<RegionGroupChangedEvent> changes = record(RegionGroupChangedEvent.class);
+        List<GroupEvent> changes = new ArrayList<>();
+        onEvent(GroupCreatedEvent.class, changes::add);
+        onEvent(GroupMemberJoinedEvent.class, changes::add);
+        onEvent(GroupMemberLeftEvent.class, changes::add);
+        onEvent(GroupDissolvedEvent.class, changes::add);
         UUID player = UUID.randomUUID();
+        UUID stays = UUID.randomUUID();
 
-        AccessGroup group = region.getGroup("members");
-        group.addMember(player);
-        group.removeMember(player);
+        Group group = region.getGroup("members");
+        group.add(player);
+        group.remove(player, LeaveCause.PLUGIN);
         group.setPriority(1);
         group.setPermission("p");
         group.setPredicate(p -> true);
+        group.add(stays);
         region.removeGroup("members");
 
-        List<GroupChange> types = new ArrayList<>();
-        for (RegionGroupChangedEvent change : changes) {
-            types.add(change.getChange());
+        assertEquals(Arrays.asList("GroupCreatedEvent", "GroupMemberJoinedEvent", "GroupMemberLeftEvent", "GroupMemberJoinedEvent",
+                "GroupMemberLeftEvent", "GroupDissolvedEvent"), changes.stream().map(e -> e.getClass().getSimpleName()).collect(Collectors.toList()));
+        for (GroupEvent change : changes) {
+            assertSame(region, change.getGroup().getRegion(), "a local group's event names its region");
+            assertSame(GroupKind.REGION_LOCAL, change.getGroup().getKind());
         }
-        assertEquals(Arrays.asList(GroupChange.CREATED, GroupChange.MEMBER_ADDED, GroupChange.MEMBER_REMOVED, GroupChange.PRIORITY_SET,
-                GroupChange.PERMISSION_SET, GroupChange.PREDICATE_SET, GroupChange.REMOVED), types);
-        assertEquals(player, changes.get(1).getPlayer());
-        assertNull(changes.get(3).getPlayer());
+        assertEquals(player, ((GroupMemberJoinedEvent) changes.get(1)).getPlayer());
+        assertEquals(JoinCause.ADDED, ((GroupMemberJoinedEvent) changes.get(1)).getCause());
+        assertEquals(LeaveCause.PLUGIN, ((GroupMemberLeftEvent) changes.get(2)).getCause());
+        assertEquals(LeaveCause.DISSOLVED, ((GroupMemberLeftEvent) changes.get(4)).getCause());
+        assertEquals(DissolveCause.REGION_REMOVED, ((GroupDissolvedEvent) changes.get(5)).getCause());
+        assertEquals(stays, ((GroupDissolvedEvent) changes.get(5)).getLastMembers().iterator().next().getUuid());
+        assertNull(region.getGroupIfPresent("members"));
+    }
+
+    @Test
+    void removingARegionDissolvesItsGroups() {
+        Region region = created(manager().create("doomed", WORLD, box(0, 0, 9, 9)));
+        region.getGroup("members").add(UUID.randomUUID());
+        List<GroupDissolvedEvent> dissolved = record(GroupDissolvedEvent.class);
+
+        manager().remove(region);
+
+        assertEquals(1, dissolved.size());
+        assertEquals(DissolveCause.REGION_REMOVED, dissolved.get(0).getCause());
+        assertEquals(1, dissolved.get(0).getLastMembers().size());
     }
 
     @Test

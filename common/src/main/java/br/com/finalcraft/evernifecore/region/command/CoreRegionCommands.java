@@ -27,8 +27,8 @@ import br.com.finalcraft.evernifecore.ranking.CachePolicy;
 import br.com.finalcraft.evernifecore.ranking.RankedList;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
-import br.com.finalcraft.evernifecore.region.group.AccessGroup;
-import br.com.finalcraft.evernifecore.region.group.Membership;
+import br.com.finalcraft.evernifecore.group.Group;
+import br.com.finalcraft.evernifecore.group.GroupMember;
 import br.com.finalcraft.evernifecore.region.shape.BoundingBox;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
@@ -200,11 +200,11 @@ public class CoreRegionCommands {
         }
 
         sender.sendMessage("§7groups: §f" + region.getGroups().size());
-        for (AccessGroup group : region.getGroups().values()) {
+        for (Group group : region.getGroups().values()) {
             sender.sendMessage(" §7- §e" + group.getName() + " §7prio §f" + group.getPriority()
                     + " §7permission §f" + (group.getPermission() == null ? "-" : group.getPermission())
                     + " §7check §f" + group.getMembershipCheck().toText());
-            for (Membership member : group.getMembers()) {
+            for (GroupMember member : group.getMembers()) {
                 Duration left = member.getRemaining();
                 sender.sendMessage("    §7member §f" + member.getUuid() + (left == null ? "" : " §7(" + remaining(left) + ")"));
             }

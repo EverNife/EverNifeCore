@@ -1,17 +1,21 @@
 package br.com.finalcraft.evernifecore.region;
 
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
-import br.com.finalcraft.evernifecore.region.group.AccessGroup;
-import br.com.finalcraft.evernifecore.region.group.Membership;
-import br.com.finalcraft.evernifecore.region.group.MembershipCheck;
+import br.com.finalcraft.evernifecore.group.Group;
+import br.com.finalcraft.evernifecore.group.GroupMember;
+import br.com.finalcraft.evernifecore.group.GroupRole;
+import br.com.finalcraft.evernifecore.group.Invite;
+import br.com.finalcraft.evernifecore.group.MembershipCheck;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.region.storage.RegionRecord;
 import br.com.finalcraft.evernifecore.region.storage.RegionRecord.GroupRecord;
+import br.com.finalcraft.evernifecore.region.storage.RegionRecord.InviteRecord;
 import br.com.finalcraft.evernifecore.region.storage.RegionRecord.MemberRecord;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -36,14 +40,25 @@ final class RegionRecords {
         record.expiresAt = region.getExpiresAt();
         record.shape = mapper().valueToTree(region.getShape());
         record.flags.putAll(region.getFlagStore().toRaw());
-        for (AccessGroup group : region.getGroups().values()) {
+        for (Group group : region.getGroups().values()) {
             GroupRecord stored = new GroupRecord();
             stored.priority = group.getPriority();
             stored.permission = group.getPermission();
             stored.check = group.getMembershipCheck().toText();
-            for (Membership membership : group.getMembers()) {
-                stored.members.put(membership.getUuid().toString(), new MemberRecord(membership.getJoinedAt(), membership.getExpiresAt()));
+            for (GroupMember member : group.getMembers()) {
+                List<String> roles = new ArrayList<>();
+                for (GroupRole role : member.getRoles()) {
+                    roles.add(role.getName());
+                }
+                roles.addAll(member.getUnknownRoles());
+                stored.members.put(member.getUuid().toString(), new MemberRecord(member.getJoinedAt(), member.getExpiresAt(), roles));
             }
+            for (Invite invite : group.getInvites()) {
+                stored.invites.put(invite.getPlayer().toString(), new InviteRecord(invite.getInvitedAt(), invite.getExpiresAt(),
+                        invite.getInvitedBy() == null ? null : invite.getInvitedBy().toString()));
+            }
+            stored.leader = group.getLeader() == null ? null : group.getLeader().toString();
+            stored.displayName = group.getDisplayName();
             stored.flags.putAll(group.getFlagStore().toRaw());
             record.groups.put(group.getName(), stored);
         }
@@ -84,11 +99,13 @@ final class RegionRecords {
         record.flags.forEach(region.getFlagStore()::putRaw);
         for (Map.Entry<String, GroupRecord> entry : record.groups.entrySet()) {
             GroupRecord stored = entry.getValue();
-            AccessGroup group = region.getGroup(entry.getKey());
-            group.setPriority(stored.priority);
-            group.setPermission(stored.permission);
-            group.setMembershipCheck(MembershipCheck.parse(stored.check));
-            stored.members.forEach((uuid, member) -> group.restoreMember(UUID.fromString(uuid), member.joinedAt, member.expiresAt));
+            Group group = region.getGroup(entry.getKey());
+            group.restore(stored.priority, stored.permission, MembershipCheck.parse(stored.check), stored.displayName, null);
+            stored.members.forEach((uuid, member) -> group.restoreMember(UUID.fromString(uuid), member.joinedAt, member.expiresAt,
+                    member.roles));
+            stored.invites.forEach((uuid, invite) -> group.restoreInvite(UUID.fromString(uuid), invite.invitedAt, invite.expiresAt,
+                    invite.invitedBy == null ? null : UUID.fromString(invite.invitedBy)));
+            group.restoreLeader(stored.leader == null ? null : UUID.fromString(stored.leader));
             stored.flags.forEach(group.getFlagStore()::putRaw);
         }
         record.flagSettings.forEach(region::putRawFlagSettings);
