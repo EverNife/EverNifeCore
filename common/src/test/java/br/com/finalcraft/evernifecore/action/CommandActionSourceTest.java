@@ -66,12 +66,15 @@ class CommandActionSourceTest {
         FinalCMDPluginCommand command = harness.register(warp);
         List<CommandActionEvent.Post> posts = new ArrayList<>();
         List<Integer> runsSeenByPre = new ArrayList<>();
+        List<Integer> runsSeenByPost = new ArrayList<>();
         subscriptions.add(ECEventBus.global().subscribe(CommandActionEvent.Post.class, posts::add));
+        subscriptions.add(ECEventBus.global().subscribe(CommandActionEvent.Post.class, post -> runsSeenByPost.add(warp.runs)));
         subscriptions.add(ECEventBus.global().subscribe(CommandActionEvent.Pre.class, pre -> runsSeenByPre.add(warp.runs)));
 
         harness.dispatch(command, steve, "spawn");
 
         assertEquals(Arrays.asList(0), runsSeenByPre, "the Pre came before the command ran");
+        assertEquals(Arrays.asList(1), runsSeenByPost, "the Post came after the body returned - the body never sees it");
         assertEquals(1, warp.runs);
         assertEquals(1, posts.size());
         assertEquals(steve, posts.get(0).getPlayer());
