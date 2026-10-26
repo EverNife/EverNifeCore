@@ -13,6 +13,7 @@ import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.RegionSweeper;
 import br.com.finalcraft.evernifecore.time.DayOfToday;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
+import br.com.finalcraft.evernifecore.waypoint.Waypoints;
 import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import br.com.finalcraft.everylibs.util.FCTimeUtil;
@@ -20,6 +21,7 @@ import br.com.finalcraft.everylibs.util.FCTimeUtil;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -76,6 +78,11 @@ public class ECSettings {
     public static boolean PROVENANCE_SHARED = false;
     public static boolean PROVENANCE_ALWAYS = false;
     public static Duration PROVENANCE_RETENTION_PLAYER_PLACED = Duration.ofDays(30);
+
+    //Waypoint - shipped defaults, for the same reason
+    public static List<String> WAYPOINT_CHANNELS = Collections.unmodifiableList(Arrays.asList("compass", "particle-path"));
+    public static int WAYPOINT_REFRESH_TICKS = 10;
+    public static int WAYPOINT_PARTICLE_PATH_LENGTH = 16;
 
     //Notify - what a file without the key gets; the live values start as these
     private static final Map<NotifyKind, NotifyChain> SHIPPED_NOTIFY_CHAINS = new EnumMap<>(NotifyKind.class);
@@ -196,6 +203,7 @@ public class ECSettings {
         applyRegionSettings();
         loadProvenanceSettings(ConfigManager.getMainConfig());
         loadNotifySettings(ConfigManager.getMainConfig());
+        loadWaypointSettings(ConfigManager.getMainConfig());
 
         if (ConfigManager.getMainConfig().hasNewSeededDefaults()){
             ConfigManager.getMainConfig().save();
@@ -348,6 +356,38 @@ public class ECSettings {
             NOTIFY_CHAINS.putAll(chains);
             NOTIFY_DURATIONS.putAll(durations);
         }
+    }
+
+    /**
+     * Reads every {@code Settings.Waypoint.*} key of {@code config}, seeding what is absent.
+     *
+     * @throws IllegalArgumentException when {@code channels} names a channel that is neither the core's nor written {@code <plugin>:<name>}
+     */
+    public static void loadWaypointSettings(Config config){
+        List<String> channels = config.getOrSetValueIfAbsent(
+                "Settings.Waypoint.channels", new ArrayList<>(Waypoints.STOCK_CHANNELS),
+                "The channels a waypoint that names none points through; each supported one is used, the others skipped." +
+                        "\nThe core has " + Waypoints.KNOWN_CHANNELS + " (hologram and web-map only on Bukkit, with" +
+                        "\nDecentHolograms/FancyHolograms or BlueMap/dynmap/squaremap installed); a plugin's own is written <plugin>:<name>."
+        );
+        for (String name : channels) {
+            if (name.indexOf(':') < 0 && !Waypoints.KNOWN_CHANNELS.contains(name)) {
+                throw new IllegalArgumentException("Settings.Waypoint.channels: " + channels + " names the channel '" + name
+                        + "', which nobody registered. The channels are " + Waypoints.KNOWN_CHANNELS + "; a plugin's channel is"
+                        + " written <plugin>:<name>.");
+            }
+        }
+        int refreshTicks = config.getOrSetValueIfAbsent(
+                "Settings.Waypoint.refresh-ticks", 10,
+                "How often, in ticks (20 = 1 s), every shown waypoint reads its target again and redraws."
+        );
+        int pathLength = config.getOrSetValueIfAbsent(
+                "Settings.Waypoint.particle-path-length", 16,
+                "How many particles, one block apart, the particle-path channel draws towards the target."
+        );
+        WAYPOINT_CHANNELS = Collections.unmodifiableList(new ArrayList<>(channels));
+        WAYPOINT_REFRESH_TICKS = Math.max(1, refreshTicks);
+        WAYPOINT_PARTICLE_PATH_LENGTH = Math.max(1, pathLength);
     }
 
     private static NotifyChain readChain(Config config, String key, NotifyKind kind, String comment){

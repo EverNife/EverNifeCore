@@ -9,5 +9,7 @@ public enum VisualStyle {
     /** Where two regions overlap. */
     INTERSECTION,
     /** A selection still being made. */
-    SELECTION
+    SELECTION,
+    /** The way to a waypoint. */
+    PATH
 }

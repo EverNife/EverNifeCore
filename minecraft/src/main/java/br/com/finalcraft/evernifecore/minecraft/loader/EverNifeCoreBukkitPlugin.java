@@ -36,6 +36,9 @@ import br.com.finalcraft.evernifecore.minecraft.util.FCMinecraftAdventureUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCTickUtil;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
+import br.com.finalcraft.evernifecore.minecraft.waypoint.McHologramWaypointChannel;
+import br.com.finalcraft.evernifecore.minecraft.waypoint.McWebMapWaypointChannel;
+import br.com.finalcraft.evernifecore.waypoint.Waypoints;
 import br.com.finalcraft.evernifecore.minecraft.worldedit.WorldEditForge;
 import br.com.finalcraft.evernifecore.region.session.RegionTicker;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
@@ -167,6 +170,12 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
         ActionSupport.declare(ActionListeners.platformName(), ActionListeners.servedSources(), ActionListeners.PRE_SOURCES, true);
         actionListeners = ActionListeners.start(ecPluginData);
         RegionTicker.start(ecPluginData);
+
+        //each answers isSupported() only while its plugin is enabled, so registering them costs nothing without one
+        Waypoints.get().register(ecPluginData, new McHologramWaypointChannel(),
+                "The label floating over the target, for that player only (DecentHolograms or FancyHolograms).");
+        Waypoints.get().register(ecPluginData, new McWebMapWaypointChannel(),
+                "A marker on the web map, seen by everyone who opens it (BlueMap, dynmap or squaremap).");
 
         //last, so what a loadbefore plugin asked for runs after the first-tick work scheduled above
         McFCScheduler.INSTANCE.releaseTasksHeldUntilTheCoreEnables();

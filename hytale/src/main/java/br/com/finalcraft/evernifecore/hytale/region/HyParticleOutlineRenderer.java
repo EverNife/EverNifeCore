@@ -48,6 +48,7 @@ public final class HyParticleOutlineRenderer implements IOutlineRenderer {
             case OTHER_OWNER -> "Torch_Fire";
             case INTERSECTION -> "Torch_Fire_Green";
             case SELECTION -> "Block_Gem_Sparks";
+            case PATH -> "Lore_Note_Glow";
             case OWN -> "Dust_Sparkles_Fine";
         };
     }

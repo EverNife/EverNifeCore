@@ -2,5 +2,5 @@ name: EverNifeCore
 version: ${version}
 author: EverNife
 main: br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin
-softdepend: [ WorldGuard, WorldEdit, GriefPreventionPlus, GriefPrevention, LuckPerms, Vault, Factions, GPPSkyBlock, PlaceholderAPI, GriefDefender]
+softdepend: [ WorldGuard, WorldEdit, GriefPreventionPlus, GriefPrevention, LuckPerms, Vault, Factions, GPPSkyBlock, PlaceholderAPI, GriefDefender, DecentHolograms, FancyHolograms, BlueMap, dynmap, squaremap]
 api-version: 1.13

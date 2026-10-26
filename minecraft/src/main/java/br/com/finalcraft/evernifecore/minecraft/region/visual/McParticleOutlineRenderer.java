@@ -72,6 +72,8 @@ public final class McParticleOutlineRenderer implements IOutlineRenderer {
                 return Particle.CRIT;
             case SELECTION:
                 return Particle.NOTE;
+            case PATH:
+                return Particle.HEART;
             case OWN:
             default:
                 return Particle.END_ROD;

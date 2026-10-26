@@ -9,6 +9,7 @@ import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECListenerWatch;
 import br.com.finalcraft.evernifecore.eventbus.ECNativeAudience;
 import br.com.finalcraft.evernifecore.notify.Notifier;
+import br.com.finalcraft.evernifecore.waypoint.Waypoints;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.spawn.ISpawnProvider;
 import br.com.finalcraft.evernifecore.spawn.SpawnPoints;
@@ -132,6 +133,7 @@ public final class ECoreTestWorld implements AutoCloseable {
         RegionManager.closeAll();
         //a notify queue writes to the platform it started on: stopped (waiting for a tick in flight) before that platform goes
         Notifier.get().clearAll();
+        Waypoints.get().clearAll();
         List<String> leaked = leftOnTheGlobalBus();
 
         ECBaseProvider providers = EverNifeCore.getProviders().getBaseProvider();

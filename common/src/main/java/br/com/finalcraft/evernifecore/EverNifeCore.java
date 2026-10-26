@@ -13,6 +13,7 @@ import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.logic.core.CoreLogic;
 import br.com.finalcraft.evernifecore.notify.Notifier;
+import br.com.finalcraft.evernifecore.waypoint.Waypoints;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.logger.ECFallbackLog;
 import br.com.finalcraft.evernifecore.logger.ECLogger;
@@ -82,6 +83,7 @@ public class EverNifeCore {
         CoreFlags.registerAll(getEcPluginData());
         CoreLogic.registerAll(getEcPluginData());
         Notifier.get().registerStock(getEcPluginData());
+        Waypoints.get().registerStock(getEcPluginData());
         RegionPlaceholders.registerCore(getEcPluginData());
         RankedPlaceholders.registerCore(getEcPluginData());
 
