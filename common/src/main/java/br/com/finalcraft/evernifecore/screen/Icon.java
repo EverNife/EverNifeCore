@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 /**
  * What a slot looks like - and only that. The item ({@link ItemSpec}, with candidates for a renderer that does not know
@@ -472,6 +473,16 @@ public class Icon {
      */
     @Nonnull
     public RenderedIcon renderFor(@Nullable FPlayer viewer, @Nullable String stateName, @Nullable CompoundReplacer menuReplacer) {
+        return renderFor(viewer, stateName, menuReplacer, null);
+    }
+
+    /**
+     * {@link #renderFor(FPlayer, String, CompoundReplacer)} with the opener's {@code {0}}..{@code {n}} put in by
+     * {@code arguments} right after the language block, before any placeholder: an argument may itself carry one.
+     */
+    @Nonnull
+    public RenderedIcon renderFor(@Nullable FPlayer viewer, @Nullable String stateName, @Nullable CompoundReplacer menuReplacer,
+                                  @Nullable UnaryOperator<String> arguments) {
         Look state = stateName == null ? null : states.get(stateName);
         Look drawn = state == null ? look : state;
         ItemSpec item = drawn.item;
@@ -481,6 +492,13 @@ public class Icon {
             if (lines != null) {
                 item = ItemDataLines.applyText(item, lines);
             }
+        }
+        if (arguments != null) {
+            List<String> lore = new ArrayList<>(item.getLore().size());
+            for (String line : item.getLore()) {
+                lore.add(arguments.apply(line));
+            }
+            item = item.withText(arguments.apply(item.getDisplayName()), lore);
         }
         CompoundReplacer replacer = replacerFor(viewer, menuReplacer);
         if (replacer != null) {

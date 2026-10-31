@@ -34,6 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
 
 /**
  * One viewer's copy of a {@link Screen}: the surface its renderer drew, the buffer that decides what to write through
@@ -103,7 +104,7 @@ public final class ScreenView {
         this.grid = screen.getGrid();
         this.buffer = new SlotBuffer(grid.getSize());
         this.scheduler = renderer.getScheduler();
-        this.currentTitle = withArguments(screen.getTitleFor(viewer));
+        this.currentTitle = screen.getTitleFor(viewer, argumentsOrNull());
     }
 
     /** The window the renderer opened for this view. */
@@ -116,8 +117,10 @@ public final class ScreenView {
         screen.getElements(); //refuses two elements under one id before anything is armed
         claimStorages();
         int layer = FIRST_COMPONENT_LAYER;
+        int backgroundLayer = SlotBuffer.LAYER_BACKGROUND + 1; //over the layout's backdrop, under its content
         for (Consumer<ScreenComponent> declaration : screen.getComponentDeclarations()) {
-            ScreenComponent component = new ScreenComponent(this, layer++);
+            boolean background = screen.isBackgroundDeclaration(declaration) && backgroundLayer < SlotBuffer.LAYER_CONTENT;
+            ScreenComponent component = new ScreenComponent(this, background ? backgroundLayer++ : layer++);
             components.add(component);
             declaration.accept(component);
             component.start();
@@ -347,7 +350,7 @@ public final class ScreenView {
             return;
         }
         //text and state are resolved here, not when the icon was declared: this is the first moment the viewer is known
-        RenderedIcon rendered = withArguments(icon.renderFor(viewer, icon.getCurrentState(), screen.getReplacer()));
+        RenderedIcon rendered = icon.renderFor(viewer, icon.getCurrentState(), screen.getReplacer(), argumentsOrNull());
         Painted painted = null;
         for (int slot : slots.resolve(grid).toArray()) {
             if (!grid.isInside(slot)) {
@@ -465,7 +468,7 @@ public final class ScreenView {
     }
 
     private void applyTitleIfChanged() {
-        String wanted = withArguments(screen.getTitleFor(viewer));
+        String wanted = screen.getTitleFor(viewer, argumentsOrNull());
         if (wanted.equals(currentTitle) || !renderer.getCapabilities().contains(RendererCapability.TITLE_CHANGE)) {
             return;
         }
@@ -513,17 +516,10 @@ public final class ScreenView {
         commitNow();
     }
 
-    private RenderedIcon withArguments(RenderedIcon rendered) {
-        if (arguments.isEmpty()) {
-            return rendered;
-        }
-        ItemSpec item = rendered.getItem();
-        List<String> lore = new ArrayList<>(item.getLore().size());
-        for (String line : item.getLore()) {
-            lore.add(withArguments(line));
-        }
-        return new RenderedIcon(item.withText(withArguments(item.getDisplayName()), lore), rendered.getFallbacks(),
-                rendered.getDataLines());
+    /** What puts the opener's arguments into a text, or {@code null} when it passed none. */
+    @Nullable
+    private UnaryOperator<String> argumentsOrNull() {
+        return arguments.isEmpty() ? null : this::withArguments;
     }
 
     /** {@code {0}}..{@code {n}} replaced by the opener's arguments. */
@@ -750,7 +746,7 @@ public final class ScreenView {
     /** The title it would open with right now - what a renderer gives the next window. */
     @Nonnull
     String resolveTitle() {
-        currentTitle = withArguments(screen.getTitleFor(viewer));
+        currentTitle = screen.getTitleFor(viewer, argumentsOrNull());
         return currentTitle;
     }
 

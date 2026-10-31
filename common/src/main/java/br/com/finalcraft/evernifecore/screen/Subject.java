@@ -9,8 +9,8 @@ import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import jakarta.annotation.Nonnull;
 
 /**
- * Whose data a screen is showing, and how that answers {@code %playerdata_*%}. See
- * {@link SubjectHolder} for the screens that have one.
+ * Whose data a screen is showing, and how that answers {@code %playerdata_*%}. A screen gets
+ * one through {@link Screen#subject}.
  *
  * @param <P> the concrete player data the screen speaks of
  */

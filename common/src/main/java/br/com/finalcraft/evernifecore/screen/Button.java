@@ -54,6 +54,11 @@ public class Button implements Element {
         this.template = template.copy();
     }
 
+    /** Whether the icon is a background - its paints go under every component that is not. */
+    boolean isBackground() {
+        return template.isBackground();
+    }
+
     // -----------------------------------------------------------------------------------------------------------------
     //  Identity
     // -----------------------------------------------------------------------------------------------------------------

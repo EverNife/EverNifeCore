@@ -216,7 +216,7 @@ public final class PagedList<T, L extends Layout> implements Element {
     @Nonnull
     @Override
     public String getId() {
-        return id != null ? id : "list#" + (region == null ? "?" : region.serialize());
+        return id != null ? id : "list#" + (region == null ? "?" : region.resolve(gui.getGrid()).serialize());
     }
 
     @Nonnull

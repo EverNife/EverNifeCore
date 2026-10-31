@@ -31,7 +31,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   source is sampled. Changes reach the renderer batched, one `ScreenSurface.apply(List<ElementPatch>)` per tick;
   `GridSurface` is the slot arithmetic a grid renderer shares. `ScreenOpenEvent`/`ScreenCloseEvent`, navigation
   (`ClickContext.open/back/replace`), the prompt contract (`screen.prompt`) and layouts read as `ItemSpec`
-  (`Settings.rows`, `DisplayItem` `material:`/`amount:`/`name:`/`lore:`) come with it. `evernifecore-common-tests`
+  (`Settings.rows`, `DisplayItem` `material:`/`amount:`/`name:`/`lore:`) come with it. Text resolves in one fixed
+  order, whatever order the screen was declared in: the viewer's language block, the open's `{0}`..`{n}` arguments,
+  the icon's scopes, the screen's replacers, its `subject`, then PlaceholderAPI. `evernifecore-common-tests`
   gains `ScreenWorld`, `RecordingRenderer` and `RendererConformance`, the suite every renderer passes. The chest
   renderer that draws these on Bukkit is not in yet: `minecraft.gui` is still the Bukkit gui.
 - `ItemSpec.withText(displayName, lore)`.

@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -25,6 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 /**
  * A screen: what it shows, where, and what a click on it may do - {@code Screen.of(3).title("...").icon(13, ...).open(player)}.
@@ -62,6 +64,8 @@ public class Screen<L extends Layout> {
     private final List<StorageBinding> storages = new ArrayList<>();
     private final Map<String, NamedRegion> regions = new LinkedHashMap<>();
     private final CompoundReplacer replacers = new CompoundReplacer();
+    private Subject<IPlayerData> subject;
+    private final Set<Consumer<ScreenComponent>> backgroundDeclarations = Collections.newSetFromMap(new IdentityHashMap<>());
     private Consumer<CloseContext<L>> onClose;
 
     protected Screen(int rows, @Nullable L layout) {
@@ -203,16 +207,21 @@ public class Screen<L extends Layout> {
 
     private <B extends Button> B declare(B button) {
         addElement(button);
-        addComponent(button::bind);
+        Consumer<ScreenComponent> bind = button::bind;
+        addComponent(bind);
+        if (button.isBackground()) {
+            backgroundDeclarations.add(bind);
+        }
         return button;
     }
 
-    private static String rawId(SlotSet slots, Icon icon) {
+    private String rawId(SlotSet slots, Icon icon) {
         if (icon.getName() != null) {
             return icon.getName();
         }
-        int[] resolved = slots.toArray();
-        return "slot#" + (resolved.length == 0 ? slots.serialize() : String.valueOf(resolved[0]));
+        SlotSet fixed = slots.resolve(getGrid()); //a shape (Slots.all(), border...) is only slots once it meets the grid
+        int[] resolved = fixed.toArray();
+        return "slot#" + (resolved.length == 0 ? fixed.serialize() : String.valueOf(resolved[0]));
     }
 
     private static SlotSet requireSlots(SlotSet slots, Icon icon) {
@@ -330,7 +339,8 @@ public class Screen<L extends Layout> {
     /** Makes {@code %playerdata_*%} on this screen speak of {@code subject}, not of the viewer. */
     @Nonnull
     public Screen<L> subject(@Nonnull IPlayerData subject) {
-        return addReplacer(Subject.PLAYER_DATA, subject);
+        this.subject = new Subject<>(subject);
+        return this;
     }
 
     /** The policy applied to any slot no region claims. */
@@ -437,7 +447,8 @@ public class Screen<L extends Layout> {
     /** A fresh copy of the placeholders this screen answers for, so composing it cannot write back into the screen. */
     @Nonnull
     public CompoundReplacer getReplacer() {
-        return replacers.copy();
+        //the subject answers last whatever the call order: a screen's own replacer wins over %playerdata_*%
+        return subject == null ? replacers.copy() : subject.appendTo(replacers.copy());
     }
 
     /** Whether PlaceholderAPI runs over this screen's text. It is the layout that asks for it. */
@@ -453,9 +464,18 @@ public class Screen<L extends Layout> {
     /** The title as {@code viewer} reads it: their language when a layout titles the screen, then placeholders. */
     @Nonnull
     public String getTitleFor(@Nullable FPlayer viewer) {
+        return getTitleFor(viewer, null);
+    }
+
+    /** {@link #getTitleFor(FPlayer)} with the opener's {@code {0}}..{@code {n}} put in by {@code arguments} first. */
+    @Nonnull
+    public String getTitleFor(@Nullable FPlayer viewer, @Nullable UnaryOperator<String> arguments) {
         String resolved = layout != null && !titleOverridden ? layout.getTitleFor(viewer) : title.get();
         if (resolved == null) {
             return "";
+        }
+        if (arguments != null) {
+            resolved = arguments.apply(resolved);
         }
         CompoundReplacer replacer = getReplacer();
         if (viewer != null && isIntegrateToPAPI()) {
@@ -538,6 +558,11 @@ public class Screen<L extends Layout> {
     @Nonnull
     public List<Consumer<ScreenComponent>> getComponentDeclarations() {
         return Collections.unmodifiableList(componentDeclarations);
+    }
+
+    /** Whether {@code declaration} is a button whose icon is a background: it paints under every other component. */
+    public boolean isBackgroundDeclaration(@Nonnull Consumer<ScreenComponent> declaration) {
+        return backgroundDeclarations.contains(declaration);
     }
 
     @Nonnull
