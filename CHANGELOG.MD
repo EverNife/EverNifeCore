@@ -31,37 +31,6 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   player held out (also on `interact` with an entity). The condition `near-npc: {npc, radius}` (needs `MOVE`) and the
   waypoint target `NpcWaypointTarget` read the NPC's location; both refuse a reference to an unregistered provider.
   `common-tests`: `FakeNpcProvider`, `Actors.npc(key, ref)`.
-- **Platform-neutral screens (`br.com.finalcraft.evernifecore.screen`, `:common`)**: the neutral half of the Bukkit gui
-  framework, rebuilt for every renderer. A `Screen` is a description; each viewer (`FPlayer`) gets a `ScreenView` drawn
-  by a `ScreenRenderer` chosen per open - the highest priority one that `supports` the viewer and covers the screen's
-  `RendererCapability`s (`STORAGE_SLOTS` when it declares a storage area), registered with
-  `Screens.registerRenderer(owner, renderer)` in the `renderer` `TypeRegistry`; no renderer covering it refuses the open
-  naming the capability and the renderer, or opens `onMissingCapability(ScreenFallback.open(other))`. `Icon` is
-  appearance only (`ItemSpec` + fallback candidates + raw item-data lines, states, per-language text); behaviour lives
-  in elements with stable ids - `Button`, `Label`, `PagedList`, `InputField`, `ProgressBar`, dialogue `Choice` - and a
-  click runs `ClickRule`s (`Gate` + success/deny effects, by `ClickGesture`). `Button.dependsOn(condition)` holds the
-  condition's event sources needed while the view is open and redraws on an action of the viewer; a condition with no
-  source is sampled. Changes reach the renderer batched, one `ScreenSurface.apply(List<ElementPatch>)` per tick;
-  `GridSurface` is the slot arithmetic a grid renderer shares. `ScreenOpenEvent`/`ScreenCloseEvent`, navigation
-  (`ClickContext.open/back/replace`), the prompt contract (`screen.prompt`) and layouts read as `ItemSpec`
-  (`Settings.rows`, `DisplayItem` `material:`/`amount:`/`name:`/`lore:`) come with it. Text resolves in one fixed
-  order, whatever order the screen was declared in: the viewer's language block, the open's `{0}`..`{n}` arguments,
-  the icon's scopes, the screen's replacers, its `subject`, then PlaceholderAPI. `evernifecore-common-tests`
-  gains `ScreenWorld`, `RecordingRenderer` and `RendererConformance`, the suite every renderer passes. On Bukkit the
-  chest renderer of `minecraft.screen` draws them (see Changed).
-- **Screen overrides and the core's default screens.** `Screens.open(player, ScreenKey, ScreenRequest)` resolves a key
-  through four layers, most specific first: the caller's replacement (`ScreenRequest.withScreen`), the content owner's
-  override (`ScreenScope.ownedBy(plugin)`, matched on the request's owner), the server's (`ScreenScope.server()`, one
-  plugin per key - a second one throws naming both), the core's default. `Screens.override(plugin, key, scope, factory)`
-  registers a `Function<ViewContext, Screen<?>>`; its `Cancellable` or the plugin's shutdown takes it back. The core
-  ships `evernifecore:confirm` (`ConfirmScreen` over `ConfirmRequest` - display item, shift-click when `dangerous()`, a
-  `Gate` paid on confirm with `{cost}` in the lore; `Screens.confirm(player, request)` answers `CompletableFuture<Boolean>`),
-  `evernifecore:deliveries` (`DeliveriesScreen`: the viewer's pending deliveries, claimed by a click or all at once) and
-  `evernifecore:ranking` (`RankingScreen` over `RankingRequest.of(rankedList)`: the viewer's row marked, a bar to the
-  next position), each with its layout seeded under `guis/`. Also `ScreenFallback.open(ScreenKey)`,
-  `/ecore screen which <key> [plugin]`, which names the layer that answers, and the stock effect `open-screen`
-  (`screen`, `args` with `{variables}` filled; a context without a player is audited and opens nothing). A typed
-  answer (`ClickContext.open(screen, Boolean.class)`, `Screens.confirm`) is cancelled, not failed, when nobody answers.
 - `ItemSpec.withText(displayName, lore)`.
 
 - **Group engine (`br.com.finalcraft.evernifecore.group`)**: `GroupManager.of(owner, storage)` keeps a plugin's groups in
@@ -365,18 +334,30 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
-- **The Bukkit gui is the chest renderer of `screen` (`minecraft.screen`).** `ChestScreenRenderer` (`evernifecore:chest`,
-  priority 0, the only renderer with `STORAGE_SLOTS`, plus `TITLE_CHANGE`) draws a `Screen` as a vanilla container;
-  `ChestKind` (`CHEST`, `HOPPER`, `DISPENSER`, `BREWING`, `WORKBENCH`) is picked by the screen's grid -
-  `ChestKind.HOPPER.newScreen()`, or `Screen.of(Grid)`. An icon id is a modern one (`minecraft:red_wool`); before 1.13
-  the coloured wool and glass map to their data value, and an icon none of whose items the server has is drawn as a
-  barrier (stone before 1.8), warned once per element. An editable area is backed by an `ItemStore` or a
-  `GenericInventory`, filters with `denyPlace(ChestItems.stacks(item -> ...))`, and its `onChange` gets a neutral
-  `StorageChange` (contents as `ItemSpec`s carrying the stack). `ScreenSurface.released(reason)` is where a window gives
-  back what it held, before `onClose`. `FCItemBuilder.asIcon()` answers a `screen.Icon`. `/ecoregui reload|diff` is
-  `/ecore screen reload|diff|which` (permission `evernifecore.command.screen`). The Bukkit test rig is
-  `minecraft.screen.testkit.BukkitScreenWorld`; `BukkitScreenWorld.over(ScreenWorld)` runs `RendererConformance` on the
-  chest.
+- **The gui framework is the `screen` package of `:common`.** `Gui` is `Screen`, `GuiView` is `ScreenView`, `Icon` carries
+  an `ItemSpec` and only looks like something; what a slot does is a `Button` (`screen.icon(l -> l.X)` answers one), a
+  `Label`, a `PagedList`, an `InputField`, a `ProgressBar` or a dialogue `Choice`, each with a stable id. A click runs
+  `ClickRule`s (`Gate` + effects, by `ClickGesture`), `ClickContext.getViewer()` is an `FPlayer`, and a button that
+  `dependsOn(condition)` redraws itself when one of the condition's event sources fires for the viewer - batched, one
+  write per tick. Who draws is a `ScreenRenderer` chosen per player and per screen (highest priority that supports both
+  and covers the screen's capabilities); the chest renderer in `:minecraft` (`minecraft.screen`, `ChestKind` for hopper,
+  dispenser, brewing stand and workbench) is the Bukkit fallback and the only one with `STORAGE_SLOTS`. `Screens.open(player,
+  key, request)` resolves a `ScreenKey` through four override layers (caller, content owner, server, core default), and
+  the core ships `evernifecore:confirm`, `evernifecore:deliveries` and `evernifecore:ranking` as working examples.
+  `/ecoregui reload|diff` is `/ecore screen reload|diff|which`. `evernifecore-common-tests` gains `ScreenWorld` and
+  `RendererConformance`, the suite every renderer passes.
+  Details: renderers register with `Screens.registerRenderer(owner, renderer)` in the `renderer` `TypeRegistry`; a screen
+  no renderer covers is refused naming the capability and the renderer, or opens its `ScreenFallback`. Text resolves in
+  one fixed order: the viewer's language block, the open's `{0}`..`{n}`, the icon's scopes, the screen's replacers, its
+  `subject`, then PlaceholderAPI; a `ProgressBar` icon reads `{progress}` as a whole percentage. A server override is one
+  plugin per key (a second throws naming both), `Screens.override(...)` answers a `Cancellable` and the plugin's shutdown
+  takes its overrides and views back; `ConfirmScreen` pays its `Gate` on confirm (`Screens.confirm` answers
+  `CompletableFuture<Boolean>`, cancelled when nobody answers); the stock effect `open-screen` opens a key from logic.
+  On the chest an icon id is a modern one (`minecraft:red_wool`; before 1.13 coloured wool and glass map to their data
+  value, an item the server lacks is a barrier, warned once); an editable area is backed by an `ItemStore` or a
+  `GenericInventory` and `ScreenSurface.released(reason)` gives back what a window held before `onClose`;
+  `FCItemBuilder.asIcon()` answers a `screen.Icon`; permission `evernifecore.command.screen`. ECoreConformance's `gui`
+  suite is `screen` (`/ecc screen <screen> <player>`, 17 screens on every Bukkit flavor).
 - **`RegionVerbAccess` is `NodeVerbAccess`** (`commands.finalcmd.accessvalidation`): any node that implements
   `VerbPermissionBase` (`getPermissionBase()`) - the region and the group nodes and their branches - gates each verb on
   `<base>.<verb>`. `RegionCommandNode.getVerbPermission(verb)` and `RegionCommandNode.of(executor)` are gone.
@@ -505,10 +486,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Removed
 
-- **`br.com.finalcraft.evernifecore.minecraft.gui`** (65 classes): its neutral half is `screen`, its Bukkit half
-  `minecraft.screen`. Gone with no replacement: `ResultGui`, `LayoutGui`, `LayoutResultGui`, `SubjectHolder`,
-  `EnumWool`/`EnumStainedGlassPane` (`DefaultIcons.wool/pane(Color)`), `GuiType` (`ChestKind`), `ConfirmGui`,
-  `FCItemBuilder.onClick/every` and `ClickContext.sound`. Plugins compiled against `minecraft.gui` break at load.
+- **Removed `br.com.finalcraft.evernifecore.minecraft.gui`** (65 classes), `ResultGui`, `LayoutGui`, `LayoutResultGui`,
+  `SubjectHolder`, `EnumWool`, `EnumStainedGlassPane` (`DefaultIcons.wool/pane(Color)`), `GuiType` (`minecraft.screen.ChestKind`),
+  `FCItemBuilder.onClick/every` (`asIcon()` stays), `ClickContext.sound(...)` (a `sound` effect does it). Plugins compiled
+  against `minecraft.gui` break at load: AWShop, LabQuests, DailyRewards, EverNifeTemplate, FinalPokeBuilder, FinalAuction,
+  EveryInventoryRollback, EvRTraders, FinalWonderTrade, PokeRecycler, KazumonCompanion, RandomCrate, FinalAlerts,
+  PokeShowdown, BlockLimiter, FinalKits, FinalTags, TheMarket, EveryInventoryAPI, MCTF.
 - `pageviewer.CachePolicy`, `PageSnapshot`, `Row`, `PageOrder`, `PageRegistry` (moved to `ranking` as `CachePolicy`,
   `RankedSnapshot`, `RankedEntry`, internal, `RankedLists`).
 - **The Bukkit-only events** `ECPlayerCraftItemEvent`, `ECPlayerChangeChunkEvent` and the `ECPlayerdataDamagePlayerdata`

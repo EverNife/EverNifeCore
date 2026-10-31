@@ -1,12 +1,17 @@
 package br.com.finalcraft.evernifecore.screen;
 
+import br.com.finalcraft.evernifecore.placeholder.replacer.Closures;
+import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import jakarta.annotation.Nonnull;
 
 /**
  * A ratio, 0 to 1, drawn as a bar. The patch carries the ratio ({@link ElementPatch#getProgress()}) for a renderer
- * that draws a real bar; the chest draws the icon, whose text reads {@code {progress}} as a percentage.
+ * that draws a real bar; the chest draws the icon, whose text reads {@code {progress}} as a whole percentage.
  */
 public class ProgressBar extends Button {
+
+    private static final RegexReplacer<ProgressBar> PERCENT = new RegexReplacer<ProgressBar>(Closures.BRACKET)
+            .addParser("progress", bar -> Math.round(bar.getValue() * 100));
 
     private final State<Double> ratio;
 
@@ -16,6 +21,7 @@ public class ProgressBar extends Button {
         setKind(ElementKind.PROGRESS);
         this.ratio = ratio;
         dependsOn(ratio);
+        getIcon().addScope(PERCENT, this);
     }
 
     @Nonnull

@@ -54,8 +54,9 @@ HYTALE_SUITES = 7
 ENTRY_MESSAGE = "ECC entry denied"
 BREAK_MESSAGE = "ECC break denied"
 SCREENS = ["basic", "hopper", "dispenser", "workbench", "nav", "storage", "prompt", "pager",
-           "title-long", "layout", "confirm"]
-SUITE_ORDER = ["items", "nbt", "platform", "version", "commands", "gui", "scheduler", "playerdata",
+           "title-long", "layout", "confirm",
+           "deliveries", "ranking", "input", "progress", "choice", "reactive"]
+SUITE_ORDER = ["items", "nbt", "platform", "version", "commands", "screen", "scheduler", "playerdata",
                "events", "selection-click", "particles", "text-metrics", "hooks", "nms", "regions", "logic", "actions", "deliveries", "hud", "groups", "npcs"]
 HALVES = ("run", "write", "read")
 # playerdata runs only in the write/read halves; every other suite ends once in `run`. Derived, so a new suite
@@ -444,7 +445,7 @@ def screen_shown(snapshot: dict, render: dict) -> bool:
 
 
 def open_screen(mctf: Mctf, server_id: str, client_id: str):
-    """Both sides of the screen `ecc gui` just asked for, once they show it - it opens on a later tick."""
+    """Both sides of the screen `ecc screen` just asked for, once they show it - it opens on a later tick."""
     give_up = time.time() + GUI_WAIT
     while True:
         snap = mctf("mc_player", server_id=server_id, player=BOT)
@@ -543,14 +544,14 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
         log.lap("write")
 
         for screen in SCREENS:
-            console(mctf, server_id, "ecc gui %s %s" % (screen, BOT))
+            console(mctf, server_id, "ecc screen %s %s" % (screen, BOT))
             snap, render = open_screen(mctf, server_id, client_id)
             bot(mctf, client_id, "close")
             r.gui.append({"screen": screen, "line": gui_line(snap, render)})
             if not mctf.dry_run:
-                (fdir / "gui").mkdir(parents=True, exist_ok=True)
+                (fdir / "screen").mkdir(parents=True, exist_ok=True)
                 for suffix, payload in (("server", snap), ("client", render)):
-                    with open(fdir / "gui" / ("%s.%s.json" % (screen, suffix)), "w", encoding="utf-8") as f:
+                    with open(fdir / "screen" / ("%s.%s.json" % (screen, suffix)), "w", encoding="utf-8") as f:
                         json.dump(payload, f, indent=2)
 
         console(mctf, server_id, "ecc text " + BOT)

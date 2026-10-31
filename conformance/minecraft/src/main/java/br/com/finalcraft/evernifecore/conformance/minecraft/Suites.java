@@ -6,7 +6,7 @@ import br.com.finalcraft.evernifecore.conformance.minecraft.suite.CommandsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.DeliveriesSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.EventsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.GroupsSuite;
-import br.com.finalcraft.evernifecore.conformance.minecraft.suite.GuiSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ScreenSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.HooksSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.HudSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ItemsSuite;
@@ -48,7 +48,7 @@ public final class Suites {
                 new PlatformSuite(),
                 new VersionSuite(),
                 new CommandsSuite(),
-                new GuiSuite(),
+                new ScreenSuite(),
                 new SchedulerSuite(),
                 new PlayerDataSuite(),
                 new EventsSuite(),

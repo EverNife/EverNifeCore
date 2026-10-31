@@ -111,7 +111,7 @@ class ConformanceCommandTest {
     void theRegistryHoldsEverySuiteInRunOrder() {
         List<String> ids = suites().stream().map(ConformanceSuite::getId).collect(Collectors.toList());
 
-        assertEquals(Arrays.asList("items", "nbt", "platform", "version", "commands", "gui", "scheduler", "playerdata",
+        assertEquals(Arrays.asList("items", "nbt", "platform", "version", "commands", "screen", "scheduler", "playerdata",
                 "events", "selection-click", "particles", "text-metrics", "hooks", "nms", "regions", "logic", "actions", "deliveries", "hud", "groups", "npcs"), ids);
     }
 }

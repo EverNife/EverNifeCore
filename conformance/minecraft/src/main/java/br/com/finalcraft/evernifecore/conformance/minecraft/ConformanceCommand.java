@@ -12,7 +12,7 @@ import br.com.finalcraft.evernifecore.conformance.RunIds;
 import br.com.finalcraft.evernifecore.conformance.SuiteRunner;
 import br.com.finalcraft.evernifecore.conformance.Verdict;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ActionsSuite;
-import br.com.finalcraft.evernifecore.conformance.minecraft.suite.GuiSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ScreenSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.SelectionClickSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.TextMetricsSuite;
 import org.bukkit.Bukkit;
@@ -32,8 +32,8 @@ import java.util.stream.Collectors;
 /**
  * {@code /ecc run|write|read <suite|all>}: runs suites on this server and reports every case to the sender, to the
  * log as a human line, and to the log again as an {@code ENCTEST} marker. {@code write} and {@code read} are the
- * two halves of the suites whose subject has to survive a restart. {@code /ecc gui <screen> <player>} opens one
- * sample screen of the {@code gui} suite and leaves it open, to be read from outside the server; {@code click},
+ * two halves of the suites whose subject has to survive a restart. {@code /ecc screen <screen> <player>} opens one
+ * sample screen of the {@code screen} suite and leaves it open, to be read from outside the server; {@code click},
  * {@code actions} and {@code text} prepare what the {@code selection-click}, {@code actions} and {@code text-metrics}
  * suites need from a real client.
  */
@@ -89,15 +89,15 @@ public class ConformanceCommand {
         execute(sender, suite, player, cid, "read", ConformanceSuite::getReadCases);
     }
 
-    @FinalCMD.SubCMD(subcmd = "gui")
-    public void gui(FCommandSender sender, @Arg("<screen>") String screen, @Arg("<player>") FPlayer player) {
-        if (!GuiSuite.getScreenIds().contains(screen)) {
-            sender.sendMessage(SuiteRunner.HUMAN_PREFIX + "unknown screen '" + screen + "' - known: " + GuiSuite.getScreenIds());
+    @FinalCMD.SubCMD(subcmd = "screen")
+    public void screen(FCommandSender sender, @Arg("<screen>") String screen, @Arg("<player>") FPlayer player) {
+        if (!ScreenSuite.getScreenIds().contains(screen)) {
+            sender.sendMessage(SuiteRunner.HUMAN_PREFIX + "unknown screen '" + screen + "' - known: " + ScreenSuite.getScreenIds());
             return;
         }
-        Player viewer = online(sender, player, "gui " + screen);
+        Player viewer = online(sender, player, "screen " + screen);
         if (viewer == null) return;
-        GuiSuite.open(screen, viewer).whenComplete((view, refused) -> sender.sendMessage(SuiteRunner.HUMAN_PREFIX + "gui " + screen
+        ScreenSuite.open(screen, viewer).whenComplete((view, refused) -> sender.sendMessage(SuiteRunner.HUMAN_PREFIX + "screen " + screen
                 + (refused == null ? " opened for " + viewer.getName() : " refused: " + Verdict.describe(refused))));
     }
 
