@@ -17,7 +17,7 @@ import br.com.finalcraft.evernifecore.logic.audit.AuditLog;
 import br.com.finalcraft.evernifecore.logic.delivery.Delivery;
 import br.com.finalcraft.evernifecore.logic.delivery.DeliveryDestinations;
 import br.com.finalcraft.evernifecore.screen.ScreenView;
-import br.com.finalcraft.evernifecore.screen.prompt.Prompt;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptSpec;
 import jakarta.annotation.Nullable;
 
 import java.math.BigDecimal;
@@ -96,7 +96,7 @@ public final class Transactions {
         int most = Math.max(1, Quantity.ALL_THAT_FITS.resolve(ctx, offer));
         String question = "How many? 1 to " + most + " (" + offer.getGoods().describe(ctx, 1).toLegacyString() + "), or cancel";
         CompletableFuture<TransactionResult> traded = new CompletableFuture<>();
-        view.ask(Prompt.of(question).parse(input -> {
+        view.ask(PromptSpec.of(question).parse(input -> {
             int units;
             try {
                 units = Integer.parseInt(input.trim());

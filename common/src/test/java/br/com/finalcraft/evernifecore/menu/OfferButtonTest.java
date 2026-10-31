@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.screen.Layouts;
 import br.com.finalcraft.evernifecore.screen.ScreenView;
 import br.com.finalcraft.evernifecore.screen.Screens;
 import br.com.finalcraft.evernifecore.screen.Slots;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptRegistry;
 import br.com.finalcraft.evernifecore.testing.CountedGoods;
 import br.com.finalcraft.evernifecore.testing.Menus;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
@@ -102,7 +103,7 @@ class OfferButtonTest extends MenuTestWorlds {
         ScreenView view = open(market());
 
         menus.clickOffer(view, "sword", ClickGesture.MIDDLE);
-        assertTrue(screens.getRenderer().isAsking(), "the quantity is asked through the prompt channel");
+        assertEquals(1, PromptRegistry.get().getPendingCount(), "the quantity is asked through the prompt registry");
         menus.answerPrompt("32");
 
         assertEquals(5 + 32, swords.getHeld());
