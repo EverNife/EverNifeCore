@@ -13,6 +13,7 @@ import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ItemsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.LogicSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.NbtSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.NmsSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.NpcsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ParticlesSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.PlatformSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.PlayerDataSuite;
@@ -61,6 +62,7 @@ public final class Suites {
                 new ActionsSuite(),
                 new DeliveriesSuite(plugin),
                 new HudSuite(),
-                new GroupsSuite(plugin));
+                new GroupsSuite(plugin),
+                new NpcsSuite());
     }
 }
