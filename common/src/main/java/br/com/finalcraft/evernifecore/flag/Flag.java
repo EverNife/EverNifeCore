@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.flag;
 import br.com.finalcraft.evernifecore.action.ActionContext;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.SessionContext;
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.player.state.StateHolder;
@@ -132,6 +133,15 @@ public abstract class Flag<T> implements StateHolder {
      */
     public boolean applies(ActionContext context) {
         return true;
+    }
+
+    /**
+     * Whose groups and following holders this flag's value is resolved for when it is asked about {@code context},
+     * and whose bypass counts. Default: the player behind the action; a flag that protects a victim answers the victim.
+     * Null resolves the places alone.
+     */
+    public @Nullable FPlayer getSubject(ActionContext context) {
+        return context.getPlayer();
     }
 
     public FlagCategory getCategory() {

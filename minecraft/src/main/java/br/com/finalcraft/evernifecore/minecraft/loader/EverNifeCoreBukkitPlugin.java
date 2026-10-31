@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.loader;
 
+import br.com.finalcraft.evernifecore.group.IGroupGlowProvider;
+import br.com.finalcraft.evernifecore.minecraft.group.McGroupGlowProvider;
 import br.com.finalcraft.evernifecore.economy.Currencies;
 import br.com.finalcraft.evernifecore.logic.delivery.DeliveryDestinations;
 import br.com.finalcraft.evernifecore.minecraft.delivery.McInventoryDestination;
@@ -153,6 +155,9 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
         Currencies.register(ecPluginData, McExpCurrency.LEVELS, "levels");
         Currencies.register(ecPluginData, McExpCurrency.POINTS, "xp");
         DeliveryDestinations.register(ecPluginData, new McInventoryDestination());
+        if (McGroupGlowProvider.isSupported()) {
+            EverNifeCore.getProviders().getBaseProvider().register(IGroupGlowProvider.class, new McGroupGlowProvider());
+        }
 
         EverNifeCore.getLog().info("§aRegistering Commands!");
         McCommandRegisterer.registerCommands(ecPluginData);

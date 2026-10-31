@@ -43,8 +43,9 @@ public final class ProtectionFlagGate {
 
     public static Decision decide(RegionLookup lookup, ActionContext context) {
         List<Region> here = lookup.at(context.getPosition());
-        //outside every region only a holder that follows the player can speak (a party's invincible in the open field)
-        if (here.isEmpty() && (context.getPlayer() == null || !ActorHolders.hasAny(context.getPlayer()))) {
+        //outside every region only a holder that follows the actor or the victim can speak (a party's invincible in the open field)
+        if (here.isEmpty() && !followed(context.getPlayer()) && !(context instanceof DamageContext
+                && followed(((DamageContext) context).getVictim().getRootPlayer()))) {
             return Decision.PASS;
         }
         List<Runnable> passed = new ArrayList<>(2);
@@ -59,9 +60,13 @@ public final class ProtectionFlagGate {
         return Decision.PASS;
     }
 
+    private static boolean followed(@Nullable FPlayer player) {
+        return player != null && ActorHolders.hasAny(player);
+    }
+
     private static <T> boolean denies(RegionLookup lookup, Flag<T> flag, ActionContext context, List<Region> here, List<Runnable> passed) {
         FPlayer player = context.getPlayer();
-        Resolution<T> resolution = lookup.resolution(flag, here, player);
+        Resolution<T> resolution = lookup.resolution(flag, here, flag.getSubject(context));
         T value = resolution.getValue();
         if (value == null) {
             return false;

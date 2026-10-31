@@ -19,6 +19,7 @@ import br.com.finalcraft.evernifecore.notify.Notifier;
 import br.com.finalcraft.evernifecore.waypoint.Waypoints;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.spawn.ISpawnProvider;
+import br.com.finalcraft.evernifecore.group.IGroupGlowProvider;
 import br.com.finalcraft.evernifecore.spawn.SpawnPoints;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 
@@ -58,6 +59,7 @@ public final class ECoreTestWorld implements AutoCloseable {
     private final IEconomyProvider previousEconomy;
     private final boolean hadEconomy;
     private final ISpawnProvider previousSpawn;
+    private final IGroupGlowProvider previousGlow;
     private final ECScheduler.MainThread previousMainThread;
     private final Set<ECListenerWatch> watchesBefore = Collections.newSetFromMap(new IdentityHashMap<>());
     private final List<String> audiencesBefore = new ArrayList<>();
@@ -73,6 +75,7 @@ public final class ECoreTestWorld implements AutoCloseable {
         this.previousEconomy = previousEconomy;
         this.hadEconomy = previousEconomy != null;
         this.previousSpawn = EverNifeCore.getProviders().getSpawnOrNull();
+        this.previousGlow = EverNifeCore.getProviders().getBaseProvider().provideOrNull(IGroupGlowProvider.class);
         this.previousMainThread = ECScheduler.getMainThread();
         this.watchesBefore.addAll(ECEventBus.global().getListenerWatches());
         for (ECNativeAudience audience : ECEventBus.global().getNativeAudiences()) {
@@ -92,6 +95,7 @@ public final class ECoreTestWorld implements AutoCloseable {
         );
 
         providers.register(IPlatform.class, platform);
+        restore(providers, IGroupGlowProvider.class, platform.testGlow, platform.testGlow != null);
         ECScheduler.setMainThread(platform.mainThread());
         ensureCorePluginData();
         SpawnPoints.resetWarning(); //a new world is a new boot: its first spawn fallback reports again
@@ -183,6 +187,7 @@ public final class ECoreTestWorld implements AutoCloseable {
         restore(providers, IECPluginExtractor.class, previousExtractor, hadExtractor);
         restore(providers, IEconomyProvider.class, previousEconomy, hadEconomy);
         restore(providers, ISpawnProvider.class, previousSpawn, previousSpawn != null);
+        restore(providers, IGroupGlowProvider.class, previousGlow, previousGlow != null);
         ECScheduler.setMainThread(previousMainThread);
         SpawnPoints.resetWarning();
 

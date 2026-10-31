@@ -106,6 +106,11 @@ public abstract class DenyFlag extends TristateFlag {
         return move.getTransition() == transition && (cause == null || move.getCause() == cause);
     }
 
+    /** The player a hit hurts (behind a fake player too); null for anything else. */
+    protected static @Nullable FPlayer victim(ActionContext context) {
+        return context instanceof DamageContext ? ((DamageContext) context).getVictim().getRootPlayer() : null;
+    }
+
     /** Damage to a victim of one of {@code types}. */
     protected static boolean hurts(ActionContext context, ECEntityType... types) {
         if (!(context instanceof DamageContext)) {

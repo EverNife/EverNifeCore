@@ -11,6 +11,8 @@ import br.com.finalcraft.evernifecore.action.ActionContext;
 import br.com.finalcraft.evernifecore.action.ECEntityType;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.flag.FlagKey;
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import jakarta.annotation.Nullable;
 
 /** TRUE: players in the region take no damage, whatever hurts them. */
 public final class InvincibleFlag extends DenyFlag {
@@ -33,6 +35,12 @@ public final class InvincibleFlag extends DenyFlag {
     @Override
     public FlagScope getScope() {
         return FlagScope.ACTOR;
+    }
+
+    /** It protects the victim: the victim's groups and following holders speak, not the attacker's. */
+    @Override
+    public @Nullable FPlayer getSubject(ActionContext context) {
+        return victim(context);
     }
 
     @Override

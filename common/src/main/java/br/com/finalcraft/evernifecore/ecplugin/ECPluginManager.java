@@ -13,6 +13,7 @@ import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginE
 import br.com.finalcraft.evernifecore.api.events.reload.ECPluginReloadEvent;
 import br.com.finalcraft.evernifecore.group.GroupLookup;
 import br.com.finalcraft.evernifecore.group.GroupManager;
+import br.com.finalcraft.evernifecore.group.Groups;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
@@ -149,6 +150,7 @@ public class ECPluginManager {
         RegionManager.discardOwnedBy(removed);
         GroupManager.discardOwnedBy(removed);
         GroupLookup.get().unregisterAll(removed);
+        Groups.unregisterNetwork(removed);
         EventSource.unregisterAll(removed);
         Notifier.get().closeOwnedBy(removed);
         Waypoints.get().hideOwnedBy(removed);

@@ -78,6 +78,12 @@
 # ---------------------------------------------------------------------------------------------
 # Methods that arrived after some supported era.
 # ---------------------------------------------------------------------------------------------
+* method org/bukkit/entity/Player.setGlowing(Z)V br.com.finalcraft.evernifecore.minecraft.group.McGroupGlowProvider  # the provider is registered only when McGroupGlowProvider.isSupported() (isHigherEquals(v1_9_R1))
+* method org/bukkit/scoreboard/Scoreboard.getEntryTeam(Ljava/lang/String;)Lorg/bukkit/scoreboard/Team; br.com.finalcraft.evernifecore.minecraft.group.McGroupGlowProvider  # idem
+* method org/bukkit/scoreboard/Team.addEntry(Ljava/lang/String;)V br.com.finalcraft.evernifecore.minecraft.group.McGroupGlowProvider  # idem
+* method org/bukkit/scoreboard/Team.hasEntry(Ljava/lang/String;)Z br.com.finalcraft.evernifecore.minecraft.group.McGroupGlowProvider  # idem
+* method org/bukkit/scoreboard/Team.removeEntry(Ljava/lang/String;)Z br.com.finalcraft.evernifecore.minecraft.group.McGroupGlowProvider  # idem
+* method org/bukkit/scoreboard/Team.setColor(Lorg/bukkit/ChatColor;)V br.com.finalcraft.evernifecore.minecraft.group.McGroupGlowProvider  # inside if (MCVersion.isHigherEquals(v1_12_R1)); the prefix below it
 * method org/bukkit/Material.isLegacy()Z br.com.finalcraft.evernifecore.minecraft.interpreters.MaterialSignInterpreter  # in the else of isLowerEquals(v1_12)
 * method org/bukkit/Material.matchMaterial(Ljava/lang/String;Z)Lorg/bukkit/Material; br.com.finalcraft.evernifecore.minecraft.util.FCMaterialUtil  # inside if (MCVersion.isHigherEquals(v1_13))
 * method org/bukkit/NamespacedKey.fromString(Ljava/lang/String;)Lorg/bukkit/NamespacedKey; br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartEnchantment  # registered behind ItemRequirement.atLeast(v1_13_R1)

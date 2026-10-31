@@ -412,6 +412,10 @@ class RegionResolveTest {
         Resolution<Object> resolution = lookup.explain(typed, WORLD, 5, 5, 5, null);
         Object value = resolution.getValue();
         String name = stock.getKey().toString();
+        if (!stock.accepts(a)) {   //a flag only a group carries: the regions' values are kept and ignored
+            assertEquals(stock.getDefault(), value, name);
+            return;
+        }
         switch (resolution.getResolver().getId()) {
             case "prefer-among-equals":
                 Object expected = valueType == DenyEntryMessage.class ? first

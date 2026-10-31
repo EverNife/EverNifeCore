@@ -10,12 +10,78 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
-/** Static entry points of the group engine. */
+/** Static entry points of the group engine: the ephemeral builder and the network SPI. */
 public final class Groups {
 
+    /** The answer while no plugin registered a network: every call fails, teaching how to get one. */
+    private static final GroupNetwork REFUSING = new GroupNetwork() {
+        @Override
+        public CompletableFuture<SendResult> send(Group group, String server) {
+            return refused();
+        }
+
+        @Override
+        public Optional<String> getServer(UUID player) {
+            throw new GroupNetworkUnavailableException();
+        }
+
+        @Override
+        public CompletableFuture<SendResult> follow(Group group) {
+            return refused();
+        }
+
+        private CompletableFuture<SendResult> refused() {
+            CompletableFuture<SendResult> failed = new CompletableFuture<>();
+            failed.completeExceptionally(new GroupNetworkUnavailableException());
+            return failed;
+        }
+    };
+
+    private static @Nullable ECPluginData networkOwner;
+    private static volatile GroupNetwork network = REFUSING;
+
     private Groups() {
+    }
+
+    /**
+     * The registered network, or the one whose every call fails with {@link GroupNetworkUnavailableException} (a
+     * failed future for {@code send}/{@code follow}, a throw for {@code getServer}). Thread: any.
+     */
+    public static GroupNetwork network() {
+        return network;
+    }
+
+    /** Whether a plugin registered a network; false until one does. */
+    public static boolean hasNetwork() {
+        return network != REFUSING;
+    }
+
+    /**
+     * Makes {@code impl} the server's network until {@code owner} shuts down.
+     *
+     * @throws IllegalStateException naming the owner of the network already registered - there is one per server
+     */
+    public static synchronized void registerNetwork(ECPluginData owner, GroupNetwork impl) {
+        Objects.requireNonNull(owner, "owner");
+        Objects.requireNonNull(impl, "impl");
+        if (networkOwner != null) {
+            throw new IllegalStateException("A GroupNetwork is already registered by " + networkOwner.getMetaInfo().getName()
+                    + ": a server has one. Unregister it (Groups.unregisterNetwork) before registering another.");
+        }
+        networkOwner = owner;
+        network = impl;
+    }
+
+    /** Takes out the network {@code owner} registered, if any; called by its shutdown. */
+    public static synchronized void unregisterNetwork(ECPluginData owner) {
+        if (networkOwner == owner) {
+            networkOwner = null;
+            network = REFUSING;
+        }
     }
 
     /**

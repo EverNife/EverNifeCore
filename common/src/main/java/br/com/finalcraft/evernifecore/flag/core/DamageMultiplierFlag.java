@@ -4,6 +4,8 @@ import br.com.finalcraft.evernifecore.action.ActionContext;
 import br.com.finalcraft.evernifecore.action.DamageContext;
 import br.com.finalcraft.evernifecore.action.ECEntityType;
 import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import jakarta.annotation.Nullable;
 import br.com.finalcraft.evernifecore.flag.Decision;
 import br.com.finalcraft.evernifecore.flag.Flag;
 import br.com.finalcraft.evernifecore.flag.FlagKey;
@@ -47,6 +49,12 @@ public final class DamageMultiplierFlag extends Flag<Double> {
     public String getDescription() {
         return "Multiplies the damage a player takes in the region (2.0 doubles it, 0.5 halves it); layers multiply, within the"
                 + " settings' floor and cap.";
+    }
+
+    /** It scales what the victim takes: the victim's groups and following holders speak, not the attacker's. */
+    @Override
+    public @Nullable FPlayer getSubject(ActionContext context) {
+        return DenyFlag.victim(context);
     }
 
     /** It follows the player: a holder that follows them may carry it. */

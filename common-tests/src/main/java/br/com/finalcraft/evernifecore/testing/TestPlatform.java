@@ -102,6 +102,7 @@ public class TestPlatform extends AbstractTestPlatform {
     Boolean hudConfigured;
     final TestHud testHud = new TestHud();
     TestInventory testInventory;
+    TestGlow testGlow;
     ISelectionItems selectionItems;
 
     private boolean forceRegisterFailure = false;
@@ -565,6 +566,11 @@ public class TestPlatform extends AbstractTestPlatform {
      */
     public TestInventory getTestInventory() {
         return testInventory;
+    }
+
+    /** The glow {@link Platforms#withGlow()} registered as the {@code IGroupGlowProvider}; null without it. */
+    public TestGlow getTestGlow() {
+        return testGlow;
     }
 
     /** The in-memory world {@link Platforms#terrain()} put behind {@code getTerrainAccess}. */

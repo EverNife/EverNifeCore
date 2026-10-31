@@ -55,15 +55,17 @@ class CoreFlagsTest {
                 "deny-explosion", "deny-explosion-mobs", "deny-interact", "deny-interact-blocks", "deny-interact-entities", "deny-entry", "deny-exit", "deny-teleport-in", "deny-teleport-out",
                 "deny-spawn", "deny-spawn-monster", "deny-spawn-animal", "track-changes", "deny-damage-from-mobs", "deny-block-place-environment",
                 "deny-fire-spread", "deny-fluid-flow", "deny-item-pickup", "deny-item-drop", "deny-vehicle", "deny-vehicle-place",
-                "deny-vehicle-break", "deny-vehicle-enter")) {
+                "deny-vehicle-break", "deny-vehicle-enter", "deny-friendly-fire")) {
             CATALOG.put(name, "tristate-true");
         }
         CATALOG.put("deny-entry-with-message", "denied-true");
         CATALOG.put("allow-fly", "tristate-false-open");
         CATALOG.put("force-fly", "tristate-true-open");
+        CATALOG.put("glow-members", "tristate-true-open");
         for (String name : Arrays.asList("greeting", "farewell", "deny-message", "teleport-point", "spawn-point", "time-lock", "weather-lock",
                 "game-mode", "potion-effects", "command-on-enter", "command-on-exit", "heal", "feed", "damage-over-time", "hunger-over-time",
-                "effects-on-enter", "effects-on-exit", "effects-while-inside", "entry-gate", "boosters", "damage-multiplier")) {
+                "effects-on-enter", "effects-on-exit", "effects-while-inside", "entry-gate", "boosters", "damage-multiplier", "max-members",
+                "share-xp", "share-money")) {
             CATALOG.put(name, "first");
         }
     }
@@ -81,7 +83,7 @@ class CoreFlagsTest {
     void tearDown() {
         try {
             assertTrue(iterated >= 18, "the tie test must have run over the whole catalog, ran " + iterated);
-            assertEquals(56, iterated, "the catalog holds 56 flags");
+            assertEquals(61, iterated, "the catalog holds 61 flags");
         } finally {
             FlagRegistry.get().reset();
             Plugins.forget(CORE);
@@ -204,9 +206,10 @@ class CoreFlagsTest {
     };
 
     @Test
-    void onlyDenyPvpIgnoresTheBypass() {
+    void onlyDenyPvpAndFriendlyFireIgnoreTheBypass() {
         for (Flag<?> flag : FlagRegistry.get().getByOwner(core)) {
-            assertEquals(!flag.getKey().getName().equals("deny-pvp"), flag.isBypassable(), flag.getKey().toString());
+            String name = flag.getKey().getName();
+            assertEquals(!name.equals("deny-pvp") && !name.equals("deny-friendly-fire"), flag.isBypassable(), flag.getKey().toString());
         }
     }
 

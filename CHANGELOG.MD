@@ -44,6 +44,20 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   leaving or expiring, and a flag change of the group, invalidate the member's region session. `ProgressOwner.group(id)`
   (owner kind `group`, answered by the core), effect `evernifecore:dissolve-group`. `GroupWorld.notifier()`
   (`RecordingNotifier`) and `GroupWorld.player(name)` online on the test platform.
+- **Group flags**: `deny-friendly-fire`, `max-members`, `share-xp`, `share-money`, `glow-members` - ACTOR flags a group
+  (or a group inside a region) carries, applied by the core; `glow-members` needs 1.9+. `deny-friendly-fire` (not
+  bypassable) denies a hit between two players who share a group of any provider, set on a place or on the group;
+  `deny-pvp: TRUE` already denies every hit, `deny-pvp: FALSE` with it leaves PvP between different groups only.
+  `max-members` (0 = no cap; also a `GroupKind` flag default) refuses `add` (false), `join` and `accept` with "is full
+  (n/n, max-members)". `share-xp`/`share-money` give every other online member in range (`ShareSettings`: `radius` 50,
+  `sameWorld`) a copy of `gain * fraction` of an `XpGainActionEvent` or a positive `money` change, under the caller
+  `evernifecore:group/share-*`, never shared again; one listener, on the bus only while a group shares, and a platform
+  with no XP source (Hytale) logs once. `glow-members` goes through the `IGroupGlowProvider` the Bukkit side registers
+  on 1.9+ (`setGlowing` plus one scoreboard team colour per group; a player on another plugin's team keeps it);
+  elsewhere it logs once. `Platforms.withGlow()` / `TestGlow` in `evernifecore-common-tests`.
+- **`GroupNetwork` SPI**: `send(group, server)`, `getServer(player)`, `follow(group)` with `SendResult`;
+  `Groups.network()` refuses with `GroupNetworkUnavailableException` (teaching `Groups.registerNetwork(owner, impl)`)
+  until a plugin registers one, `Groups.hasNetwork()` tells beforehand, one per server; it leaves with its owner.
 - **Boosters** (`br.com.finalcraft.evernifecore.booster`): `Booster.on(gain).factor/bonus.forOwner(...).lasting/until/during(season)`,
   `BoosterManager.of(plugin, storage)` keeps a plugin's boosters in its own storage (`ec_boosters`; `of(plugin)` in memory),
   `grant` posts a `BoosterGrantedEvent`, a booster past its end stops counting at once and a sweep drops it once a minute.
@@ -286,6 +300,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **The victim's protection flags speak for the victim**: `invincible`, `deny-damage-from-mobs` and `damage-multiplier`
+  resolve the groups and following holders (and the bypass) of the player hit, not of the attacker - a party's
+  `invincible` now protects its member from a mob outside every region, and no longer shields whoever its members hit.
+  `Flag.getSubject(context)` names whose layers a flag reads.
 - **`AccessGroup` is gone**: `Region.getGroup(name)` returns a `Group` of `GroupKind.REGION_LOCAL` (same stored format,
   now with optional leader, roles - free tags in a region's group - and invites; a record written before still reads);
   `Membership` is `GroupMember` (`getMembership(uuid)` -> `getMember(uuid)`, `addMember` -> `add`, `removeMember` ->

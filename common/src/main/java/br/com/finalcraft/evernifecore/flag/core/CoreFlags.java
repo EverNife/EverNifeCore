@@ -7,6 +7,10 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.flag.Flag;
 import br.com.finalcraft.evernifecore.flag.FlagKey;
 import br.com.finalcraft.evernifecore.flag.FlagRegistry;
+import br.com.finalcraft.evernifecore.flag.FlagResolvers;
+import br.com.finalcraft.evernifecore.flag.FlagSettings;
+import br.com.finalcraft.evernifecore.flag.FlagTypes;
+import br.com.finalcraft.evernifecore.flag.Tristate;
 
 import java.util.Arrays;
 import java.util.List;
@@ -99,6 +103,21 @@ public final class CoreFlags {
     public static EntryGateFlag ENTRY_GATE = new EntryGateFlag();
     public static BoostersFlag BOOSTERS = new BoostersFlag();
     public static DamageMultiplierFlag DAMAGE_MULTIPLIER = new DamageMultiplierFlag();
+    public static DenyFriendlyFireFlag DENY_FRIENDLY_FIRE = new DenyFriendlyFireFlag(FlagKey.of(OWNER, "deny-friendly-fire"));
+    public static GroupFlag<Integer> MAX_MEMBERS = new GroupFlag<>(FlagKey.of(OWNER, "max-members"), FlagTypes.INTEGER, 0,
+            "The most members the group takes (0 = no cap): add, join and accept are refused once it is full.", true, FlagSettings.class,
+            FlagResolvers.<Integer>firstDefined());
+    public static GroupFlag<Double> SHARE_XP = new GroupFlag<>(FlagKey.of(OWNER, "share-xp"), FlagTypes.DOUBLE, 0.0,
+            "The fraction of the experience a member picks up that every other online member in range gets too (0.5 = half, a copy"
+                    + " - the gainer keeps it all).", false, ShareSettings.class,
+            FlagResolvers.<Double>firstDefined());
+    public static GroupFlag<Double> SHARE_MONEY = new GroupFlag<>(FlagKey.of(OWNER, "share-money"), FlagTypes.DOUBLE, 0.0,
+            "The fraction of the money a member gains that every other online member in range gets too (0.5 = half, a copy - the"
+                    + " gainer keeps it all).", false, ShareSettings.class,
+            FlagResolvers.<Double>firstDefined());
+    public static GroupFlag<Tristate> GLOW_MEMBERS = new GroupFlag<>(FlagKey.of(OWNER, "glow-members"), FlagTypes.TRISTATE, Tristate.UNDEFINED,
+            "TRUE: the online members glow, for everyone to see, in a colour of the group. Needs 1.9+; other platforms ignore it.",
+            false, FlagSettings.class, FlagResolvers.preferAmongEquals(Tristate.TRUE));
 
     private CoreFlags() {
     }
@@ -113,7 +132,7 @@ public final class CoreFlags {
                 DENY_VEHICLE_BREAK, DENY_VEHICLE_ENTER, DENY_ENTRY_WITH_MESSAGE, GREETING, FAREWELL, DENY_MESSAGE, TELEPORT_POINT,
                 SPAWN_POINT, TRACK_CHANGES, TIME_LOCK, WEATHER_LOCK, GAME_MODE, ALLOW_FLY, FORCE_FLY, POTION_EFFECTS, COMMAND_ON_ENTER,
                 COMMAND_ON_EXIT, HEAL, FEED, DAMAGE_OVER_TIME, HUNGER_OVER_TIME, EFFECTS_ON_ENTER, EFFECTS_ON_EXIT, EFFECTS_WHILE_INSIDE,
-                ENTRY_GATE, BOOSTERS, DAMAGE_MULTIPLIER);
+                ENTRY_GATE, BOOSTERS, DAMAGE_MULTIPLIER, DENY_FRIENDLY_FIRE, MAX_MEMBERS, SHARE_XP, SHARE_MONEY, GLOW_MEMBERS);
     }
 
     /** Registers every core flag under {@code owner} - EverNifeCore's own plugin data. */

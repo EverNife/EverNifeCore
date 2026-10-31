@@ -5,6 +5,8 @@ import br.com.finalcraft.evernifecore.action.ActionContext;
 import br.com.finalcraft.evernifecore.action.ECEntityType;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.flag.FlagKey;
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import jakarta.annotation.Nullable;
 
 /**
  * TRUE: animals and monsters with no player behind them cannot hurt a player in the region; falling, lava and the rest
@@ -28,6 +30,12 @@ public final class DenyDamageFromMobsFlag extends DenyFlag {
     @Override
     public String getDescription() {
         return "TRUE: animals and monsters cannot hurt players in the region. Falling, lava and the rest of the world still do.";
+    }
+
+    /** It protects the victim: the victim's groups and following holders speak, not the attacker's. */
+    @Override
+    public @Nullable FPlayer getSubject(ActionContext context) {
+        return victim(context);
     }
 
     /** It follows the player: a holder that follows them may carry it. */

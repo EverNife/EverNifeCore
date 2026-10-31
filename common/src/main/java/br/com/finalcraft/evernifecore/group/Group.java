@@ -13,6 +13,7 @@ import br.com.finalcraft.evernifecore.flag.FlagKey;
 import br.com.finalcraft.evernifecore.flag.FlagScope;
 import br.com.finalcraft.evernifecore.flag.FlagStore;
 import br.com.finalcraft.evernifecore.flag.FlagValue;
+import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.group.event.GroupDissolvedEvent;
 import br.com.finalcraft.evernifecore.group.event.GroupInviteEvent;
 import br.com.finalcraft.evernifecore.group.event.GroupLeaderChangedEvent;
@@ -61,7 +62,7 @@ import java.util.function.Supplier;
  *
  * <p>Two ways in and out: {@link #add}/{@link #remove} are the owner's direct calls, {@link #join}/{@link #leave} the
  * player's path, which answers a {@link GateResult} that explains a refusal. Both check the kind's cardinality and
- * post {@link GroupMemberPreJoinEvent} (cancellable) and the after-the-fact events.</p>
+ * {@code max-members}, and post {@link GroupMemberPreJoinEvent} (cancellable) and the after-the-fact events.</p>
  *
  * <p>Besides its explicit members, a player belongs ({@link #contains}) by the owner's predicate (never stored) or by a
  * permission; that virtual membership has no {@link GroupMember} and no event.</p>
@@ -142,10 +143,22 @@ public final class Group implements FlagHolder {
         this.region = region;
         this.createdAt = Objects.requireNonNull(createdAt, "createdAt");
         this.host = Objects.requireNonNull(host, "host");
-        this.flags = new FlagStore(this, (flag, oldValue, newValue, cause) -> host.flagChanged(this, flag, oldValue, newValue, cause));
+        this.flags = new FlagStore(this, (flag, oldValue, newValue, cause) -> {
+            host.flagChanged(this, flag, oldValue, newValue, cause);
+            GroupShareListener.track(this);
+            GroupGlow.refresh(this);
+        });
         //a region's group stays as the region keeps it; a group of a manager that writes nothing ends with its members' session
         this.quitPolicy = region == null && persistence == Persistence.TRANSIENT ? QuitPolicy.LEAVE : QuitPolicy.KEEP;
         GroupQuitWatch.track(this, quitPolicy == QuitPolicy.LEAVE);
+        GroupShareListener.track(this);   //a kind's default may share already
+    }
+
+    /** Internal: its manager closed - the group stops taking quits, sharing and glowing, without dissolving. */
+    void detach() {
+        GroupQuitWatch.track(this, false);
+        GroupShareListener.forget(this);
+        GroupGlow.forget(this);
     }
 
     public GroupId getId() {
@@ -251,7 +264,8 @@ public final class Group implements FlagHolder {
 
     /**
      * Adds {@code uuid} as a member until now + {@code ttl} (null = for good). A player already a member keeps their
-     * roles and join time, and gets the new deadline. False when a {@link GroupMemberPreJoinEvent} listener cancelled.
+     * roles and join time, and gets the new deadline. False when the group is full ({@code max-members}) or a
+     * {@link GroupMemberPreJoinEvent} listener cancelled.
      *
      * @throws IllegalArgumentException when {@code ttl} is not positive
      * @throws IllegalStateException    when the kind is ONE and the player is in another group of it; the message says how out
@@ -273,6 +287,9 @@ public final class Group implements FlagHolder {
         String refusal = cardinalityRefusal(uuid, uuid.toString());
         if (refusal != null) {
             throw new IllegalStateException(refusal);
+        }
+        if (fullRefusal() != null) {
+            return false;
         }
         return admit(uuid, null, JoinCause.ADDED, expiresAt) == null;
     }
@@ -297,6 +314,7 @@ public final class Group implements FlagHolder {
         }
         host.changed(this, true, null);
         host.memberChanged(this, uuid);
+        GroupGlow.refresh(this);
         post(GroupMemberLeftEvent.class, () -> new GroupMemberLeftEvent(this, uuid, gone, cause));
         if (wasLeader) {
             post(GroupLeaderChangedEvent.class, () -> new GroupLeaderChangedEvent(this, uuid, null));
@@ -325,7 +343,8 @@ public final class Group implements FlagHolder {
     // ---- membership: the player's path ----
 
     /**
-     * The player joins: refused when the kind is ONE and they are in another group of it, when the join {@link Edge}'s
+     * The player joins: refused when the kind is ONE and they are in another group of it, when the group is full
+     * ({@code max-members}), when the join {@link Edge}'s
      * gate denies (its costs are taken only when the join goes through), or when a {@link GroupMemberPreJoinEvent}
      * listener cancelled. Once in, the edge's notices go out. A member already passes.
      */
@@ -342,6 +361,9 @@ public final class Group implements FlagHolder {
             return GateResult.passed(ctx);
         }
         String refusal = cardinalityRefusal(player.getUniqueId(), player.getName());
+        if (refusal == null) {
+            refusal = fullRefusal();
+        }
         if (refusal != null) {
             return GateResult.denied(ctx, FancyText.of(refusal));
         }
@@ -444,7 +466,10 @@ public final class Group implements FlagHolder {
         GroupMember member;
         synchronized (host.lock()) {
             String refusal = cardinalityRefusal(uuid, player == null ? uuid.toString() : player.getName());
-            if (refusal != null) {   //a racing join into another group of a ONE kind won
+            if (refusal == null) {
+                refusal = fullRefusal();
+            }
+            if (refusal != null) {   //a racing join won: into another group of a ONE kind, or the last free place
                 return FancyText.of(refusal);
             }
             member = new GroupMember(uuid, ECClock.now(), expiresAt, Collections.<GroupRole>emptySet(), Collections.<String>emptySet());
@@ -452,8 +477,20 @@ public final class Group implements FlagHolder {
         }
         host.changed(this, true, expiresAt);
         host.memberChanged(this, uuid);
+        GroupGlow.refresh(this);
         post(GroupMemberJoinedEvent.class, () -> new GroupMemberJoinedEvent(this, uuid, player, cause, member));
         return null;
+    }
+
+    /** Why nobody else gets in now: {@code max-members} is reached; null while there is room or no cap. */
+    private @Nullable String fullRefusal() {
+        Integer max = getEffectiveFlag(CoreFlags.MAX_MEMBERS);
+        int size = members.size();
+        if (max == null || max <= 0 || size < max) {
+            return null;
+        }
+        return "The " + kindName() + " '" + getName() + "' is full (" + size + "/" + max + ", max-members): raise the flag or remove"
+                + " a member.";
     }
 
     private @Nullable String cardinalityRefusal(UUID uuid, String playerName) {
@@ -900,6 +937,13 @@ public final class Group implements FlagHolder {
         return flags;
     }
 
+    /** The group's own live value of {@code flag}, else its kind's default ({@link GroupKind#getFlagDefaults()}); null for neither. */
+    @SuppressWarnings("unchecked")
+    public <T> @Nullable T getEffectiveFlag(Flag<T> flag) {
+        T own = getFlag(flag);
+        return own != null ? own : (T) kind.getFlagDefaults().get(flag.getKey());
+    }
+
     /** The group's value of {@code flag} for {@code player}: null when the player does not belong or the group does not define it. */
     public <T> @Nullable T resolve(Flag<T> flag, FPlayer player) {
         T value = getFlag(flag);
@@ -927,6 +971,8 @@ public final class Group implements FlagHolder {
             dissolved = true;
         }
         GroupQuitWatch.track(this, false);
+        GroupShareListener.track(this);
+        GroupGlow.refresh(this);
         roster = null;
         kickWhen = null;
         boolean live = host.isLive(this);

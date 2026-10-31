@@ -202,6 +202,16 @@ public final class Platforms {
         return this;
     }
 
+    /**
+     * A platform that can make players glow: a {@link TestGlow} is the {@code IGroupGlowProvider} while the world lives,
+     * read back by {@link TestPlatform#getTestGlow()}. Without it nothing can glow, as on 1.7.10 or Hytale, and
+     * {@code glow-members} has no effect.
+     */
+    public Platforms withGlow() {
+        platform.testGlow = new TestGlow();
+        return this;
+    }
+
     /** What {@code getPlayerState} answers; {@code null} is kept, as the violation a conformance test needs. */
     public Platforms playerStateAccess(IPlayerStateAccess playerState) {
         platform.playerStateConfigured = Boolean.TRUE;

@@ -686,7 +686,7 @@ public final class GroupManager implements GroupProvider {
         failPendingLoads();
         ECDebugModule.GROUPS.debug("{} closed its GroupManager: {} group(s) dropped.", nameOf(owner), groups.size());
         for (Group group : groups.values()) {
-            GroupQuitWatch.track(group, false);
+            group.detach();
         }
         return flush().whenComplete((ignored, error) -> groups.clear());
     }
@@ -756,7 +756,7 @@ public final class GroupManager implements GroupProvider {
         manager.dirty.clear();
         manager.removed.clear();
         for (Group group : manager.groups.values()) {
-            GroupQuitWatch.track(group, false);
+            group.detach();
         }
         manager.groups.clear();
     }
