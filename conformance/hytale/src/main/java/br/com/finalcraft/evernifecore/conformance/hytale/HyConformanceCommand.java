@@ -10,7 +10,9 @@ import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
 import br.com.finalcraft.evernifecore.conformance.MarkerLine;
 import br.com.finalcraft.evernifecore.conformance.RunIds;
 import br.com.finalcraft.evernifecore.conformance.SuiteRunner;
+import br.com.finalcraft.evernifecore.conformance.Verdict;
 import br.com.finalcraft.evernifecore.conformance.hytale.suite.HyPlatformSuite;
+import br.com.finalcraft.evernifecore.conformance.hytale.suite.HyScreenSuite;
 
 import java.io.File;
 import java.util.List;
@@ -23,7 +25,8 @@ import java.util.stream.Collectors;
 /**
  * {@code /ecc run <suite|all> [--player <name>] [--cid <id>]}: runs suites on this server and reports every case to
  * the sender and, as an {@code ENCTEST} marker, to the server's stdout. {@code /ecc list} names the suites;
- * {@code /ecc whoami <token>} is the player-only verb the {@code platform} suite runs through {@code sudo}.
+ * {@code /ecc whoami <token>} is the player-only verb the {@code platform} suite runs through {@code sudo};
+ * {@code /ecc screen <screen> <player>} leaves a screen open for somebody looking with a real client.
  */
 //"ecc" first: on Hytale the core registers only the first alias as a command
 @FinalCMD(aliases = {"ecc", "ecoreconformance"}, permission = "evernifecore.conformance")
@@ -62,6 +65,16 @@ public class HyConformanceCommand {
     @FinalCMD.SubCMD(subcmd = "whoami")
     public void whoami(FPlayer player, @Arg("<token>") String token) {
         HyPlatformSuite.answerWhoami(token, player);
+    }
+
+    @FinalCMD.SubCMD(subcmd = "screen")
+    public void screen(FCommandSender sender, @Arg("<screen>") String screen, @Arg("<player>") FPlayer player) {
+        if (!HyScreenSuite.SCREEN_IDS.contains(screen)) {
+            sender.sendMessage(SuiteRunner.HUMAN_PREFIX + "unknown screen '" + screen + "' - known: " + HyScreenSuite.SCREEN_IDS);
+            return;
+        }
+        HyScreenSuite.open(screen, player).whenComplete((view, refused) -> sender.sendMessage(SuiteRunner.HUMAN_PREFIX + "screen " + screen
+                + (refused == null ? " opened for " + player.getName() : " refused: " + Verdict.describe(refused))));
     }
 
     @FinalCMD.SubCMD(subcmd = "run")

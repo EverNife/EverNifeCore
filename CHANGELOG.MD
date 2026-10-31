@@ -28,7 +28,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   with an editable area is refused there, or opens its `onMissingCapability` alternative. Screens on Hytale run on a
   thread of their own (`EverNifeCore Screens`) and reach the page on the viewer's world thread. Its prompt channel,
   `HyPagePrompt`, asks on a page with a field, OK and Cancel; a parser's refusal shows under the field. Registered at
-  enable; `ScreenWorld.open(dir, platform, ...)` adjusts the test platform (`Platforms::offWorldThread`).
+  enable; `ScreenWorld.open(dir, platform, ...)` adjusts the test platform (`Platforms::offWorldThread`). The
+  `hytale-0.7.1` conformance flavor gains the `screen` suite (8 cases) and `/ecc screen sample <player>`.
 - **NPC references (`br.com.finalcraft.evernifecore.npc`)**: `NpcRef` is `provider:id` (`citizens:12`,
   `fancynpcs:<uuid>`, `znpcsplus:merchant`, `hytale:<uuid>`, lowercased); the `NpcProvider` SPI answers `resolve(entity)`,
   `find(ref)`, `getLocation(ref)`, `getName(ref)` and starts raising clicks only while needed; `Npcs.register(owner,

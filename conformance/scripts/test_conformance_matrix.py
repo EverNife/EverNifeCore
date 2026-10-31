@@ -225,11 +225,22 @@ class CliTest(unittest.TestCase):
         self.assertEqual(cm.case_lines(log), ["regions/gate PASS needed=true"])
         r = cm.FlavorResult("hytale-0.7.1", booted=True)
         after = {"snapshot": {"messages": ["ECC entry denied", "ECC break denied"],
-                              "packets": [{"type": "SpawnParticleSystem", "count": 3}, {"type": "Ping", "count": 9}]}}
-        cm.player_checks({"snapshot": {"packets": [{"type": "SpawnParticleSystem", "count": 1}]}}, after, r)
+                              "packets": [{"type": "SpawnParticleSystem", "count": 3}, {"type": "Ping", "count": 9},
+                                          {"type": "CustomPage", "count": 5}]}}
+        cm.player_checks({"snapshot": {"packets": [{"type": "SpawnParticleSystem", "count": 1},
+                                                   {"type": "CustomPage", "count": 1}]}}, after, r)
         self.assertEqual(r.problems, [])
         self.assertIn("deny-message per hit: 1 message(s) 'ECC break denied' for the hits of deny-message-per-hit", r.notes)
         self.assertIn("outline particle packets sent: 2", r.notes)
+        self.assertTrue(any(n.startswith("screen page packets sent: 4") for n in r.notes), r.notes)
+
+    def test_hytale_player_checks_want_a_page_and_its_update(self):
+        r = cm.FlavorResult("hytale-0.7.1", booted=True)
+        after = {"snapshot": {"messages": ["ECC entry denied", "ECC break denied"],
+                              "packets": [{"type": "SpawnParticleSystem", "count": 2}, {"type": "CustomPage", "count": 1}]}}
+        cm.player_checks({"snapshot": {"packets": []}}, after, r)
+        self.assertEqual(len(r.problems), 1, r.problems)
+        self.assertTrue(r.problems[0].startswith("screen-pages-are-sent: 1 custom-page packet(s)"), r.problems)
 
     def test_refuses_without_the_mctf_variables_before_any_call(self):
         proc = run_script("--dry-run", mctf_env=False)

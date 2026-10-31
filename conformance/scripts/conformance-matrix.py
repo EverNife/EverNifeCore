@@ -49,7 +49,7 @@ HYBRIDS = {"crucible-1.7.10", "mohist-1.12.2", "mohist-1.16.5", "arclight-1.21.1
 # No headless client there: the player is the harness's synthetic one, and every jar goes into mods/
 HYTALE = {"hytale-0.7.1"}
 HYTALE_PLUGIN_ID = "EverNife:ECoreConformance@3.0.1"
-HYTALE_SUITES = 7
+HYTALE_SUITES = 8
 # Texts the Hytale regions suite sets as deny-message, read back from what the player received
 ENTRY_MESSAGE = "ECC entry denied"
 BREAK_MESSAGE = "ECC break denied"
@@ -653,6 +653,12 @@ def particle_packets(snapshot: dict) -> int:
     return sum(int(p.get("count") or 0) for p in packets if p.get("type") == "SpawnParticleSystem")
 
 
+def page_packets(snapshot: dict) -> int:
+    """The custom-page packets the server sent the player so far - a page opened, and every update of one."""
+    packets = (snapshot.get("snapshot") or {}).get("packets") or []
+    return sum(int(p.get("count") or 0) for p in packets if p.get("type") == "CustomPage")
+
+
 def join_synthetic(mctf: Mctf, server_id: str):
     """The harness's synthetic player joins; its harness_ready already waited for the spawn chunk."""
     joined = mctf("mc_exec", server_id=server_id, ops=[{"op": "player_join", "name": BOT}])
@@ -661,7 +667,8 @@ def join_synthetic(mctf: Mctf, server_id: str):
 
 
 def player_checks(before: dict, after: dict, r: FlavorResult):
-    """What only the player's side shows: the deny-entry message, how many deny messages the hits sent, the outline."""
+    """What only the player's side shows: the deny-entry message, how many deny messages the hits sent, the outline,
+    the screen pages."""
     messages = (after.get("snapshot") or {}).get("messages") or []
     if not any(ENTRY_MESSAGE in m for m in messages):
         r.problems.append("deny-entry: %r never reached the player; last messages=%s" % (ENTRY_MESSAGE, messages[-10:]))
@@ -675,6 +682,12 @@ def player_checks(before: dict, after: dict, r: FlavorResult):
     if sent <= 0:
         r.problems.append("outline-is-sent: no particle packet reached the player (packets=%s)"
                           % (after.get("snapshot") or {}).get("packets"))
+    pages = page_packets(after) - page_packets(before)
+    # the synthetic player swallows the pages: that they are DRAWN is only seen with a real client (/ecc screen sample)
+    r.notes.append("screen page packets sent: %d (a page open and its updates; drawing is checked on a real client)" % pages)
+    if pages < 2:
+        r.problems.append("screen-pages-are-sent: %d custom-page packet(s) reached the player, expected an open and an update"
+                          % pages)
 
 
 def run_hytale_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
