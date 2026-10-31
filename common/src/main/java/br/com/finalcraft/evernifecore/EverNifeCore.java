@@ -15,6 +15,7 @@ import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.group.CoreGroups;
 import br.com.finalcraft.evernifecore.logic.core.CoreLogic;
+import br.com.finalcraft.evernifecore.logic.reward.core.CoreRewardPieces;
 import br.com.finalcraft.evernifecore.logic.delivery.Deliveries;
 import br.com.finalcraft.evernifecore.notify.Notifier;
 import br.com.finalcraft.evernifecore.waypoint.Waypoints;
@@ -89,6 +90,7 @@ public class EverNifeCore {
         CoreFlags.registerAll(getEcPluginData());
         CoreLogic.registerAll(getEcPluginData());
         CoreGroups.registerAll(getEcPluginData());
+        CoreRewardPieces.registerAll(getEcPluginData());
         Currencies.registerCore(getEcPluginData());
         Boosters.registerCore(getEcPluginData());
         Deliveries.start();

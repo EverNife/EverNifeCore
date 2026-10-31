@@ -49,17 +49,21 @@ HYBRIDS = {"crucible-1.7.10", "mohist-1.12.2", "mohist-1.16.5", "arclight-1.21.1
 # No headless client there: the player is the harness's synthetic one, and every jar goes into mods/
 HYTALE = {"hytale-0.7.1"}
 HYTALE_PLUGIN_ID = "EverNife:ECoreConformance@3.0.1"
-HYTALE_SUITES = 5
+HYTALE_SUITES = 6
 # Texts the Hytale regions suite sets as deny-message, read back from what the player received
 ENTRY_MESSAGE = "ECC entry denied"
 BREAK_MESSAGE = "ECC break denied"
 SCREENS = ["basic", "hopper", "dispenser", "workbench", "nav", "storage", "prompt", "pager",
            "title-long", "layout", "confirm"]
 SUITE_ORDER = ["items", "nbt", "platform", "version", "commands", "gui", "scheduler", "playerdata",
-               "events", "selection-click", "particles", "text-metrics", "hooks", "nms", "regions", "logic", "actions", "deliveries", "hud"]
+               "events", "selection-click", "particles", "text-metrics", "hooks", "nms", "regions", "logic", "actions", "deliveries", "hud", "groups"]
 HALVES = ("run", "write", "read")
-EXPECTED_ENDS = {"run": 18, "write": 3, "read": 3}
-WAIT_SECONDS = {"run": 900, "write": 180, "read": 180}
+# playerdata runs only in the write/read halves; every other suite ends once in `run`. Derived, so a new suite
+# cannot leave the driver waiting out WAIT_SECONDS for an end that never comes.
+EXPECTED_ENDS = {"run": len(SUITE_ORDER) - 1, "write": 3, "read": 3}
+# The run half takes ~80-90 s on every flavor (2026-10-31); 300 s is a 3x margin, so a missing end costs
+# minutes, not a quarter hour per flavor.
+WAIT_SECONDS = {"run": 300, "write": 180, "read": 180}
 TEXT_LINES = ("iiiiiiiiii", "WWWWWWWWWW")
 BOT = "EccBot"
 PLUGIN_ID = "ECoreConformance@3.0.1"

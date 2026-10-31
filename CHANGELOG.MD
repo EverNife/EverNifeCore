@@ -85,6 +85,14 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   [ttl]` (5 minutes by default), `join <group>` (through the invite when there is one), `leave [group]` (the sender's in a
   ONE kind), `kick`, `promote`/`demote <group> <player> <role>`, `disband`, `info`, `list` and `flag <group> <flag>
   [value|-] [-t ttl]`, every message in EN_US and PT_BR.
+- **Group rewards (`br.com.finalcraft.evernifecore.logic.reward`)**: `Rewards.pay(rule, context)` pays a group
+  (or any `ProgressOwner`) by one `RewardRule` built from registrable pieces - eligibility (`any-member`, `online`,
+  `present`, `role`, `last-actor`, `contribution-at-least`, `contribution-share`, `top`, `condition`), distribution
+  (`each`, `split-equal`, `proportional`, `top-takes-all`, `tiers`), absence (`deliver` as a pending delivery,
+  `forfeit`, `redistribute`), moment and leaver/joiner rules - with the same YAML a quest writes (`RewardRule.parse`).
+  The caller hands in the contributions and the last actor through `RewardContext`; every payment posts a
+  `RewardPaidEvent` and lands in the caller plugin's `AuditLog` (`AuditKind.REWARD_PAID`). Plugins add pieces on
+  `Rewards.registry()` ("reward-piece"). `LogicWorld` registers the pieces with its stock.
 - **Boosters** (`br.com.finalcraft.evernifecore.booster`): `Booster.on(gain).factor/bonus.forOwner(...).lasting/until/during(season)`,
   `BoosterManager.of(plugin, storage)` keeps a plugin's boosters in its own storage (`ec_boosters`; `of(plugin)` in memory),
   `grant` posts a `BoosterGrantedEvent`, a booster past its end stops counting at once and a sweep drops it once a minute.
@@ -311,6 +319,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `Settings.Waypoint.channels` (default `compass`, `particle-path`), `refresh-ticks` (10), `particle-path-length` (16).
 
 ### Fixed
+
+- **`LogicWorld` beside another world**: it puts the stock on a core plugin data the test already built (and leaves it
+  there when it closes), and adds or takes only its own players on the platform's online list instead of replacing it,
+  so a `GroupWorld` (or `RegionWorld`) open next to it keeps its players.
 
 - **Player tab-complete no longer reveals vanished players**: the `FPlayer` and Bukkit `Player` parsers, and the
   online form of the player-data and `UUID` parsers, list only the players the sender can see.
