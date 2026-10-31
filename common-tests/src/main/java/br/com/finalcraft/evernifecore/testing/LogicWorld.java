@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.booster.BoosterManager;
 import br.com.finalcraft.evernifecore.booster.Boosters;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.cooldown.Cooldowns;
@@ -30,6 +31,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +40,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 /**
  * One plugin that owns logic, for a test: its plugin data, an in-memory storage that counts calls, contexts already
  * carrying its {@link Caller}, players that are online on the platform, the core's stock types registered, and the
- * clock and scheduler of {@link TestClock}, the booster engine with its stock sources, the pending deliveries ({@link #deliveries}),
+ * clock and scheduler of {@link TestClock} (shared with a {@code RegionWorld} or {@code GroupWorld} open beside it, as are the
+ * platform's online players and a core plugin data the test built), the booster engine with its stock sources, the pending deliveries ({@link #deliveries}),
  * an audit log ({@link #auditLog}) and the lines a trace of a player would send ({@link #trace}). Needs a platform with {@code ignoringPlatformRegistrations()} and
  * {@code mainThreadInline()}, {@code platformProviderId(...)} for a type that names platforms or capabilities (and
  * {@code playerState()} for what reads a player's state); {@code offWorldThread()} proves the dispatch of effects.
@@ -56,7 +59,7 @@ public final class LogicWorld implements AutoCloseable {
 
     private static final Object STOCK_LOCK = new Object();
     private static int stockUsers;
-    private static boolean stockRegisteredHere;
+    private static boolean coreBuiltHere;
 
     private final ECPluginData owner;
     private final String ownerName;
@@ -174,7 +177,7 @@ public final class LogicWorld implements AutoCloseable {
     public TestFPlayerSender player(String name) {
         TestFPlayerSender player = new TestFPlayerSender(name).at("world", 0, 64, 0);
         players.add(player);
-        refreshOnline();
+        refreshOnline(Collections.<FPlayer>emptyList());
         return player;
     }
 
@@ -182,11 +185,20 @@ public final class LogicWorld implements AutoCloseable {
     public void quit(TestFPlayerSender player) {
         player.online(false);
         players.remove(player);
-        refreshOnline();
+        refreshOnline(Collections.<FPlayer>singletonList(player));
     }
 
-    private void refreshOnline() {
-        platform().setOnlinePlayers(players);
+    /** Adds or takes this world's players on the platform's list, leaving the players another world put there. */
+    private void refreshOnline(List<FPlayer> leaving) {
+        TestPlatform platform = platform();
+        List<FPlayer> online = platform.onlinePlayers == null ? new ArrayList<FPlayer>() : new ArrayList<>(platform.onlinePlayers);
+        online.removeAll(leaving);
+        for (FPlayer player : players) {
+            if (!online.contains(player)) {
+                online.add(player);
+            }
+        }
+        platform.setOnlinePlayers(online);
     }
 
     private static TestPlatform platform() {
@@ -244,8 +256,9 @@ public final class LogicWorld implements AutoCloseable {
         traceWatchers.forEach(LogicTrace::stop);
         subscriptions.forEach(ECEventSubscription::unsubscribe);
         if (!players.isEmpty()) {
+            List<FPlayer> leaving = new ArrayList<>(players);
             players.clear();
-            refreshOnline();
+            refreshOnline(leaving);
         }
         Cooldowns.closeOwnedBy(owner);
         CustomVariables.closeOwnedBy(owner);
@@ -266,18 +279,20 @@ public final class LogicWorld implements AutoCloseable {
     private static void acquireStock(Path dataFolder) {
         synchronized (STOCK_LOCK) {
             if (stockUsers++ == 0 && !Conditions.registry().find("evernifecore:all").isPresent()) {
-                ECPluginData core = Plugins.fakeCore(dataFolder.resolve("evernifecore").toFile());
+                //a core the test (or another world) already built keeps its identity and its lifetime: the stock goes on it
+                ECPluginData existing = ECPluginManager.getECPluginsMap().get(Plugins.CORE);
+                ECPluginData core = existing != null ? existing : Plugins.fakeCore(dataFolder.resolve("evernifecore").toFile());
                 CoreLogic.registerAll(core);
                 Boosters.registerCore(core);
-                stockRegisteredHere = true;
+                coreBuiltHere = existing == null;
             }
         }
     }
 
     private static void releaseStock() {
         synchronized (STOCK_LOCK) {
-            if (--stockUsers == 0 && stockRegisteredHere) {
-                stockRegisteredHere = false;
+            if (--stockUsers == 0 && coreBuiltHere) {
+                coreBuiltHere = false;
                 Plugins.forget(Plugins.CORE); //its types leave every registry with it
             }
         }

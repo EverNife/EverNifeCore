@@ -312,6 +312,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **`LogicWorld` beside another world**: it puts the stock on a core plugin data the test already built (and leaves it
+  there when it closes), and adds or takes only its own players on the platform's online list instead of replacing it,
+  so a `GroupWorld` (or `RegionWorld`) open next to it keeps its players.
+
 - **Player tab-complete no longer reveals vanished players**: the `FPlayer` and Bukkit `Player` parsers, and the
   online form of the player-data and `UUID` parsers, list only the players the sender can see.
 - **`RegexReplacer` manipulators keep a deterministic order**: longer prefix first, then more `_`, then registration
