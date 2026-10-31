@@ -22,6 +22,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   rows: `RemoteSignal.LIVE` (a cache-sync covers the collection), `CONFLICT_ONLY` (a shared network backend without one:
   only the next flush conflict tells) or `NONE` (file, H2, memory). A plugin running on several servers decides how
   careful a debit must be by it.
+- `PlayerController.findSections(sectionClass, uuids)`: the stored rows of a known set of players in ONE backend read by
+  key, never filling the cache (the key needs no `@Indexed`, unlike `querySections`) - a clan page over its members.
 - **NPC references (`br.com.finalcraft.evernifecore.npc`)**: `NpcRef` is `provider:id` (`citizens:12`,
   `fancynpcs:<uuid>`, `znpcsplus:merchant`, `hytale:<uuid>`, lowercased); the `NpcProvider` SPI answers `resolve(entity)`,
   `find(ref)`, `getLocation(ref)`, `getName(ref)` and starts raising clicks only while needed; `Npcs.register(owner,

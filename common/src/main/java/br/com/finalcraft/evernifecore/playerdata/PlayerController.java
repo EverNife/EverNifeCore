@@ -2015,6 +2015,23 @@ public class PlayerController {
     }
 
     /**
+     * The stored rows of these players, in ONE backend read by key, WITHOUT loading them into the cache - what a page
+     * over a known set of players (a clan's members) asks instead of one {@code getPDSection} per player. The key needs
+     * no {@code @Indexed}. A player with no stored row is simply absent; rows come back DETACHED, as from
+     * {@link #querySections}. Waits for the controller to be ready; fails before bootstrap.
+     */
+    public static <T extends PDSection> CompletableFuture<List<T>> findSections(Class<T> cls, Collection<UUID> uuids){
+        PlayerController controller = INSTANCE;
+        if (controller == null) return failedFuture(notBootstrapped());
+        List<UUID> keys = new ArrayList<>(uuids);
+        return controller.ready.thenCompose(v -> {
+            PDSectionBinding<T> binding = controller.getBinding(cls);
+            if (binding == null) return failedFuture(notRegisteredPDSection(cls));
+            return keys.isEmpty() ? CompletableFuture.completedFuture(new ArrayList<>()) : binding.getRepository().findMany(keys);
+        });
+    }
+
+    /**
      * Every stored row of a {@link SectionLifecycle#PRELOADED PRELOADED} section, from memory, synchronous,
      * any thread - the whole collection is in the cache by contract, so this IS everybody. Transient defaults
      * (seeded, never dirtied) are left out. Any other lifecycle throws: its cache holds only the players this
