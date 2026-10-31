@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.screen.ScreenView;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -215,6 +216,16 @@ public final class PromptRegistry {
         if (session != null) {
             session.decide(PromptResult.quit());
             end(session, false);
+        }
+    }
+
+    /**
+     * Internal - ends every question still out as {@code QUIT}, screens untouched. For a test world tearing down after a
+     * screen leaked one; a released screen already ends its own through {@link #abandon}. Screen thread.
+     */
+    public void abandonAll() {
+        for (ScreenView view : new ArrayList<>(pending.keySet())) {
+            abandon(view);
         }
     }
 

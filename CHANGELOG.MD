@@ -361,7 +361,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `icon(ItemSpec)`; `ScreenRenderer.getPromptChannel()` is gone (the registry picks the channel), and
   `ScreenScheduler.ticksOf(millis)` converts a timeout to the renderer's ticks. Test engine: `ScreenWorld.prompts()`
   (`FakePromptChannels`, one fake `CHAT` by default) replaces the recording renderer's channel, and
-  `ScreenWorld.close()` fails while a question is still out. ECNmsUtils 2.2.0.
+  `ScreenWorld.close()` fails while a question is still out (after ending it, `PromptRegistry.abandonAll()`). ECNmsUtils
+  2.2.0.
 - **The gui framework is the `screen` package of `:common`.** `Gui` is `Screen`, `GuiView` is `ScreenView`, `Icon` carries
   an `ItemSpec` and only looks like something; what a slot does is a `Button` (`screen.icon(l -> l.X)` answers one), a
   `Label`, a `PagedList`, an `InputField`, a `ProgressBar` or a dialogue `Choice`, each with a stable id. A click runs

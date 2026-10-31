@@ -211,6 +211,7 @@ public final class ScreenWorld implements AutoCloseable {
             leaked.add(PromptRegistry.get().getPendingCount() + " question(s) still out");
         }
         Screens.closeAll();
+        PromptRegistry.get().abandonAll(); //a question a released screen failed to end would answer the next test
         for (EventSource source : ActionEvents.all()) {
             if (EventSourceUsage.get().isNeeded(source)) {
                 leaked.add("source " + source + " still needed");
