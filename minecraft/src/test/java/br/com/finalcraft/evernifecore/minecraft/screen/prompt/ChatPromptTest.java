@@ -14,7 +14,8 @@ import br.com.finalcraft.evernifecore.screen.MutableState;
 import br.com.finalcraft.evernifecore.screen.Screen;
 import br.com.finalcraft.evernifecore.screen.ScreenView;
 import br.com.finalcraft.evernifecore.screen.Screens;
-import br.com.finalcraft.evernifecore.screen.prompt.Prompt;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptRegistry;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptSpec;
 import br.com.finalcraft.evernifecore.screen.prompt.PromptResult;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.bukkit.Bukkit;
@@ -60,7 +61,7 @@ class ChatPromptTest {
     @TempDirNobodyCleans
     Path tempDir;
 
-    /** Short enough that the wait really does run out inside a test, long enough not to race one. */
+    /** One tick of the screen's clock - the shortest wait there is. */
     private static final Duration SOON = Duration.ofMillis(50L);
 
     private BukkitScreenWorld world;
@@ -81,8 +82,7 @@ class ChatPromptTest {
 
     @AfterEach
     void teardown() {
-        //a question left outstanding keeps a task on the core's real scheduler, which would fire into a
-        //world that no longer exists
+        //a chat wait left behind would hold the Player into the next test
         for (ExpectedChat outstanding : waitsOn()) {
             outstanding.cancel();
         }
@@ -150,7 +150,7 @@ class ChatPromptTest {
         AtomicReference<Thread> answeredOn = new AtomicReference<>();
         List<Boolean> answeredAsMainThread = new ArrayList<>();
         ScreenView view = openTheScreenThatAsks(context -> context
-                .ask(Prompt.of("§eType the new price:").parse(Double::parseDouble))
+                .ask(PromptSpec.of("§eType the new price:").parse(Double::parseDouble))
                 .thenAccept(price -> {
                     answeredOn.set(Thread.currentThread());
                     answeredAsMainThread.add(Bukkit.getServer().isPrimaryThread());
@@ -192,7 +192,7 @@ class ChatPromptTest {
     void anAnswerThatDoesNotParseIsPutAgainWithoutReachingPublicChat() {
         List<Integer> amounts = new ArrayList<>();
         ScreenView view = openTheScreenThatAsks(context -> context
-                .ask(Prompt.of("§eHow many?").parse(input -> {
+                .ask(PromptSpec.of("§eHow many?").parse(input -> {
                     if (!input.matches("[0-9]+")) {
                         throw new IllegalArgumentException("§cThat is not a number.");
                     }
@@ -232,8 +232,8 @@ class ChatPromptTest {
     void theCancelWordCallsTheQuestionOffAndGivesTheScreenBack() {
         AtomicInteger timedOut = new AtomicInteger();
         List<CompletableFuture<PromptResult<String>>> outcomes = new ArrayList<>();
-        ScreenView view = openTheScreenThatAsks(context -> outcomes.add(BukkitChatPromptChannel.get()
-                .ask(context.getView(), Prompt.of("§eName it, or 'cancel':")
+        ScreenView view = openTheScreenThatAsks(context -> outcomes.add(PromptRegistry.get()
+                .ask(context.getView(), PromptSpec.of("§eName it, or 'cancel':")
                         .cancelWord("cancel")
                         .onTimeout(screen -> timedOut.incrementAndGet()))));
         counter.set(4);
@@ -258,8 +258,8 @@ class ChatPromptTest {
     void aQuestionNobodyAnsweredRunsOutAndGivesTheScreenBack() {
         List<ScreenView> timedOutOn = new ArrayList<>();
         List<CompletableFuture<PromptResult<String>>> outcomes = new ArrayList<>();
-        ScreenView view = openTheScreenThatAsks(context -> outcomes.add(BukkitChatPromptChannel.get()
-                .ask(context.getView(), Prompt.of("§eName it:")
+        ScreenView view = openTheScreenThatAsks(context -> outcomes.add(PromptRegistry.get()
+                .ask(context.getView(), PromptSpec.of("§eName it:")
                         .timeout(SOON)
                         .onTimeout(timedOutOn::add))));
         counter.set(3);
@@ -268,8 +268,9 @@ class ChatPromptTest {
         int containersBefore = containersOpened();
         assertEquals(1, waitsOn().size(), "there is a question outstanding for the clock to run out on");
 
-        //the wait was armed on the core's own scheduler, so a real thread is what ends it
-        PromptResult<String> outcome = world.awaitOnTheClock(outcomes.get(0), 5_000L);
+        //the registry times the question on the screen's clock: one tick for SOON
+        world.advanceTicks(1);
+        PromptResult<String> outcome = outcomes.get(0).getNow(null);
 
         assertEquals(PromptResult.Kind.TIMEOUT, outcome.getKind());
         assertEquals(Arrays.asList(view), timedOutOn, "the handler is told which screen ran out");
@@ -281,11 +282,12 @@ class ChatPromptTest {
     @Test
     void aQuestionThatRanOutStopsTheCoreWaitingForAnAnswer() {
         List<CompletableFuture<PromptResult<String>>> outcomes = new ArrayList<>();
-        openTheScreenThatAsks(context -> outcomes.add(BukkitChatPromptChannel.get()
-                .ask(context.getView(), Prompt.of("§eName it:").timeout(SOON))));
+        openTheScreenThatAsks(context -> outcomes.add(PromptRegistry.get()
+                .ask(context.getView(), PromptSpec.of("§eName it:").timeout(SOON))));
         askTheQuestion();
 
-        world.awaitOnTheClock(outcomes.get(0), 5_000L);
+        world.advanceTicks(1);
+        assertEquals(PromptResult.Kind.TIMEOUT, outcomes.get(0).getNow(null).getKind());
 
         assertFalse(ChatExpectationListener.get().hasAnyExpectedChat(player.asPlayer()),
                 "a wait the clock ended and nobody told the listener about would hold the Player and "
@@ -307,7 +309,7 @@ class ChatPromptTest {
             component.render(slots -> slots.icon(0, iconOf(new ItemStack(Material.IRON_INGOT))));
         });
         screen.icon(1, iconOf(new ItemStack(Material.ARROW))).onClick(context -> outcomes.add(
-                BukkitChatPromptChannel.get().ask(context.getView(), Prompt.of("§eName it:").timeout(SOON))));
+                PromptRegistry.get().ask(context.getView(), PromptSpec.of("§eName it:").timeout(SOON))));
         ScreenView view = world.open(screen, player);
         assertEquals(1, world.getScheduler().getPeriodicTaskCount());
 
@@ -317,7 +319,8 @@ class ChatPromptTest {
         //from here on the server will not open a window, so giving the screen back is going to fail
         player.refuseOpens(true);
 
-        PromptResult<String> outcome = world.awaitOnTheClock(outcomes.get(0), 5_000L);
+        world.advanceTicks(1);
+        PromptResult<String> outcome = outcomes.get(0).getNow(null);
 
         assertEquals(PromptResult.Kind.TIMEOUT, outcome.getKind());
         assertTrue(view.isClosed(), "a screen that cannot be given back is torn down, not left set aside "
@@ -332,8 +335,8 @@ class ChatPromptTest {
         AtomicInteger quit = new AtomicInteger();
         AtomicInteger timedOut = new AtomicInteger();
         List<CompletableFuture<PromptResult<String>>> outcomes = new ArrayList<>();
-        ScreenView view = openTheScreenThatAsks(context -> outcomes.add(BukkitChatPromptChannel.get()
-                .ask(context.getView(), Prompt.of("§eName it:")
+        ScreenView view = openTheScreenThatAsks(context -> outcomes.add(PromptRegistry.get()
+                .ask(context.getView(), PromptSpec.of("§eName it:")
                         .onQuit(quit::incrementAndGet)
                         .onTimeout(screen -> timedOut.incrementAndGet()))));
         askTheQuestion();
@@ -359,10 +362,10 @@ class ChatPromptTest {
         List<String> second = new ArrayList<>();
         List<CompletableFuture<String>> asked = new ArrayList<>();
         ScreenView view = openTheScreenThatAsks(context -> {
-            CompletableFuture<String> calledOff = context.ask(Prompt.of("§eFirst question:"));
+            CompletableFuture<String> calledOff = context.ask(PromptSpec.of("§eFirst question:"));
             calledOff.thenAccept(first::add);
             asked.add(calledOff);
-            CompletableFuture<String> live = context.ask(Prompt.of("§eSecond question:"));
+            CompletableFuture<String> live = context.ask(PromptSpec.of("§eSecond question:"));
             live.thenAccept(second::add);
             asked.add(live);
         });

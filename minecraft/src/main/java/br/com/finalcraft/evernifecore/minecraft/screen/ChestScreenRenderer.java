@@ -4,7 +4,6 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.color.ColorEnum;
 import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFPlayer;
-import br.com.finalcraft.evernifecore.minecraft.screen.prompt.BukkitChatPromptChannel;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.screen.Grid;
@@ -14,7 +13,6 @@ import br.com.finalcraft.evernifecore.screen.ScreenRenderer;
 import br.com.finalcraft.evernifecore.screen.ScreenScheduler;
 import br.com.finalcraft.evernifecore.screen.ScreenSurface;
 import br.com.finalcraft.evernifecore.screen.ScreenView;
-import br.com.finalcraft.evernifecore.screen.prompt.PromptChannel;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.bukkit.Bukkit;
@@ -109,12 +107,6 @@ public final class ChestScreenRenderer implements ScreenRenderer {
     @Override
     public ScreenScheduler getScheduler() {
         return BukkitScreenScheduler.INSTANCE;
-    }
-
-    @Nullable
-    @Override
-    public PromptChannel getPromptChannel() {
-        return BukkitChatPromptChannel.get();
     }
 
     // -----------------------------------------------------------------------------------------------------------------

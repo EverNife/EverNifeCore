@@ -10,9 +10,7 @@ import jakarta.annotation.Nullable;
  * The container the chest renderer asks the server for. A screen picks one by its grid: rows of nine are a
  * {@link #CHEST}, and {@code ChestKind.HOPPER.newScreen()} is a screen over a hopper's window.
  *
- * <p>Every constant maps to a plain vanilla container type, so all of them work from 1.7.10 up without a line of NMS.
- * Anvil, enchanting table and cartography are deliberately absent: they would need a per-version NMS matrix the 1.7.10
- * floor makes unpayable. Free text goes through the chat prompt instead.</p>
+ * <p>Every constant maps to a plain vanilla container type, so all of them work from 1.7.10 up without a line of NMS.</p>
  *
  * <p>The size here is the nominal one; the window the server creates is the authority - {@link #BREWING} grew a fuel
  * slot in 1.9, and the slot past the grid is simply never drawn.</p>

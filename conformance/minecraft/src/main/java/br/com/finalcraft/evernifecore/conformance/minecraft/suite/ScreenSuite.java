@@ -24,7 +24,6 @@ import br.com.finalcraft.evernifecore.minecraft.screen.BukkitScreenScheduler;
 import br.com.finalcraft.evernifecore.minecraft.screen.BukkitScreenSurface;
 import br.com.finalcraft.evernifecore.minecraft.screen.ChestKind;
 import br.com.finalcraft.evernifecore.minecraft.screen.ChestScreenRenderer;
-import br.com.finalcraft.evernifecore.minecraft.screen.prompt.BukkitChatPromptChannel;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.ranking.RankedList;
@@ -49,8 +48,10 @@ import br.com.finalcraft.evernifecore.screen.ScreenNavigation;
 import br.com.finalcraft.evernifecore.screen.ScreenView;
 import br.com.finalcraft.evernifecore.screen.Screens;
 import br.com.finalcraft.evernifecore.screen.Slots;
-import br.com.finalcraft.evernifecore.screen.prompt.Prompt;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptKind;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptRegistry;
 import br.com.finalcraft.evernifecore.screen.prompt.PromptResult;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptSpec;
 import br.com.finalcraft.evernifecore.time.Window;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -163,8 +164,8 @@ public final class ScreenSuite implements ConformanceSuite {
         screen("ranking", 36, "", probe -> named(RankingScreen.of(RankingRequest.of(threeRanked())), "ranking", probe));
         screen("input", 27, "", probe -> {
             Screen<InputLayout> screen = named(Screen.of(InputLayout.class), "input", probe);
-            screen.input(l -> l.FIELD).onInput(Prompt.of("§e[ECoreConformance] screen/input - no answer needed, it times out")
-                    .timeout(Duration.ofSeconds(2)), (view, typed) -> probe.answers.add(typed));
+            screen.input(l -> l.FIELD).onInput(PromptSpec.of("§e[ECoreConformance] screen/input - no answer needed, it times out")
+                    .prefer(PromptKind.CHAT).timeout(Duration.ofSeconds(2)), (view, typed) -> probe.answers.add(typed));
             return screen;
         });
         screen("progress", 27, "", probe -> {
@@ -305,8 +306,9 @@ public final class ScreenSuite implements ConformanceSuite {
             }
             case "prompt": {
                 CompletableFuture<String> done = new CompletableFuture<>();
-                CompletableFuture<PromptResult<String>> result = BukkitChatPromptChannel.get().ask(view,
-                        Prompt.of("§e[ECoreConformance] screen/prompt - no answer needed, it times out").timeout(Duration.ofSeconds(2)));
+                CompletableFuture<PromptResult<String>> result = PromptRegistry.get().ask(view,
+                        PromptSpec.of("§e[ECoreConformance] screen/prompt - no answer needed, it times out")
+                                .prefer(PromptKind.CHAT).timeout(Duration.ofSeconds(2)));
                 after(2, done, () -> expect(problems, view.isSuspended(), "the screen was not set aside while asking"));
                 result.whenComplete((asked, threw) -> after(2, done, () -> {
                     expect(problems, asked != null && asked.getKind() == PromptResult.Kind.TIMEOUT, "prompt ended " + asked);
@@ -421,8 +423,9 @@ public final class ScreenSuite implements ConformanceSuite {
         return screen;
     }
 
-    private static Prompt<String> question() {
-        return Prompt.of("§e[ECoreConformance] type anything, or let it time out").timeout(Duration.ofSeconds(5));
+    private static PromptSpec<String> question() {
+        return PromptSpec.of("§e[ECoreConformance] type anything, or let it time out").prefer(PromptKind.CHAT)
+                .timeout(Duration.ofSeconds(5));
     }
 
     private static RankedList<String> threeRanked() {

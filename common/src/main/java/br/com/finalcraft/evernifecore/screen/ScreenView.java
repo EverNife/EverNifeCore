@@ -15,7 +15,7 @@ import br.com.finalcraft.evernifecore.logic.Caller;
 import br.com.finalcraft.evernifecore.logic.Condition;
 import br.com.finalcraft.evernifecore.logic.Conditions;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
-import br.com.finalcraft.evernifecore.screen.prompt.PromptChannel;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptRegistry;
 import br.com.finalcraft.evernifecore.screen.prompt.PromptSpec;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -691,20 +691,13 @@ public final class ScreenView {
     // -----------------------------------------------------------------------------------------------------------------
 
     /**
-     * Asks the viewer through the renderer's {@link PromptChannel}: completes with the value, or is cancelled when no
-     * value came. Fails at once, saying so, on a renderer that has no channel. Any thread.
+     * Asks the viewer through {@link PromptRegistry}: completes with the value, or is cancelled when no value came
+     * (cancelled, timed out, left, or no channel serves the viewer). Any thread.
      */
     @Nonnull
     public <T> CompletableFuture<T> ask(@Nonnull PromptSpec<T> spec) {
         CompletableFuture<T> answered = new CompletableFuture<>();
-        PromptChannel channel = renderer.getPromptChannel();
-        if (channel == null) {
-            answered.completeExceptionally(new IllegalStateException("The renderer [" + renderer.getId() + "] that draws "
-                    + screen.describe() + " for " + viewerName + " has no way to ask for a value. Draw the field on a "
-                    + "renderer with TEXT_INPUT or a prompt channel, or ask with a button per answer."));
-            return answered;
-        }
-        channel.ask(this, spec).thenAccept(result -> {
+        PromptRegistry.get().ask(this, spec).thenAccept(result -> {
             if (result.hasValue()) {
                 answered.complete(result.getValue());
             } else {
@@ -821,6 +814,8 @@ public final class ScreenView {
                 EverNifeCore.getLog().severe("The window of a screen failed to give back what it held for [{}]", viewerName, e);
             }
         }
+        //before onClose, so a handler that opens another screen finds no question left over from this one
+        PromptRegistry.get().abandon(this);
         try {
             fireOnClose(reason);
         } catch (Throwable e) {

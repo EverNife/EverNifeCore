@@ -13,7 +13,7 @@ public final class PromptResult<T> {
     public enum Kind {
         /** The player answered, and the answer parsed. */
         VALUE,
-        /** The player said the cancel word. */
+        /** The player called it off (the cancel word, the window closed), a second question replaced it, or no channel could ask. */
         CANCELLED,
         /** Nobody answered in time. */
         TIMEOUT,

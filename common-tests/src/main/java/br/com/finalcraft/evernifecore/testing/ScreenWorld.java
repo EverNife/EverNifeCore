@@ -16,6 +16,8 @@ import br.com.finalcraft.evernifecore.screen.Screen;
 import br.com.finalcraft.evernifecore.screen.ScreenRenderer;
 import br.com.finalcraft.evernifecore.screen.ScreenView;
 import br.com.finalcraft.evernifecore.screen.Screens;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptKind;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptRegistry;
 import jakarta.annotation.Nonnull;
 
 import java.nio.file.Path;
@@ -45,6 +47,7 @@ public final class ScreenWorld implements AutoCloseable {
     private final ECPluginData owner;
     private final TickScheduler ticks;
     private final RecordingRenderer renderer;
+    private final FakePromptChannels prompts;
     private final List<FPlayer> viewers = new ArrayList<>();
     private final List<ECEventSubscription<?>> subscriptions = new ArrayList<>();
     private final Map<Class<?>, List<?>> recorded = new HashMap<>();
@@ -65,8 +68,10 @@ public final class ScreenWorld implements AutoCloseable {
         this.ticks = new TickScheduler();
         this.ticker = ticks::advanceTicks;
         this.renderer = new RecordingRenderer(ticks, capabilities);
-        this.answerer = renderer::answer;
         Screens.registerRenderer(owner, renderer);
+        this.prompts = new FakePromptChannels(owner, renderer);
+        prompts.register(PromptKind.CHAT, true);
+        this.answerer = prompts::type;
     }
 
     /** A world whose recording renderer has {@code capabilities}; none by default. */
@@ -114,7 +119,16 @@ public final class ScreenWorld implements AutoCloseable {
         return this;
     }
 
-    /** How {@link #answerPrompt(String)} answers - another renderer's channel, for a renderer under conformance. */
+    /**
+     * The fake prompt channels of the {@code test} plugin - one {@link PromptKind#CHAT} serving everybody to begin with.
+     * {@link #close()} fails when a question is still out.
+     */
+    @Nonnull
+    public FakePromptChannels prompts() {
+        return prompts;
+    }
+
+    /** How {@link #answerPrompt(String)} answers - another platform's channel, for a renderer under conformance. */
     @Nonnull
     public ScreenWorld answeringPromptsWith(@Nonnull Consumer<String> answerer) {
         this.answerer = answerer;
@@ -193,6 +207,9 @@ public final class ScreenWorld implements AutoCloseable {
         if (Screens.getOpenCount() > 0) {
             leaked.add(Screens.getOpenCount() + " open view(s)");
         }
+        if (PromptRegistry.get().getPendingCount() > 0) {
+            leaked.add(PromptRegistry.get().getPendingCount() + " question(s) still out");
+        }
         Screens.closeAll();
         for (EventSource source : ActionEvents.all()) {
             if (EventSourceUsage.get().isNeeded(source)) {
@@ -201,14 +218,16 @@ public final class ScreenWorld implements AutoCloseable {
         }
         subscriptions.forEach(ECEventSubscription::unsubscribe);
         Screens.unregisterRenderers(owner);
+        prompts.clear();
         Plugins.forget(OWNER);
         try {
             world.close();
         } finally {
             if (!leaked.isEmpty()) {
                 throw new AssertionError("The test left " + leaked + " behind. Close every view it opened (view.close(), "
-                        + "then advance a tick) before the world closes - a view holds its sources needed and its "
-                        + "tasks alive until it is released.");
+                        + "then advance a tick) and end every question it asked (answer it, or prompts().closeWindow() and "
+                        + "advance a tick) before the world closes - a view holds its sources needed and its tasks alive "
+                        + "until it is released.");
             }
         }
     }

@@ -10,7 +10,6 @@ import br.com.finalcraft.evernifecore.screen.ScreenScheduler;
 import br.com.finalcraft.evernifecore.screen.ScreenSurface;
 import br.com.finalcraft.evernifecore.screen.ScreenView;
 import br.com.finalcraft.evernifecore.screen.Screens;
-import br.com.finalcraft.evernifecore.screen.prompt.PromptChannel;
 import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -101,9 +100,9 @@ public final class HyPageRenderer implements ScreenRenderer {
         return scheduler;
     }
 
+    /** The page channel this renderer's pages ask through; the platform registers it in {@code PromptRegistry}. */
     @Nonnull
-    @Override
-    public PromptChannel getPromptChannel() {
+    public HyPagePrompt getPromptChannel() {
         return prompts;
     }
 
@@ -115,7 +114,6 @@ public final class HyPageRenderer implements ScreenRenderer {
         UUID viewerId = event.getPlayerRef().getUuid();
         scheduler.run(() -> {
             shown.remove(viewerId);
-            prompts.viewerGone(viewerId);
             Screens.viewerGone(viewerId, CloseReason.DISCONNECTED);
         });
     }
@@ -144,6 +142,13 @@ public final class HyPageRenderer implements ScreenRenderer {
                 scheduler.later(0L, refused);
             }
         }, () -> scheduler.later(0L, refused));
+    }
+
+    /** Closes {@code page} when it is still the one {@code viewer} was last shown - nothing took its place. Screen thread. */
+    void closeIfShown(@Nonnull FPlayer viewer, @Nonnull String world, @Nonnull HyPage page) {
+        if (shown.remove(viewer.getUniqueId(), page)) {
+            onWorldThread(world, () -> transport.close(viewer, page), () -> { });
+        }
     }
 
     /** Runs {@code task} on {@code world}'s thread; {@code failed} when that world has no thread any more. */

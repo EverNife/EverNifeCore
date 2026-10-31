@@ -24,6 +24,7 @@ import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
 import br.com.finalcraft.evernifecore.region.session.RegionTicker;
 import br.com.finalcraft.evernifecore.screen.Screens;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptRegistry;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 import com.hypixel.hytale.event.EventPriority;
 import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
@@ -90,6 +91,7 @@ public class EverNifeCoreHytalePlugin extends ECHytalePlugin {
         ECListener.register(ecPluginData, PlayerLoginListener.class);
         HyPageRenderer pageRenderer = new HyPageRenderer();
         Screens.registerRenderer(ecPluginData, pageRenderer);
+        PromptRegistry.get().register(ecPluginData, pageRenderer.getPromptChannel());
         getEventRegistry().registerGlobal(PlayerDisconnectEvent.class, pageRenderer::onDisconnect);
 
         //the region index follows the worlds; LAST, so a world another plugin vetoed is not announced

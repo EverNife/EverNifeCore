@@ -31,6 +31,7 @@ import br.com.finalcraft.evernifecore.group.GroupManager;
 import br.com.finalcraft.evernifecore.group.Groups;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.screen.Screens;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptRegistry;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 
 /**
@@ -153,6 +154,7 @@ public interface IECPluginBootstrap {
         AuditLog.closeOwnedBy(getPluginData());
         RankedLists.closeOwnedBy(getPluginData());
         Screens.closeOwnedBy(getPluginData());
+        PromptRegistry.get().unregisterAll(getPluginData());
         LocaleOverlay.closeOwnedBy(getPluginData());
         Notifier.get().closeOwnedBy(getPluginData());
         Waypoints.get().hideOwnedBy(getPluginData());

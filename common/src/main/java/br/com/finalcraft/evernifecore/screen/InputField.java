@@ -8,7 +8,7 @@ import java.util.function.BiConsumer;
 /**
  * A field the viewer types a value into. A renderer with {@link RendererCapability#TEXT_INPUT} draws it inside the
  * window; every other renderer turns the click into {@link ClickContext#ask(PromptSpec)} - the screen is set aside, the
- * renderer's {@code PromptChannel} asks, and the screen comes back with its state.
+ * {@code PromptRegistry} asks through a channel, and the screen comes back with its state.
  */
 public class InputField extends Button {
 

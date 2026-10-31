@@ -49,6 +49,11 @@ final class HyScreenScheduler implements ScreenScheduler {
         return Thread.currentThread() == thread;
     }
 
+    @Override
+    public long ticksOf(long millis) {
+        return Math.max(1L, millis * HyFCScheduler.INSTANCE.getMainWorldTps() / 1000L);
+    }
+
     private static long millisOf(long ticks) {
         return HyFCScheduler.ticksToMillis(Math.max(0L, ticks), HyFCScheduler.INSTANCE.getMainWorldTps());
     }

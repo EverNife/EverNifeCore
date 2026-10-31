@@ -21,8 +21,7 @@ import br.com.finalcraft.evernifecore.screen.ScreenSurface;
 import br.com.finalcraft.evernifecore.screen.ScreenView;
 import br.com.finalcraft.evernifecore.screen.Screens;
 import br.com.finalcraft.evernifecore.screen.Slots;
-import br.com.finalcraft.evernifecore.screen.prompt.Prompt;
-import br.com.finalcraft.evernifecore.screen.prompt.PromptChannel;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptSpec;
 import br.com.finalcraft.evernifecore.types.TypeDescriptor;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -38,8 +37,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * The suite every {@link ScreenRenderer} passes: one named scenario per promise the view makes and the renderer has to
  * keep, each answering a failure line or nothing. {@code check(renderer, world)} returns the failures - an empty list
- * is a conforming renderer. A scenario the renderer cannot take part in (no prompt channel, no TITLE_CHANGE, already
- * has STORAGE_SLOTS) is skipped, not failed.
+ * is a conforming renderer. A scenario the renderer cannot take part in (no TITLE_CHANGE, already has STORAGE_SLOTS)
+ * is skipped, not failed. The prompt scenario asks through whatever channel {@code world.answerPrompt} answers.
  *
  * <p>The renderer must be registered in {@code world} already. For the run it is swapped for a probe under the same id
  * that wraps each window it opens, which is how the suite counts {@code apply} calls on any renderer; the original is
@@ -74,7 +73,7 @@ public final class RendererConformance {
             run(failures, "patch-touches-only-dirty-elements", () -> patchTouchesOnlyDirty(world, probe));
             run(failures, "close-runs-onclose-once", () -> closeRunsOnCloseOnce(world));
             run(failures, "close-posts-event-with-reason", () -> closePostsEvent(world));
-            run(failures, "prompt-sets-aside-and-restores", () -> promptSetsAside(world, renderer));
+            run(failures, "prompt-sets-aside-and-restores", () -> promptSetsAside(world));
             run(failures, "nav-push-pop-hands-value", () -> navPushPop(world));
             run(failures, "capability-refusal-teaches", () -> capabilityRefusal(world, renderer));
             run(failures, "title-change-when-declared", () -> titleChange(world, probe, renderer));
@@ -215,14 +214,10 @@ public final class RendererConformance {
         return event.getView() == view && event.getReason() != null ? null : "the event names another view or no reason";
     }
 
-    private static String promptSetsAside(ScreenWorld world, ScreenRenderer renderer) {
-        PromptChannel channel = renderer.getPromptChannel();
-        if (channel == null) {
-            return null; //skipped: the renderer has no prompt channel
-        }
+    private static String promptSetsAside(ScreenWorld world) {
         FPlayer viewer = newViewer(world);
         ScreenView view = openNow(world, Screen.of(1), viewer);
-        CompletableFuture<String> answer = view.ask(Prompt.of("Name?"));
+        CompletableFuture<String> answer = view.ask(PromptSpec.of("Name?"));
         world.advanceTicks(1);
         if (!view.isSuspended()) {
             return "the screen was not set aside while the prompt asked";
@@ -374,12 +369,6 @@ public final class RendererConformance {
         @Override
         public ScreenScheduler getScheduler() {
             return delegate.getScheduler();
-        }
-
-        @Nullable
-        @Override
-        public PromptChannel getPromptChannel() {
-            return delegate.getPromptChannel();
         }
 
     }

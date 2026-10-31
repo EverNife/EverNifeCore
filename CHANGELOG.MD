@@ -346,6 +346,22 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **Prompts have one registry and an anvil channel**: `PromptRegistry.get().ask(view, spec)` keeps the one pending
+  question per screen (set aside and given back, timeout on the screen's clock, a second question cancels the first,
+  `QUIT` when the screen is released mid-question, delivery on the screen's thread) for every channel; `PromptKind`
+  (`PAGE`, `ANVIL`, `CHAT`) names them and `PromptSpec.prefer(kind)` steers the choice (default: the richest that serves
+  the player, chat last; none at all ends `CANCELLED` and logs how to register one). A `PromptChannel` is now dumb:
+  `getKind()`, `isSupported(FPlayer)`, `open(PromptSession)`, `dismiss(PromptSession)`; a session's `answer(typed)`
+  returns `PromptReply.accepted()` or `refused(message)`, and a session that ended ignores what its channel reports.
+  Bukkit registers `BukkitAnvilPromptChannel` (over ECNmsUtils' `anvil()`) and `BukkitChatPromptChannel` at enable,
+  Hytale its `HyPagePrompt` as `PAGE`. On the anvil a refused answer keeps it open with the parser's text as the
+  result's name, closing it ends the prompt `CANCELLED`, the screen comes back without an `onClose`, XP cost is zero and
+  no item reaches the inventory; where `NMSUtils.isSupported()` or the anvil's own probe is false the question falls
+  back to chat. `PromptSpec` is the one final class (`Prompt` is gone) and gains `prefer`, `initialText` and
+  `icon(ItemSpec)`; `ScreenRenderer.getPromptChannel()` is gone (the registry picks the channel), and
+  `ScreenScheduler.ticksOf(millis)` converts a timeout to the renderer's ticks. Test engine: `ScreenWorld.prompts()`
+  (`FakePromptChannels`, one fake `CHAT` by default) replaces the recording renderer's channel, and
+  `ScreenWorld.close()` fails while a question is still out. ECNmsUtils 2.2.0.
 - **The gui framework is the `screen` package of `:common`.** `Gui` is `Screen`, `GuiView` is `ScreenView`, `Icon` carries
   an `ItemSpec` and only looks like something; what a slot does is a `Button` (`screen.icon(l -> l.X)` answers one), a
   `Label`, a `PagedList`, an `InputField`, a `ProgressBar` or a dialogue `Choice`, each with a stable id. A click runs

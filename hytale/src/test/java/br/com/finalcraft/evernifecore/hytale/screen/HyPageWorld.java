@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.hytale.screen;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.screen.Screens;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptRegistry;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.ScreenWorld;
@@ -11,8 +12,8 @@ import java.util.function.UnaryOperator;
 
 /**
  * Screens drawn by the page renderer over a {@link RecordingPageTransport}: the recording renderer of the screen world
- * taken out, the page renderer registered by a fake core on the world's own tick clock, and the world's
- * {@code answerPrompt} pressing OK on the open question page.
+ * taken out, the page renderer and its page prompt channel registered by a fake core on the world's own tick clock, and
+ * the world's {@code answerPrompt} pressing OK on the open question page.
  */
 final class HyPageWorld implements AutoCloseable {
 
@@ -28,6 +29,8 @@ final class HyPageWorld implements AutoCloseable {
         this.core = Plugins.fakeCore(dataFolder.resolve("core").toFile());
         Screens.unregisterRenderers(screens.getOwner());
         Screens.registerRenderer(core, renderer);
+        screens.prompts().clear();
+        PromptRegistry.get().register(core, renderer.getPromptChannel());
         screens.answeringPromptsWith(transport::answerAny);
     }
 
@@ -44,6 +47,7 @@ final class HyPageWorld implements AutoCloseable {
         try {
             Screens.closeAll();
             Screens.registry().unregister(core, HyPageRenderer.ID);
+            PromptRegistry.get().unregisterAll(core);
             Plugins.forget(Plugins.CORE);
         } finally {
             screens.close();

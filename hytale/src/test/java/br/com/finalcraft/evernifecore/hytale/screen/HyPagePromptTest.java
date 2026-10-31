@@ -3,8 +3,10 @@ package br.com.finalcraft.evernifecore.hytale.screen;
 import br.com.finalcraft.evernifecore.screen.Screen;
 import br.com.finalcraft.evernifecore.screen.ScreenView;
 import br.com.finalcraft.evernifecore.screen.Screens;
-import br.com.finalcraft.evernifecore.screen.prompt.Prompt;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptKind;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptRegistry;
 import br.com.finalcraft.evernifecore.screen.prompt.PromptResult;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptSpec;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
 import com.hypixel.hytale.protocol.packets.interface_.CustomUICommand;
 import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
@@ -30,9 +32,23 @@ class HyPagePromptTest {
     Path tempDir;
 
     @Test
-    void thePageRendererAsksThroughThePagePrompt() {
+    void thePagePromptIsThePageKindRegisteredForThePlatform() {
         try (HyPageWorld pages = HyPageWorld.open(tempDir)) {
-            assertInstanceOf(HyPagePrompt.class, pages.renderer.getPromptChannel());
+            assertEquals(PromptKind.PAGE, pages.renderer.getPromptChannel().getKind());
+            assertSame(pages.renderer.getPromptChannel(), PromptRegistry.get().getChannel(PromptKind.PAGE));
+        }
+    }
+
+    @Test
+    void itServesAPlayerInAWorldAndNobodyElse() {
+        try (HyPageWorld pages = HyPageWorld.open(tempDir)) {
+            TestFPlayerSender steve = pages.screens.viewer("Steve");
+            assertTrue(pages.renderer.getPromptChannel().isSupported(steve));
+            assertEquals(PromptKind.PAGE, PromptRegistry.get().resolve(steve, PromptKind.CHAT), "no chat on Hytale: the page asks");
+
+            pages.transport.leaveWorld(steve);
+            assertFalse(pages.renderer.getPromptChannel().isSupported(steve), "no world, no page to show the question on");
+            assertNull(PromptRegistry.get().resolve(steve, null));
         }
     }
 
@@ -41,11 +57,12 @@ class HyPagePromptTest {
         try (HyPageWorld pages = HyPageWorld.open(tempDir)) {
             TestFPlayerSender steve = pages.screens.viewer("Steve");
             ScreenView view = pages.screens.open(Screen.of(1), steve);
-            CompletableFuture<PromptResult<Integer>> asked = ask(pages, view, Prompt.of("How many?").parse(Integer::parseInt));
+            CompletableFuture<PromptResult<Integer>> asked = ask(pages, view, PromptSpec.of("How many?").parse(Integer::parseInt));
 
             assertTrue(view.isSuspended());
             assertInstanceOf(HyPagePrompt.Page.class, pages.transport.pageOf(steve), "the question took the page");
             pages.transport.answer(steve, " 42 ");
+            pages.screens.advanceTicks(1);
 
             assertEquals(42, asked.join().getValue());
             assertFalse(view.isSuspended());
@@ -59,7 +76,7 @@ class HyPagePromptTest {
         try (HyPageWorld pages = HyPageWorld.open(tempDir)) {
             TestFPlayerSender steve = pages.screens.viewer("Steve");
             ScreenView view = pages.screens.open(Screen.of(1), steve);
-            CompletableFuture<PromptResult<Integer>> asked = ask(pages, view, Prompt.of("How many?").parse(text -> {
+            CompletableFuture<PromptResult<Integer>> asked = ask(pages, view, PromptSpec.of("How many?").parse(text -> {
                 if (!text.matches("\\d+")) {
                     throw new IllegalArgumentException("A whole number, please");
                 }
@@ -78,6 +95,7 @@ class HyPagePromptTest {
             assertTrue(shown, "the parser's text is under the field");
 
             pages.transport.answer(steve, "3");
+            pages.screens.advanceTicks(1);
             assertEquals(3, asked.join().getValue());
             close(pages, view);
         }
@@ -89,16 +107,19 @@ class HyPagePromptTest {
             TestFPlayerSender steve = pages.screens.viewer("Steve");
             ScreenView view = pages.screens.open(Screen.of(1), steve);
 
-            CompletableFuture<PromptResult<String>> byButton = ask(pages, view, Prompt.of("Name?"));
+            CompletableFuture<PromptResult<String>> byButton = ask(pages, view, PromptSpec.of("Name?"));
             pages.transport.pageOf(steve).handleDataEvent(null, null, new HyPageEvent(null, HyPageLayout.CANCEL, null));
+            pages.screens.advanceTicks(1);
             assertEquals(PromptResult.Kind.CANCELLED, byButton.join().getKind());
 
-            CompletableFuture<PromptResult<String>> byEscape = ask(pages, view, Prompt.of("Name?"));
+            CompletableFuture<PromptResult<String>> byEscape = ask(pages, view, PromptSpec.of("Name?"));
             pages.transport.dismiss(steve);
+            pages.screens.advanceTicks(1);
             assertEquals(PromptResult.Kind.CANCELLED, byEscape.join().getKind());
 
-            CompletableFuture<PromptResult<String>> byWord = ask(pages, view, Prompt.of("Name?").cancelWord("cancel"));
+            CompletableFuture<PromptResult<String>> byWord = ask(pages, view, PromptSpec.of("Name?").cancelWord("cancel"));
             pages.transport.answer(steve, "CANCEL");
+            pages.screens.advanceTicks(1);
             assertEquals(PromptResult.Kind.CANCELLED, byWord.join().getKind());
 
             assertFalse(view.isSuspended(), "every cancel gives the screen back");
@@ -112,7 +133,7 @@ class HyPagePromptTest {
         try (HyPageWorld pages = HyPageWorld.open(tempDir)) {
             TestFPlayerSender steve = pages.screens.viewer("Steve");
             ScreenView view = pages.screens.open(Screen.of(1), steve);
-            CompletableFuture<PromptResult<String>> asked = ask(pages, view, Prompt.of("Name?").timeout(Duration.ofSeconds(1)));
+            CompletableFuture<PromptResult<String>> asked = ask(pages, view, PromptSpec.of("Name?").timeout(Duration.ofSeconds(1)));
 
             pages.screens.advanceTicks(31); //one second at the default world's 30 ticks per second
 
@@ -127,12 +148,13 @@ class HyPagePromptTest {
         try (HyPageWorld pages = HyPageWorld.open(tempDir)) {
             TestFPlayerSender steve = pages.screens.viewer("Steve");
             ScreenView view = pages.screens.open(Screen.of(1), steve);
-            CompletableFuture<PromptResult<String>> first = ask(pages, view, Prompt.of("First?"));
-            CompletableFuture<PromptResult<String>> second = ask(pages, view, Prompt.of("Second?"));
+            CompletableFuture<PromptResult<String>> first = ask(pages, view, PromptSpec.of("First?"));
+            CompletableFuture<PromptResult<String>> second = ask(pages, view, PromptSpec.of("Second?"));
 
             assertEquals(PromptResult.Kind.CANCELLED, first.join().getKind());
             assertTrue(view.isSuspended(), "the screen stays aside for the second question");
             pages.transport.answer(steve, "two");
+            pages.screens.advanceTicks(1);
             assertEquals("two", second.join().getValue());
             close(pages, view);
         }
@@ -143,7 +165,7 @@ class HyPagePromptTest {
         try (HyPageWorld pages = HyPageWorld.open(tempDir)) {
             TestFPlayerSender steve = pages.screens.viewer("Steve");
             ScreenView view = pages.screens.open(Screen.of(1), steve);
-            CompletableFuture<PromptResult<String>> asked = ask(pages, view, Prompt.of("Name?"));
+            CompletableFuture<PromptResult<String>> asked = ask(pages, view, PromptSpec.of("Name?"));
 
             pages.renderer.onDisconnect(new PlayerDisconnectEvent(new PlayerRef(null, steve.getUniqueId(), "Steve", "en_us", null, null)));
 
@@ -153,8 +175,11 @@ class HyPagePromptTest {
         }
     }
 
-    private static <T> CompletableFuture<PromptResult<T>> ask(HyPageWorld pages, ScreenView view, Prompt<T> prompt) {
-        return pages.renderer.getPromptChannel().ask(view, prompt);
+    /** Asks through the registry and lets the tick pass that the question is armed on. */
+    private static <T> CompletableFuture<PromptResult<T>> ask(HyPageWorld pages, ScreenView view, PromptSpec<T> prompt) {
+        CompletableFuture<PromptResult<T>> asked = PromptRegistry.get().ask(view, prompt);
+        pages.screens.advanceTicks(1);
+        return asked;
     }
 
     private static void close(HyPageWorld pages, ScreenView view) {

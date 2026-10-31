@@ -142,7 +142,7 @@ public final class ScreenNavigation {
 
     /**
      * Sets {@code view} aside: its window goes, everything else stays. Only the screen the player is looking at can be
-     * suspended - also what a prompt channel does before it asks. Renderer thread.
+     * suspended - also what {@code PromptRegistry} does before a channel asks. Renderer thread.
      *
      * @return whether it was suspended
      */
