@@ -150,6 +150,32 @@ public final class ClickContext {
         return ScreenNavigation.open(view, screen);
     }
 
+    /** {@link #open(Screen)} with {@code args} as what {@code {0}}..{@code {n}} read on {@code screen}, instead of this screen's. */
+    @Nonnull
+    public CompletableFuture<Object> open(@Nonnull Screen<?> screen, @Nonnull Object... args) {
+        return ScreenNavigation.open(view, screen, args);
+    }
+
+    /**
+     * Opens on top of this one whatever answers {@code key} for {@code request} - the four layers of
+     * {@link Screens#open(FPlayer, ScreenKey, ScreenRequest)} - and completes with what it hands back. A key nothing
+     * answers fails the future with the refusal that teaches.
+     */
+    @Nonnull
+    public CompletableFuture<Object> open(@Nonnull ScreenKey key, @Nonnull ScreenRequest request) {
+        FPlayer viewer = getViewer();
+        try {
+            if (viewer == null) {
+                throw new IllegalStateException("The viewer of " + view.getScreen().describe() + " left: there is nobody to open " + key + " for.");
+            }
+            return ScreenNavigation.open(view, Screens.build(viewer, key, request), request.getArguments().toArray());
+        } catch (RuntimeException refused) {
+            CompletableFuture<Object> failed = new CompletableFuture<>();
+            failed.completeExceptionally(refused);
+            return failed;
+        }
+    }
+
     /** {@link #open(Screen)} with the answer typed: a value of another type completes the future exceptionally. */
     @Nonnull
     public <R> CompletableFuture<R> open(@Nonnull Screen<?> screen, @Nonnull Class<R> answer) {

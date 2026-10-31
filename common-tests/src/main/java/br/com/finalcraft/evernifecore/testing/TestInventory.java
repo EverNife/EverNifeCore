@@ -25,6 +25,7 @@ public final class TestInventory implements InventoryDestination {
 
     private final int slots;
     private final Map<UUID, List<ItemSpec>> byPlayer = new ConcurrentHashMap<>();
+    private final Map<UUID, Integer> held = new ConcurrentHashMap<>();
 
     public TestInventory(int slots) {
         if (slots <= 0) {
@@ -52,7 +53,7 @@ public final class TestInventory implements InventoryDestination {
         int remaining = item.getAmount();
         for (int i = 0; i < contents.size() && remaining > 0; i++) {
             ItemSpec stack = contents.get(i);
-            if (stack.getMaterialId().equalsIgnoreCase(item.getMaterialId()) && stack.getAmount() < MAX_STACK) {
+            if (stacks(stack, item) && stack.getAmount() < MAX_STACK) {
                 int moved = Math.min(remaining, MAX_STACK - stack.getAmount());
                 contents.set(i, stack.withAmount(stack.getAmount() + moved));
                 remaining -= moved;
@@ -109,12 +110,53 @@ public final class TestInventory implements InventoryDestination {
     }
 
     /** A copy of {@code player}'s stacks, in slot order. */
+    @Override
     public synchronized List<ItemSpec> getContents(FPlayer player) {
         return Collections.unmodifiableList(new ArrayList<>(of(player)));
     }
 
+    /** The stack at the held slot ({@link #hold}, the first one by default); null when that slot is empty. */
+    @Override
+    public synchronized @Nullable ItemSpec getHeld(FPlayer player) {
+        List<ItemSpec> contents = of(player);
+        int slot = held.getOrDefault(player.getUniqueId(), 0);
+        return slot < contents.size() ? contents.get(slot) : null;
+    }
+
+    @Override
+    public synchronized int roomFor(FPlayer player, ItemSpec item) {
+        List<ItemSpec> contents = of(player);
+        int room = (slots - contents.size()) * MAX_STACK;
+        for (ItemSpec stack : contents) {
+            if (stacks(stack, item)) {
+                room += MAX_STACK - stack.getAmount();
+            }
+        }
+        return room;
+    }
+
+    /** Makes the stack at {@code slot} (in {@link #getContents} order) the one {@code player} holds. */
+    public synchronized void hold(FPlayer player, int slot) {
+        held.put(player.getUniqueId(), slot);
+    }
+
+    /** Puts {@code item} in a new slot of its own, apart from equal stacks - a second stack of the same item. */
+    public synchronized void addSeparately(FPlayer player, ItemSpec item) {
+        List<ItemSpec> contents = of(player);
+        if (contents.size() >= slots) {
+            throw new IllegalStateException("The inventory of " + player.getName() + " is full: " + slots + " slots.");
+        }
+        contents.add(item);
+    }
+
+    private static boolean stacks(ItemSpec stack, ItemSpec item) {
+        return stack.getMaterialId().equalsIgnoreCase(item.getMaterialId()) && stack.getDisplayName().equals(item.getDisplayName())
+                && stack.getLore().equals(item.getLore());
+    }
+
     public synchronized void clear(FPlayer player) {
         byPlayer.remove(player.getUniqueId());
+        held.remove(player.getUniqueId());
     }
 
     private List<ItemSpec> of(FPlayer player) {

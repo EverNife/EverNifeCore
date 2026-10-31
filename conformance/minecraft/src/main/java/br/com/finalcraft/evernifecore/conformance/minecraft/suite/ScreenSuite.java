@@ -170,6 +170,7 @@ public final class ScreenSuite implements ConformanceSuite {
         screen("confirm", 27, "§8ecc confirm?", probe -> ConfirmScreen.of(ConfirmRequest.of("§8ecc confirm?"))
                 .onClose(close -> probe.closes.add(close.getReason())));
         screen("deliveries", 36, "", probe -> named(DeliveriesScreen.of(), "deliveries", probe));
+        screen("shop", 27, "", probe -> named(ShopSample.build(ECPluginManager.getProvidingPlugin(ScreenSuite.class)), "shop", probe));
         screen("ranking", 36, "", probe -> named(RankingScreen.of(RankingRequest.of(threeRanked())), "ranking", probe));
         screen("input", 27, "", probe -> {
             Screen<InputLayout> screen = named(Screen.of(InputLayout.class), "input", probe);
@@ -390,6 +391,8 @@ public final class ScreenSuite implements ConformanceSuite {
                 return CompletableFuture.completedFuture("");
             case "deliveries":
                 return claimTheSeededDelivery(view, probe, problems);
+            case "shop":
+                return CompletableFuture.completedFuture(ShopSample.exercise(ECPluginManager.getProvidingPlugin(ScreenSuite.class), viewer(player), view, problems));
             case "ranking": {
                 CompletableFuture<String> done = new CompletableFuture<>();
                 until(done, problems, "the three entries never came from the list", () -> isEntry(view, 2, "ranking#2"), () -> {

@@ -24,6 +24,7 @@ public final class CoreLogic {
         NearNpcCondition.register(core);
         StockScreens.register(core);
         DialogueEffects.register(core);
+        StockMenus.register(core);
         DeliveryDestinations.registerCore(core);
         for (ProgressOwnerProvider provider : CoreOwners.all()) {
             ProgressOwners.register(core, provider);

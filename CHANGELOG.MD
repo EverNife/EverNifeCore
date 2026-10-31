@@ -31,6 +31,25 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `Screen.choice(SlotSet, ...)` and a public `Screens.build` let an engine route a choice and know the screen it showed.
   The test engine gains `DialogueTrees`.
 
+- **Menus and shops (`menu`)**: a plugin registers a `Menu` (a `Screen` with offer buttons) under `owner:name` and
+  anything opens it by id with positional arguments (`MenuRegistry.open`, the `evernifecore:open-menu` effect - on top
+  of the screen a click came from, so back returns -, the mountable `MenuCommandNode` with `open`, `openfor`, `list`).
+  An offer button trades through one `ClickRule` per gesture of a `ClickMap` (`market()`: left buys one, shift-left a
+  stack, right sells one, shift-right all held, middle asks how many through the prompt channel), asks
+  `ScreenKey.CONFIRM` first for a `confirm()` offer, reads `{price}`/`{sell-price}`/`{quantity}` in its text and tells
+  the player the menu's success or deny text (`{result}`, `{missing}`); `Menu.offers(region, source)` pages a catalog.
+  `MenuContext` reads the menu, offer, gesture, arguments and view off an `ExecutionContext`. A plugin's menus leave
+  with its shutdown. The core reads no menu file.
+- **Shop transactions (`menu`)**: an `Offer` buys or sells `Goods` (`ItemGoods`, an item matched by `ItemMatcher`, or
+  `EffectGoods`, effects run once per unit) for a composite `Price` in any registered currencies (lines read from a
+  `Variable` at every quote; item lines on a BUY), behind a `Gate`, with a `RepeatPolicy` limit per player, group or
+  server, optional confirmation and a delivery destination. `Transactions.quote/buy/sell/trade/sellAll/sellHand` run it
+  in one fixed order - gate, limit, room, cancellable `TransactionPreEvent` (mutable quantity and totals, the original
+  kept), one atomic `Gate.pay` of price and fixed costs, goods, limit, `AuditKind.TRANSACTION` in the owner's
+  `AuditLog`, informative `TransactionEvent` - and answer a typed `TransactionResult`; goods that do not fit go to the
+  pending deliveries unless the offer says `NoSpacePolicy.REFUSE`. `OfferCatalog` finds the SELL offer of an item for
+  `sellHand` (held stack or the same item everywhere) and `sellAll`. Engine: `Menus` (over `ScreenWorld` + `LogicWorld`),
+  `CountedGoods`, `RecordingGoods`, `TestCurrency.refuseTakes`, `TestInventory.hold/addSeparately`.
 - **Screens render on Hytale**: `HyPageRenderer` (`evernifecore:page`, `hytale.screen`) draws any `Screen` as a server
   page (`InteractiveCustomUIPage`) from the core's own layouts in its asset pack (`EverNifeCore/Screen.ui`, `Cell.ui`,
   `Prompt.ui`): a frame sized to the grid, the title, one cell per slot with the item, its amount and the name and lore
@@ -382,6 +401,14 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   (`FakePromptChannels`, one fake `CHAT` by default) replaces the recording renderer's channel, and
   `ScreenWorld.close()` fails while a question is still out (after ending it, `PromptRegistry.abandonAll()`). ECNmsUtils
   2.2.0.
+- **`ClickContext.open(screen, args...)` and `ClickContext.open(key, request)`**: a screen opened on top can carry its
+  own `{0}..{n}`, and a keyed screen (`ScreenKey.CONFIRM`) opens on top through the four override layers;
+  `ScreenNavigation.open(current, next, args)` underneath.
+- **`ItemMatcher` reads name and lore when asked**: `plainOnly()` refuses an item with a name or lore of its own and
+  `exact(ItemSpec)` wants its very name and lore; `of(id)` still looks at the material only. Both platforms' inventories
+  now match on the whole description.
+- **`InventoryDestination` exposes the inventory**: `getContents(player)` (main inventory, described), `getHeld(player)`
+  and `roomFor(player, item)` join `count`/`take`, implemented on Bukkit, Hytale and `TestInventory`.
 - **The gui framework is the `screen` package of `:common`.** `Gui` is `Screen`, `GuiView` is `ScreenView`, `Icon` carries
   an `ItemSpec` and only looks like something; what a slot does is a `Button` (`screen.icon(l -> l.X)` answers one), a
   `Label`, a `PagedList`, an `InputField`, a `ProgressBar` or a dialogue `Choice`, each with a stable id. A click runs
