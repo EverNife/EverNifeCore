@@ -107,10 +107,11 @@ class ScreenReactivityTest {
 
     @Test
     void twoInvalidationsInOneTickAreOneWriteOnTheSurface() {
+        AtomicInteger renders = new AtomicInteger();
         MutableState<Integer> counter = new MutableState<>(1);
         Screen<?> screen = Screen.of(1);
         screen.icon(0, stone()).id("loot").dependsOn(after(new AtomicInteger(), EventSource.FLIGHT_TOGGLE))
-                .render(icon -> icon.lore("flying"));
+                .render(icon -> icon.amount(renders.incrementAndGet())); //every redraw looks different
         screen.icon(1, stone()).id("counter").dependsOn(counter).render(icon -> icon.amount(counter.get()));
         ScreenView view = world.open(screen, alex);
         RecordingSurface surface = world.getRenderer().surfaceOf(view);
@@ -123,6 +124,7 @@ class ScreenReactivityTest {
 
         assertEquals(before + 1, surface.getApplies().size(), "both changes land in one apply");
         assertEquals(7, surface.getSlot(1).getItem().getAmount());
+        assertEquals(2, surface.getSlot(0).getItem().getAmount(), "the action redrew its button in that same write");
         view.close();
         world.advanceTicks(2);
     }
