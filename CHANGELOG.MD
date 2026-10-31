@@ -429,7 +429,7 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 - **`VisualStyle.PATH`**: the outline renderers draw a waypoint path with a particle of its own (Bukkit `HEART`,
   Hytale `Lore_Note_Glow`).
-- **Hytale Server 0.7.4** (was 0.7.2; no source change).
+- **Hytale Server 0.7.5** (was 0.7.2; no source change).
 - **`PageViewer` is now the chat renderer of a `RankedList`**: `PageViewer.of(rankedList)` keeps the format, theme,
   navigation, page size and viewer placeholders; `source`, `maxEntries`, `orderBy`, `cache`, `id` and `addRowPlaceholder`
   moved to `RankedList` (`addRowPlaceholder` is `RankedList.Builder.addValue`). `PageViewer.of(Class)` and `PageRegistry`
