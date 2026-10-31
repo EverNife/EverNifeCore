@@ -19,6 +19,7 @@ public final class CoreLogic {
         StockEffects.register(core);
         StockEconomy.register(core);
         StockItems.register(core);
+        StockScreens.register(core);
         DeliveryDestinations.registerCore(core);
         for (ProgressOwnerProvider provider : CoreOwners.all()) {
             ProgressOwners.register(core, provider);
