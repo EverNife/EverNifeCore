@@ -4,7 +4,7 @@ import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.minecraft.gui.cfg.SettingsScanner;
+import br.com.finalcraft.evernifecore.config.SettingsScanner;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.GuiType;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.SlotSet;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;

@@ -59,6 +59,11 @@ public final class ItemSpec {
         return new ItemSpec(materialId, displayName, lore, Objects.requireNonNull(nativeItem, "nativeItem"), amount);
     }
 
+    /** A copy with this name and lore, everything else kept - the id keeps the spelling it was given. */
+    public ItemSpec withText(String displayName, List<String> lore) {
+        return new ItemSpec(materialId, displayName, Collections.unmodifiableList(new ArrayList<>(lore)), nativeItem, amount);
+    }
+
     /**
      * A copy of {@code amount} items.
      *

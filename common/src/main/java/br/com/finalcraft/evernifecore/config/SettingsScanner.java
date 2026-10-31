@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.minecraft.gui.cfg;
+package br.com.finalcraft.evernifecore.config;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
