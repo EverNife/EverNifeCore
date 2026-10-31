@@ -11,6 +11,7 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.booster.Boosters;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.api.events.reload.ECPluginReloadEvent;
+import br.com.finalcraft.evernifecore.group.GroupLookup;
 import br.com.finalcraft.evernifecore.group.GroupManager;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
@@ -147,6 +148,7 @@ public class ECPluginManager {
         //a plugin without IECPluginBootstrap never had its regions closed; its storage is gone, so nothing is written
         RegionManager.discardOwnedBy(removed);
         GroupManager.discardOwnedBy(removed);
+        GroupLookup.get().unregisterAll(removed);
         EventSource.unregisterAll(removed);
         Notifier.get().closeOwnedBy(removed);
         Waypoints.get().hideOwnedBy(removed);

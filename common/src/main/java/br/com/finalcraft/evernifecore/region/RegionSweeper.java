@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.region.event.RegionRemovedEvent;
 import br.com.finalcraft.evernifecore.group.Group;
+import br.com.finalcraft.evernifecore.group.GroupManager;
 import br.com.finalcraft.evernifecore.time.ECClock;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 import jakarta.annotation.Nullable;
@@ -20,9 +21,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * The one sweeper of everything with a deadline: regions, temporary flag values, timed memberships. It runs on the
- * region scheduler only while something has a deadline, and applies each world's expirations on the thread that owns
- * that world, so the events they cause go out where a world's events belong.
+ * The one sweeper of everything with a deadline: regions, temporary flag values, timed memberships, invites, the groups
+ * of every {@link GroupManager#all() GroupManager} (and their live roster and kick rules, sampled at every pass). It
+ * runs on the region scheduler only while something has a deadline, and applies each world's expirations on the thread
+ * that owns that world, so the events they cause go out where a world's events belong.
  */
 public final class RegionSweeper {
 
@@ -37,8 +39,8 @@ public final class RegionSweeper {
     private RegionSweeper() {
     }
 
-    /** Something gained a deadline: starts the sweep when it is not running. */
-    static void wake() {
+    /** Internal: something gained a deadline (here or in a {@link GroupManager}): starts the sweep when it is not running. */
+    public static void wake() {
         woken = true;
         if (RUNNING.compareAndSet(false, true)) {
             ECScheduler.scheduleAsync(RegionSweeper::tick, intervalMillis);
@@ -65,6 +67,12 @@ public final class RegionSweeper {
                 } else {
                     due.computeIfAbsent(region.getWorld(), world -> new ArrayList<>()).add(region);
                 }
+            }
+        }
+        //a group of a manager lives in no world: it is swept on this thread, and its events go out from here
+        for (GroupManager manager : GroupManager.all()) {
+            for (Group group : manager.getAll()) {
+                pending |= sweep(group, now);
             }
         }
         due.forEach((world, regions) -> {
@@ -112,6 +120,18 @@ public final class RegionSweeper {
         for (Group group : region.getGroups().values()) {
             group.expire(now);
         }
+    }
+
+    /** Expires what is due in {@code group} and samples its live rules; whether it needs another pass later. */
+    private static boolean sweep(Group group, Instant now) {
+        Instant next = group.getNextDeadline();
+        if (next != null && !now.isBefore(next)) {
+            group.expire(now);
+        }
+        if (group.isSampled()) {
+            group.sample();
+        }
+        return !group.isDissolved() && (group.getNextDeadline() != null || group.isSampled());
     }
 
     private static @Nullable Instant nextDeadline(Region region) {

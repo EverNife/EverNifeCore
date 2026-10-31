@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.group;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
@@ -20,8 +21,15 @@ import br.com.finalcraft.evernifecore.group.event.GroupMemberLeftEvent;
 import br.com.finalcraft.evernifecore.group.event.GroupMemberPreJoinEvent;
 import br.com.finalcraft.evernifecore.group.event.GroupRoleChangedEvent;
 import br.com.finalcraft.evernifecore.logic.Caller;
+import br.com.finalcraft.evernifecore.logic.Condition;
+import br.com.finalcraft.evernifecore.logic.Conditions;
+import br.com.finalcraft.evernifecore.logic.Cost;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
+import br.com.finalcraft.evernifecore.logic.Gate;
 import br.com.finalcraft.evernifecore.logic.GateResult;
+import br.com.finalcraft.evernifecore.notify.Notification;
+import br.com.finalcraft.evernifecore.notify.Notifier;
+import br.com.finalcraft.evernifecore.notify.NotifyKind;
 import br.com.finalcraft.evernifecore.region.Persistence;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
@@ -87,6 +95,10 @@ public final class Group implements FlagHolder {
 
         /** The group was dissolved: forget it. */
         void dissolved(Group group, DissolveCause cause);
+
+        /** {@code player} joined, left or lost the membership by time. */
+        default void memberChanged(Group group, UUID player) {
+        }
     }
 
     private final GroupId id;
@@ -107,6 +119,18 @@ public final class Group implements FlagHolder {
     private volatile @Nullable String permission;
     private volatile MembershipCheck check = MembershipCheck.exact();
     private volatile boolean dissolved;
+    // live behaviour: code, never stored
+    private volatile @Nullable String scope;
+    private volatile @Nullable Edge joinEdge;
+    private volatile @Nullable Edge leaveEdge;
+    private volatile @Nullable Condition kickWhen;
+    private volatile @Nullable FancyText kickReason;
+    private volatile QuitPolicy quitPolicy;
+    private volatile @Nullable Roster roster;
+    /** Players a live roster selected whose join was refused: tried again only once they stopped passing. */
+    private final Set<UUID> rosterRefused = ConcurrentHashMap.newKeySet();
+    private volatile boolean dissolveWhenEmpty;
+    private volatile @Nullable Instant dissolveAt;
 
     /** Internal: groups are made by {@link GroupManager#create} and {@link Region#getGroup(String)}. */
     public Group(GroupId id, GroupKind kind, ECPluginData owner, Persistence persistence, @Nullable Region region, Instant createdAt,
@@ -119,6 +143,9 @@ public final class Group implements FlagHolder {
         this.createdAt = Objects.requireNonNull(createdAt, "createdAt");
         this.host = Objects.requireNonNull(host, "host");
         this.flags = new FlagStore(this, (flag, oldValue, newValue, cause) -> host.flagChanged(this, flag, oldValue, newValue, cause));
+        //a region's group stays as the region keeps it; a group of a manager that writes nothing ends with its members' session
+        this.quitPolicy = region == null && persistence == Persistence.TRANSIENT ? QuitPolicy.LEAVE : QuitPolicy.KEEP;
+        GroupQuitWatch.track(this, quitPolicy == QuitPolicy.LEAVE);
     }
 
     public GroupId getId() {
@@ -155,6 +182,15 @@ public final class Group implements FlagHolder {
 
     public boolean isDissolved() {
         return dissolved;
+    }
+
+    /** The free text {@code Groups.ephemeral(...).scope(...)} set ({@code theduel:arena-1/wave-7}); null otherwise. */
+    public @Nullable String getScope() {
+        return scope;
+    }
+
+    void setScope(@Nullable String scope) {
+        this.scope = scope;
     }
 
     public @Nullable String getDisplayName() {
@@ -260,9 +296,28 @@ public final class Group implements FlagHolder {
             return false;
         }
         host.changed(this, true, null);
+        host.memberChanged(this, uuid);
         post(GroupMemberLeftEvent.class, () -> new GroupMemberLeftEvent(this, uuid, gone, cause));
         if (wasLeader) {
             post(GroupLeaderChangedEvent.class, () -> new GroupLeaderChangedEvent(this, uuid, null));
+        }
+        if (dissolveWhenEmpty && !dissolved && members.isEmpty()) {
+            dissolve(DissolveCause.EMPTY);
+        }
+        return true;
+    }
+
+    /**
+     * The owner takes {@code uuid} out ({@link LeaveCause#KICKED}) and, when they are online and a reason is given,
+     * tells them through the {@link Notifier}. False when not a member.
+     */
+    public boolean kick(UUID uuid, @Nullable FancyText reason) {
+        if (!remove(uuid, LeaveCause.KICKED)) {
+            return false;
+        }
+        FPlayer online = reason == null ? null : online(uuid);
+        if (online != null) {
+            Notifier.get().notify(online, Notification.of(NotifyKind.INFO).text(reason).build());
         }
         return true;
     }
@@ -270,8 +325,9 @@ public final class Group implements FlagHolder {
     // ---- membership: the player's path ----
 
     /**
-     * The player joins: refused when the kind is ONE and they are in another group of it, or when a
-     * {@link GroupMemberPreJoinEvent} listener cancelled. A member already passes.
+     * The player joins: refused when the kind is ONE and they are in another group of it, when the join {@link Edge}'s
+     * gate denies (its costs are taken only when the join goes through), or when a {@link GroupMemberPreJoinEvent}
+     * listener cancelled. Once in, the edge's notices go out. A member already passes.
      */
     public GateResult join(FPlayer player) {
         return join(player, JoinCause.JOINED);
@@ -289,17 +345,90 @@ public final class Group implements FlagHolder {
         if (refusal != null) {
             return GateResult.denied(ctx, FancyText.of(refusal));
         }
+        Edge edge = joinEdge;
+        Gate gate = edge == null ? null : edge.getGate();
+        GateResult paid = gate == null ? null : gate.pay(ctx);
+        if (paid != null && !paid.isPassed()) {
+            return paid;
+        }
         FancyText denied = admit(player.getUniqueId(), player, cause, null);
-        return denied == null ? GateResult.passed(ctx) : GateResult.denied(ctx, denied);
+        if (denied != null) {
+            refund(gate, ctx);
+            return GateResult.denied(ctx, denied);
+        }
+        tellCrossed(edge, player);
+        return paid != null ? paid : GateResult.passed(ctx);
     }
 
-    /** The player leaves ({@link LeaveCause#LEFT}); refused when they are not a member. */
+    /**
+     * The player leaves ({@link LeaveCause#LEFT}); refused when they are not a member or the leave {@link Edge}'s gate
+     * denies. Once out, the edge's notices go out.
+     */
     public GateResult leave(FPlayer player) {
         ExecutionContext ctx = contextOf(player);
-        if (!remove(player.getUniqueId(), LeaveCause.LEFT)) {
-            return GateResult.denied(ctx, FancyText.of(player.getName() + " is not a member of the " + kindName() + " '" + getName() + "'."));
+        if (!isMember(player.getUniqueId())) {
+            return notAMember(ctx, player);
         }
-        return GateResult.passed(ctx);
+        Edge edge = leaveEdge;
+        Gate gate = edge == null ? null : edge.getGate();
+        GateResult paid = gate == null ? null : gate.pay(ctx);
+        if (paid != null && !paid.isPassed()) {
+            return paid;
+        }
+        if (!remove(player.getUniqueId(), LeaveCause.LEFT)) {   //someone else took them out meanwhile
+            refund(gate, ctx);
+            return notAMember(ctx, player);
+        }
+        tellCrossed(edge, player);
+        return paid != null ? paid : GateResult.passed(ctx);
+    }
+
+    private GateResult notAMember(ExecutionContext ctx, FPlayer player) {
+        return GateResult.denied(ctx, FancyText.of(player.getName() + " is not a member of the " + kindName() + " '" + getName() + "'."));
+    }
+
+    /** Gives back what an edge's gate took for a crossing that did not happen. */
+    private static void refund(@Nullable Gate gate, ExecutionContext ctx) {
+        if (gate == null) {
+            return;
+        }
+        List<Cost> costs = gate.getCosts();
+        for (int i = costs.size() - 1; i >= 0; i--) {
+            costs.get(i).refund(ctx);
+        }
+    }
+
+    /** Sends the edge's notices about {@code player}, who just crossed it. */
+    private void tellCrossed(@Nullable Edge edge, FPlayer player) {
+        if (edge == null || edge.getNotices().isEmpty()) {
+            return;
+        }
+        ExecutionContext ctx = ExecutionContext.builder(Caller.of(owner, "group/" + getName())).player(player)
+                .variable("group", displayName != null ? displayName : getName()).build();
+        for (Edge.Notice notice : edge.getNotices()) {
+            List<FPlayer> to = new ArrayList<>();
+            EdgeAudience audience = notice.getAudience();
+            if (audience == EdgeAudience.PLAYER || audience == EdgeAudience.MEMBERS_AND_PLAYER) {
+                to.add(player);
+            }
+            if (audience == EdgeAudience.MEMBERS || audience == EdgeAudience.MEMBERS_AND_PLAYER) {
+                for (FPlayer member : getOnlineMembers()) {
+                    if (!member.getUniqueId().equals(player.getUniqueId())) {
+                        to.add(member);
+                    }
+                }
+            }
+            if (audience == EdgeAudience.LEADER) {
+                UUID lead = leader;
+                FPlayer online = lead == null || lead.equals(player.getUniqueId()) ? null : online(lead);
+                if (online != null) {
+                    to.add(online);
+                }
+            }
+            if (!to.isEmpty()) {
+                Notifier.get().notify(to, Notification.of(edge.getKind()).text(ctx.resolve(notice.getText())).build());
+            }
+        }
     }
 
     /** Posts the pre event and, unless cancelled, makes the member; null on success, else why it was refused. */
@@ -322,6 +451,7 @@ public final class Group implements FlagHolder {
             members.put(uuid, member);
         }
         host.changed(this, true, expiresAt);
+        host.memberChanged(this, uuid);
         post(GroupMemberJoinedEvent.class, () -> new GroupMemberJoinedEvent(this, uuid, player, cause, member));
         return null;
     }
@@ -362,6 +492,172 @@ public final class Group implements FlagHolder {
 
     public int size() {
         return getMembers().size();
+    }
+
+    /** The members online now. */
+    public List<FPlayer> getOnlineMembers() {
+        List<FPlayer> online = new ArrayList<>();
+        for (GroupMember member : getMembers()) {
+            FPlayer player = online(member.getUuid());
+            if (player != null) {
+                online.add(player);
+            }
+        }
+        return online;
+    }
+
+    /** Whether any member is online now. */
+    public boolean hasOnlineMember() {
+        for (GroupMember member : getMembers()) {
+            if (online(member.getUuid()) != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // ---- live behaviour: code, never stored ----
+
+    /** The join edge {@link #join} and {@link #accept} go through; null = straight in. */
+    public void setJoinEdge(@Nullable Edge edge) {
+        this.joinEdge = edge;
+    }
+
+    public @Nullable Edge getJoinEdge() {
+        return joinEdge;
+    }
+
+    /** The leave edge {@link #leave} goes through; null = straight out. */
+    public void setLeaveEdge(@Nullable Edge edge) {
+        this.leaveEdge = edge;
+    }
+
+    public @Nullable Edge getLeaveEdge() {
+        return leaveEdge;
+    }
+
+    /**
+     * An online member {@code condition} passes for is {@link #kick kicked} with {@code reason}, tested at every sweep
+     * (once a second by default). Null removes the rule.
+     */
+    public void setKickWhen(@Nullable Condition condition, @Nullable FancyText reason) {
+        this.kickWhen = condition;
+        this.kickReason = reason;
+        if (condition != null) {
+            host.changed(this, false, ECClock.now());
+        }
+    }
+
+    public @Nullable Condition getKickWhen() {
+        return kickWhen;
+    }
+
+    /** What a member's quit does: LEAVE takes them out ({@link LeaveCause#QUIT}), KEEP leaves them offline. */
+    public void setQuitPolicy(QuitPolicy policy) {
+        this.quitPolicy = Objects.requireNonNull(policy, "policy");
+        GroupQuitWatch.track(this, policy == QuitPolicy.LEAVE);
+    }
+
+    /** LEAVE by default for a TRANSIENT group of a manager, KEEP for the others. */
+    public QuitPolicy getQuitPolicy() {
+        return quitPolicy;
+    }
+
+    /**
+     * Who the group holds on its own: a snapshot adds its players now, a live roster follows its condition from now
+     * on (see {@link Roster#live}). Null stops a live roster; the members stay.
+     *
+     * @throws IllegalStateException when the group is not TRANSIENT - a stored group's members are the owner's to keep
+     */
+    public void setRoster(@Nullable Roster roster) {
+        if (roster != null && persistence != Persistence.TRANSIENT) {
+            throw new IllegalStateException("Group " + id + " is " + persistence + ", and a roster belongs to TRANSIENT groups only:"
+                    + " build it with Groups.ephemeral(owner, kind), or add the members with add(uuid).");
+        }
+        requireAlive();
+        this.roster = roster;
+        rosterRefused.clear();
+        if (roster == null) {
+            return;
+        }
+        for (UUID uuid : roster.getMembers()) {
+            if (!isMember(uuid) && cardinalityRefusal(uuid, uuid.toString()) == null) {
+                admit(uuid, online(uuid), JoinCause.ROSTER, null);
+            }
+        }
+        Condition who = roster.getCondition();
+        if (who != null && !roster.isLive()) {
+            for (FPlayer player : EverNifeCore.getPlatform().getOnlinePlayers()) {
+                if (!isMember(player.getUniqueId()) && cardinalityRefusal(player.getUniqueId(), player.getName()) == null
+                        && Conditions.test(who, contextOf(player)).isPassed()) {
+                    admit(player.getUniqueId(), player, JoinCause.ROSTER, null);
+                }
+            }
+        }
+        if (roster.isLive()) {
+            sample();
+            host.changed(this, false, ECClock.now());
+        }
+    }
+
+    public @Nullable Roster getRoster() {
+        return roster;
+    }
+
+    /** Sets how the group ends on its own; see {@link Dissolution}. */
+    void dissolveWhen(Collection<Dissolution> rules) {
+        Instant at = null;
+        boolean whenEmpty = false;
+        for (Dissolution rule : rules) {
+            whenEmpty |= rule.isWhenEmpty();
+            at = earliest(at, rule.deadlineFor(createdAt));
+        }
+        this.dissolveWhenEmpty = whenEmpty;
+        this.dissolveAt = at;
+        if (at != null) {
+            host.changed(this, false, at);
+        }
+    }
+
+    /** Internal: whether the sweeper tests this group at every pass (a live roster or a kick rule). */
+    public boolean isSampled() {
+        Roster current = roster;
+        return !dissolved && (kickWhen != null || current != null && current.isLive());
+    }
+
+    /**
+     * Internal: one pass of the live roster and the kick rule over the online players - what the sweeper runs. A
+     * condition that throws is the owner's bug and propagates.
+     */
+    public void sample() {
+        if (dissolved) {
+            return;
+        }
+        Roster current = roster;
+        if (current != null && current.isLive() && current.getCondition() != null) {
+            for (FPlayer player : EverNifeCore.getPlatform().getOnlinePlayers()) {
+                UUID uuid = player.getUniqueId();
+                if (Conditions.test(current.getCondition(), contextOf(player)).isPassed()) {
+                    if (!isMember(uuid) && !rosterRefused.contains(uuid) && !join(player, JoinCause.ROSTER).isPassed()) {
+                        rosterRefused.add(uuid);
+                    }
+                } else {
+                    rosterRefused.remove(uuid);
+                    if (isMember(uuid)) {
+                        remove(uuid, LeaveCause.ROSTER);
+                    }
+                }
+            }
+        }
+        Condition kick = kickWhen;
+        if (kick != null) {
+            for (GroupMember member : getMembers()) {
+                FPlayer player = online(member.getUuid());
+                if (player != null && Conditions.test(kick, contextOf(player)).isPassed()) {
+                    kick(member.getUuid(), kickReason);
+                }
+            }
+        }
     }
 
     // ---- roles ----
@@ -626,9 +922,13 @@ public final class Group implements FlagHolder {
             last = new ArrayList<>(getMembers());
             dissolved = true;
         }
+        GroupQuitWatch.track(this, false);
+        roster = null;
+        kickWhen = null;
         boolean live = host.isLive(this);
         for (GroupMember member : last) {
             members.remove(member.getUuid());
+            host.memberChanged(this, member.getUuid());
             if (live) {
                 ECEventBus.global().postIfListened(GroupMemberLeftEvent.class,
                         () -> new GroupMemberLeftEvent(this, member.getUuid(), member, LeaveCause.DISSOLVED));
@@ -648,7 +948,7 @@ public final class Group implements FlagHolder {
 
     /** Internal: the earliest deadline among members, invites and timed flag values, expired ones included; null when none. */
     public @Nullable Instant getNextDeadline() {
-        Instant next = flags.getNextDeadline();
+        Instant next = earliest(flags.getNextDeadline(), dissolveAt);
         for (GroupMember member : members.values()) {
             next = earliest(next, member.getExpiresAt());
         }
@@ -659,10 +959,16 @@ public final class Group implements FlagHolder {
     }
 
     /**
-     * Internal: drops what is due at {@code now} - members ({@link LeaveCause#EXPIRED}), invites
+     * Internal: drops what is due at {@code now} - the group itself when a {@link Dissolution} time came
+     * ({@link DissolveCause#EXPIRED}), else members ({@link LeaveCause#EXPIRED}), invites
      * ({@link GroupInviteEvent.Change#EXPIRED}) and timed flag values.
      */
     public void expire(Instant now) {
+        Instant end = dissolveAt;
+        if (end != null && !now.isBefore(end)) {
+            dissolve(DissolveCause.EXPIRED);
+            return;
+        }
         flags.expire(now);
         for (GroupMember member : members.values()) {
             Instant deadline = member.getExpiresAt();
@@ -738,6 +1044,11 @@ public final class Group implements FlagHolder {
         if (host.isLive(this)) {
             ECEventBus.global().postIfListened(type, event);
         }
+    }
+
+    private static @Nullable FPlayer online(UUID uuid) {
+        FPlayer player = EverNifeCore.getPlatform().getPlayer(uuid);
+        return player != null && player.isOnline() ? player : null;
     }
 
     private ExecutionContext contextOf(FPlayer player) {

@@ -360,6 +360,11 @@ public final class RegionPlayerSession {
         revalidateAll = true;
     }
 
+    /** Whether an invalidation asked for every session flag of this player to be looked at again, not yet run. */
+    public boolean isRevalidateAllPending() {
+        return revalidateAll;
+    }
+
     boolean takeRevalidateAll() {
         boolean was = revalidateAll;
         revalidateAll = false;

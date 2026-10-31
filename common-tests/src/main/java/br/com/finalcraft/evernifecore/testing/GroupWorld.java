@@ -1,16 +1,23 @@
 package br.com.finalcraft.evernifecore.testing;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
+import br.com.finalcraft.evernifecore.api.events.player.ECPlayerQuitEvent;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.group.Group;
 import br.com.finalcraft.evernifecore.group.GroupKind;
+import br.com.finalcraft.evernifecore.group.GroupLookup;
 import br.com.finalcraft.evernifecore.group.GroupManager;
 import br.com.finalcraft.evernifecore.group.GroupRole;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
+import jakarta.annotation.Nullable;
 
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -31,11 +38,17 @@ public final class GroupWorld implements AutoCloseable {
 
     private final RegionWorld regions;
     private final List<TestFPlayerSender> players = new CopyOnWriteArrayList<>();
+    private final int quitListenersBefore;
+    private final boolean attachedToResolver;
     private volatile GroupManager manager;
+    private volatile @Nullable RecordingNotifier notifier;
     private boolean closed;
 
     private GroupWorld(String ownerName, Path dataFolder) {
+        this.quitListenersBefore = quitListeners();
         this.regions = RegionWorld.open(ownerName, dataFolder);
+        //the groups' ACTOR values reach the resolution as on a server, where the core attaches it on enable
+        this.attachedToResolver = GroupLookup.get().attachToResolver(regions.getOwner());
         this.manager = GroupManager.of(regions.getOwner(), regions.getStorage());
         load();
     }
@@ -75,11 +88,33 @@ public final class GroupWorld implements AutoCloseable {
         return manager.create(name, kind);
     }
 
-    /** A player joined to nothing; its region session goes when the world closes. */
+    /**
+     * A player joined to nothing, online - and, on a {@link TestPlatform}, in its {@code getOnlinePlayers()} and
+     * {@code getPlayer(uuid)} until the world closes; its region session goes then too.
+     */
     public TestFPlayerSender player(String name) {
         TestFPlayerSender player = Senders.player(name);
         players.add(player);
+        if (EverNifeCore.getPlatform() instanceof TestPlatform) {
+            TestPlatform platform = (TestPlatform) EverNifeCore.getPlatform();
+            List<FPlayer> online = platform.onlinePlayers == null ? new ArrayList<FPlayer>() : new ArrayList<>(platform.onlinePlayers);
+            online.add(player);
+            platform.setOnlinePlayers(online);
+        }
         return player;
+    }
+
+    /**
+     * The {@link RecordingNotifier} of this world, wired on first call as the {@code chat} channel every default chain
+     * ends on: what an edge, a kick or any {@code Notifier.notify} sends lands in it.
+     *
+     * @throws AssertionError when the core's stock channels are registered already
+     */
+    public synchronized RecordingNotifier notifier() {
+        if (notifier == null) {
+            notifier = RecordingNotifier.install(getOwner());
+        }
+        return notifier;
     }
 
     /**
@@ -128,7 +163,13 @@ public final class GroupWorld implements AutoCloseable {
         future.join();
     }
 
-    /** Closes the manager (writing what is pending), then the region world; forgets the players' sessions. */
+    /**
+     * Closes the manager (writing what is pending), then the region world; forgets the players' sessions and takes them
+     * off the platform.
+     *
+     * @throws AssertionError when a quit listener of the group engine is still on the bus - a group with
+     *                        {@code QuitPolicy.LEAVE} outlived its manager
+     */
     @Override
     public void close() {
         if (closed) {
@@ -138,10 +179,31 @@ public final class GroupWorld implements AutoCloseable {
         try {
             settle(manager.close());
         } finally {
+            if (notifier != null) {
+                notifier.uninstall(getOwner());
+            }
+            if (attachedToResolver) {
+                GroupLookup.get().detachFromResolver();
+            }
             for (TestFPlayerSender player : players) {
                 RegionLookup.get().forgetSession(player.getUniqueId());
             }
+            if (EverNifeCore.getPlatform() instanceof TestPlatform) {
+                TestPlatform platform = (TestPlatform) EverNifeCore.getPlatform();
+                List<FPlayer> online = platform.onlinePlayers == null ? new ArrayList<FPlayer>() : new ArrayList<>(platform.onlinePlayers);
+                online.removeAll(players);
+                platform.setOnlinePlayers(online);
+            }
             regions.close();
         }
+        int left = quitListeners() - quitListenersBefore;
+        if (left > 0) {
+            throw new AssertionError(left + " quit listener(s) of the group engine are still on the bus after the GroupWorld closed:"
+                    + " a group with QuitPolicy.LEAVE outlived its manager.");
+        }
+    }
+
+    private static int quitListeners() {
+        return ECEventBus.global().getSubscriptions(ECPlayerQuitEvent.class).size();
     }
 }

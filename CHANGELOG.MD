@@ -30,6 +30,19 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `GroupCreatedEvent` and `GroupDissolvedEvent` (with the last members). The core closes each plugin's manager on its
   shutdown, right after its regions. `GroupWorld` in `evernifecore-common-tests`. `GateResult.passed/denied(ctx, ...)`
   answer for a path with no gate in it.
+- **Ephemeral groups, edges and the group lookup**: `Groups.ephemeral(owner, kind)` builds a TRANSIENT group with a
+  `Roster` (`snapshot` of players or of a condition, or `live`: the sweeper takes in who starts passing and lets go who
+  stops, `LeaveCause.ROSTER`), join/leave `Edge`s (`Edge.gate(gate)` paid on the way through and given back when the join
+  is refused after it, `notify(EdgeAudience, text)` resolved per crossing and sent through the `Notifier`), `kickWhen`
+  (`Group.kick(uuid, reason)` tells the player), `QuitPolicy` (LEAVE by default for TRANSIENT groups; one quit listener,
+  on the bus only while such a group exists), `Dissolution.whenEmpty/after/at` and a `scope`; the same live behaviour on
+  any group through its setters and `GroupOptions`. The region sweeper also sweeps every `GroupManager` (timed members,
+  invites, timed flag values, dissolution times, live rules). `GroupLookup` answers across every manager and the
+  `GroupProvider`s plugins register (`GroupManager` is one): `getGroupsOf`, `byId`, `getMembers`, `getLeader`,
+  `hasOnlineMember`, `shareGroup`, `byScope`, and feeds the ACTOR layer of the flag resolution - a member joining,
+  leaving or expiring, and a flag change of the group, invalidate the member's region session. `ProgressOwner.group(id)`
+  (owner kind `group`, answered by the core), effect `evernifecore:dissolve-group`. `GroupWorld.notifier()`
+  (`RecordingNotifier`) and `GroupWorld.player(name)` online on the test platform.
 - **Boosters** (`br.com.finalcraft.evernifecore.booster`): `Booster.on(gain).factor/bonus.forOwner(...).lasting/until/during(season)`,
   `BoosterManager.of(plugin, storage)` keeps a plugin's boosters in its own storage (`ec_boosters`; `of(plugin)` in memory),
   `grant` posts a `BoosterGrantedEvent`, a booster past its end stops counting at once and a sweep drops it once a minute.

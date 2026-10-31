@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.logic;
 
+import br.com.finalcraft.evernifecore.group.GroupId;
 import br.com.finalcraft.evernifecore.region.RegionId;
 
 import java.util.Locale;
@@ -18,6 +19,7 @@ public final class ProgressOwner {
     public static final String GLOBAL = "global";
     public static final String REGION = "region";
     public static final String WORLD = "world";
+    public static final String GROUP = "group";
 
     private static final ProgressOwner GLOBAL_OWNER = new ProgressOwner(GLOBAL, "");
 
@@ -60,6 +62,11 @@ public final class ProgressOwner {
 
     public static ProgressOwner world(String worldName) {
         return of(WORLD, worldName);
+    }
+
+    /** A group, of a {@code GroupManager}, a region or a registered {@code GroupProvider}: {@code group:<owner>:<name>}. */
+    public static ProgressOwner group(GroupId group) {
+        return new ProgressOwner(GROUP, group.toString());
     }
 
     /**

@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.group;
 
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.flag.Flag;
@@ -14,6 +15,7 @@ import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.region.Persistence;
 import br.com.finalcraft.evernifecore.region.RegionId;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
+import br.com.finalcraft.evernifecore.region.RegionSweeper;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
 import br.com.finalcraft.evernifecore.time.ECClock;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
@@ -26,6 +28,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -39,6 +42,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * The groups of one plugin: creates them, keeps them in the plugin's own {@link ECStorage} (collection
@@ -60,7 +64,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * storage. A {@link Persistence#TRANSIENT TRANSIENT} group never reaches the storage and is dissolved
  * ({@link DissolveCause#OWNER_DISABLED}) when the manager closes.</p>
  */
-public final class GroupManager {
+public final class GroupManager implements GroupProvider {
 
     static final long DEFAULT_FLUSH_DELAY_MILLIS = 50;
     private static final long DEFAULT_RETRY_DELAY_MILLIS = 30_000;
@@ -88,6 +92,7 @@ public final class GroupManager {
     private volatile boolean loaded;
     private volatile boolean closed;
     private final Group.Host host = new ManagedHost();
+    private final AtomicInteger ephemeralNames = new AtomicInteger();
 
     private GroupManager(ECPluginData owner, @Nullable ECStorage storage) {
         this.owner = owner;
@@ -184,6 +189,7 @@ public final class GroupManager {
                 read(record, kind);
             }
         }
+        wakeIfDue();
     }
 
     /** The registered kinds. Read-only. */
@@ -310,6 +316,7 @@ public final class GroupManager {
             }
         }
         ECDebugModule.GROUPS.debug("{} loaded {} group(s); {} wait for their kind.", nameOf(owner), read, unread.size());
+        wakeIfDue();
     }
 
     private @Nullable GroupKind kindOf(String key) {
@@ -416,6 +423,14 @@ public final class GroupManager {
             group.restore(0, null, MembershipCheck.exact(), options.getDisplayName(), options.getMetadata());
             groups.put(key, group);
         }
+        group.setJoinEdge(options.getJoinEdge());
+        group.setLeaveEdge(options.getLeaveEdge());
+        if (options.getKickWhen() != null) {
+            group.setKickWhen(options.getKickWhen(), options.getKickReason());
+        }
+        if (options.getQuitPolicy() != null) {
+            group.setQuitPolicy(options.getQuitPolicy());
+        }
         markDirty(group);
         ECEventBus.global().postIfListened(GroupCreatedEvent.class, () -> new GroupCreatedEvent(group));
         UUID leader = options.getLeader();
@@ -478,6 +493,93 @@ public final class GroupManager {
         }
         List<Group> found = getGroupsOf(player, kind);
         return found.isEmpty() ? null : found.get(0);
+    }
+
+    /** The groups whose {@link Group#getScope() scope} starts with {@code prefix}. */
+    public List<Group> getByScope(String prefix) {
+        List<Group> found = new ArrayList<>();
+        for (Group group : groups.values()) {
+            String scope = group.getScope();
+            if (scope != null && scope.startsWith(prefix)) {
+                found.add(group);
+            }
+        }
+        return Collections.unmodifiableList(found);
+    }
+
+    /** A free name for an ephemeral group: {@code e<n>}. */
+    String nextEphemeralName() {
+        String name;
+        do {
+            name = "e" + ephemeralNames.incrementAndGet();
+        } while (groups.containsKey(name) || unread.containsKey(name));
+        return name;
+    }
+
+    // ------------------------------------------------------------------
+    //  GroupProvider
+    // ------------------------------------------------------------------
+
+    @Override
+    public List<GroupId> getGroupIdsOf(UUID player) {
+        return idsOf(getGroupsOf(player));
+    }
+
+    @Override
+    public List<GroupId> getGroupIdsOf(UUID player, GroupKind kind) {
+        return idsOf(getGroupsOf(player, kind));
+    }
+
+    @Override
+    public boolean exists(GroupId id) {
+        return byId(id) != null;
+    }
+
+    @Override
+    public Set<UUID> getMembers(GroupId id) {
+        Group group = byId(id);
+        if (group == null) {
+            return Collections.emptySet();
+        }
+        Set<UUID> uuids = new LinkedHashSet<>();
+        for (GroupMember member : group.getMembers()) {
+            uuids.add(member.getUuid());
+        }
+        return Collections.unmodifiableSet(uuids);
+    }
+
+    @Override
+    public @Nullable UUID getLeader(GroupId id) {
+        Group group = byId(id);
+        return group == null ? null : group.getLeader();
+    }
+
+    /** The groups that hold {@code player} ({@link Group#contains}): the ACTOR layer of the flag resolution. */
+    @Override
+    public List<Group> getHoldersOf(FPlayer player) {
+        List<Group> found = new ArrayList<>();
+        for (Group group : groups.values()) {
+            if (group.contains(player)) {
+                found.add(group);
+            }
+        }
+        return found;
+    }
+
+    /** This manager's group {@code id} names; null for another owner's, a region-local one or an unknown name. */
+    public @Nullable Group byId(GroupId id) {
+        if (id.isRegionLocal() || !id.getOwner().equals(GroupId.of(owner, "x").getOwner())) {
+            return null;
+        }
+        return get(id.getName());
+    }
+
+    private static List<GroupId> idsOf(List<Group> found) {
+        List<GroupId> ids = new ArrayList<>(found.size());
+        for (Group group : found) {
+            ids.add(group.getId());
+        }
+        return Collections.unmodifiableList(ids);
     }
 
     // ------------------------------------------------------------------
@@ -583,6 +685,9 @@ public final class GroupManager {
         }
         failPendingLoads();
         ECDebugModule.GROUPS.debug("{} closed its GroupManager: {} group(s) dropped.", nameOf(owner), groups.size());
+        for (Group group : groups.values()) {
+            GroupQuitWatch.track(group, false);
+        }
         return flush().whenComplete((ignored, error) -> groups.clear());
     }
 
@@ -650,6 +755,9 @@ public final class GroupManager {
         }
         manager.dirty.clear();
         manager.removed.clear();
+        for (Group group : manager.groups.values()) {
+            GroupQuitWatch.track(group, false);
+        }
         manager.groups.clear();
     }
 
@@ -663,6 +771,16 @@ public final class GroupManager {
     // ------------------------------------------------------------------
     //  Internals
     // ------------------------------------------------------------------
+
+    /** A stored deadline (a timed member, an invite) or a sampled rule starts the sweeper. */
+    private void wakeIfDue() {
+        for (Group group : groups.values()) {
+            if (group.getNextDeadline() != null || group.isSampled()) {
+                RegionSweeper.wake();
+                return;
+            }
+        }
+    }
 
     private static String nameOf(ECPluginData owner) {
         return owner.getMetaInfo().getName();
@@ -716,12 +834,27 @@ public final class GroupManager {
             if (stored) {
                 markDirty(group);
             }
+            if (deadline != null) {
+                RegionSweeper.wake();
+            }
+        }
+
+        @Override
+        public void memberChanged(Group group, UUID player) {
+            //the group's ACTOR values follow its members: what the player's session holds from them is stale
+            RegionLookup.get().invalidate(player);
         }
 
         @Override
         public void flagChanged(Group group, Flag<?> flag, @Nullable FlagValue<?> oldValue, @Nullable FlagValue<?> newValue,
                                 FlagChangeCause cause) {
             markDirty(group);
+            for (GroupMember member : group.getMembers()) {
+                RegionLookup.get().invalidate(member.getUuid());
+            }
+            if (group.getNextDeadline() != null) {
+                RegionSweeper.wake();
+            }
             if (isLive(group)) {
                 ECEventBus.global().postIfListened(GroupFlagChangedEvent.class,
                         () -> new GroupFlagChangedEvent(group, flag, oldValue, newValue, cause));
