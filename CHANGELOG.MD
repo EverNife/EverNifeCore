@@ -18,6 +18,16 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **Shop transactions (`menu`)**: an `Offer` buys or sells `Goods` (`ItemGoods`, an item matched by `ItemMatcher`, or
+  `EffectGoods`, effects run once per unit) for a composite `Price` in any registered currencies (lines read from a
+  `Variable` at every quote; item lines on a BUY), behind a `Gate`, with a `RepeatPolicy` limit per player, group or
+  server, optional confirmation and a delivery destination. `Transactions.quote/buy/sell/trade/sellAll/sellHand` run it
+  in one fixed order - gate, limit, room, cancellable `TransactionPreEvent` (mutable quantity and totals, the original
+  kept), one atomic `Gate.pay` of price and fixed costs, goods, limit, `AuditKind.TRANSACTION` in the owner's
+  `AuditLog`, informative `TransactionEvent` - and answer a typed `TransactionResult`; goods that do not fit go to the
+  pending deliveries unless the offer says `NoSpacePolicy.REFUSE`. `OfferCatalog` finds the SELL offer of an item for
+  `sellHand` (held stack or the same item everywhere) and `sellAll`. Engine: `Menus` (over `ScreenWorld` + `LogicWorld`),
+  `CountedGoods`, `RecordingGoods`, `TestCurrency.refuseTakes`, `TestInventory.hold/addSeparately`.
 - **Screens render on Hytale**: `HyPageRenderer` (`evernifecore:page`, `hytale.screen`) draws any `Screen` as a server
   page (`InteractiveCustomUIPage`) from the core's own layouts in its asset pack (`EverNifeCore/Screen.ui`, `Cell.ui`,
   `Prompt.ui`): a frame sized to the grid, the title, one cell per slot with the item, its amount and the name and lore
@@ -346,6 +356,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **`ItemMatcher` reads name and lore when asked**: `plainOnly()` refuses an item with a name or lore of its own and
+  `exact(ItemSpec)` wants its very name and lore; `of(id)` still looks at the material only. Both platforms' inventories
+  now match on the whole description.
+- **`InventoryDestination` exposes the inventory**: `getContents(player)` (main inventory, described), `getHeld(player)`
+  and `roomFor(player, item)` join `count`/`take`, implemented on Bukkit, Hytale and `TestInventory`.
 - **The gui framework is the `screen` package of `:common`.** `Gui` is `Screen`, `GuiView` is `ScreenView`, `Icon` carries
   an `ItemSpec` and only looks like something; what a slot does is a `Button` (`screen.icon(l -> l.X)` answers one), a
   `Label`, a `PagedList`, an `InputField`, a `ProgressBar` or a dialogue `Choice`, each with a stable id. A click runs

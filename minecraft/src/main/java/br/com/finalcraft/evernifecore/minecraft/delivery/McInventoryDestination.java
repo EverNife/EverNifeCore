@@ -17,15 +17,21 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Callable;
 
 /**
  * The player's inventory on Bukkit, {@code evernifecore:inventory}: items are built from the {@link ItemSpec} (or
- * cloned from its native item) and added stack by stack; counting and taking read the material. Any thread: off the
+ * cloned from its native item) and added stack by stack; counting and taking read the material, name and lore. Any thread: off the
  * main thread it waits for the main thread to do the work.
  */
 public final class McInventoryDestination implements InventoryDestination {
+
+    /** The storage and hotbar slots of a player inventory, on every version; armor and off-hand come after. */
+    private static final int MAIN_SLOTS = 36;
 
     @Override
     public @Nullable ItemSpec deliverItem(ExecutionContext ctx, ItemSpec item) {
@@ -116,7 +122,73 @@ public final class McInventoryDestination implements InventoryDestination {
     }
 
     private static boolean matches(@Nullable ItemStack stack, ItemMatcher matcher) {
-        return stack != null && stack.getType() != Material.AIR && matcher.matchesId("minecraft:" + stack.getType().name().toLowerCase(Locale.ROOT));
+        ItemSpec described = describe(stack);
+        return described != null && matcher.matches(described);
+    }
+
+    @Override
+    public List<ItemSpec> getContents(FPlayer player) {
+        Player bukkit = bukkitOf(player);
+        if (bukkit == null) {
+            return Collections.emptyList();
+        }
+        return onMainThread(() -> {
+            ItemStack[] contents = bukkit.getInventory().getContents();
+            List<ItemSpec> stacks = new ArrayList<>();
+            for (int slot = 0; slot < Math.min(MAIN_SLOTS, contents.length); slot++) {
+                ItemSpec described = describe(contents[slot]);
+                if (described != null) {
+                    stacks.add(described);
+                }
+            }
+            return stacks;
+        });
+    }
+
+    @Override
+    @SuppressWarnings("deprecation") //getItemInHand is the one call every version from 1.7.10 to today answers
+    public @Nullable ItemSpec getHeld(FPlayer player) {
+        Player bukkit = bukkitOf(player);
+        return bukkit == null ? null : onMainThread(() -> describe(bukkit.getInventory().getItemInHand()));
+    }
+
+    @Override
+    public int roomFor(FPlayer player, ItemSpec item) {
+        Player bukkit = bukkitOf(player);
+        Material material = materialOf(item.getMaterialId());
+        if (bukkit == null || (item.getNativeItem() == null && material == null)) {
+            return 0;
+        }
+        return onMainThread(() -> {
+            ItemStack template = item.getNativeItem() != null ? item.getNativeItem().getItemStack().clone() : build(item, material);
+            int max = Math.max(1, template.getMaxStackSize());
+            ItemStack[] contents = bukkit.getInventory().getContents();
+            int room = 0;
+            for (int slot = 0; slot < Math.min(MAIN_SLOTS, contents.length); slot++) {
+                ItemStack stack = contents[slot];
+                if (stack == null || stack.getType() == Material.AIR) {
+                    room += max;
+                } else if (stack.isSimilar(template)) {
+                    room += Math.max(0, max - stack.getAmount());
+                }
+            }
+            return room;
+        });
+    }
+
+    /** The agnostic description of {@code stack} - material, amount, name, lore - or null for an empty slot. */
+    private static @Nullable ItemSpec describe(@Nullable ItemStack stack) {
+        if (stack == null || stack.getType() == Material.AIR || stack.getAmount() <= 0) {
+            return null;
+        }
+        ItemSpec spec = ItemSpec.of("minecraft:" + stack.getType().name().toLowerCase(Locale.ROOT), stack.getAmount());
+        ItemMeta meta = stack.hasItemMeta() ? stack.getItemMeta() : null;
+        if (meta == null) {
+            return spec;
+        }
+        String name = meta.hasDisplayName() ? meta.getDisplayName() : "";
+        List<String> lore = meta.hasLore() && meta.getLore() != null ? meta.getLore() : Collections.<String>emptyList();
+        return name.isEmpty() && lore.isEmpty() ? spec : spec.withText(name, lore);
     }
 
     private static ItemStack build(ItemSpec item, Material material) {
