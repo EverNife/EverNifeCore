@@ -1,0 +1,28 @@
+$C = "../Common.ui";
+
+// A screen of the EverNifeCore: a frame, the title, and the grid the server fills with one Cell.ui per slot, in slot
+// order. The server sizes #Frame and #Grid to the screen, so the cells wrap at the screen's own width.
+
+$C.@PageOverlay {}
+
+$C.@DecoratedContainer #Frame {
+  Anchor: (Width: 728, Height: 582);
+
+  #Title {
+    Label #ScreenTitle {
+      Style: (
+        ...$C.@TitleStyle,
+        HorizontalAlignment: Center,
+      );
+      Padding: (Horizontal: 19);
+    }
+  }
+
+  #Content {
+    LayoutMode: CenterMiddle;
+
+    Group #Grid {
+      LayoutMode: LeftCenterWrap;
+    }
+  }
+}

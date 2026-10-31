@@ -1,0 +1,52 @@
+$C = "../Common.ui";
+
+// A question an EverNifeCore screen asks: the server sets #Question, reads #Input through OK, and writes a refused
+// answer's reason into #Error.
+
+$C.@PageOverlay {}
+
+$C.@DecoratedContainer {
+  Anchor: (Width: 560, Height: 320);
+
+  #Title {
+    Label #PromptTitle {
+      Text: "?";
+      Style: (
+        ...$C.@TitleStyle,
+        HorizontalAlignment: Center,
+      );
+    }
+  }
+
+  #Content {
+    LayoutMode: Top;
+
+    Label #Question {
+      Style: (FontSize: 18, Wrap: true, TextColor: #d3dee3);
+    }
+
+    $C.@TextField #Input {
+      @Anchor = (Top: 12, Left: 0, Right: 0);
+    }
+
+    Label #Error {
+      Anchor: (Top: 6);
+      Style: (FontSize: 15, Wrap: true, TextColor: #ff6b6b);
+    }
+
+    Group {
+      LayoutMode: Center;
+      Anchor: (Top: 12, Height: 60);
+
+      $C.@TextButton #Ok {
+        @Text = "OK";
+        @Anchor = Anchor(Right: 5, Left: 5, MinWidth: 160);
+      }
+
+      $C.@SecondaryTextButton #Cancel {
+        @Text = "Cancel";
+        @Anchor = Anchor(Right: 5, Left: 5, MinWidth: 160);
+      }
+    }
+  }
+}

@@ -18,6 +18,17 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **Screens render on Hytale**: `HyPageRenderer` (`evernifecore:page`, `hytale.screen`) draws any `Screen` as a server
+  page (`InteractiveCustomUIPage`) from the core's own layouts in its asset pack (`EverNifeCore/Screen.ui`, `Cell.ui`,
+  `Prompt.ui`): a frame sized to the grid, the title, one cell per slot with the item, its amount and the name and lore
+  as tooltip; a closed `Choice` is a disabled cell whose tooltip says why. Clicks come back by slot as `PRIMARY`,
+  `SECONDARY` or `DOUBLE` (a page has no shift or middle click), a state change as an update of only the cells it
+  touched, escape as `PLAYER_CLOSED`, a server close or another screen opened over it as `REQUESTED`, a quit as
+  `DISCONNECTED`. It declares `TITLE_CHANGE`, not `STORAGE_SLOTS` (a page shows items, it does not move them): a screen
+  with an editable area is refused there, or opens its `onMissingCapability` alternative. Screens on Hytale run on a
+  thread of their own (`EverNifeCore Screens`) and reach the page on the viewer's world thread. Its prompt channel,
+  `HyPagePrompt`, asks on a page with a field, OK and Cancel; a parser's refusal shows under the field. Registered at
+  enable; `ScreenWorld.open(dir, platform, ...)` adjusts the test platform (`Platforms::offWorldThread`).
 - **NPC references (`br.com.finalcraft.evernifecore.npc`)**: `NpcRef` is `provider:id` (`citizens:12`,
   `fancynpcs:<uuid>`, `znpcsplus:merchant`, `hytale:<uuid>`, lowercased); the `NpcProvider` SPI answers `resolve(entity)`,
   `find(ref)`, `getLocation(ref)`, `getName(ref)` and starts raising clicks only while needed; `Npcs.register(owner,

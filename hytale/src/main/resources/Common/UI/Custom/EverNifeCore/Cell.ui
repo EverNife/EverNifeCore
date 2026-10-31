@@ -1,0 +1,46 @@
+$C = "../Common.ui";
+
+// One slot of an EverNifeCore screen: the item and its amount; the name and lore are the button's tooltip.
+// The server binds primary, secondary and double clicks on #Button.
+Group {
+  Anchor: (Width: 72, Height: 72);
+  Padding: (Full: 2);
+
+  ItemSlotButton #Button {
+    Anchor: (Full: 0);
+    LayoutMode: Full;
+    Padding: 2;
+    Style: (
+      Default: (
+        Background: #252f3a,
+      ),
+      Hovered: (
+        Background: #c9a050,
+      ),
+      Pressed: (
+        Background: #a08040,
+      ),
+      Disabled: (
+        Background: #1a1e24,
+      ),
+      Sounds: $C.@ButtonSounds,
+    );
+
+    ItemSlot #Icon {
+      Anchor: (Full: 0);
+      ShowQualityBackground: true;
+      ShowQuantity: false;
+    }
+
+    Label #Amount {
+      Anchor: (Right: 4, Bottom: 2);
+      Style: (
+        FontSize: 15,
+        TextColor: #ffffff,
+        HorizontalAlignment: End,
+        VerticalAlignment: End,
+        RenderBold: true,
+      );
+    }
+  }
+}

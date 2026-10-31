@@ -18,12 +18,15 @@ import br.com.finalcraft.evernifecore.hytale.integration.HyVaultIntegration;
 import br.com.finalcraft.evernifecore.hytale.listeners.PlayerLoginListener;
 import br.com.finalcraft.evernifecore.hytale.loader.imp.HyECPluginExtractor;
 import br.com.finalcraft.evernifecore.hytale.loader.imp.HyPlatform;
+import br.com.finalcraft.evernifecore.hytale.screen.HyPageRenderer;
 import br.com.finalcraft.evernifecore.hytale.scheduler.HyFCScheduler;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
 import br.com.finalcraft.evernifecore.region.session.RegionTicker;
+import br.com.finalcraft.evernifecore.screen.Screens;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 import com.hypixel.hytale.event.EventPriority;
+import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.hypixel.hytale.server.core.universe.world.events.AddWorldEvent;
 import com.hypixel.hytale.server.core.universe.world.events.RemoveWorldEvent;
@@ -85,6 +88,9 @@ public class EverNifeCoreHytalePlugin extends ECHytalePlugin {
 
         EverNifeCore.getLog().info("§aRegistering Listeners");
         ECListener.register(ecPluginData, PlayerLoginListener.class);
+        HyPageRenderer pageRenderer = new HyPageRenderer();
+        Screens.registerRenderer(ecPluginData, pageRenderer);
+        getEventRegistry().registerGlobal(PlayerDisconnectEvent.class, pageRenderer::onDisconnect);
 
         //the region index follows the worlds; LAST, so a world another plugin vetoed is not announced
         HyPlatform platform = (HyPlatform) EverNifeCore.getPlatform();
@@ -107,6 +113,8 @@ public class EverNifeCoreHytalePlugin extends ECHytalePlugin {
 
     @Override
     public void onECPluginShutdownPre() {
+        //each screen's onClose runs while the rest of the core can still answer it
+        Screens.closeAll();
         //the mirror closes where it was opened: whatever is still posted while the core tears itself
         //down has no business reaching a Hytale consumer
         ECEventBus.global().removeNativeAudience(HyHytaleAudience.NAME);

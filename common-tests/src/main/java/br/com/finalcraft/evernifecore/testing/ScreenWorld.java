@@ -27,6 +27,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.LongConsumer;
+import java.util.function.UnaryOperator;
 
 /**
  * Screens without a server: a strict platform with only what a screen asks for, a {@link RecordingRenderer} registered
@@ -51,14 +52,14 @@ public final class ScreenWorld implements AutoCloseable {
     private Consumer<String> answerer;
     private boolean closed;
 
-    private ScreenWorld(Path dataFolder, RendererCapability[] capabilities) {
-        this.world = Platforms.strict()
+    private ScreenWorld(Path dataFolder, UnaryOperator<Platforms> platform, RendererCapability[] capabilities) {
+        this.world = platform.apply(Platforms.strict()
                 .ignoringPlatformRegistrations()
                 .mainThreadInline()
                 .neutralChatAdapter()
                 .papiPresent(false)
                 .loggingToStdout()
-                .onlinePlayers(viewers)
+                .onlinePlayers(viewers))
                 .install();
         this.owner = Plugins.fakePluginData(OWNER, dataFolder.toFile());
         this.ticks = new TickScheduler();
@@ -71,7 +72,17 @@ public final class ScreenWorld implements AutoCloseable {
     /** A world whose recording renderer has {@code capabilities}; none by default. */
     @Nonnull
     public static ScreenWorld open(@Nonnull Path dataFolder, @Nonnull RendererCapability... capabilities) {
-        return new ScreenWorld(dataFolder, capabilities);
+        return new ScreenWorld(dataFolder, UnaryOperator.identity(), capabilities);
+    }
+
+    /**
+     * A world whose platform is the usual one adjusted by {@code platform} - {@code Platforms::offWorldThread} for a
+     * renderer that has to prove it hops to the viewer's world thread before touching the server.
+     */
+    @Nonnull
+    public static ScreenWorld open(@Nonnull Path dataFolder, @Nonnull UnaryOperator<Platforms> platform,
+                                   @Nonnull RendererCapability... capabilities) {
+        return new ScreenWorld(dataFolder, platform, capabilities);
     }
 
     /** The plugin named {@code test}: it owns the recording renderer and may register more {@code test:*} ones. */
