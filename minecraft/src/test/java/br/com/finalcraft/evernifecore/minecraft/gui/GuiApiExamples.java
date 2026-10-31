@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.minecraft.gui;
 
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.minecraft.gui.cfg.ConfigSetting;
+import br.com.finalcraft.evernifecore.config.ConfigSetting;
 import br.com.finalcraft.evernifecore.minecraft.gui.component.CycleBinder;
 import br.com.finalcraft.evernifecore.minecraft.gui.component.ListComponent;
 import br.com.finalcraft.evernifecore.minecraft.gui.component.Pager;

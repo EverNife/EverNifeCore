@@ -33,6 +33,7 @@ public final class ECBuiltinTypes {
         CFShapeFamily.register();
         CFEconomyFamily.register();
         CFBoosterFamily.register();
+        CFScreenFamily.register();
         registerCooldown();
         registerNumberWrapper();
         FancyTextConfigCodec.register();

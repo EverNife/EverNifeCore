@@ -1,11 +1,10 @@
-package br.com.finalcraft.evernifecore.minecraft.gui.cfg;
+package br.com.finalcraft.evernifecore.config;
 
-import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutBase;
+import br.com.finalcraft.evernifecore.screen.Layout;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.Plugins;
@@ -109,7 +108,7 @@ class SettingsScannerTest {
 
     static class TypedSettings {
 
-        @ConfigSetting(key = "Gui.rows")
+        @ConfigSetting(key = "Plain.rows")
         public Integer rows = 3;
     }
 
@@ -168,7 +167,7 @@ class SettingsScannerTest {
     }
 
     /** A layout is a settings holder like any other; nothing about the scanner asks for the base class. */
-    static class ScreenSettings extends LayoutBase {
+    static class ScreenSettings extends Layout {
 
         @ConfigSetting(key = "Screen.rows")
         public Integer rows = 3;
@@ -325,7 +324,7 @@ class SettingsScannerTest {
 
     @Test
     void aValueTheDeclaredTypeCannotReadFallsBackToTheDefault() {
-        config.setValue("Gui.rows", "notanumber");
+        config.setValue("Plain.rows", "notanumber");
         TypedSettings settings = new TypedSettings();
 
         SettingsScanner.load(ecPluginData, config, settings);
@@ -435,7 +434,7 @@ class SettingsScannerTest {
 
     @Test
     void aClassThatIsNotALayoutCarriesSettingsJustLikeOneThatIs() {
-        config.setValue("Gui.rows", 5);
+        config.setValue("Plain.rows", 5);
         config.setValue("Screen.rows", 4);
 
         TypedSettings plain = new TypedSettings();

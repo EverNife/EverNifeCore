@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.gui.layout;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.minecraft.gui.cfg.ConfigSetting;
+import br.com.finalcraft.evernifecore.config.ConfigSetting;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import jakarta.validation.constraints.Max;

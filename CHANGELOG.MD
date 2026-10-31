@@ -18,6 +18,24 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **Platform-neutral screens (`br.com.finalcraft.evernifecore.screen`, `:common`)**: the neutral half of the Bukkit gui
+  framework, rebuilt for every renderer. A `Screen` is a description; each viewer (`FPlayer`) gets a `ScreenView` drawn
+  by a `ScreenRenderer` chosen per open - the highest priority one that `supports` the viewer and covers the screen's
+  `RendererCapability`s (`STORAGE_SLOTS` when it declares a storage area), registered with
+  `Screens.registerRenderer(owner, renderer)` in the `renderer` `TypeRegistry`; no renderer covering it refuses the open
+  naming the capability and the renderer, or opens `onMissingCapability(ScreenFallback.open(other))`. `Icon` is
+  appearance only (`ItemSpec` + fallback candidates + raw item-data lines, states, per-language text); behaviour lives
+  in elements with stable ids - `Button`, `Label`, `PagedList`, `InputField`, `ProgressBar`, dialogue `Choice` - and a
+  click runs `ClickRule`s (`Gate` + success/deny effects, by `ClickGesture`). `Button.dependsOn(condition)` holds the
+  condition's event sources needed while the view is open and redraws on an action of the viewer; a condition with no
+  source is sampled. Changes reach the renderer batched, one `ScreenSurface.apply(List<ElementPatch>)` per tick;
+  `GridSurface` is the slot arithmetic a grid renderer shares. `ScreenOpenEvent`/`ScreenCloseEvent`, navigation
+  (`ClickContext.open/back/replace`), the prompt contract (`screen.prompt`) and layouts read as `ItemSpec`
+  (`Settings.rows`, `DisplayItem` `material:`/`amount:`/`name:`/`lore:`) come with it. `evernifecore-common-tests`
+  gains `ScreenWorld`, `RecordingRenderer` and `RendererConformance`, the suite every renderer passes. The chest
+  renderer that draws these on Bukkit is not in yet: `minecraft.gui` is still the Bukkit gui.
+- `ItemSpec.withText(displayName, lore)`.
+
 - **Group engine (`br.com.finalcraft.evernifecore.group`)**: `GroupManager.of(owner, storage)` keeps a plugin's groups in
   its own storage (collection `groups`; `of(owner)` holds TRANSIENT groups only and refuses a PERSISTENT one saying how
   to persist it); `GroupKind` declares cardinality (`ONE` refuses a second group of the kind on `add` and `join`), a roles
@@ -272,6 +290,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- `ConfigSetting` and `SettingsScanner` moved from `minecraft.gui.cfg` to `br.com.finalcraft.evernifecore.config`
+  (`:common`): they read annotated fields over EveryConfig and never were gui code.
 - **`AccessGroup` is gone**: `Region.getGroup(name)` returns a `Group` of `GroupKind.REGION_LOCAL` (same stored format,
   now with optional leader, roles - free tags in a region's group - and invites; a record written before still reads);
   `Membership` is `GroupMember` (`getMembership(uuid)` -> `getMember(uuid)`, `addMember` -> `add`, `removeMember` ->

@@ -1,9 +1,9 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.component;
 
 import br.com.finalcraft.evernifecore.locale.FCLocale;
-import br.com.finalcraft.evernifecore.minecraft.gui.cfg.SettingsScanner;
+import br.com.finalcraft.evernifecore.config.SettingsScanner;
 import br.com.finalcraft.evernifecore.minecraft.gui.Gui;
-import br.com.finalcraft.evernifecore.minecraft.gui.cfg.ConfigSetting;
+import br.com.finalcraft.evernifecore.config.ConfigSetting;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.GuiLayout;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.IconData;

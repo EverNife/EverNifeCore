@@ -203,7 +203,7 @@ public final class LegacyMigrationMetadata {
      * The standard EverNifeCore banner followed by this file's own rollback instructions. The banner
      * makes the file consistent with every other config; the {@link #HEADER} lines below it are the
      * admin's only instruction once the server is down and the legacy folder has been drained. Falls
-     * back to just the rollback lines in a headless runtime that has no {@link ECPluginData} (tests).
+     * back to just the rollback lines in a runtime that has no {@link ECPluginData} (tests).
      */
     private static String[] bannerPlusRollbackHeader() {
         ECPluginData plugin = EverNifeCore.getEcPluginData();

@@ -1,0 +1,378 @@
+package br.com.finalcraft.evernifecore.screen;
+
+import br.com.finalcraft.evernifecore.EverNifeCore;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
+import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+/**
+ * A list of data poured into a region of the screen, one entry per slot.
+ *
+ * <p>The page size is the size of the region - plus the arrow slots, on a list that fits one page with
+ * {@link #spillIntoPageArrows(boolean)} - so a list of forty entries in a region
+ * of seven slots paginates on its own - and an admin who widens the region in the yml widens the page
+ * with it, without a line of Java. The page itself lives in the view, so two players browsing the same
+ * screen never move each other.</p>
+ *
+ * <p>What makes the list draw again is a state it {@link #dependsOn(State...)}, a page turn, a
+ * refresh, or the clock it runs on with {@link #every(long)}; the source is never polled otherwise. Drawing again is cheap either way: the commit at the end of the
+ * tick writes only the slots whose rendered item actually changed, so a list that answered the same
+ * entries costs zero writes.</p>
+ *
+ * <p>An entry whose render function throws costs that one entry: it is logged with its index and the
+ * rest of the page is drawn. A source that throws costs the page, which is drawn empty. A single bad
+ * row in a config-driven list never takes the screen down, and neither does a source that went away.</p>
+ */
+public final class PagedList<T, L extends Layout> implements Element {
+
+    /** A source that answers one page at a time, for a catalogue too big to materialise. */
+    public interface PageSource<T> {
+
+        /** The entries of {@code page}, counting from 1, with at most {@code pageSize} of them. */
+        List<T> get(int page, int pageSize);
+
+    }
+
+    private final Screen<L> gui;
+    private final Supplier<List<T>> materialized;
+    private final PageSource<T> paged;
+    private Supplier<Integer> total;
+
+    private SlotSet region;
+    private Icon template;
+    private BiConsumer<T, Icon> renderer;
+    private BiConsumer<ClickContext, T> onClick;
+    private String id;
+
+    private SlotSet previousSlots;
+    private SlotSet nextSlots;
+    private Icon previousIcon;
+    private Icon nextIcon;
+    //built on first use and kept: an arrow the framework supplies costs a trip through the item factory
+    private Icon defaultPrevious;
+    private Icon defaultNext;
+    private boolean spillIntoPageArrows;
+
+    private final List<State<?>> dependencies = new ArrayList<>();
+    private Pager shared;
+    private long everyTicks;
+
+    public PagedList(@Nonnull Screen<L> gui, @Nullable Supplier<List<T>> materialized,
+                         @Nullable PageSource<T> paged) {
+        this.gui = gui;
+        this.materialized = materialized;
+        this.paged = paged;
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Declaration
+    // -----------------------------------------------------------------------------------------------------------------
+
+    /** Where the entries go, as raw slots or as a shape - see {@code Slots}. */
+    @Nonnull
+    public PagedList<T, L> into(@Nonnull SlotSet region) {
+        this.region = region;
+        return this;
+    }
+
+    /**
+     * Where the entries go, named by a layout icon: that icon is the TEMPLATE every entry starts from,
+     * and the slots the file gave it are the region they are poured into.
+     */
+    @Nonnull
+    public PagedList<T, L> into(@Nonnull Function<L, Icon> template) {
+        Layout.PlacedIcon placed = gui.takeOver(template);
+        this.region = placed.getSlots();
+        this.template = placed.getIcon();
+        return this;
+    }
+
+    /** What each entry looks like and does. The icon handed over is that entry's own copy of the template. */
+    @Nonnull
+    public PagedList<T, L> render(@Nonnull BiConsumer<T, Icon> renderer) {
+        this.renderer = renderer;
+        return this;
+    }
+
+    /** How many entries the source has, which is the only thing a page-at-a-time source cannot answer. */
+    @Nonnull
+    public PagedList<T, L> total(@Nonnull Supplier<Integer> total) {
+        this.total = total;
+        return this;
+    }
+
+    /**
+     * The page buttons, on raw slots, drawn with the framework's own arrows. This is the form that can
+     * leave one out: a {@code null} slot set draws no button on that side.
+     */
+    @Nonnull
+    public PagedList<T, L> pagedBy(@Nullable SlotSet previous, @Nullable SlotSet next) {
+        this.previousSlots = previous;
+        this.nextSlots = next;
+        return this;
+    }
+
+    /**
+     * The page buttons, named by the layout icons that carry their look and their slots. Both are
+     * required here - an icon is what says where the button goes, so there is no way to name one
+     * button and mean "and no other". Use {@link #pagedBy(SlotSet, SlotSet)} for that.
+     */
+    @Nonnull
+    public PagedList<T, L> pagedBy(@Nonnull Function<L, Icon> previous, @Nonnull Function<L, Icon> next) {
+        Layout.PlacedIcon back = gui.takeOver(previous);
+        Layout.PlacedIcon forward = gui.takeOver(next);
+        this.previousSlots = back.getSlots();
+        this.previousIcon = back.getIcon();
+        this.nextSlots = forward.getSlots();
+        this.nextIcon = forward.getIcon();
+        return this;
+    }
+
+    /**
+     * Whether the page-button slots hold entries while the whole list fits on one page counting them.
+     *
+     * <p>A region of 24 with two arrow slots then shows up to 26 entries on a single screen, filling the
+     * region first and the arrow slots after it, previous before next. From 27 on it pages over the
+     * region alone and the arrows are drawn as usual - so every page of a list has the same size.</p>
+     */
+    @Nonnull
+    public PagedList<T, L> spillIntoPageArrows(boolean spill) {
+        this.spillIntoPageArrows = spill;
+        return this;
+    }
+
+    /** States that make this list draw again - a filter, a tab, a sort order. */
+    @Nonnull
+    public PagedList<T, L> dependsOn(@Nonnull State<?>... states) {
+        Collections.addAll(dependencies, states);
+        return this;
+    }
+
+    /**
+     * Draws the list again every {@code ticks} while the screen is open - {@code every(20)} is once a
+     * second - for entries that read a clock, like a countdown. The source is read again on each pass.
+     */
+    @Nonnull
+    public PagedList<T, L> every(long ticks) {
+        this.everyTicks = Math.max(0L, ticks);
+        return this;
+    }
+
+    /**
+     * Browses through {@code pager} instead of one of this list's own, which is what lets the title
+     * read the page - and what makes several lists turn together.
+     *
+     * <p>A pager handed in here is shared by every viewer of this screen, exactly like a
+     * {@code State.of(...)} declared outside. A screen built once and opened for many players wants
+     * the default instead.</p>
+     */
+    @Nonnull
+    public PagedList<T, L> pager(@Nonnull Pager pager) {
+        this.shared = pager;
+        return this;
+    }
+
+    @Nonnull
+    public Screen<L> getGui() {
+        return gui;
+    }
+
+    /** Opens the screen this list belongs to - the chain's way out. */
+    @Nonnull
+    public CompletableFuture<ScreenView> open(@Nonnull FPlayer viewer, @Nonnull Object... args) {
+        return gui.open(viewer, args);
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Rendering
+    // -----------------------------------------------------------------------------------------------------------------
+
+    /** What a click on an entry does, with the entry it landed on. */
+    @Nonnull
+    public PagedList<T, L> onClick(@Nullable BiConsumer<ClickContext, T> onClick) {
+        this.onClick = onClick;
+        return this;
+    }
+
+    /** The id renderers address the list by; its entries are {@code <id>#<n>}, its arrows {@code <id>#previous|next}. */
+    @Nonnull
+    public PagedList<T, L> id(@Nonnull String id) {
+        this.id = id;
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public String getId() {
+        return id != null ? id : "list#" + (region == null ? "?" : region.serialize());
+    }
+
+    @Nonnull
+    @Override
+    public ElementKind getKind() {
+        return ElementKind.LIST_ENTRY;
+    }
+
+    @Nonnull
+    @Override
+    public SlotSet getSlots() {
+        return region == null ? SlotSet.of(new int[0]) : region;
+    }
+
+    @Nonnull
+    @Override
+    public Set<EventSource> getNeeds() {
+        return Collections.emptySet();
+    }
+
+    /** Builds this viewer's own page cursor and draws the list into their view. */
+    public void bind(@Nonnull ScreenComponent component) {
+        if (region == null) {
+            throw new IllegalStateException("A gui list has no region to pour into. Say where it goes with "
+                    + "into(Slots.box(...)) or into(l -> l.TEMPLATE_ICON).");
+        }
+        if (renderer == null) {
+            throw new IllegalStateException("A gui list has no render function, so its entries have no "
+                    + "appearance. Add render((entry, icon) -> ...).");
+        }
+        if (paged != null && total == null) {
+            throw new IllegalStateException("A page-at-a-time gui list needs total(...): one page cannot "
+                    + "say how many pages there are, so nothing knows when to stop.");
+        }
+
+        final Pager pager = shared != null ? shared : new Pager();
+        component.remember(pager);
+        for (State<?> dependency : dependencies) {
+            component.remember(dependency);
+        }
+        if (everyTicks > 0) {
+            component.every(everyTicks);
+        }
+        component.render(writer -> renderPage(writer, pager));
+    }
+
+    private void renderPage(SlotWriter writer, Pager pager) {
+        SlotSet slots = region.resolve(writer.getGrid());
+        int[] target = slots.toArray();
+        if (target.length == 0) {
+            pager.measure(0, 0);
+            return;
+        }
+
+        List<T> entries;
+        try {
+            List<T> all = paged == null ? materialized.get() : null;
+            int count = paged != null ? orZero(total.get()) : all == null ? 0 : all.size();
+            if (spillIntoPageArrows) {
+                int[] spilled = withArrowSlots(target, slots, writer.getGrid());
+                if (count <= spilled.length) {
+                    target = spilled; //a single page: no arrow will be drawn over these
+                }
+            }
+            pager.measure(target.length, count);
+            entries = paged != null ? paged.get(pager.getPage(), target.length) : pageOf(all, pager, target.length);
+        } catch (Throwable failure) {
+            //the source is as much of a plugin's own code as the render function is, and a screen frozen
+            //on the page before is worse than an empty one: the log is what says which of the two happened
+            EverNifeCore.getLog().warning("A gui list could not read its source, so the page was left "
+                    + "empty: " + failure + ".");
+            pager.measure(target.length, 0);
+            entries = Collections.emptyList();
+        }
+
+        int offset = (pager.getPage() - 1) * target.length;
+        for (int index = 0; index < entries.size() && index < target.length; index++) {
+            Icon icon = template == null ? Icon.empty() : template.copy();
+            try {
+                renderer.accept(entries.get(index), icon);
+            } catch (Throwable failure) {
+                EverNifeCore.getLog().warning("Entry " + (offset + index) + " of a gui list was left out: "
+                        + failure + ". The other entries were drawn.");
+                continue;
+            }
+            T entry = entries.get(index);
+            BiConsumer<ClickContext, T> click = onClick;
+            Paint paint = Paint.of(this).withId(getId() + "#" + (offset + index))
+                    .onClick(click == null ? null : context -> click.accept(context, entry));
+            writer.paint(paint, Slots.of(target[index]), icon);
+        }
+
+        renderPageButtons(writer, pager);
+    }
+
+    private static int orZero(Integer counted) {
+        return counted == null ? 0 : counted;
+    }
+
+    private static <T> List<T> pageOf(List<T> all, Pager pager, int pageSize) {
+        if (all == null) {
+            return Collections.emptyList();
+        }
+        int from = (pager.getPage() - 1) * pageSize;
+        return all.subList(Math.min(from, all.size()), Math.min(from + pageSize, all.size()));
+    }
+
+    /** The region's slots followed by the arrow slots it does not already hold, previous before next. */
+    private int[] withArrowSlots(int[] target, SlotSet slots, Grid geometry) {
+        List<Integer> joined = new ArrayList<>();
+        for (int slot : target) {
+            joined.add(slot);
+        }
+        for (SlotSet arrow : Arrays.asList(previousSlots, nextSlots)) {
+            if (arrow == null) {
+                continue;
+            }
+            for (int slot : arrow.resolve(geometry).toArray()) {
+                if (!slots.contains(slot) && !joined.contains(slot)) {
+                    joined.add(slot);
+                }
+            }
+        }
+        return joined.stream().mapToInt(Integer::intValue).toArray();
+    }
+
+    /** The arrows, drawn only while there is somewhere to go: one page needs no navigation. */
+    private void renderPageButtons(SlotWriter writer, Pager pager) {
+        if (pager.getTotalPages() <= 1) {
+            return;
+        }
+        if (previousSlots != null) {
+            writer.paint(Paint.decoration(getId() + "#previous").withKind(ElementKind.BUTTON)
+                    .onClick(context -> pager.previous()), previousSlots, arrow(previousIcon, true));
+        }
+        if (nextSlots != null) {
+            writer.paint(Paint.decoration(getId() + "#next").withKind(ElementKind.BUTTON)
+                    .onClick(context -> pager.next()), nextSlots, arrow(nextIcon, false));
+        }
+    }
+
+    private Icon arrow(Icon declared, boolean backwards) {
+        return declared != null ? declared : defaultArrow(backwards);
+    }
+
+    private Icon defaultArrow(boolean backwards) {
+        if (backwards) {
+            if (defaultPrevious == null) {
+                defaultPrevious = DefaultIcons.previousPage();
+            }
+            return defaultPrevious;
+        }
+        if (defaultNext == null) {
+            defaultNext = DefaultIcons.nextPage();
+        }
+        return defaultNext;
+    }
+
+}

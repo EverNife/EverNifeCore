@@ -251,7 +251,7 @@ public final class ConfigFactory {
      * is the caller's to decide - e.g. {@code storage.yml}, which a test or an admin tool may point
      * anywhere - while still stamping it with the same banner every other config carries.
      *
-     * <p>{@code plugin} may be {@code null} in a headless runtime that never registered an
+     * <p>{@code plugin} may be {@code null} in a runtime with no plugin around it that never registered an
      * {@link ECPluginData} (the unit tests): the file then opens with no header, exactly like the plain
      * {@link #open(File)}. This is the deliberate difference from {@link #open(ECPluginData, String)},
      * which relocates under the data folder and therefore requires a real plugin.</p>
