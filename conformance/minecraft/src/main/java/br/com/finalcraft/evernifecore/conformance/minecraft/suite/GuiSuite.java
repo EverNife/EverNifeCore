@@ -14,6 +14,8 @@ import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.screen.ClickPolicy;
 import br.com.finalcraft.evernifecore.screen.CloseReason;
+import br.com.finalcraft.evernifecore.screen.ConfirmRequest;
+import br.com.finalcraft.evernifecore.screen.ConfirmScreen;
 import br.com.finalcraft.evernifecore.screen.DefaultIcons;
 import br.com.finalcraft.evernifecore.screen.Icon;
 import br.com.finalcraft.evernifecore.screen.IconData;
@@ -103,12 +105,8 @@ public final class GuiSuite implements ConformanceSuite {
         });
         screen("layout", 27, SeededLayout.TITLE, probe -> Screen.of(SeededLayout.class)
                 .onClose(close -> probe.closes.add(close.getReason())));
-        screen("confirm", 27, "§8ecc confirm?", probe -> {
-            Screen<Layout> screen = Screen.of(3).title("§8ecc confirm?").onClose(close -> probe.closes.add(close.getReason()));
-            screen.icon(11, DefaultIcons.confirm()).onClick(click -> click.back(true));
-            screen.icon(15, DefaultIcons.deny()).onClick(click -> click.back(false));
-            return screen;
-        });
+        screen("confirm", 27, "§8ecc confirm?", probe -> ConfirmScreen.of(ConfirmRequest.of("§8ecc confirm?"))
+                .onClose(close -> probe.closes.add(close.getReason())));
     }
 
     @Override
