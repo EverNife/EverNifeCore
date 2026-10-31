@@ -1,36 +1,35 @@
 package br.com.finalcraft.evernifecore.conformance.minecraft.suite;
 
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.conformance.ConformanceCase;
 import br.com.finalcraft.evernifecore.conformance.ConformanceContext;
 import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
 import br.com.finalcraft.evernifecore.conformance.Verdict;
-import br.com.finalcraft.evernifecore.minecraft.gui.ConfirmGui;
-import br.com.finalcraft.evernifecore.minecraft.gui.Gui;
-import br.com.finalcraft.evernifecore.minecraft.gui.component.Pager;
-import br.com.finalcraft.evernifecore.minecraft.gui.icons.EnumStainedGlassPane;
-import br.com.finalcraft.evernifecore.minecraft.gui.icons.EnumWool;
-import br.com.finalcraft.evernifecore.minecraft.gui.layout.GuiLayout;
-import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
-import br.com.finalcraft.evernifecore.minecraft.gui.layout.IconData;
-import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutBase;
-import br.com.finalcraft.evernifecore.minecraft.gui.model.ClickPolicy;
-import br.com.finalcraft.evernifecore.minecraft.gui.model.GuiType;
-import br.com.finalcraft.evernifecore.minecraft.gui.model.Slots;
-import br.com.finalcraft.evernifecore.minecraft.gui.view.BukkitGuiScheduler;
-import br.com.finalcraft.evernifecore.minecraft.gui.view.CloseReason;
-import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiNavigation;
-import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiView;
-import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiViews;
-import br.com.finalcraft.evernifecore.minecraft.gui.view.prompt.ChatPrompt;
-import br.com.finalcraft.evernifecore.minecraft.gui.view.prompt.ChatPromptChannel;
-import br.com.finalcraft.evernifecore.minecraft.gui.view.prompt.PromptResult;
+import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFPlayer;
 import br.com.finalcraft.evernifecore.minecraft.inventory.GenericInventory;
-import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
+import br.com.finalcraft.evernifecore.minecraft.screen.BukkitScreenScheduler;
+import br.com.finalcraft.evernifecore.minecraft.screen.ChestKind;
+import br.com.finalcraft.evernifecore.minecraft.screen.prompt.BukkitChatPromptChannel;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
-import org.bukkit.Material;
+import br.com.finalcraft.evernifecore.screen.ClickPolicy;
+import br.com.finalcraft.evernifecore.screen.CloseReason;
+import br.com.finalcraft.evernifecore.screen.ConfirmRequest;
+import br.com.finalcraft.evernifecore.screen.ConfirmScreen;
+import br.com.finalcraft.evernifecore.screen.DefaultIcons;
+import br.com.finalcraft.evernifecore.screen.Icon;
+import br.com.finalcraft.evernifecore.screen.IconData;
+import br.com.finalcraft.evernifecore.screen.Layout;
+import br.com.finalcraft.evernifecore.screen.Pager;
+import br.com.finalcraft.evernifecore.screen.Screen;
+import br.com.finalcraft.evernifecore.screen.ScreenLayout;
+import br.com.finalcraft.evernifecore.screen.ScreenNavigation;
+import br.com.finalcraft.evernifecore.screen.ScreenView;
+import br.com.finalcraft.evernifecore.screen.Screens;
+import br.com.finalcraft.evernifecore.screen.Slots;
+import br.com.finalcraft.evernifecore.screen.prompt.Prompt;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptResult;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 
 import java.io.File;
 import java.time.Duration;
@@ -42,10 +41,10 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * The gui framework against a real window: every sample screen opens for the player, is registered as the screen
- * they look at, carries the title it was asked for, does the one thing it exists to show (a second screen pushed and
- * popped, a chat question that times out and gives the screen back, a page turned) and closes exactly once, as
- * {@link CloseReason#PLAYER_CLOSED} - the reason a close of the window is reported as on every build.
+ * The screen framework against a real chest window: every sample screen opens for the player, is registered as the
+ * screen they look at, carries the title it was asked for, does the one thing it exists to show (a second screen
+ * pushed and popped, a chat question that times out and gives the screen back, a page turned) and closes exactly
+ * once, as {@link CloseReason#PLAYER_CLOSED} - the reason a close of the window is reported as on every build.
  *
  * <p>{@code /ecc gui <screen> <player>} opens the same screens and leaves them open, so the window can be read from
  * outside the server - by the server's own inventory and by the client.</p>
@@ -53,53 +52,60 @@ import java.util.concurrent.CompletableFuture;
 public final class GuiSuite implements ConformanceSuite {
 
     private static final long TIMEOUT_MILLIS = 15_000L;
-    /** Window titles longer than this are cut up to 1.8 ({@code GuiViews}); the server throws on them otherwise. */
+    /** Window titles longer than this are cut up to 1.8 by the chest renderer; the server throws on them otherwise. */
     private static final int LEGACY_TITLE_LIMIT = 32;
     private static final MCDetailedVersion LAST_LEGACY_TITLE = MCDetailedVersion.v1_8_R3;
     private static final String LONG_TITLE = "ecc title-long 40 characters of title!!";
 
-    private static final Map<String, Screen> SCREENS = new LinkedHashMap<>();
+    private static final Map<String, Sample> SCREENS = new LinkedHashMap<>();
 
     static {
-        screen("basic", 27, "", probe -> named(Gui.of(3), "basic", probe)
-                .icon(11, Icon.of(FCItemFactory.from(Material.DIAMOND).displayName("§bDiamond").lore("§7first line", "§esecond line").build()))
-                .icon(13, EnumWool.RED.asFactory().displayName("§cRed wool").lore("§7coloured by data").asIcon())
-                .icon(15, Icon.of(FCItemFactory.from(Material.PAPER).displayName("§aPaper").build())));
-        screen("hopper", GuiType.HOPPER.getDefaultSize(), "", probe -> named(Gui.of(GuiType.HOPPER), "hopper", probe)
-                .icon(2, Icon.of(new ItemStack(Material.EMERALD))));
-        screen("dispenser", GuiType.DISPENSER.getDefaultSize(), "", probe -> named(Gui.of(GuiType.DISPENSER), "dispenser", probe)
-                .icon(4, Icon.of(new ItemStack(Material.EMERALD))));
-        screen("workbench", GuiType.WORKBENCH.getDefaultSize(), "", probe -> named(Gui.of(GuiType.WORKBENCH), "workbench", probe)
-                .icon(5, Icon.of(new ItemStack(Material.EMERALD))));
-        screen("nav", 27, "", probe -> named(Gui.of(3), "nav", probe)
-                .icon(13, Icon.of(new ItemStack(Material.CHEST)).onClick(click -> click.open(navSecond()))));
-        screen("storage", 27, "", probe -> {
-            Gui<LayoutBase> gui = named(Gui.of(3), "storage", probe)
-                    .icon(Slots.row(1), Icon.of(new ItemStack(Material.STONE)));
-            GenericInventory backing = new GenericInventory();
-            gui.storage(Slots.box(2, 1, 3, 9)).backedBy(backing).policy(ClickPolicy.EDIT_ALL);
-            return gui;
+        screen("basic", 27, "", probe -> {
+            Screen<Layout> screen = named(Screen.of(3), "basic", probe);
+            screen.icon(11, Icon.of("minecraft:diamond").displayName("§bDiamond").lore("§7first line", "§esecond line"));
+            screen.icon(13, Icon.of(DefaultIcons.wool(DefaultIcons.Color.RED)).displayName("§cRed wool").lore("§7coloured by data"));
+            screen.icon(15, Icon.of("minecraft:paper").displayName("§aPaper"));
+            return screen;
         });
-        screen("prompt", 27, "", probe -> named(Gui.of(3), "prompt", probe)
-                .icon(13, Icon.of(new ItemStack(Material.PAPER)).onClick(click -> click.askOnChat(question()))));
+        screen("hopper", ChestKind.HOPPER.getDefaultSize(), "", probe -> emerald(named(ChestKind.HOPPER.newScreen(), "hopper", probe), 2));
+        screen("dispenser", ChestKind.DISPENSER.getDefaultSize(), "", probe -> emerald(named(ChestKind.DISPENSER.newScreen(), "dispenser", probe), 4));
+        screen("workbench", ChestKind.WORKBENCH.getDefaultSize(), "", probe -> emerald(named(ChestKind.WORKBENCH.newScreen(), "workbench", probe), 5));
+        screen("nav", 27, "", probe -> {
+            Screen<Layout> screen = named(Screen.of(3), "nav", probe);
+            screen.icon(13, Icon.of("minecraft:chest")).onClick(click -> click.open(navSecond()));
+            return screen;
+        });
+        screen("storage", 27, "", probe -> {
+            Screen<Layout> screen = named(Screen.of(3), "storage", probe);
+            screen.icon(Slots.row(1), Icon.of("minecraft:stone"));
+            screen.storage(Slots.box(2, 1, 3, 9)).backedBy(new GenericInventory()).policy(ClickPolicy.EDIT_ALL);
+            return screen;
+        });
+        screen("prompt", 27, "", probe -> {
+            Screen<Layout> screen = named(Screen.of(3), "prompt", probe);
+            screen.icon(13, Icon.of("minecraft:paper")).onClick(click -> click.ask(question()));
+            return screen;
+        });
         screen("pager", 27, "", probe -> {
-            Gui<LayoutBase> gui = named(Gui.of(3), "pager", probe);
+            Screen<Layout> screen = named(Screen.of(3), "pager", probe);
             List<Integer> entries = new ArrayList<>();
             for (int i = 1; i <= 30; i++) entries.add(i);
             probe.pager = new Pager();
-            gui.list(entries)
+            screen.list(entries)
                     .pager(probe.pager)
                     .into(Slots.box(1, 1, 2, 9))
                     .pagedBy(Slots.of(18), Slots.of(26))
-                    .render((entry, icon) -> icon.from(new ItemStack(Material.PAPER, entry)));
-            return gui;
+                    .render((entry, icon) -> icon.from(Icon.of("minecraft:paper").amount(entry)));
+            return screen;
         });
-        screen("title-long", 27, LONG_TITLE, probe -> Gui.of(3).title(LONG_TITLE)
-                .onClose(close -> probe.closes.add(close.getReason()))
-                .icon(13, Icon.of(new ItemStack(Material.NAME_TAG))));
-        screen("layout", 27, SeededLayout.TITLE, probe -> Gui.of(SeededLayout.class)
+        screen("title-long", 27, LONG_TITLE, probe -> {
+            Screen<Layout> screen = Screen.of(3).title(LONG_TITLE).onClose(close -> probe.closes.add(close.getReason()));
+            screen.icon(13, Icon.of("minecraft:name_tag"));
+            return screen;
+        });
+        screen("layout", 27, SeededLayout.TITLE, probe -> Screen.of(SeededLayout.class)
                 .onClose(close -> probe.closes.add(close.getReason())));
-        screen("confirm", 27, "§8ecc confirm?", probe -> ConfirmGui.of("§8ecc confirm?")
+        screen("confirm", 27, "§8ecc confirm?", probe -> ConfirmScreen.of(ConfirmRequest.of("§8ecc confirm?"))
                 .onClose(close -> probe.closes.add(close.getReason())));
     }
 
@@ -114,15 +120,15 @@ public final class GuiSuite implements ConformanceSuite {
     }
 
     /** Opens {@code screen} for {@code player} and leaves it open; {@code null} when no screen has that id. */
-    public static CompletableFuture<GuiView> open(String screen, Player player) {
-        Screen found = SCREENS.get(screen);
-        return found == null ? null : found.build.apply(new Probe()).open(player);
+    public static CompletableFuture<ScreenView> open(String screen, Player player) {
+        Sample found = SCREENS.get(screen);
+        return found == null ? null : found.build.apply(new Probe()).open(viewer(player));
     }
 
     @Override
     public List<ConformanceCase> getCases(ConformanceContext ctx) {
         List<ConformanceCase> cases = new ArrayList<>();
-        for (Screen screen : SCREENS.values()) {
+        for (Sample screen : SCREENS.values()) {
             cases.add(PlayerCases.later(screen.id, ctx, player -> PlayerCases.within(check(screen, ctx, player), TIMEOUT_MILLIS)));
         }
         return cases;
@@ -132,35 +138,35 @@ public final class GuiSuite implements ConformanceSuite {
     //  The check every screen goes through
     // -----------------------------------------------------------------------------------------------------------------
 
-    private static CompletableFuture<Verdict> check(Screen screen, ConformanceContext ctx, Player player) {
+    private static CompletableFuture<Verdict> check(Sample screen, ConformanceContext ctx, Player player) {
         CompletableFuture<Verdict> answer = new CompletableFuture<>();
         List<String> problems = new ArrayList<>();
         Probe probe = new Probe();
         List<CloseReason> closes = probe.closes;
 
         //a screen left open by an earlier /ecc gui would be displaced by this one and skew the count
-        GuiView stale = GuiViews.getOpenView(player);
+        ScreenView stale = Screens.getOpenView(player.getUniqueId());
         if (stale != null) stale.close();
 
         after(1, answer, () -> {
-            int before = GuiViews.getOpenCount();
-            screen.build.apply(probe).open(player).whenComplete((view, refused) -> after(0, answer, () -> {
+            int before = Screens.getOpenCount();
+            screen.build.apply(probe).open(viewer(player)).whenComplete((view, refused) -> after(0, answer, () -> {
                 if (refused != null) {
                     answer.complete(Verdict.fail("open refused: " + Verdict.describe(refused)));
                     return;
                 }
-                expect(problems, GuiViews.getOpenView(player) == view, "getOpenView is not the opened view");
-                expect(problems, GuiViews.getOpenCount() == before + 1, "open count " + before + " -> " + GuiViews.getOpenCount());
+                expect(problems, Screens.getOpenView(player.getUniqueId()) == view, "getOpenView is not the opened view");
+                expect(problems, Screens.getOpenCount() == before + 1, "open count " + before + " -> " + Screens.getOpenCount());
                 expect(problems, view.getCurrentTitle().equals(screen.title), "title '" + view.getCurrentTitle() + "'");
-                expect(problems, view.getGeometry().getSize() == screen.size, "window size " + view.getGeometry().getSize());
+                expect(problems, view.getGrid().getSize() == screen.size, "window size " + view.getGrid().getSize());
                 CompletableFuture<String> exercised = exercise(screen.id, ctx, player, view, probe, problems);
                 exercised.whenComplete((detail, threw) -> after(1, answer, () -> {
                     if (threw != null) problems.add(Verdict.describe(threw));
-                    GuiView last = GuiViews.getOpenView(player);
+                    ScreenView last = Screens.getOpenView(player.getUniqueId());
                     if (last != null) last.close();
                     after(1, answer, () -> {
-                        expect(problems, GuiViews.getOpenView(player) == null, "still registered after close");
-                        expect(problems, GuiViews.getOpenCount() == before, "open count after close " + GuiViews.getOpenCount());
+                        expect(problems, Screens.getOpenView(player.getUniqueId()) == null, "still registered after close");
+                        expect(problems, Screens.getOpenCount() == before, "open count after close " + Screens.getOpenCount());
                         expect(problems, closes.equals(Collections.singletonList(CloseReason.PLAYER_CLOSED)), "onClose saw " + closes);
                         String summary = "title='" + screen.title + "' sentTitle='" + sentTitle(screen.title) + "' size=" + screen.size
                                 + (detail == null || detail.isEmpty() ? "" : " " + detail) + " closes=" + closes;
@@ -173,14 +179,14 @@ public final class GuiSuite implements ConformanceSuite {
     }
 
     /** What each screen exists to show, beyond opening and closing. Answers the detail of the case. */
-    private static CompletableFuture<String> exercise(String id, ConformanceContext ctx, Player player, GuiView view, Probe probe,
+    private static CompletableFuture<String> exercise(String id, ConformanceContext ctx, Player player, ScreenView view, Probe probe,
                                                       List<String> problems) {
         switch (id) {
             case "nav": {
                 CompletableFuture<String> done = new CompletableFuture<>();
-                CompletableFuture<Object> answered = GuiNavigation.open(view, navSecond());
+                CompletableFuture<Object> answered = ScreenNavigation.open(view, navSecond());
                 after(2, done, () -> {
-                    GuiView top = GuiViews.getOpenView(player);
+                    ScreenView top = Screens.getOpenView(player.getUniqueId());
                     boolean pushed = top != null && top != view && NAV_SECOND_TITLE.equals(top.getCurrentTitle());
                     expect(problems, pushed, "second screen not on top: " + (top == null ? null : top.getCurrentTitle()));
                     expect(problems, view.isSuspended(), "first screen was not set aside");
@@ -188,10 +194,10 @@ public final class GuiSuite implements ConformanceSuite {
                         done.complete("");
                         return;
                     }
-                    GuiNavigation.back(top, "popped");
+                    ScreenNavigation.back(top, "popped");
                     after(2, done, () -> {
                         expect(problems, "popped".equals(answered.getNow(null)), "the opener got " + answered);
-                        expect(problems, GuiViews.getOpenView(player) == view && !view.isSuspended(), "first screen did not come back");
+                        expect(problems, Screens.getOpenView(player.getUniqueId()) == view && !view.isSuspended(), "first screen did not come back");
                         done.complete("pushed and popped");
                     });
                 });
@@ -199,19 +205,21 @@ public final class GuiSuite implements ConformanceSuite {
             }
             case "prompt": {
                 CompletableFuture<String> done = new CompletableFuture<>();
-                CompletableFuture<PromptResult<String>> result = ChatPromptChannel.get().ask(view,
-                        ChatPrompt.of("§e[ECoreConformance] gui/prompt - no answer needed, it times out").timeout(Duration.ofSeconds(2)));
+                CompletableFuture<PromptResult<String>> result = BukkitChatPromptChannel.get().ask(view,
+                        Prompt.of("§e[ECoreConformance] gui/prompt - no answer needed, it times out").timeout(Duration.ofSeconds(2)));
                 after(2, done, () -> expect(problems, view.isSuspended(), "the screen was not set aside while asking"));
                 result.whenComplete((asked, threw) -> after(2, done, () -> {
                     expect(problems, asked != null && asked.getKind() == PromptResult.Kind.TIMEOUT, "prompt ended " + asked);
-                    expect(problems, GuiViews.getOpenView(player) == view && !view.isSuspended(), "the screen did not come back");
+                    expect(problems, Screens.getOpenView(player.getUniqueId()) == view && !view.isSuspended(), "the screen did not come back");
                     done.complete("prompt=" + (asked == null ? null : asked.getKind()));
                 }));
                 return done;
             }
-            case "storage":
-                expect(problems, view.hasStorage() && view.getStorages().size() == 1, "storages " + view.getStorages().size());
-                return CompletableFuture.completedFuture("storages=" + view.getStorages().size());
+            case "storage": {
+                int storages = view.getScreen().getStorages().size();
+                expect(problems, view.hasStorage() && storages == 1, "storages " + storages);
+                return CompletableFuture.completedFuture("storages=" + storages);
+            }
             case "pager": {
                 Pager pager = probe.pager;
                 expect(problems, pager.getTotalEntries() == 30 && pager.getPageSize() == 18 && pager.getTotalPages() == 2,
@@ -240,20 +248,31 @@ public final class GuiSuite implements ConformanceSuite {
 
     private static final String NAV_SECOND_TITLE = "§8ecc nav second";
 
-    private static Gui<LayoutBase> navSecond() {
-        return Gui.of(3).title(NAV_SECOND_TITLE).icon(13, Icon.of(new ItemStack(Material.DIAMOND)));
+    private static Screen<Layout> navSecond() {
+        Screen<Layout> screen = Screen.of(3).title(NAV_SECOND_TITLE);
+        screen.icon(13, Icon.of("minecraft:diamond"));
+        return screen;
     }
 
-    private static ChatPrompt<String> question() {
-        return ChatPrompt.of("§e[ECoreConformance] type anything, or let it time out").timeout(Duration.ofSeconds(5));
+    private static Prompt<String> question() {
+        return Prompt.of("§e[ECoreConformance] type anything, or let it time out").timeout(Duration.ofSeconds(5));
     }
 
-    private static Gui<LayoutBase> named(Gui<LayoutBase> gui, String name, Probe probe) {
-        return gui.title("§8ecc " + name).onClose(close -> probe.closes.add(close.getReason()));
+    private static Screen<Layout> named(Screen<Layout> screen, String name, Probe probe) {
+        return screen.title("§8ecc " + name).onClose(close -> probe.closes.add(close.getReason()));
+    }
+
+    private static Screen<Layout> emerald(Screen<Layout> screen, int slot) {
+        screen.icon(slot, Icon.of("minecraft:emerald"));
+        return screen;
+    }
+
+    private static FPlayer viewer(Player player) {
+        return MinecraftFPlayer.of(player);
     }
 
     private static void screen(String id, int size, String title, ScreenBuilder build) {
-        SCREENS.put(id, new Screen(id, size, title.isEmpty() ? "§8ecc " + id : title, build));
+        SCREENS.put(id, new Sample(id, size, title.isEmpty() ? "§8ecc " + id : title, build));
     }
 
     /** The title the window packet carries: what the framework asked for, cut where the protocol cannot hold it. */
@@ -281,14 +300,14 @@ public final class GuiSuite implements ConformanceSuite {
             }
         };
         if (ticks <= 0) {
-            GuiViews.onMainThread(guarded);
+            BukkitScreenScheduler.INSTANCE.run(guarded);
         } else {
-            BukkitGuiScheduler.INSTANCE.later(ticks, guarded);
+            BukkitScreenScheduler.INSTANCE.later(ticks, guarded);
         }
     }
 
     interface ScreenBuilder {
-        Gui<?> apply(Probe probe);
+        Screen<?> apply(Probe probe);
     }
 
     /** What a check reads back from the screen it built: every close it saw, and the pager when it has one. */
@@ -297,13 +316,13 @@ public final class GuiSuite implements ConformanceSuite {
         private Pager pager;
     }
 
-    private static final class Screen {
+    private static final class Sample {
         private final String id;
         private final int size;
         private final String title;
         private final ScreenBuilder build;
 
-        private Screen(String id, int size, String title, ScreenBuilder build) {
+        private Sample(String id, int size, String title, ScreenBuilder build) {
             this.id = id;
             this.size = size;
             this.title = title;
@@ -311,16 +330,16 @@ public final class GuiSuite implements ConformanceSuite {
         }
     }
 
-    /** A level-2 screen: its file is seeded under {@code guis/} the first time it is read. */
-    @GuiLayout(title = SeededLayout.TITLE, rows = 3)
-    public static class SeededLayout extends LayoutBase {
+    /** A layout-built screen: its file is seeded under {@code guis/} the first time it is read. */
+    @ScreenLayout(title = SeededLayout.TITLE, rows = 3)
+    public static class SeededLayout extends Layout {
 
         static final String TITLE = "§8ecc layout";
 
         @IconData(slot = {13})
-        public Icon CENTER = Icon.of(new ItemStack(Material.EMERALD));
+        public Icon CENTER = Icon.of("minecraft:emerald");
 
         @IconData(slot = {0, 8, 18, 26}, background = true)
-        public Icon CORNER = EnumStainedGlassPane.GRAY.asFactory().asIcon();
+        public Icon CORNER = Icon.of(DefaultIcons.pane(DefaultIcons.Color.GRAY));
     }
 }

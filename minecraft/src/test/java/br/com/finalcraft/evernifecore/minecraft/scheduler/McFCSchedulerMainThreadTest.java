@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.scheduler;
 
-import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
+import br.com.finalcraft.evernifecore.minecraft.screen.testkit.BukkitScreenWorld;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.junit.jupiter.api.Test;
 
@@ -31,7 +31,7 @@ class McFCSchedulerMainThreadTest {
 
     @Test
     void alreadyOnTheMainThreadThereIsNothingToWaitFor() {
-        try (GuiTestWorld world = GuiTestWorld.install(tempDir)) {
+        try (BukkitScreenWorld world = BukkitScreenWorld.install(tempDir)) {
             McFCScheduler scheduler = McFCScheduler.INSTANCE;
             List<String> ran = new ArrayList<>();
 
@@ -45,7 +45,7 @@ class McFCSchedulerMainThreadTest {
 
     @Test
     void offTheMainThreadTheTaskWaitsForTheTickAndLandsOnIt() {
-        try (GuiTestWorld world = GuiTestWorld.install(tempDir)) {
+        try (BukkitScreenWorld world = BukkitScreenWorld.install(tempDir)) {
             McFCScheduler scheduler = McFCScheduler.INSTANCE;
             AtomicReference<Thread> ranOn = new AtomicReference<>();
 
@@ -66,7 +66,7 @@ class McFCSchedulerMainThreadTest {
 
     @Test
     void laterNeverRunsInsideTheCallEvenFromTheMainThread() {
-        try (GuiTestWorld world = GuiTestWorld.install(tempDir)) {
+        try (BukkitScreenWorld world = BukkitScreenWorld.install(tempDir)) {
             McFCScheduler scheduler = McFCScheduler.INSTANCE;
             List<String> order = new ArrayList<>();
 
@@ -84,7 +84,7 @@ class McFCSchedulerMainThreadTest {
 
     @Test
     void aTaskThatThrowsCompletesTheFutureExceptionally() {
-        try (GuiTestWorld world = GuiTestWorld.install(tempDir)) {
+        try (BukkitScreenWorld world = BukkitScreenWorld.install(tempDir)) {
             McFCScheduler scheduler = McFCScheduler.INSTANCE;
 
             CompletableFuture<Object> failed = scheduler.onMainThread(() -> {

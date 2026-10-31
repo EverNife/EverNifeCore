@@ -419,6 +419,11 @@ public final class RendererConformance {
             return nativeWindow == this || delegate.isBackedBy(nativeWindow);
         }
 
+        @Override
+        public void released(@Nonnull CloseReason reason) {
+            delegate.released(reason);
+        }
+
     }
 
 }

@@ -22,6 +22,7 @@ import br.com.finalcraft.evernifecore.pageviewer.theme.PageTheme;
 import br.com.finalcraft.evernifecore.ranking.RankedList;
 import br.com.finalcraft.evernifecore.logic.command.CoreLogicCommands;
 import br.com.finalcraft.evernifecore.region.command.CoreRegionCommands;
+import br.com.finalcraft.evernifecore.screen.command.CoreScreenCommands;
 import br.com.finalcraft.evernifecore.group.command.CoreGroupCommands;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.logic.delivery.command.CoreDeliveriesCommands;
@@ -82,6 +83,12 @@ public class CoreCommand {
             @FCLocale(lang = LocaleType.PT_BR, text = "Traduz as definições de um plugin: export")
     })
     private final CoreI18nCommands i18n = new CoreI18nCommands();
+
+    @FinalCMD.Node(subcmd = "screen", permission = PermissionNodes.EVERNIFECORE_COMMAND_SCREEN, locales = {
+            @FCLocale(lang = LocaleType.EN_US, text = "Reload and inspect the screen layouts of any plugin: reload, diff"),
+            @FCLocale(lang = LocaleType.PT_BR, text = "Recarrega e inspeciona os layouts de tela de qualquer plugin: reload, diff")
+    })
+    private final CoreScreenCommands screen = new CoreScreenCommands();
 
     /**
      * Built on the first {@code /ecore info}: the executor is instantiated before its locale fields

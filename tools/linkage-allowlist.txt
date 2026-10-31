@@ -70,9 +70,6 @@
 * field org/bukkit/Material.SKELETON_SKULLLorg/bukkit/Material; br.com.finalcraft.evernifecore.minecraft.interpreters.MaterialHeadInterpreter  # idem
 * field org/bukkit/Material.WITHER_SKELETON_SKULLLorg/bukkit/Material; br.com.finalcraft.evernifecore.minecraft.interpreters.MaterialHeadInterpreter  # idem
 * field org/bukkit/Material.dataLjava/lang/Class; br.com.finalcraft.evernifecore.minecraft.interpreters.MaterialSignInterpreter  # in the else of isLowerEquals(v1_12) and again behind !material.isLegacy()
-* field org/bukkit/Material.WHITE_WOOLLorg/bukkit/Material; br.com.finalcraft.evernifecore.minecraft.gui.icons.EnumWool  # inside if (MCVersion.isHigherEquals(v1_13))
-* field org/bukkit/Material.WHITE_STAINED_GLASS_PANELorg/bukkit/Material; br.com.finalcraft.evernifecore.minecraft.gui.icons.EnumStainedGlassPane  # inside if (MCVersion.isHigherEquals(v1_13))
-* field org/bukkit/Material.SPECTRAL_ARROWLorg/bukkit/Material; br.com.finalcraft.evernifecore.minecraft.gui.icons.DefaultIcons  # applyIf(() -> MCVersion.isHigherEquals(v1_12), ...) runs the lambda only when the test passes
 * field org/bukkit/Statistic.PLAY_ONE_MINUTELorg/bukkit/Statistic; br.com.finalcraft.evernifecore.minecraft.ontime.McDefaultOntimeManager  # isHigherEquals(v1_13) ternary falls back to Statistic.valueOf("PLAY_ONE_TICK")
 
 # ---------------------------------------------------------------------------------------------

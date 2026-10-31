@@ -46,7 +46,7 @@ public class Screen<L extends Layout> {
     /** Enough to swallow a double click, short enough to be invisible to a human. {@code 0} switches it off. */
     public static final long DEFAULT_DEBOUNCE_MILLIS = 200L;
 
-    private final int rows;
+    private final Grid grid;
     private final L layout;
 
     private ScreenKey key;
@@ -69,8 +69,12 @@ public class Screen<L extends Layout> {
     private Consumer<CloseContext<L>> onClose;
 
     protected Screen(int rows, @Nullable L layout) {
-        Grid.rows(rows); //fail here, on the line the caller wrote, not later when the window is asked for
-        this.rows = rows;
+        //Grid.rows fails here, on the line the caller wrote, not later when the window is asked for
+        this(Grid.rows(rows), layout);
+    }
+
+    protected Screen(@Nonnull Grid grid, @Nullable L layout) {
+        this.grid = grid;
         this.layout = layout;
         this.owner = layout == null ? null : layout.getPlugin();
         layoutIcons.putAll(paintedIconsOf(layout));
@@ -92,6 +96,15 @@ public class Screen<L extends Layout> {
     @Nonnull
     public static Screen<Layout> of(int rows) {
         return new Screen<>(rows, null);
+    }
+
+    /**
+     * A screen over a grid that is not rows of nine - a renderer's own window shape, such as the chest renderer's
+     * {@code ChestKind.HOPPER.getGrid()}. A renderer that cannot draw that shape does not support the screen.
+     */
+    @Nonnull
+    public static Screen<Layout> of(@Nonnull Grid grid) {
+        return new Screen<>(grid, null);
     }
 
     /**
@@ -422,12 +435,12 @@ public class Screen<L extends Layout> {
     }
 
     public int getRows() {
-        return rows;
+        return grid.getRows();
     }
 
     @Nonnull
     public Grid getGrid() {
-        return Grid.rows(rows);
+        return grid;
     }
 
     @Nullable

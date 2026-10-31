@@ -277,7 +277,7 @@ class LayoutSeedTest {
         rewrite(seededPath(), "Slot: \"[45]\"", "Slot: \"[]\"");
         rewrite(seededPath(), "Slot: \"[10,11,12]\"", "Slot: \"[0]\"");
 
-        //the very entry point the /ecoregui command reads, so what an operator is shown is what is asserted
+        //the very entry point the /ecore screen diff command reads, so what an operator is shown is what is asserted
         LayoutDiff diff = LayoutDiff.of(plugin, ShopLayout.class, null);
 
         assertEquals(Arrays.asList("PRODUCT", "BACKDROP"), namesOf(diff, LayoutDiff.Verdict.MATCHED));

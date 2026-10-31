@@ -779,8 +779,9 @@ public final class ScreenView {
     }
 
     /**
-     * Tears the view down: tasks cancelled, subscriptions and holds dropped (holds in reverse order), {@code onClose}
-     * run, {@link ScreenCloseEvent} posted, the viewer released. Idempotent.
+     * Tears the view down: tasks cancelled, subscriptions and holds dropped (holds in reverse order), the surface told
+     * ({@link ScreenSurface#released}), {@code onClose} run, {@link ScreenCloseEvent} posted, the viewer released.
+     * Idempotent.
      */
     void release(@Nonnull CloseReason reason) {
         if (closed) {
@@ -813,6 +814,13 @@ public final class ScreenView {
         listeners.clear();
         dirtyComponents.clear();
 
+        if (surface != null) {
+            try {
+                surface.released(reason);
+            } catch (Throwable e) {
+                EverNifeCore.getLog().severe("The window of a screen failed to give back what it held for [{}]", viewerName, e);
+            }
+        }
         try {
             fireOnClose(reason);
         } catch (Throwable e) {

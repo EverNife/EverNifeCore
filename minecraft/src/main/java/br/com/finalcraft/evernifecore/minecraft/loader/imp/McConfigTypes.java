@@ -3,7 +3,6 @@ package br.com.finalcraft.evernifecore.minecraft.loader.imp;
 import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
-import br.com.finalcraft.evernifecore.minecraft.gui.model.SlotSet;
 import br.com.finalcraft.evernifecore.minecraft.inventory.invitem.InvItem;
 import br.com.finalcraft.evernifecore.minecraft.inventory.invitem.InvItemManager;
 import br.com.finalcraft.evernifecore.minecraft.inventory.stored.StoredInventory;
@@ -74,63 +73,7 @@ public final class McConfigTypes {
     public static void register() {
         registerLocation();
         registerItemStack();
-        registerSlotSet();
         registerStoredInventory();
-    }
-
-    // ==================== SlotSet ====================
-
-    /**
-     * The single slot-list codec. On disk a slot list has been written three ways - the bracketed string
-     * {@code "[1,2,3]"}, a YAML list, and a bare number for one slot - and each of them used to be parsed
-     * somewhere else, with the bare number silently degrading to "no slots". All three are read here and
-     * only the bracketed string is ever written back.
-     *
-     * <p>An empty list means "nowhere", which is how an admin switches an icon off, and is never an error.
-     * Text that is neither of the three IS an error, and it is thrown naming the offending value: only the
-     * caller knows which field of which file holds it, and "deliberately switched off" is what an empty
-     * list means - a broken one has to read as broken.</p>
-     */
-    private static void registerSlotSet() {
-        ConfigFactory.register(SlotSet.class).jackson(
-                new JsonSerializer<SlotSet>() {
-                    @Override
-                    public void serialize(SlotSet value, JsonGenerator gen, SerializerProvider provider)
-                            throws IOException {
-                        gen.writeString(value.serialize());
-                    }
-                },
-                new StdDeserializer<SlotSet>(SlotSet.class) {
-                    @Override
-                    public SlotSet deserialize(JsonParser parser, DeserializationContext context)
-                            throws IOException {
-                        return readSlotSet(parser.readValueAsTree());
-                    }
-                }
-        );
-    }
-
-    private static SlotSet readSlotSet(JsonNode node) {
-        if (node == null || node.isNull()) {
-            return SlotSet.EMPTY;
-        }
-        if (node.isArray()) {
-            List<Integer> slots = new ArrayList<>();
-            for (JsonNode element : node) {
-                for (int slot : SlotSet.parse(element.asText()).toArray()) {
-                    slots.add(slot);
-                }
-            }
-            int[] values = new int[slots.size()];
-            for (int i = 0; i < values.length; i++) {
-                values[i] = slots.get(i);
-            }
-            return SlotSet.of(values);
-        }
-        if (node.isNumber()) {
-            return SlotSet.of(node.asInt());
-        }
-        return SlotSet.parse(node.asText());
     }
 
     // ==================== Location ====================

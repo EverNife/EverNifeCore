@@ -49,6 +49,8 @@ public class Icon {
     private IconLocale locale;
     private ECPluginData localeOwner;
     private boolean integrateToPAPI = false;
+    //the icon a copy was taken from, so the copy a screen drew still answers to the one the plugin declared
+    private Icon origin;
 
     public Icon(@Nonnull ItemSpec item) {
         this.look = new Look(requireItem(item), Collections.<ItemSpec>emptyList(), Collections.<String>emptyList());
@@ -602,7 +604,14 @@ public class Icon {
         copy.locale = this.locale == null ? null : this.locale.copy();
         copy.localeOwner = this.localeOwner;
         copy.integrateToPAPI = this.integrateToPAPI;
+        copy.origin = getOrigin();
         return copy;
+    }
+
+    /** The declared icon this one was copied from - itself when it is no copy. */
+    @Nonnull
+    Icon getOrigin() {
+        return origin == null ? this : origin;
     }
 
     @Override
