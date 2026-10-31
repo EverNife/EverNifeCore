@@ -235,9 +235,14 @@ public final class Screens {
         return answer == null ? null : answer.describe();
     }
 
-    /** The screen {@code key} resolves to for {@code viewer}, built; the refusal that teaches when nothing answers. */
+    /**
+     * The screen {@code key} resolves to for {@code viewer} through the four layers of {@link #open(FPlayer, ScreenKey,
+     * ScreenRequest)}, built but not opened - for an engine that has to know which screen it showed. Calling thread.
+     *
+     * @throws IllegalStateException that teaches, when nothing answers {@code key} or the factory built nothing
+     */
     @Nonnull
-    static Screen<?> build(@Nonnull FPlayer viewer, @Nonnull ScreenKey key, @Nonnull ScreenRequest request) {
+    public static Screen<?> build(@Nonnull FPlayer viewer, @Nonnull ScreenKey key, @Nonnull ScreenRequest request) {
         Answer answer = resolve(key, request);
         if (answer == null) {
             throw new IllegalStateException("No screen answers [" + key + "] for " + viewer.getName() + ": nothing registered "

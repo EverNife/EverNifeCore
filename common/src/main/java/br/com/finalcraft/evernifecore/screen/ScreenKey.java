@@ -15,6 +15,8 @@ public final class ScreenKey {
     public static final ScreenKey DELIVERIES = of("evernifecore", "deliveries");
     /** The entries of a {@code RankedList}, built from a {@code RankingRequest}. */
     public static final ScreenKey RANKING = of("evernifecore", "ranking");
+    /** One node of a dialogue, built from the {@code DialogueSession} the request carries as its payload. */
+    public static final ScreenKey DIALOGUE = of("evernifecore", "dialogue");
 
     private final String owner;
     private final String name;

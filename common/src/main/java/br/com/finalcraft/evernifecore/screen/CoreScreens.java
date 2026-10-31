@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.screen;
 
+import br.com.finalcraft.evernifecore.dialogue.DialogueScreen;
+import br.com.finalcraft.evernifecore.dialogue.DialogueSession;
 import jakarta.annotation.Nullable;
 
 import java.util.Collections;
@@ -17,6 +19,7 @@ final class CoreScreens {
         defaults.put(ScreenKey.CONFIRM, ctx -> ConfirmScreen.of(ctx.getRequest(ConfirmRequest.class)));
         defaults.put(ScreenKey.DELIVERIES, ctx -> DeliveriesScreen.of());
         defaults.put(ScreenKey.RANKING, ctx -> RankingScreen.of(ctx.getRequest(RankingRequest.class)));
+        defaults.put(ScreenKey.DIALOGUE, ctx -> DialogueScreen.of(ctx.getRequest(DialogueSession.class)));
         DEFAULTS = Collections.unmodifiableMap(defaults);
     }
 

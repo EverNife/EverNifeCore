@@ -31,7 +31,8 @@ import java.util.regex.Pattern;
  * and whose values have the shape of a {@link FancyText} in a config (a string, a list of lines, or a
  * {@code text}/{@code hoverText}/... map). {@link OverlayExporter} writes that file for a translator.</p>
  *
- * <p>A leaf may also carry its languages inline: {@code description: {EN_US: "...", PT_BR: "..."}}.</p>
+ * <p>A leaf may also carry its languages inline: {@code description: {EN_US: "...", PT_BR: "..."}} - {@code pt-BR} reads as
+ * {@code PT_BR}.</p>
  *
  * <p>The text of a leaf for a locale is, first match wins: the overlay file of that locale, the inline entry of
  * that locale, the inline entry of the plugin's language, the author's text (the plain leaf, or the first inline
@@ -46,7 +47,7 @@ public final class LocaleOverlay {
     /** The folder, under the plugin's data folder, that holds one {@code <LOCALE>.yml} per language. */
     public static final String FOLDER = "localization/overlay";
 
-    private static final Pattern LOCALE_KEY = Pattern.compile("[A-Za-z]{2,3}_[A-Za-z]{2,3}");
+    private static final Pattern LOCALE_KEY = Pattern.compile("[A-Za-z]{2,3}[_-][A-Za-z]{2,3}");
 
     private static final Map<ECPluginData, LocaleOverlay> OVERLAYS = new ConcurrentHashMap<>();
 
@@ -88,7 +89,7 @@ public final class LocaleOverlay {
 
     /** The overlay file of {@code locale}, which may not exist yet. */
     public File getFile(String locale) {
-        return new File(getFolder(), LocaleType.normalize(locale) + ".yml");
+        return new File(getFolder(), normalize(locale) + ".yml");
     }
 
     /**
@@ -98,20 +99,28 @@ public final class LocaleOverlay {
      * Registering the same id again replaces the definition (a definition reload).
      */
     public void register(String definitionId, ConfigSection root, String... textKeys) {
+        register(definitionId, root.getNode(), textKeys);
+    }
+
+    /** {@link #register(String, ConfigSection, String...)} over the definition's tree as read, for one built in code too. */
+    public void register(String definitionId, @Nullable JsonNode root, String... textKeys) {
         if (definitionId == null || definitionId.isEmpty()) {
             throw new IllegalArgumentException("A definition needs an id: it is the first segment of every path in the overlay files.");
         }
         Set<String> keys = textKeys.length == 0 ? DEFAULT_TEXT_KEYS : new LinkedHashSet<>(Arrays.asList(textKeys));
         Map<String, Leaf> leaves = new LinkedHashMap<>();
-        JsonNode node = root.getNode();
-        if (node != null) {
-            collect(node, "", keys, leaves);
+        if (root != null) {
+            collect(root, "", keys, leaves);
         }
         definitions.put(definitionId, new Definition(Collections.unmodifiableMap(leaves)));
     }
 
     public void unregister(String definitionId) {
         definitions.remove(definitionId);
+    }
+
+    public boolean isRegistered(String definitionId) {
+        return definitions.containsKey(definitionId);
     }
 
     /** The ids registered, sorted. */
@@ -132,7 +141,7 @@ public final class LocaleOverlay {
      */
     public FancyText text(String definitionId, String path, @Nullable String locale) {
         Leaf leaf = leaf(definitionId, path);
-        String wanted = locale == null ? getPluginLanguage() : LocaleType.normalize(locale);
+        String wanted = locale == null ? getPluginLanguage() : normalize(locale);
         JsonNode translated = fileValue(wanted, definitionId, path);
         return toFancyText(translated != null ? translated : leaf.fallback(wanted, getPluginLanguage()));
     }
@@ -140,7 +149,7 @@ public final class LocaleOverlay {
     /** Only the overlay file of {@code locale}: the translation of that leaf, or {@code null} when it has none. */
     public @Nullable FancyText translated(String definitionId, String path, String locale) {
         leaf(definitionId, path);
-        JsonNode translated = fileValue(LocaleType.normalize(locale), definitionId, path);
+        JsonNode translated = fileValue(normalize(locale), definitionId, path);
         return translated == null ? null : toFancyText(translated);
     }
 
@@ -150,7 +159,7 @@ public final class LocaleOverlay {
         File[] found = getFolder().listFiles((dir, name) -> name.endsWith(".yml"));
         if (found != null) {
             for (File file : found) {
-                String locale = LocaleType.normalize(file.getName().substring(0, file.getName().length() - ".yml".length()));
+                String locale = normalize(file.getName().substring(0, file.getName().length() - ".yml".length()));
                 Config config = ConfigFactory.open(file);
                 Map<String, JsonNode> values = new HashMap<>();
                 //the keys are flat and dotted: read the root's own fields, never through the dotted-path API
@@ -171,12 +180,17 @@ public final class LocaleOverlay {
 
     /** What the translator starts from: the text of the leaf for {@code locale} without the overlay file. */
     JsonNode seed(String definitionId, String path, String locale) {
-        return leaf(definitionId, path).fallback(LocaleType.normalize(locale), getPluginLanguage());
+        return leaf(definitionId, path).fallback(normalize(locale), getPluginLanguage());
+    }
+
+    //PT_BR, pt_BR and the tag form pt-BR (what java.util.Locale writes and a YAML author often types) are one locale
+    private static String normalize(String locale) {
+        return LocaleType.normalize(locale.replace('-', '_'));
     }
 
     private String getPluginLanguage() {
         String language = owner.getPluginLanguage();
-        return LocaleType.normalize(language == null ? FCLocaleManager.DEFAULT_EVERNIFECORE_LOCALE : language);
+        return normalize(language == null ? FCLocaleManager.DEFAULT_EVERNIFECORE_LOCALE : language);
     }
 
     private @Nullable JsonNode fileValue(String locale, String definitionId, String path) {
@@ -277,7 +291,7 @@ public final class LocaleOverlay {
                 if (!LOCALE_KEY.matcher(field.getKey()).matches()) {
                     return null;
                 }
-                inline.put(LocaleType.normalize(field.getKey()), field.getValue().deepCopy());
+                inline.put(normalize(field.getKey()), field.getValue().deepCopy());
             }
             //the first language the author wrote is the author's own
             return new Leaf(inline.values().iterator().next(), Collections.unmodifiableMap(inline));

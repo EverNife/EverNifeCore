@@ -18,6 +18,19 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **Dialogue trees** (`br.com.finalcraft.evernifecore.dialogue`): nodes, options gated by a `Gate`, effects, `goto`, one
+  session per player with timeout and fail-when, started by the `start-dialogue` effect, an NPC or a region crossing, and
+  drawn by the default `evernifecore:dialogue` screen that any plugin may override. A `Dialogue` is built in code
+  (`Dialogue.builder`) or read from a plugin's YAML (`Dialogue.parse`) and refused at build when a `goto` or the entry
+  names no node, a `remember` names no custom `String` variable, or a loop has no way out. `Dialogues.of(plugin)` keeps
+  them (texts through the plugin's `LocaleOverlay`, `pt-BR` reading as `PT_BR`), `Dialogues.start` opens a
+  `DialogueSession` that ends once with a `DialogueEndCause` (`END`, `CLOSED`, `TIMEOUT`, `FAIL_WHEN`, `PLAYER_LEFT`,
+  `REPLACED`, `OWNER_DISABLED`, `API`); `DialogueStartedEvent` and `DialogueChoiceEvent` cancel, `DialogueEndedEvent`
+  reports. The effect `end-dialogue` ends the player's session; `@Arg("<dialogue>") Dialogue` parses `owner:name`;
+  `/ecore dialogue <player>` (permission `evernifecore.command.dialogue`) reads the session. `Choice.pickedBy`,
+  `Screen.choice(SlotSet, ...)` and a public `Screens.build` let an engine route a choice and know the screen it showed.
+  The test engine gains `DialogueTrees`.
+
 - **Screens render on Hytale**: `HyPageRenderer` (`evernifecore:page`, `hytale.screen`) draws any `Screen` as a server
   page (`InteractiveCustomUIPage`) from the core's own layouts in its asset pack (`EverNifeCore/Screen.ui`, `Cell.ui`,
   `Prompt.ui`): a frame sized to the grid, the title, one cell per slot with the item, its amount and the name and lore

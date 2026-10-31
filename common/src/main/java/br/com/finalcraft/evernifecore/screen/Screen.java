@@ -218,6 +218,13 @@ public class Screen<L extends Layout> {
         return declare(new Choice(this, placed.getName(), placed.getSlots(), placed.getIcon(), text, gate, effects));
     }
 
+    /** {@link #choice(Function, FancyText, Gate, List)} on raw slots, for a screen that places a variable number of them. */
+    @Nonnull
+    public Choice choice(@Nonnull SlotSet slots, @Nonnull Icon icon, @Nonnull FancyText text, @Nonnull Gate gate,
+                         @Nonnull List<Effect> effects) {
+        return declare(new Choice(this, rawId(slots, icon), requireSlots(slots, icon), icon, text, gate, effects));
+    }
+
     private <B extends Button> B declare(B button) {
         addElement(button);
         Consumer<ScreenComponent> bind = button::bind;

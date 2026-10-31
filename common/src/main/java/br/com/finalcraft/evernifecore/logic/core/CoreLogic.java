@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.logic.core;
 
+import br.com.finalcraft.evernifecore.dialogue.DialogueEffects;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.logic.ProgressOwnerProvider;
 import br.com.finalcraft.evernifecore.logic.ProgressOwners;
@@ -22,6 +23,7 @@ public final class CoreLogic {
         StockItems.register(core);
         NearNpcCondition.register(core);
         StockScreens.register(core);
+        DialogueEffects.register(core);
         DeliveryDestinations.registerCore(core);
         for (ProgressOwnerProvider provider : CoreOwners.all()) {
             ProgressOwners.register(core, provider);

@@ -128,6 +128,11 @@ public class Button implements Element {
         return this;
     }
 
+    /** For an element whose clicks another engine routes ({@link Choice#pickedBy}). */
+    void clearRules() {
+        rules.clear();
+    }
+
     @Nonnull
     public List<ClickRule> getRules() {
         return Collections.unmodifiableList(rules);

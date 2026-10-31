@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.ecplugin;
 
+import br.com.finalcraft.evernifecore.dialogue.Dialogues;
 import br.com.finalcraft.evernifecore.booster.BoosterManager;
 import br.com.finalcraft.evernifecore.booster.Boosters;
 import br.com.finalcraft.evernifecore.economy.Currencies;
@@ -153,6 +154,7 @@ public interface IECPluginBootstrap {
         Contributions.closeOwnedBy(getPluginData());
         AuditLog.closeOwnedBy(getPluginData());
         RankedLists.closeOwnedBy(getPluginData());
+        Dialogues.closeOwnedBy(getPluginData()); //before its screens: a session ends as OWNER_DISABLED, not CLOSED
         Screens.closeOwnedBy(getPluginData());
         PromptRegistry.get().unregisterAll(getPluginData());
         LocaleOverlay.closeOwnedBy(getPluginData());

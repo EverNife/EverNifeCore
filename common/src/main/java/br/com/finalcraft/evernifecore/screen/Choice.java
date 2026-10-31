@@ -10,6 +10,7 @@ import jakarta.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * A dialogue option: a text, the {@link Gate} that decides whether the viewer may pick it, and the effects picking it
@@ -31,6 +32,18 @@ public class Choice extends Button {
         this.effects = Collections.unmodifiableList(new ArrayList<>(effects));
         rule(ClickRule.on().gate(gate).onSuccess(this.effects.toArray(new Effect[0])));
         dependsOn(gate.getConditions().toArray(new Condition[0]));
+    }
+
+    /**
+     * Hands the pick to {@code pick} instead of paying the gate and running the effects here - for an engine (a dialogue
+     * session) that pays the gate itself, between its own event and its own effects. The gate still draws the choice
+     * disabled with every failure.
+     */
+    @Nonnull
+    public Choice pickedBy(@Nonnull Consumer<ClickContext> pick) {
+        clearRules();
+        onClick(pick);
+        return this;
     }
 
     @Nonnull
