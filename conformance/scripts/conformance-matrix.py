@@ -61,7 +61,9 @@ HALVES = ("run", "write", "read")
 # playerdata runs only in the write/read halves; every other suite ends once in `run`. Derived, so a new suite
 # cannot leave the driver waiting out WAIT_SECONDS for an end that never comes.
 EXPECTED_ENDS = {"run": len(SUITE_ORDER) - 1, "write": 3, "read": 3}
-WAIT_SECONDS = {"run": 900, "write": 180, "read": 180}
+# The run half takes ~80-90 s on every flavor (2026-10-31); 300 s is a 3x margin, so a missing end costs
+# minutes, not a quarter hour per flavor.
+WAIT_SECONDS = {"run": 300, "write": 180, "read": 180}
 TEXT_LINES = ("iiiiiiiiii", "WWWWWWWWWW")
 BOT = "EccBot"
 PLUGIN_ID = "ECoreConformance@3.0.1"
