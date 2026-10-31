@@ -299,6 +299,8 @@ class EphemeralGroupTest {
 
         assertEquals(1, dissolved.size());
         assertEquals(DissolveCause.EMPTY, dissolved.get(0).getCause());
+        assertEquals(1, dissolved.get(0).getLastMembers().size(), "the last members are who emptied it");
+        assertEquals(alex, dissolved.get(0).getLastMembers().iterator().next().getUuid());
         assertTrue(wave.isDissolved());
         assertNull(duel.getManager().get("wave-1"));
     }

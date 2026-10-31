@@ -19,7 +19,10 @@ public final class Dissolution {
         this.at = at;
     }
 
-    /** The last member gone, whatever the cause, dissolves it with {@link DissolveCause#EMPTY}. */
+    /**
+     * The last member gone, whatever the cause, dissolves it with {@link DissolveCause#EMPTY}; the
+     * {@code GroupDissolvedEvent} carries that last member.
+     */
     public static Dissolution whenEmpty() {
         return WHEN_EMPTY;
     }

@@ -35,8 +35,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   stops, `LeaveCause.ROSTER`), join/leave `Edge`s (`Edge.gate(gate)` paid on the way through and given back when the join
   is refused after it, `notify(EdgeAudience, text)` resolved per crossing and sent through the `Notifier`), `kickWhen`
   (`Group.kick(uuid, reason)` tells the player), `QuitPolicy` (LEAVE by default for TRANSIENT groups; one quit listener,
-  on the bus only while such a group exists), `Dissolution.whenEmpty/after/at` and a `scope`; the same live behaviour on
-  any group through its setters and `GroupOptions`. The region sweeper also sweeps every `GroupManager` (timed members,
+  on the bus only while such a group exists), `Dissolution.whenEmpty/after/at` (an emptied group's `GroupDissolvedEvent`
+  carries the member who emptied it) and a `scope`; the same live behaviour on any group through its setters and
+  `GroupOptions`. The region sweeper also sweeps every `GroupManager` (timed members,
   invites, timed flag values, dissolution times, live rules). `GroupLookup` answers across every manager and the
   `GroupProvider`s plugins register (`GroupManager` is one): `getGroupsOf`, `byId`, `getMembers`, `getLeader`,
   `hasOnlineMember`, `shareGroup`, `byScope`, and feeds the ACTOR layer of the flag resolution - a member joining,

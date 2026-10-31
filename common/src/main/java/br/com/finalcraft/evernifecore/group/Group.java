@@ -302,7 +302,7 @@ public final class Group implements FlagHolder {
             post(GroupLeaderChangedEvent.class, () -> new GroupLeaderChangedEvent(this, uuid, null));
         }
         if (dissolveWhenEmpty && !dissolved && members.isEmpty()) {
-            dissolve(DissolveCause.EMPTY);
+            dissolve(DissolveCause.EMPTY, Collections.singletonList(gone));   //the last members are who emptied it
         }
         return true;
     }
@@ -913,6 +913,10 @@ public final class Group implements FlagHolder {
      * carries the last members, and its host forgets it. A second call does nothing.
      */
     public void dissolve(DissolveCause cause) {
+        dissolve(cause, null);
+    }
+
+    private void dissolve(DissolveCause cause, @Nullable List<GroupMember> lastOverride) {
         Objects.requireNonNull(cause, "cause");
         List<GroupMember> last;
         synchronized (host.lock()) {
@@ -938,7 +942,7 @@ public final class Group implements FlagHolder {
         invites.clear();
         leader = null;
         if (live) {
-            List<GroupMember> lastMembers = Collections.unmodifiableList(last);
+            List<GroupMember> lastMembers = Collections.unmodifiableList(lastOverride != null ? lastOverride : last);
             ECEventBus.global().postIfListened(GroupDissolvedEvent.class, () -> new GroupDissolvedEvent(this, cause, lastMembers));
         }
         host.dissolved(this, cause);
