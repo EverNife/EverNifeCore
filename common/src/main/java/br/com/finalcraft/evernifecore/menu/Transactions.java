@@ -94,7 +94,7 @@ public final class Transactions {
             return CompletableFuture.completedFuture(TransactionResult.failed(TransactionResult.Failure.CANCELLED, offer, 0, null, FancyText.of(why)));
         }
         int most = Math.max(1, Quantity.ALL_THAT_FITS.resolve(ctx, offer));
-        String question = "How many? 1 to " + most + " (" + offer.getGoods().describe(ctx, 1).toLegacyString() + ")";
+        String question = "How many? 1 to " + most + " (" + offer.getGoods().describe(ctx, 1).toLegacyString() + "), or cancel";
         CompletableFuture<TransactionResult> traded = new CompletableFuture<>();
         view.ask(Prompt.of(question).parse(input -> {
             int units;
@@ -107,7 +107,7 @@ public final class Transactions {
                 throw new IllegalArgumentException(units + " is out of reach: type one from 1 to " + most + ".");
             }
             return units;
-        })).whenComplete((units, unanswered) -> {
+        }).cancelWord("cancel")).whenComplete((units, unanswered) -> {
             if (unanswered != null) {
                 traded.complete(TransactionResult.failed(TransactionResult.Failure.CANCELLED, offer, 0, null, FancyText.of("No quantity was given.")));
             } else {

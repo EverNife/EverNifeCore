@@ -18,6 +18,15 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **Menus and shops (`menu`)**: a plugin registers a `Menu` (a `Screen` with offer buttons) under `owner:name` and
+  anything opens it by id with positional arguments (`MenuRegistry.open`, the `evernifecore:open-menu` effect - on top
+  of the screen a click came from, so back returns -, the mountable `MenuCommandNode` with `open`, `openfor`, `list`).
+  An offer button trades through one `ClickRule` per gesture of a `ClickMap` (`market()`: left buys one, shift-left a
+  stack, right sells one, shift-right all held, middle asks how many through the prompt channel), asks
+  `ScreenKey.CONFIRM` first for a `confirm()` offer, reads `{price}`/`{sell-price}`/`{quantity}` in its text and tells
+  the player the menu's success or deny text (`{result}`, `{missing}`); `Menu.offers(region, source)` pages a catalog.
+  `MenuContext` reads the menu, offer, gesture, arguments and view off an `ExecutionContext`. A plugin's menus leave
+  with its shutdown. The core reads no menu file.
 - **Shop transactions (`menu`)**: an `Offer` buys or sells `Goods` (`ItemGoods`, an item matched by `ItemMatcher`, or
   `EffectGoods`, effects run once per unit) for a composite `Price` in any registered currencies (lines read from a
   `Variable` at every quote; item lines on a BUY), behind a `Gate`, with a `RepeatPolicy` limit per player, group or
@@ -356,6 +365,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **`ClickContext.open(screen, args...)` and `ClickContext.open(key, request)`**: a screen opened on top can carry its
+  own `{0}..{n}`, and a keyed screen (`ScreenKey.CONFIRM`) opens on top through the four override layers;
+  `ScreenNavigation.open(current, next, args)` underneath.
 - **`ItemMatcher` reads name and lore when asked**: `plainOnly()` refuses an item with a name or lore of its own and
   `exact(ItemSpec)` wants its very name and lore; `of(id)` still looks at the material only. Both platforms' inventories
   now match on the whole description.

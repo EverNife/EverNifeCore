@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.booster.BoosterManager;
 import br.com.finalcraft.evernifecore.booster.Boosters;
 import br.com.finalcraft.evernifecore.economy.Currencies;
 import br.com.finalcraft.evernifecore.logic.audit.AuditLog;
+import br.com.finalcraft.evernifecore.menu.MenuRegistry;
 import br.com.finalcraft.evernifecore.logic.delivery.DeliveryDestinations;
 import br.com.finalcraft.evernifecore.logic.value.Contributions;
 import br.com.finalcraft.evernifecore.logic.value.DynamicValues;
@@ -153,6 +154,7 @@ public interface IECPluginBootstrap {
         AuditLog.closeOwnedBy(getPluginData());
         RankedLists.closeOwnedBy(getPluginData());
         Screens.closeOwnedBy(getPluginData());
+        MenuRegistry.get().unregisterAll(getPluginData());
         LocaleOverlay.closeOwnedBy(getPluginData());
         Notifier.get().closeOwnedBy(getPluginData());
         Waypoints.get().hideOwnedBy(getPluginData());

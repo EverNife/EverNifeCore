@@ -131,9 +131,9 @@ public final class Menus implements AutoCloseable {
         return OfferCatalog.of(offers);
     }
 
-    /** A click on the offer button at {@code slot}, then the ticks that let the screen settle. */
-    public boolean clickOffer(ScreenView view, int slot, ClickGesture gesture) {
-        boolean handled = screens.click(view, slot, gesture, ClickKind.NOTHING);
+    /** A click on the offer button {@code offerId}, then the ticks that let the screen settle. */
+    public boolean clickOffer(ScreenView view, String offerId, ClickGesture gesture) {
+        boolean handled = screens.click(view, offerId, gesture);
         screens.advanceTicks(2);
         return handled;
     }

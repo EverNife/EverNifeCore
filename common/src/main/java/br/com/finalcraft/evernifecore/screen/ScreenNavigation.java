@@ -42,19 +42,25 @@ public final class ScreenNavigation {
      */
     @Nonnull
     public static CompletableFuture<Object> open(@Nonnull ScreenView current, @Nonnull Screen<?> next) {
+        return open(current, next, null);
+    }
+
+    /** {@link #open(ScreenView, Screen)} with {@code args} as what {@code {0}}..{@code {n}} read on {@code next}; null keeps the current ones. */
+    @Nonnull
+    public static CompletableFuture<Object> open(@Nonnull ScreenView current, @Nonnull Screen<?> next, @Nullable Object[] args) {
         CompletableFuture<Object> result = new CompletableFuture<>();
-        current.getScheduler().later(1L, () -> openOnRenderThread(current, next, result));
+        current.getScheduler().later(1L, () -> openOnRenderThread(current, next, args, result));
         return result;
     }
 
-    private static void openOnRenderThread(ScreenView current, Screen<?> next, CompletableFuture<Object> result) {
+    private static void openOnRenderThread(ScreenView current, Screen<?> next, @Nullable Object[] args, CompletableFuture<Object> result) {
         FPlayer viewer = current.getViewer();
         if (!suspend(current)) {
             result.completeExceptionally(new IllegalStateException("A screen can only open another one while it is the "
                     + "screen the player is looking at. This one is already closed, or something else took the window."));
             return;
         }
-        ScreenView opened = openedOrNull(Screens.openWithinChain(next, viewer, current.getArguments().toArray()));
+        ScreenView opened = openedOrNull(Screens.openWithinChain(next, viewer, args != null ? args : current.getArguments().toArray()));
         if (opened == null) {
             if (!resume(current)) {
                 discard(viewer.getUniqueId());
