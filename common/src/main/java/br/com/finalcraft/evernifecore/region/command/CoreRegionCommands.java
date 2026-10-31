@@ -285,7 +285,8 @@ public class CoreRegionCommands {
         return left == null ? text : text + " §7(" + remaining(left) + ")";
     }
 
-    static String remaining(Duration left) {
+    /** Internal: how a time left reads in the region and group commands, {@code 5m left}. */
+    public static String remaining(Duration left) {
         return FCTimeFrame.of(Math.max(0, left.toMillis())).toConfigString() + " left";
     }
 }

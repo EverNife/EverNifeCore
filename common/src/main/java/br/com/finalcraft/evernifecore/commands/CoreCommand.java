@@ -22,6 +22,8 @@ import br.com.finalcraft.evernifecore.pageviewer.theme.PageTheme;
 import br.com.finalcraft.evernifecore.ranking.RankedList;
 import br.com.finalcraft.evernifecore.logic.command.CoreLogicCommands;
 import br.com.finalcraft.evernifecore.region.command.CoreRegionCommands;
+import br.com.finalcraft.evernifecore.group.command.CoreGroupCommands;
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.logic.delivery.command.CoreDeliveriesCommands;
 import br.com.finalcraft.evernifecore.types.command.CoreTypesCommands;
 
@@ -44,6 +46,18 @@ public class CoreCommand {
             @FCLocale(lang = LocaleType.PT_BR, text = "Lê as regiões de todo plugin: here, info e list")
     })
     private final CoreRegionCommands region = new CoreRegionCommands();
+
+    @FinalCMD.SubCMD(subcmd = "group", permission = PermissionNodes.EVERNIFECORE_COMMAND_GROUP, locales = {
+            @FCLocale(lang = LocaleType.EN_US, text = "Read every group of a player, of every plugin: kind, leader, roles, members and flags"),
+            @FCLocale(lang = LocaleType.PT_BR, text = "Lê todo grupo de um jogador, de todo plugin: tipo, líder, papéis, membros e flags")
+    })
+    public void group(FCommandSender sender, @Arg(value = "[player]", fromSender = true) FPlayer target) {
+        if (target == null) {
+            CoreGroupCommands.NEEDS_A_PLAYER.send(sender);
+            return;
+        }
+        CoreGroupCommands.show(sender, target);
+    }
 
     @FinalCMD.Node(subcmd = "logic", permission = PermissionNodes.EVERNIFECORE_COMMAND_LOGIC, locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "Watch the logic of every plugin as it runs: trace, audit"),

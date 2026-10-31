@@ -1,17 +1,15 @@
-package br.com.finalcraft.evernifecore.region.command;
+package br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation;
 
-import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.CMDAccessValidation;
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CMDMethodInterpreter;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import jakarta.annotation.Nullable;
 
 /**
- * Gates one verb of a mounted {@link RegionCommandNode} on {@code <permissionBase>.<verb>} when the node was given a
- * base. It runs before any argument is parsed, and on tab and help too, so a verb the sender may not run is neither
- * offered nor described. A verb of the {@code group} or {@code terrain} branch is gated by its own label
- * ({@code <base>.add}, {@code <base>.restore}).
+ * Gates one verb of a mounted {@link VerbPermissionBase} node on {@code <permissionBase>.<verb>} when the node was
+ * given a base. It runs before any argument is parsed, and on tab and help too, so a verb the sender may not run is
+ * neither offered nor described. A verb of a branch is gated by its own label ({@code <base>.add}).
  */
-public final class RegionVerbAccess extends CMDAccessValidation {
+public final class NodeVerbAccess extends CMDAccessValidation {
 
     @Override
     public boolean onPreCommandValidation(AccessContext context) {
@@ -27,10 +25,10 @@ public final class RegionVerbAccess extends CMDAccessValidation {
 
     private static @Nullable String verbPermission(AccessContext context) {
         CMDMethodInterpreter interpreter = context.getInterpreter();
-        if (interpreter == null) {
+        if (interpreter == null || !(interpreter.getExecutor() instanceof VerbPermissionBase)) {
             return null;   //a branch with no method of its own; its leaves carry the check
         }
-        RegionCommandNode node = RegionCommandNode.of(interpreter.getExecutor());
-        return node == null ? null : node.getVerbPermission(context.getCmdData().getLabels()[0]);
+        String base = ((VerbPermissionBase) interpreter.getExecutor()).getPermissionBase();
+        return base == null ? null : base + "." + context.getCmdData().getLabels()[0];
     }
 }

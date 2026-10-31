@@ -58,6 +58,13 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **`GroupNetwork` SPI**: `send(group, server)`, `getServer(player)`, `follow(group)` with `SendResult`;
   `Groups.network()` refuses with `GroupNetworkUnavailableException` (teaching `Groups.registerNetwork(owner, impl)`)
   until a plugin registers one, `Groups.hasNetwork()` tells beforehand, one per server; it leaves with its owner.
+- **Group commands**: `/ecore group <player>` (permission `evernifecore.command.group`) reads every group of a player
+  across managers and providers - kind, leader, the player's roles, member since and expiry, online/total, the group's
+  flags with origin and time left, and `glow-members: unsupported on this platform` where nothing glows. The mountable
+  `GroupCommandNode(manager, kind, permissionBase)` gives a plugin `create <name> [leader]`, `invite <group> <player>
+  [ttl]` (5 minutes by default), `join <group>` (through the invite when there is one), `leave [group]` (the sender's in a
+  ONE kind), `kick`, `promote`/`demote <group> <player> <role>`, `disband`, `info`, `list` and `flag <group> <flag>
+  [value|-] [-t ttl]`, every message in EN_US and PT_BR.
 - **Boosters** (`br.com.finalcraft.evernifecore.booster`): `Booster.on(gain).factor/bonus.forOwner(...).lasting/until/during(season)`,
   `BoosterManager.of(plugin, storage)` keeps a plugin's boosters in its own storage (`ec_boosters`; `of(plugin)` in memory),
   `grant` posts a `BoosterGrantedEvent`, a booster past its end stops counting at once and a sweep drops it once a minute.
@@ -300,6 +307,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **`RegionVerbAccess` is `NodeVerbAccess`** (`commands.finalcmd.accessvalidation`): any node that implements
+  `VerbPermissionBase` (`getPermissionBase()`) - the region and the group nodes and their branches - gates each verb on
+  `<base>.<verb>`. `RegionCommandNode.getVerbPermission(verb)` and `RegionCommandNode.of(executor)` are gone.
 - **The victim's protection flags speak for the victim**: `invincible`, `deny-damage-from-mobs` and `damage-multiplier`
   resolve the groups and following holders (and the bypass) of the player hit, not of the attacker - a party's
   `invincible` now protects its member from a mob outside every region, and no longer shields whoever its members hit.

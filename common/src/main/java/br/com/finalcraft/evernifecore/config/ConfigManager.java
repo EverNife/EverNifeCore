@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.config;
 
+import br.com.finalcraft.evernifecore.group.command.CoreGroupCommands;
+import br.com.finalcraft.evernifecore.group.command.GroupCommandNode;
 import br.com.finalcraft.evernifecore.logic.audit.command.AuditCommandNode;
 import br.com.finalcraft.evernifecore.logic.command.CoreLogicCommands;
 import br.com.finalcraft.evernifecore.logic.delivery.command.CoreDeliveriesCommands;
@@ -54,6 +56,8 @@ public class ConfigManager {
                 SelectionSession.class,
                 RegionCommandNode.class,
                 CoreRegionCommands.class,
+                GroupCommandNode.class,
+                CoreGroupCommands.class,
                 CoreLogicCommands.class,
                 AuditCommandNode.class,
                 DeliveriesCommandNode.class,

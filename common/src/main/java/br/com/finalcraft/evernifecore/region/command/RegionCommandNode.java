@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.region.command;
 
+import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.NodeVerbAccess;
+import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.VerbPermissionBase;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.game.FLocation;
@@ -80,7 +82,7 @@ import java.util.stream.Collectors;
  * region is reached only by {@code owner:name}, and only read unless {@link #allowForeign} lets the node edit it AND
  * that owner accepts edits from other plugins. Every verb runs on the thread that dispatched it.
  */
-public class RegionCommandNode implements RegionScope {
+public class RegionCommandNode implements RegionScope, VerbPermissionBase {
 
     @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §cSelect the area first: §e${select_command}§c, mark the points and confirm.")
     @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §cSelecione a área primeiro: §e${select_command}§c, marque os pontos e confirme.")
@@ -215,20 +217,6 @@ public class RegionCommandNode implements RegionScope {
         this.permissionBase = permissionBase;
     }
 
-    /** The node behind {@code executor}: the node itself, or the one a {@code group} or {@code terrain} branch belongs to; null otherwise. */
-    public static @Nullable RegionCommandNode of(@Nullable Object executor) {
-        if (executor instanceof RegionCommandNode) {
-            return (RegionCommandNode) executor;
-        }
-        if (executor instanceof GroupBranch) {
-            return ((GroupBranch) executor).getNode();
-        }
-        if (executor instanceof TerrainBranch) {
-            return ((TerrainBranch) executor).getNode();
-        }
-        return null;
-    }
-
     @Override
     public RegionManager getManager() {
         return manager;
@@ -238,9 +226,9 @@ public class RegionCommandNode implements RegionScope {
         return selectionSpec;
     }
 
-    /** {@code <permissionBase>.<verb>}, or null when the node has no base and the mount's permission is all there is. */
-    public @Nullable String getVerbPermission(String verb) {
-        return permissionBase == null ? null : permissionBase + "." + verb;
+    @Override
+    public @Nullable String getPermissionBase() {
+        return permissionBase;
     }
 
     /** Lets this node edit the regions of the owners {@code access} names; their owners may still refuse. */
@@ -271,7 +259,7 @@ public class RegionCommandNode implements RegionScope {
     //  Verbs
     // ------------------------------------------------------------------
 
-    @FinalCMD.SubCMD(subcmd = "select", validation = RegionVerbAccess.class, locales = {
+    @FinalCMD.SubCMD(subcmd = "select", validation = NodeVerbAccess.class, locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "Start selecting an area with the selection tool"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Começa a selecionar uma área com a ferramenta de seleção")
     })
@@ -287,7 +275,7 @@ public class RegionCommandNode implements RegionScope {
         });
     }
 
-    @FinalCMD.SubCMD(subcmd = "define", validation = RegionVerbAccess.class, locales = {
+    @FinalCMD.SubCMD(subcmd = "define", validation = NodeVerbAccess.class, locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "Create a region over your selection; -f accepts an overlap"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Cria uma região sobre a sua seleção; -f aceita sobreposição")
     })
@@ -316,7 +304,7 @@ public class RegionCommandNode implements RegionScope {
         REGION_DONE.addPlaceholder("region", result.getRegion().getId()).addPlaceholder("action", "created").send(player);
     }
 
-    @FinalCMD.SubCMD(subcmd = "redefine", validation = RegionVerbAccess.class, locales = {
+    @FinalCMD.SubCMD(subcmd = "redefine", validation = NodeVerbAccess.class, locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "Give a region the shape of your selection; -f accepts an overlap"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Dá à região a forma da sua seleção; -f aceita sobreposição")
     })
@@ -349,7 +337,7 @@ public class RegionCommandNode implements RegionScope {
         REGION_DONE.addPlaceholder("region", region.getId()).addPlaceholder("action", "redefined").send(player);
     }
 
-    @FinalCMD.SubCMD(subcmd = "remove", validation = RegionVerbAccess.class, locales = {
+    @FinalCMD.SubCMD(subcmd = "remove", validation = NodeVerbAccess.class, locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "Remove a region; --cascade takes its children too, --orphan keeps them"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Remove uma região; --cascade leva as filhas junto, --orphan as mantém")
     })
@@ -374,7 +362,7 @@ public class RegionCommandNode implements RegionScope {
         REGION_DONE.addPlaceholder("region", region.getId()).addPlaceholder("action", "removed").send(sender);
     }
 
-    @FinalCMD.SubCMD(subcmd = "info", validation = RegionVerbAccess.class, locales = {
+    @FinalCMD.SubCMD(subcmd = "info", validation = NodeVerbAccess.class, locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "Everything a region holds"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Tudo o que uma região guarda")
     })
@@ -382,7 +370,7 @@ public class RegionCommandNode implements RegionScope {
         CoreRegionCommands.sendInfo(sender, region);
     }
 
-    @FinalCMD.SubCMD(subcmd = "list", validation = RegionVerbAccess.class, locales = {
+    @FinalCMD.SubCMD(subcmd = "list", validation = NodeVerbAccess.class, locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "The regions of this command, optionally of one world"),
             @FCLocale(lang = LocaleType.PT_BR, text = "As regiões deste comando, opcionalmente de um mundo")
     })
@@ -390,7 +378,7 @@ public class RegionCommandNode implements RegionScope {
         CoreRegionCommands.getListPage(manager.getOwner().getMetaInfo().getName(), world).send(sender);
     }
 
-    @FinalCMD.SubCMD(subcmd = "flag", validation = RegionVerbAccess.class, locales = {
+    @FinalCMD.SubCMD(subcmd = "flag", validation = NodeVerbAccess.class, locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "Set, replace or clear (-) a flag of a region; -t gives the value a time to live, --mode add|set, -p <priority> and --lock place it among the layers, --fs k=v or {json} sets how it acts"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Define, troca ou limpa (-) uma flag da região; -t dá prazo ao valor, --mode add|set, -p <prioridade> e --lock o situam entre as camadas, --fs k=v ou {json} define como ela age")
     })
@@ -443,7 +431,7 @@ public class RegionCommandNode implements RegionScope {
         }
     }
 
-    @FinalCMD.SubCMD(subcmd = "settings", validation = RegionVerbAccess.class, locales = {
+    @FinalCMD.SubCMD(subcmd = "settings", validation = NodeVerbAccess.class, locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "How a flag acts in this region: field=value overrides the server's settings, - drops the override"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Como uma flag age nesta região: campo=valor sobrepõe as settings do servidor, - remove a sobreposição")
     })
@@ -476,7 +464,7 @@ public class RegionCommandNode implements RegionScope {
         }
     }
 
-    @FinalCMD.SubCMD(subcmd = "priority", validation = RegionVerbAccess.class, locales = {
+    @FinalCMD.SubCMD(subcmd = "priority", validation = NodeVerbAccess.class, locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "Set the priority of a region"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Define a prioridade de uma região")
     })
@@ -488,7 +476,7 @@ public class RegionCommandNode implements RegionScope {
         REGION_DONE.addPlaceholder("region", region.getId()).addPlaceholder("action", "now has priority " + priority).send(sender);
     }
 
-    @FinalCMD.SubCMD(subcmd = "displayname", validation = RegionVerbAccess.class, locales = {
+    @FinalCMD.SubCMD(subcmd = "displayname", validation = NodeVerbAccess.class, locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "Set the name players read for a region, colors and spaces kept; no text clears it"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Define o nome que os jogadores leem para a região, com cor e espaço; sem texto limpa")
     })
@@ -501,7 +489,7 @@ public class RegionCommandNode implements RegionScope {
         REGION_DONE.addPlaceholder("region", region.getId()).addPlaceholder("action", now == null ? "has no display name" : "is shown as " + now).send(sender);
     }
 
-    @FinalCMD.SubCMD(subcmd = "description", validation = RegionVerbAccess.class, locales = {
+    @FinalCMD.SubCMD(subcmd = "description", validation = NodeVerbAccess.class, locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "Set the description of a region, colors and spaces kept; no text clears it"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Define a descrição da região, com cor e espaço; sem texto limpa")
     })
@@ -514,7 +502,7 @@ public class RegionCommandNode implements RegionScope {
         REGION_DONE.addPlaceholder("region", region.getId()).addPlaceholder("action", now == null ? "has no description" : "is described as " + now).send(sender);
     }
 
-    @FinalCMD.SubCMD(subcmd = "parent", validation = RegionVerbAccess.class, locales = {
+    @FinalCMD.SubCMD(subcmd = "parent", validation = NodeVerbAccess.class, locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "Show, set or clear (-) the parent of a region"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Mostra, define ou limpa (-) o pai de uma região")
     })
@@ -544,7 +532,7 @@ public class RegionCommandNode implements RegionScope {
         REGION_DONE.addPlaceholder("region", region.getId()).addPlaceholder("action", "has parent " + (parent == null ? "-" : parent.getId())).send(sender);
     }
 
-    @FinalCMD.SubCMD(subcmd = "tp", validation = RegionVerbAccess.class, locales = {
+    @FinalCMD.SubCMD(subcmd = "tp", validation = NodeVerbAccess.class, locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "Teleport to a region's teleport-point, or to the top of its center"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Teleporta para o teleport-point da região, ou para o topo do centro dela")
     })
@@ -559,7 +547,7 @@ public class RegionCommandNode implements RegionScope {
         REGION_DONE.addPlaceholder("region", region.getId()).addPlaceholder("action", "reached").send(player);
     }
 
-    @FinalCMD.SubCMD(subcmd = "view", validation = RegionVerbAccess.class, locales = {
+    @FinalCMD.SubCMD(subcmd = "view", validation = NodeVerbAccess.class, locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "Draw the outline of a region for a few seconds"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Desenha o contorno de uma região por alguns segundos")
     })
@@ -572,7 +560,7 @@ public class RegionCommandNode implements RegionScope {
         RegionVisualizer.get().show(player, region.getWorld(), region.getShape(), style, ECSettings.REGIONS_VISUALIZER_VIEW_TIME);
     }
 
-    @FinalCMD.SubCMD(subcmd = "tag", validation = RegionVerbAccess.class, locales = {
+    @FinalCMD.SubCMD(subcmd = "tag", validation = NodeVerbAccess.class, locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "Add or remove a tag of a region"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Adiciona ou remove uma tag de uma região")
     })
@@ -589,7 +577,7 @@ public class RegionCommandNode implements RegionScope {
         REGION_DONE.addPlaceholder("region", region.getId()).addPlaceholder("action", "tags: " + String.join(", ", region.getTags())).send(sender);
     }
 
-    @FinalCMD.SubCMD(subcmd = "here", validation = RegionVerbAccess.class, locales = {
+    @FinalCMD.SubCMD(subcmd = "here", validation = NodeVerbAccess.class, locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "The regions of this command where you stand"),
             @FCLocale(lang = LocaleType.PT_BR, text = "As regiões deste comando onde você está")
     })
@@ -652,10 +640,15 @@ public class RegionCommandNode implements RegionScope {
             @FCLocale(lang = LocaleType.EN_US, text = "The groups of a region: members, leader, roles, flags, priority and permission"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Os grupos de acesso de uma região: membros, flags, prioridade e permissão")
     })
-    public class GroupBranch implements RegionScope {
+    public class GroupBranch implements RegionScope, VerbPermissionBase {
 
         public RegionCommandNode getNode() {
             return RegionCommandNode.this;
+        }
+
+        @Override
+        public @Nullable String getPermissionBase() {
+            return permissionBase;
         }
 
         @Override
@@ -673,7 +666,7 @@ public class RegionCommandNode implements RegionScope {
             }
         }
 
-        @FinalCMD.SubCMD(subcmd = "add", validation = RegionVerbAccess.class, locales = {
+        @FinalCMD.SubCMD(subcmd = "add", validation = NodeVerbAccess.class, locales = {
                 @FCLocale(lang = LocaleType.EN_US, text = "Add a member (online name or UUID); -t makes it temporary"),
                 @FCLocale(lang = LocaleType.PT_BR, text = "Adiciona um membro (nome online ou UUID); -t o torna temporário")
         })
@@ -692,7 +685,7 @@ public class RegionCommandNode implements RegionScope {
                     : "adding " + player + " was refused by a listener");
         }
 
-        @FinalCMD.SubCMD(subcmd = "remove", validation = RegionVerbAccess.class, locales = {
+        @FinalCMD.SubCMD(subcmd = "remove", validation = NodeVerbAccess.class, locales = {
                 @FCLocale(lang = LocaleType.EN_US, text = "Remove a member (online name or UUID)"),
                 @FCLocale(lang = LocaleType.PT_BR, text = "Remove um membro (nome online ou UUID)")
         })
@@ -706,7 +699,7 @@ public class RegionCommandNode implements RegionScope {
             groupDone(sender, target, removed ? "removed " + player : player + " was not a member");
         }
 
-        @FinalCMD.SubCMD(subcmd = "flag", validation = RegionVerbAccess.class, locales = {
+        @FinalCMD.SubCMD(subcmd = "flag", validation = NodeVerbAccess.class, locales = {
                 @FCLocale(lang = LocaleType.EN_US, text = "Set or clear (-) a flag for the members of a group; -t gives it a time to live, --mode add|set, -p <priority> and --lock place it among the layers"),
                 @FCLocale(lang = LocaleType.PT_BR, text = "Define ou limpa (-) uma flag para os membros do grupo; -t dá prazo ao valor, --mode add|set, -p <prioridade> e --lock o situam entre as camadas")
         })
@@ -731,7 +724,7 @@ public class RegionCommandNode implements RegionScope {
             applyFlags(sender, target.region, target.groupName, flagName, valueText, ttl, mode, priority, lock);
         }
 
-        @FinalCMD.SubCMD(subcmd = "list", validation = RegionVerbAccess.class, locales = {
+        @FinalCMD.SubCMD(subcmd = "list", validation = NodeVerbAccess.class, locales = {
                 @FCLocale(lang = LocaleType.EN_US, text = "The members and flags of a group"),
                 @FCLocale(lang = LocaleType.PT_BR, text = "Os membros e as flags de um grupo")
         })
@@ -754,7 +747,7 @@ public class RegionCommandNode implements RegionScope {
             }
         }
 
-        @FinalCMD.SubCMD(subcmd = "priority", validation = RegionVerbAccess.class, locales = {
+        @FinalCMD.SubCMD(subcmd = "priority", validation = NodeVerbAccess.class, locales = {
                 @FCLocale(lang = LocaleType.EN_US, text = "Set the priority of a group among the region's groups"),
                 @FCLocale(lang = LocaleType.PT_BR, text = "Define a prioridade do grupo entre os grupos da região")
         })
@@ -766,7 +759,7 @@ public class RegionCommandNode implements RegionScope {
             groupDone(sender, target, "priority " + priority);
         }
 
-        @FinalCMD.SubCMD(subcmd = "permission", validation = RegionVerbAccess.class, locales = {
+        @FinalCMD.SubCMD(subcmd = "permission", validation = NodeVerbAccess.class, locales = {
                 @FCLocale(lang = LocaleType.EN_US, text = "Make holders of a permission members of the group, or clear it (-)"),
                 @FCLocale(lang = LocaleType.PT_BR, text = "Torna membros do grupo quem tem uma permissão, ou a limpa (-)")
         })
@@ -779,7 +772,7 @@ public class RegionCommandNode implements RegionScope {
             groupDone(sender, target, "permission " + (value == null ? "-" : value));
         }
 
-        @FinalCMD.SubCMD(subcmd = "leader", validation = RegionVerbAccess.class, locales = {
+        @FinalCMD.SubCMD(subcmd = "leader", validation = NodeVerbAccess.class, locales = {
                 @FCLocale(lang = LocaleType.EN_US, text = "Hand the lead of the group to a member, or clear it (-)"),
                 @FCLocale(lang = LocaleType.PT_BR, text = "Passa a liderança do grupo a um membro, ou a limpa (-)")
         })
@@ -804,7 +797,7 @@ public class RegionCommandNode implements RegionScope {
             groupDone(sender, target, "led by " + player);
         }
 
-        @FinalCMD.SubCMD(subcmd = "role", validation = RegionVerbAccess.class, locales = {
+        @FinalCMD.SubCMD(subcmd = "role", validation = NodeVerbAccess.class, locales = {
                 @FCLocale(lang = LocaleType.EN_US, text = "Give a member a role (a free tag in a region's group), or clear their roles (-)"),
                 @FCLocale(lang = LocaleType.PT_BR, text = "Dá um papel a um membro (uma marca livre no grupo de uma região), ou limpa os papéis dele (-)")
         })
@@ -843,10 +836,15 @@ public class RegionCommandNode implements RegionScope {
             @FCLocale(lang = LocaleType.EN_US, text = "The terrain of a region: snapshots, their restore and the undo of its journal"),
             @FCLocale(lang = LocaleType.PT_BR, text = "O terreno de uma região: snapshots, a restauração deles e o desfazer do journal")
     })
-    public class TerrainBranch implements RegionScope {
+    public class TerrainBranch implements RegionScope, VerbPermissionBase {
 
         public RegionCommandNode getNode() {
             return RegionCommandNode.this;
+        }
+
+        @Override
+        public @Nullable String getPermissionBase() {
+            return permissionBase;
         }
 
         @Override
@@ -859,7 +857,7 @@ public class RegionCommandNode implements RegionScope {
             return region;
         }
 
-        @FinalCMD.SubCMD(subcmd = "snapshot", validation = RegionVerbAccess.class, locales = {
+        @FinalCMD.SubCMD(subcmd = "snapshot", validation = NodeVerbAccess.class, locales = {
                 @FCLocale(lang = LocaleType.EN_US, text = "Save the region's blocks, nbt and entities as a new snapshot"),
                 @FCLocale(lang = LocaleType.PT_BR, text = "Salva os blocos, nbt e entidades da região num snapshot novo")
         })
@@ -885,7 +883,7 @@ public class RegionCommandNode implements RegionScope {
             });
         }
 
-        @FinalCMD.SubCMD(subcmd = "snapshots", validation = RegionVerbAccess.class, locales = {
+        @FinalCMD.SubCMD(subcmd = "snapshots", validation = NodeVerbAccess.class, locales = {
                 @FCLocale(lang = LocaleType.EN_US, text = "The region's snapshots, newest first, and the state of its journal"),
                 @FCLocale(lang = LocaleType.PT_BR, text = "Os snapshots da região, do mais novo ao mais velho, e o estado do journal")
         })
@@ -905,7 +903,7 @@ public class RegionCommandNode implements RegionScope {
             }
         }
 
-        @FinalCMD.SubCMD(subcmd = "restore", validation = RegionVerbAccess.class, locales = {
+        @FinalCMD.SubCMD(subcmd = "restore", validation = NodeVerbAccess.class, locales = {
                 @FCLocale(lang = LocaleType.EN_US, text = "Put a snapshot back (0 = the newest); without --confirm it only says which"),
                 @FCLocale(lang = LocaleType.PT_BR, text = "Restaura um snapshot (0 = o mais novo); sem --confirm só diz qual seria")
         })
@@ -953,7 +951,7 @@ public class RegionCommandNode implements RegionScope {
             });
         }
 
-        @FinalCMD.SubCMD(subcmd = "undo", validation = RegionVerbAccess.class, locales = {
+        @FinalCMD.SubCMD(subcmd = "undo", validation = NodeVerbAccess.class, locales = {
                 @FCLocale(lang = LocaleType.EN_US, text = "Put back everything the region's track-changes journal recorded"),
                 @FCLocale(lang = LocaleType.PT_BR, text = "Devolve tudo o que o journal de track-changes da região guardou")
         })
