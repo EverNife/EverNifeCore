@@ -20,6 +20,7 @@ import br.com.finalcraft.evernifecore.logic.audit.LogicTrace;
 import br.com.finalcraft.evernifecore.logic.core.CoreLogic;
 import br.com.finalcraft.evernifecore.logic.audit.AuditLog;
 import br.com.finalcraft.evernifecore.logic.delivery.Deliveries;
+import br.com.finalcraft.evernifecore.logic.reward.core.CoreRewardPieces;
 import br.com.finalcraft.evernifecore.logic.value.Contributions;
 import br.com.finalcraft.evernifecore.logic.value.DynamicValues;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
@@ -284,6 +285,7 @@ public final class LogicWorld implements AutoCloseable {
                 ECPluginData core = existing != null ? existing : Plugins.fakeCore(dataFolder.resolve("evernifecore").toFile());
                 CoreLogic.registerAll(core);
                 Boosters.registerCore(core);
+                CoreRewardPieces.registerAll(core);
                 coreBuiltHere = existing == null;
             }
         }
