@@ -343,20 +343,26 @@ public final class ScreenSuite implements ConformanceSuite {
                     expect(problems, kind == expected, "asked through " + kind + ", expected " + expected);
                     if (bridged) {
                         expect(problems, InventoryType.ANVIL.name().equals(window), "the open window is " + window);
-                        player.closeInventory(); //the server closes the anvil: the question ends, the screen does not
                     }
-                    until(done, problems, "the prompt did not end: " + seen, result::isDone, () -> after(2, done, () -> {
-                        PromptResult<Integer> asked = result.getNow(null);
-                        PromptResult.Kind ending = asked == null ? null : asked.getKind();
-                        expect(problems, ending == (bridged ? PromptResult.Kind.CANCELLED : PromptResult.Kind.TIMEOUT),
-                                "prompt ended " + asked);
-                        expect(problems, Screens.getOpenView(player.getUniqueId()) == view && !view.isSuspended(),
-                                "the screen did not come back");
-                        expect(problems, player.getLevel() == level, "level " + level + " -> " + player.getLevel());
-                        expect(problems, Arrays.equals(contents, player.getInventory().getContents()),
-                                "the inventory changed: " + Arrays.toString(player.getInventory().getContents()));
-                        done.complete(seen + " level=" + player.getLevel() + " prompt=" + ending);
-                    }), System.currentTimeMillis() + 12_000L);
+                    //a second for the client to draw the anvil and send the rename it sends on opening: a 1.7.10 server
+                    //that gets it after the anvil closed hands an empty payload to the plugin messenger and kicks
+                    after(bridged ? 20 : 0, done, () -> {
+                        if (bridged) {
+                            player.closeInventory(); //the server closes the anvil: the question ends, the screen does not
+                        }
+                        until(done, problems, "the prompt did not end: " + seen, result::isDone, () -> after(2, done, () -> {
+                            PromptResult<Integer> asked = result.getNow(null);
+                            PromptResult.Kind ending = asked == null ? null : asked.getKind();
+                            expect(problems, ending == (bridged ? PromptResult.Kind.CANCELLED : PromptResult.Kind.TIMEOUT),
+                                    "prompt ended " + asked);
+                            expect(problems, Screens.getOpenView(player.getUniqueId()) == view && !view.isSuspended(),
+                                    "the screen did not come back");
+                            expect(problems, player.getLevel() == level, "level " + level + " -> " + player.getLevel());
+                            expect(problems, Arrays.equals(contents, player.getInventory().getContents()),
+                                    "the inventory changed: " + Arrays.toString(player.getInventory().getContents()));
+                            done.complete(seen + " level=" + player.getLevel() + " prompt=" + ending);
+                        }), System.currentTimeMillis() + 12_000L);
+                    });
                 });
                 return done;
             }
