@@ -61,10 +61,18 @@ public final class CacheSyncWiring {
     public static final class Handle implements AutoCloseable {
         private final CacheSync sync;
         private final CacheSyncTransport transport; //null on the native-feed path
+        private final Set<CachingManager<?, ?>> bound;
 
-        private Handle(CacheSync sync, CacheSyncTransport transport) {
+        private Handle(CacheSync sync, CacheSyncTransport transport, List<CachingManager<?, ?>> managers) {
             this.sync = sync;
             this.transport = transport;
+            this.bound = Collections.newSetFromMap(new IdentityHashMap<>());
+            this.bound.addAll(managers);
+        }
+
+        /** Whether this sync watches {@code manager}'s collection (a remote write to it arrives live). */
+        public boolean covers(CachingManager<?, ?> manager) {
+            return bound.contains(manager);
         }
 
         /**
@@ -147,7 +155,7 @@ public final class CacheSyncWiring {
                 sync.bind(manager);
             }
             sync.start();
-            return new Handle(sync, transport);
+            return new Handle(sync, transport, managers);
         } catch (RuntimeException startFailure) {
             try { sync.close(); } catch (RuntimeException ignored) { }
             closeTransport(transport);

@@ -516,15 +516,7 @@ public class PlayerController {
     public static void deliverRemoteChange(Class<?> sectionClass, UUID key, ChangeOp op, long version, String originId){
         PlayerController controller = INSTANCE;
         if (controller == null) throw notBootstrapped();
-        CachingManager<UUID, ?> manager;
-        PDSectionBinding<? extends PDSection> binding = controller.bindings.get(sectionClass);
-        if (binding != null){
-            manager = binding.getManager();
-        }else {
-            AccountSectionBinding<?> accountBinding = controller.accountEngine.getBindingUnchecked(sectionClass);
-            if (accountBinding == null) throw notRegisteredPDSection(sectionClass);
-            manager = accountBinding.getManager();
-        }
+        CachingManager<UUID, ?> manager = controller.managerOf(sectionClass);
         CacheSyncWiring.Handle sync = controller.cacheSync;
         if (sync == null){
             throw new IllegalStateException("No cache-sync is running, so no remote change can reach "
@@ -533,6 +525,28 @@ public class PlayerController {
                     + " (Storages.memory() in a test), or a 'redis:' block.");
         }
         sync.deliver(new ChangeEvent(manager.collection(), key.toString(), op, version, originId));
+    }
+
+    /**
+     * How this server hears about another server's write to the rows of {@code sectionClass} (a PDSection or an
+     * AccountSection): {@link RemoteSignal#LIVE} when the running cache-sync covers its collection,
+     * {@link RemoteSignal#CONFLICT_ONLY} on a shared network backend without one, {@link RemoteSignal#NONE} on a
+     * file, H2 or memory backend. Any thread; throws before bootstrap or for an unregistered class.
+     */
+    public static RemoteSignal getRemoteSignal(Class<?> sectionClass){
+        PlayerController controller = INSTANCE;
+        if (controller == null) throw notBootstrapped();
+        CachingManager<UUID, ?> manager = controller.managerOf(sectionClass);
+        CacheSyncWiring.Handle sync = controller.cacheSync;
+        return RemoteSignal.of(sync != null && sync.covers(manager), manager.storage());
+    }
+
+    private CachingManager<UUID, ?> managerOf(Class<?> sectionClass){
+        PDSectionBinding<? extends PDSection> binding = bindings.get(sectionClass);
+        if (binding != null) return binding.getManager();
+        AccountSectionBinding<?> accountBinding = accountEngine.getBindingUnchecked(sectionClass);
+        if (accountBinding == null) throw notRegisteredPDSection(sectionClass);
+        return accountBinding.getManager();
     }
 
     private void closeCacheSync(){

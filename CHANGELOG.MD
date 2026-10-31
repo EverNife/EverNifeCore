@@ -18,6 +18,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- `PlayerController.getRemoteSignal(sectionClass)` answers how this server hears another server's write to a section's
+  rows: `RemoteSignal.LIVE` (a cache-sync covers the collection), `CONFLICT_ONLY` (a shared network backend without one:
+  only the next flush conflict tells) or `NONE` (file, H2, memory). A plugin running on several servers decides how
+  careful a debit must be by it.
 - **NPC references (`br.com.finalcraft.evernifecore.npc`)**: `NpcRef` is `provider:id` (`citizens:12`,
   `fancynpcs:<uuid>`, `znpcsplus:merchant`, `hytale:<uuid>`, lowercased); the `NpcProvider` SPI answers `resolve(entity)`,
   `find(ref)`, `getLocation(ref)`, `getName(ref)` and starts raising clicks only while needed; `Npcs.register(owner,
