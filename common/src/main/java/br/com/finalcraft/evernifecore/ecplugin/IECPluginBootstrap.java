@@ -29,6 +29,7 @@ import br.com.finalcraft.evernifecore.ranking.RankedLists;
 import br.com.finalcraft.evernifecore.group.GroupLookup;
 import br.com.finalcraft.evernifecore.group.GroupManager;
 import br.com.finalcraft.evernifecore.group.Groups;
+import br.com.finalcraft.evernifecore.quest.QuestEngine;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.screen.Screens;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
@@ -143,6 +144,7 @@ public interface IECPluginBootstrap {
         ProvenanceTracker.closeOwnedBy(getPluginData());
         RegionManager.closeOwnedBy(getPluginData());
         GroupManager.closeOwnedBy(getPluginData());
+        QuestEngine.closeOwnedBy(getPluginData());
         GroupLookup.get().unregisterAll(getPluginData());
         Groups.unregisterNetwork(getPluginData());
         Cooldowns.closeOwnedBy(getPluginData());

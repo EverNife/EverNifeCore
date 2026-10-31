@@ -1,0 +1,7 @@
+id: tutorial
+version: 1
+name: "&aFirst steps"
+stages:
+  - id: walk
+    objectives:
+      - { id: dirt, type: break-block, block: "minecraft:dirt", goal: 1 }

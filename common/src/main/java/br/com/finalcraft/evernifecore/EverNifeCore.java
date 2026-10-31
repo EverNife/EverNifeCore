@@ -28,6 +28,7 @@ import br.com.finalcraft.evernifecore.storage.ECStorage;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.ranking.RankedPlaceholders;
+import br.com.finalcraft.evernifecore.quest.QuestEngine;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.region.placeholder.RegionPlaceholders;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
@@ -130,6 +131,7 @@ public class EverNifeCore {
     public void onUnload() {
         ProvenanceTracker.closeShared();
         Deliveries.closeAll();
+        QuestEngine.closeAll(); //before the regions: a quest owner may be a region
         RegionManager.closeAll(); //what no plugin shutdown closed, and the region system's hold on the global bus
         PlayerController.shutdown(); //flush dirty players + close storage backends
     }

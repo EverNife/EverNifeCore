@@ -1,0 +1,19 @@
+id: mine-iron
+version: 1
+name: "&6Iron miner"
+description: "&7Mine 32 iron ore and hand it to the smith."
+meta: { category: mining, icon: "minecraft:iron_ore", order: 10 }
+repeat: { cooldown: 20h }
+requires: [ tutorial ]
+gate: { require: [ { type: permission, node: finalquests.mine } ], cost: [ { type: money, amount: 50 } ] }
+stages:
+  - id: mine
+    objectives:
+      - { id: ore, type: break-block, block: "minecraft:iron_ore", goal: 32,
+          conditions: [ { type: compare, variable: gamemode, op: "!=", amount: CREATIVE } ] }
+  - id: deliver
+    objectives:
+      - { id: smith, type: interact-npc, npc: "citizens:12", costs: [ { type: item, item: "minecraft:raw_iron", amount: 32 } ] }
+    on-complete: [ { type: message, text: "&aDelivered!" } ]
+rewards:
+  - effects: [ { type: money, amount: 500 }, { type: command, as: console, run: "crate give {player} iron 1" } ]

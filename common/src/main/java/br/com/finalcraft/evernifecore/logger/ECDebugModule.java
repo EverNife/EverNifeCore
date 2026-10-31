@@ -18,6 +18,7 @@ public enum ECDebugModule implements IDebugModule {
     GROUPS("Logs what each GroupManager loads, flushes, sweeps and dissolves.", true),
     LOGIC("Logs every gate checked, cost taken, refund and effect applied, with the caller.", false),
     AUDIT("Logs how many entries each audit log's retention sweep deleted.", false),
+    QUESTS("Logs what each QuestEngine loads, which sources the quest index turns on and off, and every state transition.", false),
     ;
 
     private final String comment;

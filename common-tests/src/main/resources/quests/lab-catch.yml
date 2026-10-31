@@ -1,0 +1,10 @@
+id: lab-catch
+version: 1
+name: "&bCatch 5 {type}-type Pokemon"
+meta: { tags: [ lab ], icon: "pixelmon:poke_ball" }
+params: { type: { values: [ fire, water, grass, electric ], pick: random } }
+repeat: { window: "daily at 00:00 zone America/Sao_Paulo" }
+stages:
+  - id: catch
+    objectives: [ { id: c, type: "pokequest:capture", species-type: "{type}", goal: 5 } ]
+rewards: [ { effects: [ { type: add, variable: "finalpokebuilder:points", amount: 10 } ] } ]

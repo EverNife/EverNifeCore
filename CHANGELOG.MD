@@ -18,6 +18,17 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **Quest engine** (`evernifecore.quest`): a plugin opens `QuestEngine.of(plugin, storage, MyQuestSection.class)` and
+  registers `QuestDefinition`s (YAML through `QuestDefinitions` or a builder) - stages as graph nodes (`then`, goto,
+  `COMPLETE`/`FAIL`, `all`/`any`/`at-least` groups), objectives of event (one stock `ObjectiveType` per action source,
+  `TypeKey` globs, `each-match`, `cancelsNative`) or state (`state`, `timer`, `quest-completed`), frozen params,
+  `RepeatPolicy`, `requires` with cycle detection, `version` with `KEEP_BY_ID`/`RESET`. Player progress lives in the
+  plugin's own `QuestSection` and counts only while it is loaded; other owners' progress in the plugin's storage
+  (`quest_states`). The `QuestIndex` listens to an action source only while an active objective needs it. Stock logic:
+  condition `quest-status`, variable `quest-times`, effects `start-quest`, `offer-quest`, `complete-quest`,
+  `fail-quest`, `track-quest`; the `quest.event` family; `ECDebugModule.QUESTS`. Engine: `QuestWorld`,
+  `QuestDefinitionsFixture`.
+
 - **Screens render on Hytale**: `HyPageRenderer` (`evernifecore:page`, `hytale.screen`) draws any `Screen` as a server
   page (`InteractiveCustomUIPage`) from the core's own layouts in its asset pack (`EverNifeCore/Screen.ui`, `Cell.ui`,
   `Prompt.ui`): a frame sized to the grid, the title, one cell per slot with the item, its amount and the name and lore

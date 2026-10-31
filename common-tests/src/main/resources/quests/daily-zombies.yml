@@ -1,0 +1,7 @@
+id: daily-zombies
+version: 1
+name: "&aZombie patrol"
+meta: { tags: [ daily ], icon: "minecraft:rotten_flesh", extra: { weight: 3 } }
+repeat: { window: "daily at 04:00 zone America/Sao_Paulo" }
+stages: [ { id: hunt, objectives: [ { id: z, type: kill, entity: "minecraft:zombie", goal: 3 } ] } ]
+rewards: [ { effects: [ { type: give-item, item: "minecraft:emerald", amount: 2, to: inventory } ] } ]
