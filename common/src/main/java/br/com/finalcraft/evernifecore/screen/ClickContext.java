@@ -154,14 +154,7 @@ public final class ClickContext {
     /** {@link #open(Screen)} with the answer typed: a value of another type completes the future exceptionally. */
     @Nonnull
     public <R> CompletableFuture<R> open(@Nonnull Screen<?> screen, @Nonnull Class<R> answer) {
-        return open(screen).thenApply(value -> {
-            if (value != null && !answer.isInstance(value)) {
-                throw new ClassCastException("The screen opened from " + view.getScreen().describe() + " answered a "
-                        + value.getClass().getSimpleName() + ", and this click waits for a " + answer.getSimpleName()
-                        + ". Hand back(...) a " + answer.getSimpleName() + ", or open it without a type.");
-            }
-            return answer.cast(value);
-        });
+        return Screens.typed(open(screen), answer, "the click on " + view.getScreen().describe());
     }
 
     /** Drops this screen and gives the viewer back the one underneath; at the bottom, closes. */

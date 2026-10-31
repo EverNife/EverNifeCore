@@ -47,7 +47,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `evernifecore:ranking` (`RankingScreen` over `RankingRequest.of(rankedList)`: the viewer's row marked, a bar to the
   next position), each with its layout seeded under `guis/`. Also `ScreenFallback.open(ScreenKey)`,
   `/ecore screen which <key> [plugin]`, which names the layer that answers, and the stock effect `open-screen`
-  (`screen`, `args` with `{variables}` filled; a context without a player is audited and opens nothing).
+  (`screen`, `args` with `{variables}` filled; a context without a player is audited and opens nothing). A typed
+  answer (`ClickContext.open(screen, Boolean.class)`, `Screens.confirm`) is cancelled, not failed, when nobody answers.
 - `ItemSpec.withText(displayName, lore)`.
 
 - **Group engine (`br.com.finalcraft.evernifecore.group`)**: `GroupManager.of(owner, storage)` keeps a plugin's groups in

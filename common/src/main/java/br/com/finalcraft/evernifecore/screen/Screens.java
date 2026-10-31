@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -168,16 +167,23 @@ public final class Screens {
                 view.setPendingResult(answer);
             }
         });
-        //a typed copy that stays CANCELLED when the answer is: thenApply would turn that into a plain failure
+        return typed(answer, type, "its opener");
+    }
+
+    /**
+     * {@code answer} as {@code type}: a value of another type fails naming {@code waiter}, and a cancelled answer stays
+     * CANCELLED - {@code thenApply} would turn it into a plain failure, and "nobody answered" into an error.
+     */
+    @Nonnull
+    static <R> CompletableFuture<R> typed(@Nonnull CompletableFuture<Object> answer, @Nonnull Class<R> type, @Nonnull String waiter) {
         CompletableFuture<R> typed = new CompletableFuture<>();
         answer.whenComplete((value, failed) -> {
-            if (failed instanceof CancellationException) {
-                typed.cancel(false);
-            } else if (failed != null) {
-                typed.completeExceptionally(failed);
+            if (failed != null) {
+                typed.completeExceptionally(failed); //a CancellationException as is: still isCancelled()
             } else if (value != null && !type.isInstance(value)) {
                 typed.completeExceptionally(new ClassCastException("The screen answered a " + value.getClass().getSimpleName()
-                        + ", and its opener waits for a " + type.getSimpleName() + ". Hand back(...) a " + type.getSimpleName() + "."));
+                        + ", and " + waiter + " waits for a " + type.getSimpleName() + ". Hand back(...) a " + type.getSimpleName()
+                        + ", or open it without a type."));
             } else {
                 typed.complete(type.cast(value));
             }

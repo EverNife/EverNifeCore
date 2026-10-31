@@ -113,6 +113,28 @@ class ConfirmScreenTest {
     }
 
     @Test
+    void openedFromAScreenTheTypedAnswerComesBackAndAWalkAwayStaysCancelled() {
+        List<CompletableFuture<Boolean>> answers = new ArrayList<>();
+        Screen<?> shop = Screen.of(3).debounce(0);
+        shop.icon(13, Icon.of("minecraft:emerald")).id("sell")
+                .onClick(click -> answers.add(click.open(ConfirmScreen.of(ConfirmRequest.of("Sell it?")), Boolean.class)));
+        ScreenView view = world.open(shop, alex);
+
+        world.click(view, "sell", ClickGesture.PRIMARY);
+        world.advanceTicks(2);
+        world.click(openView(), "CONFIRM", ClickGesture.PRIMARY);
+        world.advanceTicks(2);
+        assertEquals(Boolean.TRUE, answers.get(0).getNow(null));
+        assertTrue(Screens.getOpenView(alex) == view, "the shop is back");
+
+        world.click(view, "sell", ClickGesture.PRIMARY);
+        world.advanceTicks(2);
+        world.getRenderer().surfaceOf(openView()).playerCloses();
+        world.advanceTicks(2);
+        assertTrue(answers.get(1).isCancelled(), "nobody answered, which is not an error: " + answers.get(1));
+    }
+
+    @Test
     void aDangerousOneTakesAShiftClick() {
         //no debounce: the test clicks twice within the 200 ms a human double click is swallowed in
         ScreenView view = world.open(ConfirmScreen.of(ConfirmRequest.of("Delete the island?").dangerous()).debounce(0), alex);
