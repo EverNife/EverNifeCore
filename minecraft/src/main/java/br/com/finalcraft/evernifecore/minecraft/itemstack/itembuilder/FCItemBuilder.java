@@ -1,10 +1,10 @@
 package br.com.finalcraft.evernifecore.minecraft.itemstack.itembuilder;
 
-import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
-import br.com.finalcraft.evernifecore.minecraft.gui.view.ClickContext;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemBase;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ParsedBlock;
+import br.com.finalcraft.evernifecore.minecraft.screen.ChestItems;
+import br.com.finalcraft.evernifecore.screen.Icon;
 import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import jakarta.annotation.Nonnull;
 import org.bukkit.inventory.ItemStack;
@@ -28,25 +28,12 @@ public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
     }
 
     /**
-     * Ends the chain as an {@link Icon}: the item plus everything a gui needs to place it and react
-     * to it. This is the single icon type - there is no separate "gui item".
+     * Ends the chain as a screen {@link Icon} carrying this very item. What a click on it does is the screen's to say:
+     * {@code screen.icon(slot, builder.asIcon()).onClick(...)}.
      */
     @Nonnull
     public Icon asIcon() {
-        return new Icon(build());
-    }
-
-    /** Ends the chain as an {@link Icon} that answers a click. */
-    @Nonnull
-    public Icon onClick(@Nonnull Consumer<ClickContext> onClick) {
-        return asIcon().onClick(onClick);
-    }
-
-    /** Ends the chain as an {@link Icon} that redraws itself every {@code ticks} - pair it with
-     *  {@link Icon#render(Consumer)}. */
-    @Nonnull
-    public Icon every(long ticks) {
-        return asIcon().every(ticks);
+        return Icon.of(ChestItems.specOf(build()));
     }
 
     /**

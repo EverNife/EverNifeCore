@@ -32,4 +32,13 @@ public interface ScreenSurface {
     /** Whether {@code nativeWindow} - the renderer's own window object - is this surface. {@code null} never is. */
     boolean isBackedBy(@Nullable Object nativeWindow);
 
+    /**
+     * The view drawn through this window is being torn down, for {@code reason}. A window can hold what the view does
+     * not - the items of an editable area, the stack on a cursor - and this is where it gives them back. Runs before the
+     * screen's {@code onClose}, so the handler reads stores that already agree with the window. Renderer thread.
+     */
+    default void released(@Nonnull CloseReason reason) {
+
+    }
+
 }

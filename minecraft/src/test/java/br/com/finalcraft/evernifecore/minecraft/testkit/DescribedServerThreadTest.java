@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.testkit;
 
-import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
+import br.com.finalcraft.evernifecore.minecraft.screen.testkit.BukkitScreenWorld;
 import br.com.finalcraft.evernifecore.minecraft.inventory.stored.StoredInventory;
 import br.com.finalcraft.evernifecore.testing.minecraft.ItemWorld;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
@@ -52,7 +52,7 @@ class DescribedServerThreadTest {
 
     @Test
     void theGuiRigAnswersTheVerySameWay() {
-        try (GuiTestWorld world = GuiTestWorld.install(tempDir)) {
+        try (BukkitScreenWorld world = BukkitScreenWorld.install(tempDir)) {
             assertTrue(Bukkit.getServer().isPrimaryThread());
             assertFalse(offTheMainThread(() -> Bukkit.getServer().isPrimaryThread()));
         }

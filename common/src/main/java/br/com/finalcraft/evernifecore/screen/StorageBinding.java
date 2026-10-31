@@ -22,7 +22,7 @@ public final class StorageBinding {
     private Object backing;
     private ClickPolicy policy = ClickPolicy.DENY_ALL;
     private Predicate<ItemSpec> placeFilter;
-    private Consumer<ScreenView> onChange;
+    private Consumer<StorageChange> onChange;
 
     public StorageBinding(@Nonnull String name, @Nonnull SlotSet slots) {
         this.name = name;
@@ -63,7 +63,7 @@ public final class StorageBinding {
 
     /** Runs after the area's contents changed and were written back to the store, on the renderer thread. */
     @Nonnull
-    public StorageBinding onChange(@Nullable Consumer<ScreenView> onChange) {
+    public StorageBinding onChange(@Nullable Consumer<StorageChange> onChange) {
         this.onChange = onChange;
         return this;
     }
@@ -89,7 +89,7 @@ public final class StorageBinding {
     }
 
     @Nullable
-    public Consumer<ScreenView> getOnChange() {
+    public Consumer<StorageChange> getOnChange() {
         return onChange;
     }
 

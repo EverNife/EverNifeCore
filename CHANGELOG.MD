@@ -327,6 +327,18 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **The Bukkit gui is the chest renderer of `screen` (`minecraft.screen`).** `ChestScreenRenderer` (`evernifecore:chest`,
+  priority 0, the only renderer with `STORAGE_SLOTS`, plus `TITLE_CHANGE`) draws a `Screen` as a vanilla container;
+  `ChestKind` (`CHEST`, `HOPPER`, `DISPENSER`, `BREWING`, `WORKBENCH`) is picked by the screen's grid -
+  `ChestKind.HOPPER.newScreen()`, or `Screen.of(Grid)`. An icon id is a modern one (`minecraft:red_wool`); before 1.13
+  the coloured wool and glass map to their data value, and an icon none of whose items the server has is drawn as a
+  barrier (stone before 1.8), warned once per element. An editable area is backed by an `ItemStore` or a
+  `GenericInventory`, filters with `denyPlace(ChestItems.stacks(item -> ...))`, and its `onChange` gets a neutral
+  `StorageChange` (contents as `ItemSpec`s carrying the stack). `ScreenSurface.released(reason)` is where a window gives
+  back what it held, before `onClose`. `FCItemBuilder.asIcon()` answers a `screen.Icon`. `/ecoregui reload|diff` is
+  `/ecore screen reload|diff` (permission `evernifecore.command.screen`). The Bukkit test rig is
+  `minecraft.screen.testkit.BukkitScreenWorld`; `BukkitScreenWorld.over(ScreenWorld)` runs `RendererConformance` on the
+  chest.
 - **`RegionVerbAccess` is `NodeVerbAccess`** (`commands.finalcmd.accessvalidation`): any node that implements
   `VerbPermissionBase` (`getPermissionBase()`) - the region and the group nodes and their branches - gates each verb on
   `<base>.<verb>`. `RegionCommandNode.getVerbPermission(verb)` and `RegionCommandNode.of(executor)` are gone.
@@ -455,6 +467,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Removed
 
+- **`br.com.finalcraft.evernifecore.minecraft.gui`** (65 classes): its neutral half is `screen`, its Bukkit half
+  `minecraft.screen`. Gone with no replacement: `ResultGui`, `LayoutGui`, `LayoutResultGui`, `SubjectHolder`,
+  `EnumWool`/`EnumStainedGlassPane` (`DefaultIcons.wool/pane(Color)`), `GuiType` (`ChestKind`), `ConfirmGui`,
+  `FCItemBuilder.onClick/every` and `ClickContext.sound`. Plugins compiled against `minecraft.gui` break at load.
 - `pageviewer.CachePolicy`, `PageSnapshot`, `Row`, `PageOrder`, `PageRegistry` (moved to `ranking` as `CachePolicy`,
   `RankedSnapshot`, `RankedEntry`, internal, `RankedLists`).
 - **The Bukkit-only events** `ECPlayerCraftItemEvent`, `ECPlayerChangeChunkEvent` and the `ECPlayerdataDamagePlayerdata`

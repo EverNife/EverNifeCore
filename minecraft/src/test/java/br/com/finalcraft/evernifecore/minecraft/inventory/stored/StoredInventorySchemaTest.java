@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.minecraft.inventory.stored;
 
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.config.factory.ConfigFactoryCodec;
-import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
+import br.com.finalcraft.evernifecore.minecraft.screen.testkit.BukkitScreenWorld;
 import br.com.finalcraft.evernifecore.testing.Logs;
 import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
@@ -54,11 +54,11 @@ class StoredInventorySchemaTest {
     @TempDirNobodyCleans
     Path tempDir;
 
-    private GuiTestWorld world;
+    private BukkitScreenWorld world;
 
     @BeforeEach
     void setup() {
-        world = GuiTestWorld.install(tempDir);
+        world = BukkitScreenWorld.install(tempDir);
     }
 
     @AfterEach

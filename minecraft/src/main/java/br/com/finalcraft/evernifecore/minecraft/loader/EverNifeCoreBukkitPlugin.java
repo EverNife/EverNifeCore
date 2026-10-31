@@ -1,5 +1,8 @@
 package br.com.finalcraft.evernifecore.minecraft.loader;
 
+import br.com.finalcraft.evernifecore.minecraft.screen.BukkitScreenListener;
+import br.com.finalcraft.evernifecore.minecraft.screen.ChestScreenRenderer;
+import br.com.finalcraft.evernifecore.screen.Screens;
 import br.com.finalcraft.evernifecore.group.IGroupGlowProvider;
 import br.com.finalcraft.evernifecore.minecraft.group.McGroupGlowProvider;
 import br.com.finalcraft.evernifecore.economy.Currencies;
@@ -24,8 +27,6 @@ import br.com.finalcraft.evernifecore.minecraft.dependencies.ECoreDependencies;
 import br.com.finalcraft.evernifecore.minecraft.ecplugin.ECBukkitPlugin;
 import br.com.finalcraft.evernifecore.minecraft.eventbus.McBukkitAudience;
 import br.com.finalcraft.evernifecore.minecraft.eventbus.McForgeAudience;
-import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiListener;
-import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiViews;
 import br.com.finalcraft.evernifecore.minecraft.integration.VaultIntegration;
 import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerInteractListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerLoginListener;
@@ -166,7 +167,8 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
         ECListener.register(ecPluginData, PlayerLoginListener.class);
         ECListener.register(ecPluginData, PlayerInteractListener.class);
         ECListener.register(ecPluginData, PluginListener.class);
-        ECListener.register(ecPluginData, GuiListener.class);
+        Screens.registerRenderer(ecPluginData, new ChestScreenRenderer());
+        ECListener.register(ecPluginData, BukkitScreenListener.class);
         ECListener.register(ecPluginData, new McWorldListener(platform));
         //after the PluginListener, so the handlers of the protection plugins are asked first
         ProtectionAll.getInstance().register(ecPluginData, new McRegionProtectionHandler());
@@ -221,7 +223,7 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
         //closeAll runs each screen's onClose itself, and it has to happen while the rest of the
         //framework is still up: that handler is what hands back whatever an editable screen was
         //holding, and it needs storage and player data to still answer
-        GuiViews.closeAll();
+        Screens.closeAll();
         //the mirror closes here, mirroring where it was opened: whatever is still posted while the
         //core tears itself down has no business reaching a Bukkit listener
         ECEventBus.global().removeNativeAudience(McBukkitAudience.NAME);

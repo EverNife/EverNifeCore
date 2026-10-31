@@ -13,7 +13,7 @@ public class PermissionNodes {
     public static final String EVERNIFECORE_COMMAND_STORAGE_STATUS      = "evernifecore.command.storage.status";
     public static final String EVERNIFECORE_COMMAND_ACCOUNT             = "evernifecore.command.account";
     public static final String EVERNIFECORE_COMMAND_ACCOUNT_LINK        = "evernifecore.command.account.link";
-    public static final String EVERNIFECORE_COMMAND_GUI                 = "evernifecore.command.gui";
+    public static final String EVERNIFECORE_COMMAND_SCREEN              = "evernifecore.command.screen";
     public static final String EVERNIFECORE_COMMAND_EVENTS              = "evernifecore.command.events";
     public static final String EVERNIFECORE_COMMAND_REGION              = "evernifecore.command.region";
     public static final String EVERNIFECORE_COMMAND_GROUP               = "evernifecore.command.group";

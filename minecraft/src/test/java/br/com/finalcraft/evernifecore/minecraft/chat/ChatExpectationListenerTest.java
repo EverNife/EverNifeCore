@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.chat;
 
-import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
-import br.com.finalcraft.evernifecore.minecraft.gui.testkit.PlayerDouble;
+import br.com.finalcraft.evernifecore.minecraft.screen.testkit.BukkitScreenWorld;
+import br.com.finalcraft.evernifecore.minecraft.screen.testkit.PlayerDouble;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +41,7 @@ class ChatExpectationListenerTest {
     /** Long enough that a timeout armed on zero delay would have fired many times over. */
     private static final long LONG_ENOUGH_TO_TELL_MILLIS = 200L;
 
-    private GuiTestWorld world;
+    private BukkitScreenWorld world;
     private PlayerDouble player;
 
     /** Every message the wait under test was offered. */
@@ -49,7 +49,7 @@ class ChatExpectationListenerTest {
 
     @BeforeEach
     void setup() {
-        world = GuiTestWorld.install(tempDir);
+        world = BukkitScreenWorld.install(tempDir);
         player = world.newPlayer("Steve");
     }
 

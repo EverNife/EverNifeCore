@@ -1,13 +1,13 @@
 package br.com.finalcraft.evernifecore.minecraft.util;
 
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
-import br.com.finalcraft.evernifecore.minecraft.gui.Gui;
-import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutBase;
-import br.com.finalcraft.evernifecore.minecraft.gui.model.ClickPolicy;
-import br.com.finalcraft.evernifecore.minecraft.gui.model.Slots;
-import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
-import br.com.finalcraft.evernifecore.minecraft.gui.testkit.PlayerDouble;
-import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiView;
+import br.com.finalcraft.evernifecore.minecraft.screen.testkit.BukkitScreenWorld;
+import br.com.finalcraft.evernifecore.minecraft.screen.testkit.PlayerDouble;
+import br.com.finalcraft.evernifecore.screen.ClickPolicy;
+import br.com.finalcraft.evernifecore.screen.Layout;
+import br.com.finalcraft.evernifecore.screen.Screen;
+import br.com.finalcraft.evernifecore.screen.ScreenView;
+import br.com.finalcraft.evernifecore.screen.Slots;
 import br.com.finalcraft.evernifecore.minecraft.inventory.GenericInventory;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.bukkit.Material;
@@ -39,12 +39,12 @@ class ItemsThatDoNotFitTest {
     @TempDirNobodyCleans
     Path tempDir;
 
-    private GuiTestWorld world;
+    private BukkitScreenWorld world;
     private PlayerDouble player;
 
     @BeforeEach
     void setup() {
-        world = GuiTestWorld.install(tempDir);
+        world = BukkitScreenWorld.install(tempDir);
         player = world.newPlayer("Steve");
         //the warning the drop path sends is a @FCLocale field only a real enable fills in; unloaded it
         //is null, and the drop never happens because the send throws first
@@ -107,13 +107,13 @@ class ItemsThatDoNotFitTest {
 
     @Test
     void closingAScreenWithNoRoomLeftPutsWhatWasCarriedOnTheGround() {
-        Gui<LayoutBase> gui = Gui.of(3).debounce(0);
+        Screen<Layout> gui = Screen.of(3).debounce(0);
         gui.storage(Slots.of(10, 11, 12, 13)).backedBy(new GenericInventory()).policy(ClickPolicy.EDIT_ALL);
         player.withFullInventory(stackOf(Material.DIRT, 1));
-        GuiView view = world.openDetachedAndRegistered(gui, player);
+        ScreenView view = world.open(gui, player);
         player.holding(stackOf(Material.DIAMOND, 4));
 
-        world.closeDetached(view);
+        view.close();
 
         assertEquals(1, player.getDrops().size(),
                 "the window is gone and their hands are full, so the platform's own answer is the floor: "

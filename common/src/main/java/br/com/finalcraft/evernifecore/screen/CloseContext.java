@@ -74,7 +74,11 @@ public final class CloseContext<L extends Layout> {
             return true;
         }
         String name = closedBy.getName();
-        return name != null && name.equals(wanted.getName());
+        if (name != null && wanted.getName() != null) {
+            return name.equals(wanted.getName());
+        }
+        //an icon declared on a raw slot has no layout key: the copy the screen drew answers to the one it was taken from
+        return closedBy.getOrigin() == wanted.getOrigin();
     }
 
 }

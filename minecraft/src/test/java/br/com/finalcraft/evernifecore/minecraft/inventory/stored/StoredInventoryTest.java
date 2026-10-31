@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.inventory.stored;
 
-import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
-import br.com.finalcraft.evernifecore.minecraft.gui.testkit.Items;
+import br.com.finalcraft.evernifecore.minecraft.screen.testkit.BukkitScreenWorld;
+import br.com.finalcraft.evernifecore.minecraft.screen.testkit.Items;
 import br.com.finalcraft.evernifecore.minecraft.inventory.ItemStore;
 import br.com.finalcraft.evernifecore.minecraft.inventory.UpdateCause;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
@@ -35,12 +35,12 @@ class StoredInventoryTest {
     @TempDirNobodyCleans
     Path tempDir;
 
-    private GuiTestWorld world;
+    private BukkitScreenWorld world;
 
     @BeforeEach
     void setup() {
         //for the main thread this world declares, which is what a change is measured against
-        world = GuiTestWorld.install(tempDir);
+        world = BukkitScreenWorld.install(tempDir);
     }
 
     @AfterEach
