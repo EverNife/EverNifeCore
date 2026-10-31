@@ -78,6 +78,12 @@ class NearNpcConditionTest {
     }
 
     @Test
+    void standingExactlyAtTheRadiusStillCountsAsNear() {
+        alex.at("world", 105, 64, 100);
+        assertTrue(test(nearGuard(5)).isPassed());
+    }
+
+    @Test
     void outsideTheRadiusItFailsWithTheNameAndTheDistance() {
         alex.at("world", 123, 64, 100);
         ConditionResult result = test(nearGuard(5));
