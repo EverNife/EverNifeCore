@@ -58,7 +58,9 @@ SCREENS = ["basic", "hopper", "dispenser", "workbench", "nav", "storage", "promp
 SUITE_ORDER = ["items", "nbt", "platform", "version", "commands", "gui", "scheduler", "playerdata",
                "events", "selection-click", "particles", "text-metrics", "hooks", "nms", "regions", "logic", "actions", "deliveries", "hud", "groups"]
 HALVES = ("run", "write", "read")
-EXPECTED_ENDS = {"run": 20, "write": 3, "read": 3}
+# playerdata runs only in the write/read halves; every other suite ends once in `run`. Derived, so a new suite
+# cannot leave the driver waiting out WAIT_SECONDS for an end that never comes.
+EXPECTED_ENDS = {"run": len(SUITE_ORDER) - 1, "write": 3, "read": 3}
 WAIT_SECONDS = {"run": 900, "write": 180, "read": 180}
 TEXT_LINES = ("iiiiiiiiii", "WWWWWWWWWW")
 BOT = "EccBot"
