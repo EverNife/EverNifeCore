@@ -14,10 +14,13 @@ import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 /**
  * Every open {@link ScreenView}, the renderers that draw them, and the only way a view comes into being.
@@ -37,6 +40,8 @@ public final class Screens {
     private static final Set<String> REFUSALS_LOGGED = ConcurrentHashMap.newKeySet();
 
     private static final Map<UUID, ScreenView> OPEN = new LinkedHashMap<>();
+    private static final Map<ScreenKey, Map<ScreenScope, Registered>> OVERRIDES = new LinkedHashMap<>();
+    private static final int MAX_FALLBACKS = 8;
 
     private Screens() {
 
@@ -103,7 +108,7 @@ public final class Screens {
         Screen<?> chosenScreen;
         ScreenRenderer renderer;
         try {
-            Pick choice = choose(viewer, screen);
+            Pick choice = choose(viewer, screen, args, 0);
             chosenScreen = choice.screen;
             renderer = choice.renderer;
         } catch (IllegalStateException refused) {
@@ -118,12 +123,223 @@ public final class Screens {
         return future;
     }
 
+    /**
+     * Opens whatever answers {@code key} for {@code viewer}, resolving four layers, most specific first: (1) the key the
+     * caller asked for instead ({@link ScreenRequest#withScreen}); (2) the override of the content owner
+     * ({@link ScreenScope#ownedBy}, matched on {@link ScreenRequest#getOwner()}); (3) the server override; (4) the core's
+     * default. The factory runs on the calling thread; the rest is {@link #open(FPlayer, Screen, Object...)}.
+     *
+     * <p>The future fails, with a text that says what to register, when no layer answers the key.</p>
+     */
+    @Nonnull
+    public static CompletableFuture<ScreenView> open(@Nonnull FPlayer viewer, @Nonnull ScreenKey key, @Nonnull ScreenRequest request) {
+        Screen<?> screen;
+        try {
+            screen = build(viewer, key, request);
+        } catch (RuntimeException refused) {
+            CompletableFuture<ScreenView> failed = new CompletableFuture<>();
+            failed.completeExceptionally(refused);
+            return failed;
+        }
+        return open(viewer, screen, request.getArguments().toArray());
+    }
+
+    /**
+     * Asks {@code viewer} {@code request} on whatever answers {@link ScreenKey#CONFIRM}: {@code true} on confirm,
+     * {@code false} on deny, cancelled when the window goes without an answer. Any thread.
+     */
+    @Nonnull
+    public static CompletableFuture<Boolean> confirm(@Nonnull FPlayer viewer, @Nonnull ConfirmRequest request) {
+        return answerOf(open(viewer, ScreenKey.CONFIRM, ScreenRequest.of(request.getOwner()).payload(request)), Boolean.class);
+    }
+
+    /**
+     * What {@code opened}'s screen hands back through {@code back(value)} - the answer of a screen opened outside any
+     * chain. Cancelled when the window goes without an answer.
+     */
+    @Nonnull
+    static <R> CompletableFuture<R> answerOf(@Nonnull CompletableFuture<ScreenView> opened, @Nonnull Class<R> type) {
+        CompletableFuture<Object> answer = new CompletableFuture<>();
+        opened.whenComplete((view, refused) -> {
+            if (refused != null) {
+                answer.completeExceptionally(refused);
+            } else {
+                //open completes on the renderer thread before any click is read: no answer can come before this
+                view.setPendingResult(answer);
+            }
+        });
+        //a typed copy that stays CANCELLED when the answer is: thenApply would turn that into a plain failure
+        CompletableFuture<R> typed = new CompletableFuture<>();
+        answer.whenComplete((value, failed) -> {
+            if (failed instanceof CancellationException) {
+                typed.cancel(false);
+            } else if (failed != null) {
+                typed.completeExceptionally(failed);
+            } else if (value != null && !type.isInstance(value)) {
+                typed.completeExceptionally(new ClassCastException("The screen answered a " + value.getClass().getSimpleName()
+                        + ", and its opener waits for a " + type.getSimpleName() + ". Hand back(...) a " + type.getSimpleName() + "."));
+            } else {
+                typed.complete(type.cast(value));
+            }
+        });
+        return typed;
+    }
+
+    /**
+     * Lets {@code plugin} answer {@code key} within {@code scope}. {@link Cancellable#cancel()} takes it back, and the
+     * layer below answers again; the plugin's shutdown takes it back too. Any thread.
+     *
+     * @throws IllegalStateException when another plugin already holds {@code key} in that scope, naming both
+     */
+    @Nonnull
+    public static Cancellable override(@Nonnull ECPluginData plugin, @Nonnull ScreenKey key, @Nonnull ScreenScope scope,
+                                       @Nonnull Function<ViewContext, Screen<?>> factory) {
+        Registered registered = new Registered(plugin, key, scope, factory);
+        synchronized (OVERRIDES) {
+            Map<ScreenScope, Registered> layers = OVERRIDES.computeIfAbsent(key, any -> new LinkedHashMap<>());
+            Registered held = layers.get(scope);
+            if (held != null) {
+                String holder = held.plugin.getMetaInfo().getName();
+                String newcomer = plugin.getMetaInfo().getName();
+                throw new IllegalStateException(scope.isServer()
+                        ? "[" + holder + "] and [" + newcomer + "] both override " + key + " for the whole server. Only one "
+                        + "server-wide override fits; keep one, or scope the other with ScreenScope.ownedBy(plugin)."
+                        : "[" + holder + "] and [" + newcomer + "] both override " + key + " for the content of ["
+                        + scope.getContentOwner().getMetaInfo().getName() + "]. Only one fits per content owner; keep one.");
+            }
+            layers.put(scope, registered);
+        }
+        return () -> {
+            synchronized (OVERRIDES) {
+                Map<ScreenScope, Registered> layers = OVERRIDES.get(key);
+                if (layers != null && layers.get(scope) == registered) {
+                    layers.remove(scope);
+                }
+            }
+        };
+    }
+
+    /**
+     * Which layer would answer {@code key} for {@code request}, in words - what {@code /ecore screen which} prints;
+     * {@code null} when none does.
+     */
+    @Nullable
+    public static String which(@Nonnull ScreenKey key, @Nonnull ScreenRequest request) {
+        Answer answer = resolve(key, request);
+        return answer == null ? null : answer.describe();
+    }
+
+    /** The screen {@code key} resolves to for {@code viewer}, built; the refusal that teaches when nothing answers. */
+    @Nonnull
+    static Screen<?> build(@Nonnull FPlayer viewer, @Nonnull ScreenKey key, @Nonnull ScreenRequest request) {
+        Answer answer = resolve(key, request);
+        if (answer == null) {
+            throw new IllegalStateException("No screen answers [" + key + "] for " + viewer.getName() + ": nothing registered "
+                    + "it with Screens.override and the core has no default under that key. Register the screen, or open "
+                    + "your Screen object directly with screen.open(viewer).");
+        }
+        Screen<?> screen = answer.factory.apply(new ViewContext(viewer, answer.key, request));
+        if (screen == null) {
+            throw new IllegalStateException(answer.describe() + " built no screen for " + viewer.getName()
+                    + "; a factory answers a Screen or is not registered.");
+        }
+        if (screen.getKey() == null) {
+            screen.key(answer.key);
+        }
+        if (screen.getOwner() == null) {
+            screen.owner(answer.plugin != null ? answer.plugin : request.getOwner());
+        }
+        return screen;
+    }
+
+    @Nullable
+    private static Answer resolve(ScreenKey key, ScreenRequest request) {
+        ScreenKey asked = request.getScreen();
+        if (asked != null && !asked.equals(key)) {
+            Answer replacement = resolveLayers(asked, request);
+            if (replacement == null) {
+                throw new IllegalStateException("The caller asked for [" + asked + "] in place of [" + key + "], and nothing "
+                        + "answers [" + asked + "]. Register it with Screens.override, or drop withScreen from the request.");
+            }
+            return new Answer(Layer.CALLER, replacement.plugin, asked, replacement.factory);
+        }
+        return resolveLayers(key, request);
+    }
+
+    @Nullable
+    private static Answer resolveLayers(ScreenKey key, ScreenRequest request) {
+        synchronized (OVERRIDES) {
+            Map<ScreenScope, Registered> layers = OVERRIDES.get(key);
+            if (layers != null) {
+                Registered owned = request.getOwner() == null ? null : layers.get(ScreenScope.ownedBy(request.getOwner()));
+                if (owned != null) {
+                    return new Answer(Layer.CONTENT_OWNER, owned.plugin, key, owned.factory);
+                }
+                Registered server = layers.get(ScreenScope.server());
+                if (server != null) {
+                    return new Answer(Layer.SERVER, server.plugin, key, server.factory);
+                }
+            }
+        }
+        Function<ViewContext, Screen<?>> fallback = CoreScreens.defaultOf(key);
+        return fallback == null ? null : new Answer(Layer.CORE_DEFAULT, null, key, fallback);
+    }
+
+    private enum Layer {
+        CALLER("the caller's replacement"),
+        CONTENT_OWNER("the content owner's override"),
+        SERVER("the server override"),
+        CORE_DEFAULT("the core's default");
+
+        private final String text;
+
+        Layer(String text) {
+            this.text = text;
+        }
+    }
+
+    private static final class Registered {
+
+        private final ECPluginData plugin;
+        private final ScreenKey key;
+        private final ScreenScope scope;
+        private final Function<ViewContext, Screen<?>> factory;
+
+        private Registered(ECPluginData plugin, ScreenKey key, ScreenScope scope, Function<ViewContext, Screen<?>> factory) {
+            this.plugin = Objects.requireNonNull(plugin, "plugin");
+            this.key = Objects.requireNonNull(key, "key");
+            this.scope = Objects.requireNonNull(scope, "scope");
+            this.factory = Objects.requireNonNull(factory, "factory");
+        }
+
+    }
+
+    private static final class Answer {
+
+        private final Layer layer;
+        private final ECPluginData plugin;
+        private final ScreenKey key;
+        private final Function<ViewContext, Screen<?>> factory;
+
+        private Answer(Layer layer, @Nullable ECPluginData plugin, ScreenKey key, Function<ViewContext, Screen<?>> factory) {
+            this.layer = layer;
+            this.plugin = plugin;
+            this.key = key;
+            this.factory = factory;
+        }
+
+        private String describe() {
+            return key + ": " + layer.text + (plugin == null ? "" : " by [" + plugin.getMetaInfo().getName() + "]");
+        }
+
+    }
+
     /** Opens a screen inside the chain the viewer is already in, on the caller's (renderer) thread. */
     @Nonnull
     static CompletableFuture<ScreenView> openWithinChain(Screen<?> screen, FPlayer viewer, Object[] args) {
         CompletableFuture<ScreenView> future = new CompletableFuture<>();
         try {
-            Pick choice = choose(viewer, screen);
+            Pick choice = choose(viewer, screen, args, 0);
             openOnRenderThread(choice.screen, viewer, choice.renderer, args, future, false);
         } catch (IllegalStateException refused) {
             future.completeExceptionally(refused);
@@ -144,7 +360,7 @@ public final class Screens {
     }
 
     /** The renderer that draws {@code screen} for {@code viewer} - or the fallback screen's - or the refusal that teaches. */
-    private static Pick choose(FPlayer viewer, Screen<?> screen) {
+    private static Pick choose(FPlayer viewer, Screen<?> screen, Object[] args, int fallbacks) {
         List<ScreenRenderer> serving = new ArrayList<>();
         for (ScreenRenderer renderer : getRenderers()) {
             if (supportsSafely(renderer, viewer, screen)) {
@@ -163,9 +379,18 @@ public final class Screens {
                 return new Pick(screen, renderer);
             }
         }
-        Screen<?> alternative = screen.getOnMissingCapability().getAlternative();
+        ScreenFallback fallback = screen.getOnMissingCapability();
+        Screen<?> alternative = fallback.getAlternative();
+        if (alternative == null && fallback.getAlternativeKey() != null && fallbacks < MAX_FALLBACKS) {
+            alternative = build(viewer, fallback.getAlternativeKey(), ScreenRequest.of(screen.getOwner()).args(args));
+        }
         if (alternative != null) {
-            return choose(viewer, alternative);
+            if (fallbacks >= MAX_FALLBACKS) {
+                throw new IllegalStateException("The screen [" + screen.describe() + "] falls back " + MAX_FALLBACKS
+                        + " times in a row and still finds no renderer for " + viewer.getName() + "; the fallbacks loop. "
+                        + "End the chain with a screen whose onMissingCapability is REFUSE.");
+            }
+            return choose(viewer, alternative, args, fallbacks + 1);
         }
         ScreenRenderer best = serving.get(0);
         Set<RendererCapability> missing = EnumSet.copyOf(needed);
@@ -407,8 +632,16 @@ public final class Screens {
         close(views, CloseReason.SHUTDOWN);
     }
 
-    /** Closes every open screen whose content {@code owner} owns, or whose renderer it registered. Renderer thread. */
+    /**
+     * Takes back every override {@code owner} registered, then closes every open screen whose content it owns, or whose
+     * renderer it registered - the plugin's shutdown. Renderer thread.
+     */
     public static void closeOwnedBy(@Nonnull ECPluginData owner) {
+        synchronized (OVERRIDES) {
+            for (Map<ScreenScope, Registered> layers : OVERRIDES.values()) {
+                layers.values().removeIf(registered -> registered.plugin == owner || registered.scope.getContentOwner() == owner);
+            }
+        }
         List<ScreenView> owned = new ArrayList<>();
         synchronized (OPEN) {
             for (ScreenView view : OPEN.values()) {

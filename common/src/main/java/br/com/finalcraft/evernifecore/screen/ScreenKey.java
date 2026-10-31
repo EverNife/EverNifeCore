@@ -9,6 +9,13 @@ import jakarta.annotation.Nonnull;
  */
 public final class ScreenKey {
 
+    /** The core's yes/no question, answering {@code Boolean} - {@code Screens.confirm}. */
+    public static final ScreenKey CONFIRM = of("evernifecore", "confirm");
+    /** The viewer's pending deliveries, each claimable by a click. */
+    public static final ScreenKey DELIVERIES = of("evernifecore", "deliveries");
+    /** The entries of a {@code RankedList}, built from a {@code RankingRequest}. */
+    public static final ScreenKey RANKING = of("evernifecore", "ranking");
+
     private final String owner;
     private final String name;
 

@@ -22,6 +22,9 @@ import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.pageviewer.nav.PVExtraMessages;
 import br.com.finalcraft.evernifecore.pageviewer.theme.ClassicPageTheme;
+import br.com.finalcraft.evernifecore.screen.ConfirmScreen;
+import br.com.finalcraft.evernifecore.screen.DefaultIcons;
+import br.com.finalcraft.evernifecore.screen.DeliveriesScreen;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 
@@ -61,7 +64,10 @@ public class ConfigManager {
                 CoreLogicCommands.class,
                 AuditCommandNode.class,
                 DeliveriesCommandNode.class,
-                CoreDeliveriesCommands.class
+                CoreDeliveriesCommands.class,
+                DefaultIcons.class,
+                ConfirmScreen.class,
+                DeliveriesScreen.class
         );
 
         FCLocaleManager.updateEverNifeCoreLocale();

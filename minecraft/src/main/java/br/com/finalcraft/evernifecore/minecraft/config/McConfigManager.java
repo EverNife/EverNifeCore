@@ -4,7 +4,6 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.minecraft.autoupdater.SpigotUpdateChecker;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
-import br.com.finalcraft.evernifecore.screen.DefaultIcons;
 
 public class McConfigManager {
 
@@ -12,8 +11,7 @@ public class McConfigManager {
 
         FCLocaleManager.loadLocale(ecPluginData,
                 FCBukkitUtil.class,
-                SpigotUpdateChecker.class,
-                DefaultIcons.class
+                SpigotUpdateChecker.class
         );
     }
 

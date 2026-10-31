@@ -11,16 +11,19 @@ import br.com.finalcraft.evernifecore.screen.Layout;
 import br.com.finalcraft.evernifecore.screen.LayoutDiff;
 import br.com.finalcraft.evernifecore.screen.LayoutScanner;
 import br.com.finalcraft.evernifecore.screen.Layouts;
+import br.com.finalcraft.evernifecore.screen.ScreenKey;
+import br.com.finalcraft.evernifecore.screen.ScreenRequest;
+import br.com.finalcraft.evernifecore.screen.Screens;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 /**
- * {@code /ecore screen reload|diff}: operating a screen layout without restarting the server - reload a layout's file,
- * and confront what the plugin declares against what the file says.
+ * {@code /ecore screen reload|diff|which}: operating a screen without restarting the server - reload a layout's file,
+ * confront what the plugin declares against what the file says, and name the override layer that answers a key.
  *
- * <p>Both work for ANY plugin's layout, because layouts register themselves as they load. A consuming plugin gets this
+ * <p>Reload and diff work for ANY plugin's layout, because layouts register themselves as they load. A consuming plugin gets this
  * for free and writes nothing.</p>
  */
 public class CoreScreenCommands {
@@ -97,6 +100,40 @@ public class CoreScreenCommands {
                 sender.sendMessage("§7    " + warning);
             }
         }
+    }
+
+    @FinalCMD.SubCMD(
+            subcmd = "which",
+            locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "Show which override answers a screen key!"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "Mostra qual override responde a uma chave de tela!")
+            }
+    )
+    public void which(FCommandSender sender, @Arg("<screen>") String screenKey, @Arg("[plugin]") String pluginName) {
+        ScreenKey key;
+        try {
+            key = ScreenKey.parse(screenKey);
+        } catch (IllegalArgumentException invalid) {
+            sender.sendMessage("§e§l ▶ §c" + invalid.getMessage());
+            return;
+        }
+        ECPluginData owner = null;
+        if (pluginName != null) {
+            owner = pluginOf(sender, pluginName);
+            if (owner == null) {
+                return;
+            }
+        }
+        String answer;
+        try {
+            answer = Screens.which(key, ScreenRequest.of(owner));
+        } catch (IllegalStateException refused) {
+            answer = null;
+        }
+        sender.sendMessage(answer == null
+                ? "§e§l ▶ §cNothing answers " + key + (owner == null ? "" : " for the content of " + owner.getMetaInfo().getName())
+                + ": no override registered it and the core has no default under that key."
+                : "§e§l ▶ §a" + answer + (owner == null ? "" : " §7(content of " + owner.getMetaInfo().getName() + ")"));
     }
 
     private void report(FCommandSender sender, LayoutDiff diff, LayoutDiff.Verdict verdict, String title,
