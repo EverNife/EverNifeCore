@@ -80,6 +80,12 @@ public final class ScreenWorld implements AutoCloseable {
         return owner;
     }
 
+    /** The strict platform under the screens - its logged lines are what a layout warning is asserted on. */
+    @Nonnull
+    public TestPlatform getPlatform() {
+        return world.platform();
+    }
+
     @Nonnull
     public RecordingRenderer getRenderer() {
         return renderer;
