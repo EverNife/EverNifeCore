@@ -49,16 +49,16 @@ HYBRIDS = {"crucible-1.7.10", "mohist-1.12.2", "mohist-1.16.5", "arclight-1.21.1
 # No headless client there: the player is the harness's synthetic one, and every jar goes into mods/
 HYTALE = {"hytale-0.7.1"}
 HYTALE_PLUGIN_ID = "EverNife:ECoreConformance@3.0.1"
-HYTALE_SUITES = 5
+HYTALE_SUITES = 6
 # Texts the Hytale regions suite sets as deny-message, read back from what the player received
 ENTRY_MESSAGE = "ECC entry denied"
 BREAK_MESSAGE = "ECC break denied"
 SCREENS = ["basic", "hopper", "dispenser", "workbench", "nav", "storage", "prompt", "pager",
            "title-long", "layout", "confirm"]
 SUITE_ORDER = ["items", "nbt", "platform", "version", "commands", "gui", "scheduler", "playerdata",
-               "events", "selection-click", "particles", "text-metrics", "hooks", "nms", "regions", "logic", "actions", "deliveries", "hud"]
+               "events", "selection-click", "particles", "text-metrics", "hooks", "nms", "regions", "logic", "actions", "deliveries", "hud", "groups"]
 HALVES = ("run", "write", "read")
-EXPECTED_ENDS = {"run": 18, "write": 3, "read": 3}
+EXPECTED_ENDS = {"run": 20, "write": 3, "read": 3}
 WAIT_SECONDS = {"run": 900, "write": 180, "read": 180}
 TEXT_LINES = ("iiiiiiiiii", "WWWWWWWWWW")
 BOT = "EccBot"

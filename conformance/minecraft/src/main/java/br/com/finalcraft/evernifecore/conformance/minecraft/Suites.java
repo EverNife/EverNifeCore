@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ActionsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.CommandsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.DeliveriesSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.EventsSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.GroupsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.GuiSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.HooksSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.HudSuite;
@@ -34,7 +35,8 @@ public final class Suites {
     }
 
     /**
-     * @param plugin  the plugin itself, the caller of the {@code logic} and {@code deliveries} suites
+     * @param plugin  the plugin itself, the caller of the {@code logic} and {@code deliveries} suites and the owner of the
+     *                {@code groups} suite's parties
      * @param regions the plugin's own region manager, for the {@code regions} suite
      * @param loaded  that manager's {@code load()}
      */
@@ -58,6 +60,7 @@ public final class Suites {
                 new LogicSuite(plugin),
                 new ActionsSuite(),
                 new DeliveriesSuite(plugin),
-                new HudSuite());
+                new HudSuite(),
+                new GroupsSuite(plugin));
     }
 }
