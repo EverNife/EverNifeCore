@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.action.TypeKey;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.platoverride.block.NativeBlock;
 import br.com.finalcraft.evernifecore.api.platoverride.entity.NativeEntity;
+import br.com.finalcraft.evernifecore.npc.NpcRef;
 import jakarta.annotation.Nullable;
 
 import java.util.ArrayList;
@@ -35,6 +36,11 @@ public final class Actors {
     /** An entity of {@code key} ({@code minecraft:creeper}) with no player behind it and no handle. */
     public static Actor entity(String key, ECEntityType type) {
         return Actor.entity(TypeKey.parse(key), type, null, null);
+    }
+
+    /** An NPC of {@code key} that a provider recognised as {@code npc}, with no player behind it and no handle - a packet NPC. */
+    public static Actor npc(String key, NpcRef npc) {
+        return Actor.entity(TypeKey.parse(key), ECEntityType.NPC, null, null, npc);
     }
 
     public static Actor block(String key) {

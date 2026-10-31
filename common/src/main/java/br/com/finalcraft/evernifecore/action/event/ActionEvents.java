@@ -79,6 +79,8 @@ public final class ActionEvents {
                 context -> new ShearActionEvent.Pre(context.as(EntityContext.class)), context -> new ShearActionEvent.Post(context.as(EntityContext.class)));
         add(EventSource.COMMAND, CommandActionEvent.Pre.class, CommandActionEvent.Post.class,
                 context -> new CommandActionEvent.Pre(context.as(CommandContext.class)), context -> new CommandActionEvent.Post(context.as(CommandContext.class)));
+        add(EventSource.INTERACT_NPC, InteractNpcActionEvent.Pre.class, InteractNpcActionEvent.Post.class,
+                context -> new InteractNpcActionEvent.Pre(context.as(EntityContext.class)), context -> new InteractNpcActionEvent.Post(context.as(EntityContext.class)));
         add(EventSource.EXPLORE, ExploreActionEvent.Pre.class, ExploreActionEvent.Post.class,
                 context -> new ExploreActionEvent.Pre(context.as(ExploreContext.class)), context -> new ExploreActionEvent.Post(context.as(ExploreContext.class)));
     }

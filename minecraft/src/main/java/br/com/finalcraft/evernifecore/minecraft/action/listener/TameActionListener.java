@@ -47,6 +47,6 @@ public final class TameActionListener implements ECListener {
         LivingEntity animal = event.getEntity();
         AnimalTamer tamer = event.getOwner();
         Actor actor = tamer instanceof Entity ? McActionContexts.actor((Entity) tamer) : Actor.environment(NO_TAMER);
-        return new EntityContext(EventSource.TAME, McActionContexts.position(animal.getLocation()), actor, event, McActionContexts.actor(animal));
+        return new EntityContext(EventSource.TAME, McActionContexts.position(animal.getLocation()), actor, event, McActionContexts.actor(animal), null);
     }
 }

@@ -3,8 +3,13 @@ package br.com.finalcraft.evernifecore.minecraft.action.listener;
 import br.com.finalcraft.ecnmsutils.NMSUtils;
 import br.com.finalcraft.evernifecore.action.Actor;
 import br.com.finalcraft.evernifecore.action.ECEntityType;
+import br.com.finalcraft.evernifecore.action.EntityContext;
+import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.TypeKey;
 import br.com.finalcraft.evernifecore.api.platoverride.entity.NativeEntity;
+import br.com.finalcraft.evernifecore.minecraft.npc.CitizensNpcProvider;
+import br.com.finalcraft.evernifecore.minecraft.npc.McNpcProviders;
+import br.com.finalcraft.evernifecore.npc.NpcRef;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
@@ -35,7 +40,6 @@ import java.util.function.Supplier;
 public final class McActionContexts {
 
     /** The metadata key Citizens marks its NPCs with - the convention other NPC plugins follow too. */
-    public static final String CITIZENS_NPC_METADATA = "NPC";
     public static final TypeKey FIRE = TypeKey.of("environment", "fire");
     public static final TypeKey LIGHTNING = TypeKey.of("environment", "lightning");
     /** What blows up when no entity does: a bed in the Nether, a respawn anchor. */
@@ -147,6 +151,23 @@ public final class McActionContexts {
         return held == null || held.getType() == Material.AIR ? null : key(held);
     }
 
+    /**
+     * {@code player} using the NPC {@code npc} standing at {@code at}, holding what is in their hand - the context every
+     * NPC provider posts {@link EventSource#INTERACT_NPC} with; null in a disabled world.
+     *
+     * @throws IllegalArgumentException for an actor no provider recognised: {@code npc.getNpc()} names the NPC used
+     */
+    public static @Nullable EntityContext npcUse(Player player, Actor npc, Location at, Object nativeEvent) {
+        if (npc.getNpc() == null) {
+            throw new IllegalArgumentException("The NPC used, " + npc + ", carries no NpcRef: build its actor with the reference its provider"
+                    + " answers, e.g. Actor.entity(key, ECEntityType.NPC, null, handle, NpcRef.of(\"citizens\", \"12\")).");
+        }
+        if (isDisabled(at.getWorld())) {
+            return null;
+        }
+        return new EntityContext(EventSource.INTERACT_NPC, position(at), actor(player), nativeEvent, npc, itemInHandKey(player));
+    }
+
     /** {@code player} acting as itself - or as the machine it is, when {@code fakePlayer} - with a handle on demand. */
     public static Actor actor(Player player, boolean fakePlayer) {
         Supplier<NativeEntity> handle = () -> new NativeEntity(player);
@@ -156,16 +177,18 @@ public final class McActionContexts {
     }
 
     /**
-     * {@code entity} as an actor: its role, the player behind it, and a handle on demand. A Citizens NPC - an entity
-     * carrying the {@code NPC} metadata, a player-shaped one included - is an {@link ECEntityType#NPC} with no player
-     * behind it; a lightning bolt is the environment.
+     * {@code entity} as an actor: its role, the player behind it, and a handle on demand. An NPC - one a registered
+     * {@code NpcProvider} recognises, or an entity carrying the {@code NPC} metadata NPC plugins tag theirs with, a
+     * player-shaped one included - is an {@link ECEntityType#NPC} with no player behind it, carrying the provider's
+     * reference when there is one; a lightning bolt is the environment.
      */
     public static Actor actor(Entity entity) {
         if (entity instanceof LightningStrike) {
             return Actor.environment(LIGHTNING);
         }
-        if (entity.hasMetadata(CITIZENS_NPC_METADATA)) {
-            return Actor.entity(key(entity), ECEntityType.NPC, null, () -> new NativeEntity(entity));
+        NpcRef npc = McNpcProviders.resolve(entity);
+        if (npc != null || CitizensNpcProvider.isTaggedNpc(entity)) {
+            return Actor.entity(key(entity), ECEntityType.NPC, null, () -> new NativeEntity(entity), npc);
         }
         if (entity instanceof Player) {
             return actor((Player) entity, FCBukkitUtil.isFakePlayer((Player) entity));
@@ -193,9 +216,9 @@ public final class McActionContexts {
         return null;
     }
 
-    /** The role of a non-player entity: a Citizens NPC, an {@link Animals}, a {@link Monster} or anything else. */
+    /** The role of a non-player entity: an NPC tagged as such, an {@link Animals}, a {@link Monster} or anything else. */
     public static ECEntityType entityType(Entity entity) {
-        if (entity.hasMetadata(CITIZENS_NPC_METADATA)) {
+        if (CitizensNpcProvider.isTaggedNpc(entity)) {
             return ECEntityType.NPC;
         }
         if (entity instanceof Animals) {

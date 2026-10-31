@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.ecplugin;
 
 import br.com.finalcraft.evernifecore.logic.Multipliers;
 import br.com.finalcraft.evernifecore.notify.Notifier;
+import br.com.finalcraft.evernifecore.npc.Npcs;
 import br.com.finalcraft.evernifecore.waypoint.Waypoints;
 import br.com.finalcraft.evernifecore.types.TypeRegistries;
 import br.com.finalcraft.evernifecore.EverNifeCore;
@@ -154,6 +155,7 @@ public class ECPluginManager {
         EventSource.unregisterAll(removed);
         Notifier.get().closeOwnedBy(removed);
         Waypoints.get().hideOwnedBy(removed);
+        Npcs.unregisterAll(removed);
         TypeRegistries.unregisterAll(removed);
         Multipliers.unregisterAll(removed);
         Boosters.unregisterAll(removed);

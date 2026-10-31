@@ -383,7 +383,7 @@ class RegionLookupDecideTest {
     }
 
     private static EntityContext useEntity(String typeId, TestFPlayerSender player) {
-        return new EntityContext(EventSource.INTERACT, WorldLocPos.of(5, 5, 5, WORLD), Actors.player(player), null, Actors.entity(typeId, ECEntityType.OTHER));
+        return new EntityContext(EventSource.INTERACT, WorldLocPos.of(5, 5, 5, WORLD), Actors.player(player), null, Actors.entity(typeId, ECEntityType.OTHER), null);
     }
 
     @Test

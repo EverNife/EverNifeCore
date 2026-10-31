@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.action.listener;
 import br.com.finalcraft.evernifecore.action.Actor;
 import br.com.finalcraft.evernifecore.action.ECEntityType;
 import br.com.finalcraft.evernifecore.action.TypeKey;
+import br.com.finalcraft.evernifecore.minecraft.npc.CitizensNpcProvider;
 import br.com.finalcraft.evernifecore.minecraft.region.RegionServer;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.bukkit.Material;
@@ -32,7 +33,7 @@ class McActionContextsTest {
             Cow cow = RegionServer.entity(Cow.class, EntityType.COW, server.at(0, 0, 0)).build();
             Creeper creeper = RegionServer.entity(Creeper.class, EntityType.CREEPER, server.at(0, 0, 0)).build();
             Villager citizen = RegionServer.entity(Villager.class, EntityType.VILLAGER, server.at(0, 0, 0))
-                    .on("hasMetadata", args -> McActionContexts.CITIZENS_NPC_METADATA.equals(args[0])).build();
+                    .on("hasMetadata", args -> CitizensNpcProvider.CITIZENS_NPC_METADATA.equals(args[0])).build();
             Player machine = server.player("[Quarry]", 0, 0, 0);
 
             assertEquals(ECEntityType.ANIMAL, McActionContexts.actor(cow).getEntityType());
@@ -50,7 +51,7 @@ class McActionContextsTest {
             Player npc = server.player("Shopkeeper", 0, 0, 0);
             Player marked = (Player) Proxy.newProxyInstance(Player.class.getClassLoader(), new Class<?>[]{Player.class},
                     (proxy, method, args) -> "hasMetadata".equals(method.getName())
-                            ? McActionContexts.CITIZENS_NPC_METADATA.equals(args[0])
+                            ? CitizensNpcProvider.CITIZENS_NPC_METADATA.equals(args[0])
                             : method.invoke(npc, args));
 
             Actor actor = McActionContexts.actor(marked);

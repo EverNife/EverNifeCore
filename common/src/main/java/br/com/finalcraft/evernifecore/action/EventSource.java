@@ -86,6 +86,12 @@ public final class EventSource {
      * listener of chunk changes never makes the regions follow every step.
      */
     public static final EventSource EXPLORE = core("explore");
+    /**
+     * A player using (right-clicking) an NPC an {@code npc.NpcProvider} knows. Apart from {@link #INTERACT}: a packet NPC
+     * has no server entity to raise an interact, so each provider raises this one from its plugin's own click event, and
+     * a listener of NPC talks never puts the interact listener on the server.
+     */
+    public static final EventSource INTERACT_NPC = core("interact-npc");
     public static final EventSource TICK = core("tick");
     public static final EventSource NONE = core("none");
 

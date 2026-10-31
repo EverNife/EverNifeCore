@@ -86,6 +86,6 @@ public final class InteractActionListener implements ECListener {
             return null;
         }
         return new EntityContext(EventSource.INTERACT, McActionContexts.position(entity.getLocation()), McActionContexts.actor(event.getPlayer()), event,
-                McActionContexts.actor(entity));
+                McActionContexts.actor(entity), McActionContexts.itemInHandKey(event.getPlayer()));
     }
 }

@@ -12,6 +12,7 @@ import br.com.finalcraft.evernifecore.cooldown.Cooldowns;
 import br.com.finalcraft.evernifecore.logic.CustomVariables;
 import br.com.finalcraft.evernifecore.logic.Multipliers;
 import br.com.finalcraft.evernifecore.notify.Notifier;
+import br.com.finalcraft.evernifecore.npc.Npcs;
 import br.com.finalcraft.evernifecore.waypoint.Waypoints;
 import br.com.finalcraft.evernifecore.types.TypeRegistries;
 import br.com.finalcraft.evernifecore.EverNifeCore;
@@ -153,6 +154,7 @@ public interface IECPluginBootstrap {
         LocaleOverlay.closeOwnedBy(getPluginData());
         Notifier.get().closeOwnedBy(getPluginData());
         Waypoints.get().hideOwnedBy(getPluginData());
+        Npcs.unregisterAll(getPluginData());
         FlagRegistry.get().unregisterAll(getPluginData());
         Currencies.unregisterAll(getPluginData());
         DeliveryDestinations.unregisterAll(getPluginData());

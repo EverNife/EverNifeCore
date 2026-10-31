@@ -9,6 +9,8 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.hytale.delivery.HyInventoryDestination;
 import br.com.finalcraft.evernifecore.hytale.action.HyActionSystems;
+import br.com.finalcraft.evernifecore.hytale.npc.HyNpcProvider;
+import br.com.finalcraft.evernifecore.npc.Npcs;
 import br.com.finalcraft.evernifecore.hytale.commands.HyCommandRegisterer;
 import br.com.finalcraft.evernifecore.hytale.ecplugin.ECHytalePlugin;
 import br.com.finalcraft.evernifecore.hytale.eventbus.HyHytaleAudience;
@@ -99,6 +101,7 @@ public class EverNifeCoreHytalePlugin extends ECHytalePlugin {
 
         //still inside setup(): the only moment the server takes a System
         HyActionSystems.register(this);
+        Npcs.register(getPluginData(), new HyNpcProvider()); //the UseEntity System raises its clicks; start/stop have nothing to do
         RegionTicker.start(getPluginData()); //the region tick is the core's own task, on Hytale as on Bukkit
     }
 

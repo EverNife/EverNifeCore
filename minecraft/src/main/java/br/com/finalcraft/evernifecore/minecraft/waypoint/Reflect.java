@@ -6,16 +6,16 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
 /**
- * Calls into a plugin this jar does not compile against (hologram and web-map plugins): by class name, method name and
+ * Calls into a plugin this jar does not compile against (hologram, web-map and NPC plugins): by class name, method name and
  * argument count. Every failure surfaces as an {@link IllegalStateException} naming the call, so a plugin version that
  * moved a method is reported, not swallowed.
  */
-final class Reflect {
+public final class Reflect {
 
     private Reflect() {
     }
 
-    static Class<?> type(String name) {
+    public static Class<?> type(String name) {
         try {
             return Class.forName(name, true, Reflect.class.getClassLoader());
         } catch (ClassNotFoundException missing) {
@@ -24,16 +24,16 @@ final class Reflect {
     }
 
     /** A static method of {@code type}. */
-    static Object callStatic(Class<?> type, String method, Object... args) {
+    public static Object callStatic(Class<?> type, String method, Object... args) {
         return invoke(type, null, method, args);
     }
 
     /** An instance method of {@code target}. */
-    static Object call(Object target, String method, Object... args) {
+    public static Object call(Object target, String method, Object... args) {
         return invoke(target.getClass(), target, method, args);
     }
 
-    static Object construct(Class<?> type, Object... args) {
+    public static Object construct(Class<?> type, Object... args) {
         for (Constructor<?> constructor : type.getConstructors()) {
             if (accepts(constructor.getParameterTypes(), args)) {
                 try {

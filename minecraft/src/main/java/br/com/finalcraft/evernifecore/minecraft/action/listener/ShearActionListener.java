@@ -37,6 +37,6 @@ public final class ShearActionListener implements ECListener {
 
     private static EntityContext context(PlayerShearEntityEvent event) {
         return new EntityContext(EventSource.SHEAR, McActionContexts.position(event.getEntity().getLocation()),
-                McActionContexts.actor(event.getPlayer()), event, McActionContexts.actor(event.getEntity()));
+                McActionContexts.actor(event.getPlayer()), event, McActionContexts.actor(event.getEntity()), null);
     }
 }

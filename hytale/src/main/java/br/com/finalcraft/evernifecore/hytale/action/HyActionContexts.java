@@ -6,8 +6,10 @@ import br.com.finalcraft.evernifecore.action.TypeKey;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.platoverride.entity.NativeEntity;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
+import br.com.finalcraft.evernifecore.hytale.npc.HyNpcProvider;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.npc.NpcRef;
 import com.hypixel.hytale.component.ComponentAccessor;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.server.core.asset.type.attitude.Attitude;
@@ -78,17 +80,23 @@ public final class HyActionContexts {
         return towardsPlayers == Attitude.HOSTILE ? ECEntityType.MONSTER : ECEntityType.ANIMAL;
     }
 
-    /**
-     * An actor from what the entity is: a player acts as itself, an NPC by its type id and {@link #npcType}, anything
-     * else is {@link #ENTITY}. An NPC never has a player behind it.
-     */
+    /** As {@link #actor(FPlayer, String, Attitude, Supplier, NpcRef)} for an entity that carries no NPC reference. */
     public static Actor actor(@Nullable FPlayer player, @Nullable String npcTypeId, @Nullable Attitude towardsPlayers,
                        @Nullable Supplier<NativeEntity> handle) {
+        return actor(player, npcTypeId, towardsPlayers, handle, null);
+    }
+
+    /**
+     * An actor from what the entity is: a player acts as itself, an NPC by its type id and {@link #npcType} carrying
+     * {@code npc}, anything else is {@link #ENTITY}. An NPC never has a player behind it, and a player is never an NPC.
+     */
+    public static Actor actor(@Nullable FPlayer player, @Nullable String npcTypeId, @Nullable Attitude towardsPlayers,
+                       @Nullable Supplier<NativeEntity> handle, @Nullable NpcRef npc) {
         if (player != null) {
             return Actor.player(player, handle);
         }
         if (npcTypeId != null) {
-            return Actor.entity(key(npcTypeId), npcType(towardsPlayers), null, handle);
+            return Actor.entity(key(npcTypeId), npcType(towardsPlayers), null, handle, npc);
         }
         return Actor.entity(ENTITY, ECEntityType.OTHER, null, handle);
     }
@@ -103,7 +111,8 @@ public final class HyActionContexts {
         NPCEntity npc = store.getComponent(ref, NPCEntity.getComponentType());
         if (npc != null) {
             WorldSupport support = store.getComponent(ref, WorldSupport.getComponentType());
-            return actor(null, npc.getNPCTypeId(), support == null ? null : support.getDefaultPlayerAttitude(), handle);
+            return actor(null, npc.getNPCTypeId(), support == null ? null : support.getDefaultPlayerAttitude(), handle,
+                    HyNpcProvider.refOf(npc, store.getComponent(ref, UUIDComponent.getComponentType())));
         }
         return actor(null, null, null, handle);
     }

@@ -18,6 +18,19 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **NPC references (`br.com.finalcraft.evernifecore.npc`)**: `NpcRef` is `provider:id` (`citizens:12`,
+  `fancynpcs:<uuid>`, `znpcsplus:merchant`, `hytale:<uuid>`, lowercased); the `NpcProvider` SPI answers `resolve(entity)`,
+  `find(ref)`, `getLocation(ref)`, `getName(ref)` and starts raising clicks only while needed; `Npcs.register(owner,
+  provider)` (a duplicate id names both owners), `Npcs.resolve/find/getLocation/getName`, `Npcs.requireProvider(ref)`
+  (`NpcProviderException` lists the providers registered). Citizens, FancyNpcs and ZNPCsPlus are recognised by
+  reflection on Bukkit - none is a dependency, an absent one is simply unavailable, and the three join the core's
+  `softdepend`; NPC entities by uuid on Hytale (`HyNpcProvider`). `Actor.getNpc()` carries the reference
+  (`Actor.entity(key, type, root, handle, npc)`), so a kill of a Citizens or Hytale NPC names it. The new source
+  `interact-npc` (`InteractNpcActionEvent.Pre/Post` over an `EntityContext`) is a player right-clicking an NPC - packet
+  NPCs included -, raised by each provider from its plugin's click event; `EntityContext.getItemInHandKey()` says what the
+  player held out (also on `interact` with an entity). The condition `near-npc: {npc, radius}` (needs `MOVE`) and the
+  waypoint target `NpcWaypointTarget` read the NPC's location; both refuse a reference to an unregistered provider.
+  `common-tests`: `FakeNpcProvider`, `Actors.npc(key, ref)`.
 - **Platform-neutral screens (`br.com.finalcraft.evernifecore.screen`, `:common`)**: the neutral half of the Bukkit gui
   framework, rebuilt for every renderer. A `Screen` is a description; each viewer (`FPlayer`) gets a `ScreenView` drawn
   by a `ScreenRenderer` chosen per open - the highest priority one that `supports` the viewer and covers the screen's

@@ -17,6 +17,7 @@ import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
 import br.com.finalcraft.evernifecore.action.ActionSupport;
 import br.com.finalcraft.evernifecore.minecraft.action.listener.ActionListeners;
+import br.com.finalcraft.evernifecore.minecraft.npc.McNpcProviders;
 import br.com.finalcraft.evernifecore.minecraft.commands.McCommandRegisterer;
 import br.com.finalcraft.evernifecore.minecraft.config.McConfigManager;
 import br.com.finalcraft.evernifecore.minecraft.consolefilter.ECBukkitConsoleFilter;
@@ -189,6 +190,8 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
                 "The label floating over the target, for that player only (DecentHolograms or FancyHolograms).");
         Waypoints.get().register(ecPluginData, new McWebMapWaypointChannel(),
                 "A marker on the web map, seen by everyone who opens it (BlueMap, dynmap or squaremap).");
+        //the same: an NPC plugin that is not here answers isAvailable() false, and its click is heard only while needed
+        McNpcProviders.registerAll(ecPluginData, this);
 
         //last, so what a loadbefore plugin asked for runs after the first-tick work scheduled above
         McFCScheduler.INSTANCE.releaseTasksHeldUntilTheCoreEnables();

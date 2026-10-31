@@ -46,6 +46,6 @@ public final class BreedActionListener implements ECListener {
         LivingEntity child = event.getEntity();
         LivingEntity breeder = event.getBreeder();
         return new EntityContext(EventSource.BREED, McActionContexts.position(child.getLocation()),
-                breeder == null ? Actor.environment(NO_BREEDER) : McActionContexts.actor(breeder), event, McActionContexts.actor(child));
+                breeder == null ? Actor.environment(NO_BREEDER) : McActionContexts.actor(breeder), event, McActionContexts.actor(child), null);
     }
 }

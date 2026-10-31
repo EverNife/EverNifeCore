@@ -55,9 +55,9 @@ class ActionContextsTest {
     void anEntityContextServesTheEntitySourcesAndRefusesAnother() {
         Actor cow = Actors.entity("minecraft:cow", ECEntityType.ANIMAL);
         for (EventSource source : Arrays.asList(EventSource.INTERACT, EventSource.TAME, EventSource.BREED, EventSource.SHEAR)) {
-            assertEquals(source, new EntityContext(source, AT, steve, null, cow).getSource());
+            assertEquals(source, new EntityContext(source, AT, steve, null, cow, null).getSource());
         }
-        assertTeaches(assertThrows(IllegalArgumentException.class, () -> new EntityContext(EventSource.KILL, AT, steve, null, cow)),
+        assertTeaches(assertThrows(IllegalArgumentException.class, () -> new EntityContext(EventSource.KILL, AT, steve, null, cow, null)),
                 EventSource.KILL);
     }
 

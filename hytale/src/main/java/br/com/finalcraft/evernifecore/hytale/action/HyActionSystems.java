@@ -113,14 +113,14 @@ public final class HyActionSystems {
     public static final Set<EventSource> SERVED_SOURCES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(EventSource.MOVE,
             EventSource.BREAK, EventSource.PLACE, EventSource.INTERACT, EventSource.DAMAGE, EventSource.SPAWN, EventSource.ITEM_DROP,
             EventSource.ITEM_PICKUP, EventSource.TICK, EventSource.KILL, EventSource.CRAFT, EventSource.RESPAWN, EventSource.EXPLORE,
-            EventSource.COMMAND)));
+            EventSource.COMMAND, EventSource.INTERACT_NPC)));
     /**
      * The served sources whose System posts a cancellable {@code Pre}: the ones the game asks before the outcome. COMMAND's
      * is posted by the command framework, before one of its commands runs: the server has no command event.
      */
     public static final Set<EventSource> PRE_SOURCES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(EventSource.BREAK,
             EventSource.PLACE, EventSource.INTERACT, EventSource.DAMAGE, EventSource.SPAWN, EventSource.ITEM_DROP, EventSource.ITEM_PICKUP,
-            EventSource.CRAFT, EventSource.RESPAWN, EventSource.COMMAND)));
+            EventSource.CRAFT, EventSource.RESPAWN, EventSource.COMMAND, EventSource.INTERACT_NPC)));
     /** The killer of a death the server recorded no damage for. */
     public static final TypeKey UNKNOWN_DEATH = TypeKey.of("environment", "death");
     static final HyRegionMoveSystem MOVE = new HyRegionMoveSystem(RegionMovementTracker::get);
@@ -523,19 +523,29 @@ public final class HyActionSystems {
         @Override
         public void handle(int index, ArchetypeChunk<EntityStore> chunk, Store<EntityStore> store, CommandBuffer<EntityStore> buffer,
                            UseEntityEvent.Pre event) {
-            decideOnEntity(chunk.getReferenceTo(index), event.getTargetEntity(), store, event);
+            Ref<EntityStore> user = chunk.getReferenceTo(index);
+            if (decideOnEntity(EventSource.INTERACT, user, event.getTargetEntity(), store, event, null)) {
+                return;
+            }
+            //a use of an NPC is also an interact-npc, the source the NPC providers raise on every platform
+            if (event.getInteractionType() == InteractionType.Use && EventSourceUsage.get().isNeeded(EventSource.INTERACT_NPC)
+                    && event.getTargetEntity() != null && HyActionContexts.actor(event.getTargetEntity(), store).getNpc() != null) {
+                InteractionContext context = event.getContext();
+                decideOnEntity(EventSource.INTERACT_NPC, user, event.getTargetEntity(), store, event,
+                        context == null ? null : HyActionContexts.itemKey(context.getHeldItem()));
+            }
         }
     }
 
-    private static boolean decideOnEntity(Ref<EntityStore> user, @Nullable Ref<EntityStore> target, Store<EntityStore> store,
-                                          ICancellableEcsEvent event) {
+    private static boolean decideOnEntity(EventSource source, Ref<EntityStore> user, @Nullable Ref<EntityStore> target, Store<EntityStore> store,
+                                          ICancellableEcsEvent event, @Nullable TypeKey itemInHand) {
         Vector3d at = target == null ? null : positionOf(target, store);
         if (at == null) {
             return false;
         }
         String world = worldOf(store);
-        return judge(EventSource.INTERACT, world, event, () -> new EntityContext(EventSource.INTERACT, HyActionContexts.position(world, at),
-                HyActionContexts.actor(user, store), event, HyActionContexts.actor(target, store)));
+        return judge(source, world, event, () -> new EntityContext(source, HyActionContexts.position(world, at),
+                HyActionContexts.actor(user, store), event, HyActionContexts.actor(target, store), itemInHand));
     }
 
     /**
@@ -564,7 +574,7 @@ public final class HyActionSystems {
             Ref<EntityStore> user = chunk.getReferenceTo(index);
             Ref<EntityStore> target = context.getTargetEntity();
             if (target != null) {
-                decideOnEntity(user, target, store, event);
+                decideOnEntity(EventSource.INTERACT, user, target, store, event, HyActionContexts.itemKey(context.getHeldItem()));
                 return;
             }
             BlockPosition block = context.getTargetBlock();

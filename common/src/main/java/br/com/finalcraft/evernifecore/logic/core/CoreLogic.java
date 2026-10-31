@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.logic.ProgressOwnerProvider;
 import br.com.finalcraft.evernifecore.logic.ProgressOwners;
 import br.com.finalcraft.evernifecore.logic.delivery.DeliveryDestinations;
+import br.com.finalcraft.evernifecore.npc.NearNpcCondition;
 
 /** The core's stock logic types and owner kinds. */
 public final class CoreLogic {
@@ -19,6 +20,7 @@ public final class CoreLogic {
         StockEffects.register(core);
         StockEconomy.register(core);
         StockItems.register(core);
+        NearNpcCondition.register(core);
         DeliveryDestinations.registerCore(core);
         for (ProgressOwnerProvider provider : CoreOwners.all()) {
             ProgressOwners.register(core, provider);
