@@ -62,6 +62,8 @@ public final class ScreenWorld implements AutoCloseable {
                 .neutralChatAdapter()
                 .papiPresent(false)
                 .loggingToStdout()
+                //a plugin shutdown in a screen test reaches the debug config, which names the platform
+                .platformProviderId("test")
                 .onlinePlayers(viewers))
                 .install();
         this.owner = Plugins.fakePluginData(OWNER, dataFolder.toFile());
