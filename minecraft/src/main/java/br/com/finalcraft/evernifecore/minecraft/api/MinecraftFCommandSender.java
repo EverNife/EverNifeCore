@@ -44,6 +44,11 @@ public abstract class MinecraftFCommandSender<DELEGATE extends CommandSender> ex
         public boolean hasPermission(String permission) {
             return this.getDelegate().hasPermission(permission);
         }
+
+        @Override
+        public boolean isPermissionSet(String permission) {
+            return this.getDelegate().isPermissionSet(permission);
+        }
     }
 
 }

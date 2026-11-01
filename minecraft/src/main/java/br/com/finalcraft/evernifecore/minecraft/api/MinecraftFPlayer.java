@@ -63,6 +63,16 @@ public abstract class MinecraftFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
         return false;
     }
 
+    /** Online, Bukkit's own answer (an op is not "set"); offline, LuckPerms', which never answers by op. */
+    @Override
+    public boolean isPermissionSet(@Nonnull String permission) {
+        Player onlinePlayer = getPlayer();
+        if (onlinePlayer != null) {
+            return onlinePlayer.isPermissionSet(permission);
+        }
+        return hasPermission(permission);
+    }
+
     @Override
     public boolean canSee(@Nonnull FPlayer player) {
         Player viewer = getPlayer();

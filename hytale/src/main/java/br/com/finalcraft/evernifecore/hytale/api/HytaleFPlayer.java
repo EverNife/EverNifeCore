@@ -75,6 +75,15 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
         return PermissionsModule.get().hasPermission(getPlayerRef().getUuid(), permission);
     }
 
+    /**
+     * The permissions module answers only what a user or group grant matches, and has no unset-but-allowed node. Its
+     * operator is the {@code hytale:Admin} group, which grants the {@code *} wildcard - a node that is set.
+     */
+    @Override
+    public boolean isPermissionSet(@Nonnull String permission) {
+        return hasPermission(permission);
+    }
+
     @Override
     public boolean canSee(@Nonnull FPlayer player) {
         PlayerRef viewer = getPlayerRef();

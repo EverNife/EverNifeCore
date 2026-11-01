@@ -48,6 +48,12 @@ public class TestCommandSender implements FCommandSender {
         return permissions.contains(permission);
     }
 
+    /** A console sets no node: it holds whatever it holds by being the console. */
+    @Override
+    public boolean isPermissionSet(@Nonnull String permission) {
+        return false;
+    }
+
     @Override
     public void sendMessage(@Nonnull Component component) {
         captured.record(component);

@@ -82,6 +82,15 @@ class BoostersTest {
     }
 
     @Test
+    void anOpWithoutTheNodeGetsNoBoosterAndOneWithItGetsTheFactorTheNodeNames() {
+        alex.op(true);
+        assertMultiplier("1", ctx().getMultiplier("money"));
+
+        alex.grant("vip.booster.money.1.5");
+        assertMultiplier("1.5", ctx().getMultiplier("money"));
+    }
+
+    @Test
     void sumOfBonusesMaxAndProductJoinTheSameBoostersDifferently() {
         List<Booster> boosters = Arrays.asList(Booster.on("money").factor(2).build(), Booster.on("money").factor(1.5).build());
 

@@ -16,7 +16,9 @@ import java.util.List;
  * {@code evernifecore:permission}: the permission {@code vip.booster.<variable>.<factor>}
  * ({@code vip.booster.money.1.25}) boosts the player's gain by that factor. A platform cannot list a player's
  * permissions, so the source tests the factors of {@code config.yml} {@code Boosters.permission-factors} and keeps the
- * largest the player has; a factor not in that list is never seen.
+ * largest the player has; a factor not in that list is never seen. A node counts only when it is set on the player
+ * ({@link FPlayer#isPermissionSet}) and granted, so an op without the node gets no booster, and a node negated
+ * outright gets none either.
  */
 public final class PermissionBoosterSource implements BoosterSource {
 
@@ -47,12 +49,16 @@ public final class PermissionBoosterSource implements BoosterSource {
         for (int i = factors.size() - 1; i >= 0; i--) { //ascending list: the first held from the top is the largest
             BigDecimal factor = factors.get(i);
             //2.0 and 2 are the same factor, whichever way the node writes it
-            if (player.hasPermission(base + factor.toPlainString()) || player.hasPermission(base + factor.stripTrailingZeros().toPlainString())) {
+            if (holds(player, base + factor.toPlainString()) || holds(player, base + factor.stripTrailingZeros().toPlainString())) {
                 return Collections.singletonList(Booster.on(variableId).factor(factor)
                         .forOwner(ProgressOwner.player(player.getUniqueId())).from(origin).build());
             }
         }
         return Collections.emptyList();
+    }
+
+    private static boolean holds(FPlayer player, String node) {
+        return player.isPermissionSet(node) && player.hasPermission(node);
     }
 
     @Override

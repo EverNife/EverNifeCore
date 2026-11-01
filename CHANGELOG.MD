@@ -420,6 +420,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **`PermissionBoosterSource` no longer grants the largest factor to every op**: a `vip.booster.*` node counts only
+  when it is set (`FCommandSender.isPermissionSet`, new) and granted, never by the op wildcard of Bukkit. A Hytale
+  operator still gets it: its `hytale:Admin` group grants `*`, which is a set node. `TestFPlayerSender.op(true)`
+  answers `hasPermission` true to every node and `isPermissionSet` only for what `grant` gave.
 - **A plugin that fails before EverNifeCore enables no longer takes the core down**: a section registered by a plugin
   whose enable failed ahead of the core (its jar already closed) is dropped with a SEVERE line naming the plugin, and the
   core and every other section boot; before, `PlayerController` died binding it (`IllegalStateException: zip file closed`)

@@ -27,6 +27,7 @@ public class TestFPlayerSender implements FPlayer {
     private final Set<UUID> hidden = new HashSet<>();
     private final CapturedMessages captured = new CapturedMessages();
     private boolean online = true;
+    private boolean op = false;
     private boolean playedBefore = false;
     private volatile @Nullable FLocation location;
     private final List<FLocation> teleports = new CopyOnWriteArrayList<>();
@@ -118,8 +119,22 @@ public class TestFPlayerSender implements FPlayer {
         return uniqueId;
     }
 
+    /**
+     * Makes the player an operator, as a server does: {@link #hasPermission} answers true to every node, while
+     * {@link #isPermissionSet} still answers only what {@link #grant} gave.
+     */
+    public TestFPlayerSender op(boolean op) {
+        this.op = op;
+        return this;
+    }
+
     @Override
     public boolean hasPermission(@Nonnull String permission) {
+        return op || permissions.contains(permission);
+    }
+
+    @Override
+    public boolean isPermissionSet(@Nonnull String permission) {
         return permissions.contains(permission);
     }
 

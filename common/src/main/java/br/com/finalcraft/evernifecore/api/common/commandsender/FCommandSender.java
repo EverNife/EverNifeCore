@@ -32,6 +32,16 @@ public interface FCommandSender extends IHasDelegate {
 
     boolean hasPermission(@Nonnull String permission);
 
+    /**
+     * Whether {@code permission} is set on this sender, by a node, a group or a wildcard the platform knows - never by
+     * "an op answers everything", which {@link #hasPermission} honours. Ask it before granting something by a node
+     * nobody declares (a booster factor). A platform with no notion of an unset node answers {@link #hasPermission}.
+     * Any thread.
+     */
+    default boolean isPermissionSet(@Nonnull String permission) {
+        return hasPermission(permission);
+    }
+
     public default void sendMessage(String message) {
         sendMessage(FancyText.of(message.replace("§","&")));
     }
