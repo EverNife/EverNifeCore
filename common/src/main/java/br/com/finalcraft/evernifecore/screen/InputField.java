@@ -6,9 +6,9 @@ import jakarta.annotation.Nonnull;
 import java.util.function.BiConsumer;
 
 /**
- * A field the viewer types a value into. A renderer with {@link RendererCapability#TEXT_INPUT} draws it inside the
- * window; every other renderer turns the click into {@link ClickContext#ask(PromptSpec)} - the screen is set aside, the
- * {@code PromptRegistry} asks through a channel, and the screen comes back with its state.
+ * A field the viewer types a value into. Every renderer turns the click into
+ * {@link ClickContext#ask(PromptSpec)}: the screen is set aside, the {@code PromptRegistry} asks through a channel, and
+ * the screen comes back with its state.
  */
 public class InputField extends Button {
 

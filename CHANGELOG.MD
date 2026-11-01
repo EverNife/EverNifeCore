@@ -669,6 +669,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Removed
 
+- **`RendererCapability.FREE_LAYOUT` and `TEXT_INPUT`**: no screen ever required them and no renderer could serve
+  them - a `NamedRegion` has no coordinates to place by, and an `InputField` asks through `PromptRegistry` on every
+  renderer. A capability comes back together with the API that uses it.
 - **Removed `br.com.finalcraft.evernifecore.minecraft.gui`** (65 classes), `ResultGui`, `LayoutGui`, `LayoutResultGui`,
   `SubjectHolder`, `EnumWool`, `EnumStainedGlassPane` (`DefaultIcons.wool/pane(Color)`), `GuiType` (`minecraft.screen.ChestKind`),
   `FCItemBuilder.onClick/every` (`asIcon()` stays), `ClickContext.sound(...)` (a `sound` effect does it). Plugins compiled
