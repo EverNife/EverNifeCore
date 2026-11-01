@@ -9,6 +9,7 @@ import br.com.finalcraft.evernifecore.flag.FlagKey;
 import br.com.finalcraft.evernifecore.flag.FlagValue;
 import br.com.finalcraft.evernifecore.group.event.GroupCreatedEvent;
 import br.com.finalcraft.evernifecore.group.event.GroupFlagChangedEvent;
+import br.com.finalcraft.evernifecore.group.event.GroupKindRegisteredEvent;
 import br.com.finalcraft.evernifecore.group.storage.GroupRecord;
 import br.com.finalcraft.evernifecore.group.storage.GroupStorage;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
@@ -180,16 +181,16 @@ public final class GroupManager implements GroupProvider {
     public void registerKind(GroupKind kind) {
         Objects.requireNonNull(kind, "kind");
         kinds.put(kind.getKey(), kind);
-        if (!loaded) {
-            return;
-        }
-        String key = kind.getKey().toString();
-        for (GroupRecord record : new ArrayList<>(unread.values())) {
-            if (key.equalsIgnoreCase(record.kind) && unread.remove(record.name, record)) {
-                read(record, kind);
+        if (loaded) {
+            String key = kind.getKey().toString();
+            for (GroupRecord record : new ArrayList<>(unread.values())) {
+                if (key.equalsIgnoreCase(record.kind) && unread.remove(record.name, record)) {
+                    read(record, kind);
+                }
             }
+            wakeIfDue();
         }
-        wakeIfDue();
+        ECEventBus.global().postIfListened(GroupKindRegisteredEvent.class, () -> new GroupKindRegisteredEvent(this, kind));
     }
 
     /** The registered kinds. Read-only. */

@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.group.event.GroupCreatedEvent;
 import br.com.finalcraft.evernifecore.group.event.GroupDissolvedEvent;
 import br.com.finalcraft.evernifecore.group.event.GroupInviteEvent;
+import br.com.finalcraft.evernifecore.group.event.GroupKindRegisteredEvent;
 import br.com.finalcraft.evernifecore.group.event.GroupLeaderChangedEvent;
 import br.com.finalcraft.evernifecore.group.event.GroupMemberJoinedEvent;
 import br.com.finalcraft.evernifecore.group.event.GroupMemberLeftEvent;
@@ -154,6 +155,17 @@ class GroupEventsTest {
         assertEquals(LeaveCause.DISSOLVED, left.get(0).getCause());
         assertNull(parties.getManager().get("alpha"), "a dissolved group is forgotten");
         assertTrue(alpha.isDissolved());
+    }
+
+    @Test
+    void registerKindPostsGroupKindRegisteredEvent() {
+        List<GroupKindRegisteredEvent> registered = parties.recorded(GroupKindRegisteredEvent.class);
+
+        GroupKind guild = parties.kind("guild", GroupKind.Cardinality.ONE, GroupRole.of("member", 0));
+
+        assertEquals(1, registered.size(), "a kind announces itself before any group of it exists");
+        assertSame(guild, registered.get(0).getKind());
+        assertSame(parties.getManager(), registered.get(0).getManager());
     }
 
     @Test

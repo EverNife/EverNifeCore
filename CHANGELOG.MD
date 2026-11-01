@@ -18,6 +18,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **`GroupKindRegisteredEvent`**: `GroupManager.registerKind` posts it (after reading the stored groups of the kind, when
+  the manager has loaded), so a plugin waiting for a kind no longer needs the first `GroupCreatedEvent`.
 - **The Hytale `inventory-readers` conformance case**: in a live Hytale server, five stone in the bot's active hotbar
   slot are what `getHeld` reads, `getContents` lists them, and `roomFor` has room that is gone once every slot is full.
 - **Page arrows for a menu's paged offers**: `Menu.Builder.offers(region, previous, next, source)` draws the framework's
