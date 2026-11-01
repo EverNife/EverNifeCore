@@ -49,7 +49,7 @@ HYBRIDS = {"crucible-1.7.10", "mohist-1.12.2", "mohist-1.16.5", "arclight-1.21.1
 # No headless client there: the player is the harness's synthetic one, and every jar goes into mods/
 HYTALE = {"hytale-0.7.1"}
 HYTALE_PLUGIN_ID = "EverNife:ECoreConformance@3.0.1"
-HYTALE_SUITES = 8
+HYTALE_SUITES = 9
 # Texts the Hytale regions suite sets as deny-message, read back from what the player received
 ENTRY_MESSAGE = "ECC entry denied"
 BREAK_MESSAGE = "ECC break denied"
@@ -57,7 +57,7 @@ SCREENS = ["basic", "hopper", "dispenser", "workbench", "nav", "storage", "promp
            "title-long", "layout", "confirm",
            "deliveries", "ranking", "input", "progress", "choice", "reactive"]
 SUITE_ORDER = ["items", "nbt", "platform", "version", "commands", "screen", "scheduler", "playerdata",
-               "events", "selection-click", "particles", "text-metrics", "hooks", "nms", "regions", "logic", "actions", "deliveries", "hud", "groups", "npcs"]
+               "events", "selection-click", "particles", "text-metrics", "hooks", "nms", "regions", "logic", "actions", "deliveries", "hud", "groups", "npcs", "quests"]
 HALVES = ("run", "write", "read")
 # playerdata runs only in the write/read halves; every other suite ends once in `run`. Derived, so a new suite
 # cannot leave the driver waiting out WAIT_SECONDS for an end that never comes.

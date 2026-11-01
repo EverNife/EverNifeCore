@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.conformance.minecraft;
 
 import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
+import br.com.finalcraft.evernifecore.conformance.QuestCases;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.HooksSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.PlayerDataSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.SelectionClickSuite;
@@ -38,7 +39,7 @@ public final class ECoreConformancePlugin extends ECBukkitPlugin {
         HooksSuite.registerPlaceholders(getPluginData());
         FinalCMDManager.registerCommand(getPluginData(), new ConformanceCommand(Suites.all(getPluginData(), regions, loaded), getDataFolder(),
                 () -> MCDetailedVersion.getCurrent() + " " + Bukkit.getVersion(), getLogger()::info,
-                task -> Bukkit.getScheduler().runTask(this, task)));
+                task -> Bukkit.getScheduler().runTask(this, task), QuestCases.engine(getPluginData())));
     }
 
     @Override

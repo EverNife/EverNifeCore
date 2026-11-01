@@ -15,6 +15,8 @@ import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ActionsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ScreenSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.SelectionClickSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.TextMetricsSuite;
+import br.com.finalcraft.evernifecore.quest.QuestEngine;
+import br.com.finalcraft.evernifecore.quest.command.QuestCommandNode;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -47,19 +49,24 @@ public class ConformanceCommand {
     private final Executor mainThread;
     private final MarkerLine markers;
 
+    @FinalCMD.Node(subcmd = "quest")
+    private final QuestCommandNode quest; //the quests suite's commands-round-trip dispatches through it
+
     /**
      * @param versionLabel asked only when a suite runs, for its summary line
      * @param log          the plugin logger's {@code info}: markers have to reach the server log one line each
      * @param mainThread   where a run resumes after a case that answered on a later tick
+     * @param quests       the engine {@code /ecc quest} acts on
      */
     public ConformanceCommand(List<ConformanceSuite> suites, File dataFolder, Supplier<String> versionLabel, Consumer<String> log,
-                              Executor mainThread) {
+                              Executor mainThread, QuestEngine quests) {
         this.suites = suites;
         this.dataFolder = dataFolder;
         this.versionLabel = versionLabel;
         this.log = log;
         this.mainThread = mainThread;
         this.markers = new MarkerLine(log);
+        this.quest = new QuestCommandNode(quests);
     }
 
     @FinalCMD.SubCMD(subcmd = "list")

@@ -17,6 +17,7 @@ import br.com.finalcraft.evernifecore.conformance.minecraft.suite.NpcsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ParticlesSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.PlatformSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.PlayerDataSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.QuestsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.RegionsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.SchedulerSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.SelectionClickSuite;
@@ -36,7 +37,7 @@ public final class Suites {
     }
 
     /**
-     * @param plugin  the plugin itself, the caller of the {@code logic} and {@code deliveries} suites and the owner of the
+     * @param plugin  the plugin itself, the caller of the {@code logic}, {@code deliveries} and {@code quests} suites and the owner of the
      *                {@code groups} suite's parties
      * @param regions the plugin's own region manager, for the {@code regions} suite
      * @param loaded  that manager's {@code load()}
@@ -63,6 +64,7 @@ public final class Suites {
                 new DeliveriesSuite(plugin),
                 new HudSuite(),
                 new GroupsSuite(plugin),
-                new NpcsSuite());
+                new NpcsSuite(),
+                new QuestsSuite(plugin));
     }
 }

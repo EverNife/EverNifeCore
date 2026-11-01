@@ -202,9 +202,14 @@ public final class HyRegionsSuite implements ConformanceSuite {
     }
 
     /** Fires {@code event} at {@code actor} as the game does and reads it after every System; on the world's thread. */
-    private static boolean firedCancelled(Ref<EntityStore> actor, EcsEvent event) {
+    static boolean firedCancelled(Ref<EntityStore> actor, EcsEvent event) {
         actor.getStore().invoke(actor, event);
         return ((ICancellableEcsEvent) event).isCancelled();
+    }
+
+    /** A {@link BreakBlockEvent} of the block at {@code at}, as the game raises it; on the world's thread. */
+    static BreakBlockEvent breakAt(World world, Vector3i at) {
+        return new BreakBlockEvent(null, at, typeAt(world, at));
     }
 
     private static boolean breakCancelled(Ref<EntityStore> actor, World world, Vector3i at) {

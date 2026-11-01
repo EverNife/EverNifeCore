@@ -13,7 +13,10 @@ import br.com.finalcraft.evernifecore.logic.Caller;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.integration.placeholders.PAPIIntegration;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
+import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.quest.placeholder.QuestPlaceholderScope;
+import br.com.finalcraft.evernifecore.quest.placeholder.QuestPlaceholders;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.region.CreationResult;
 import br.com.finalcraft.evernifecore.region.Region;
@@ -57,8 +60,9 @@ public final class HooksSuite implements ConformanceSuite {
      * round trip (register, then resolve) without depending on an eCloud expansion. A no-op without PlaceholderAPI.
      */
     public static void registerPlaceholders(ECPluginData plugin) {
-        PAPIIntegration.createPlaceholderIntegration(plugin, "ecc", IPlayerData.class)
+        RegexReplacer<IPlayerData> replacer = PAPIIntegration.createPlaceholderIntegration(plugin, "ecc", IPlayerData.class)
                 .addParser("name", data -> data == null ? null : data.getName());
+        QuestPlaceholders.register(replacer, QuestPlaceholderScope.ownedBy(plugin)); //read by the quests suite
     }
 
     @Override
