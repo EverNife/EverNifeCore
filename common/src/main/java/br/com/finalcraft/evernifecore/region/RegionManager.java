@@ -307,6 +307,7 @@ public final class RegionManager {
         Duration retryIn;
         int attempts;
         RetryPolicy policy;
+        boolean kept;
         synchronized (loadLock) {
             current.reading = false;
             attemptDone = current.nextAttempt;
@@ -315,7 +316,8 @@ public final class RegionManager {
             policy = current.policy;
             elapsed = Duration.between(current.startedAt, ECClock.now());
             //a re-read of an owner already loaded keeps what it has: nothing is missing to retry for
-            retryIn = closed || loaded ? null : policy.delayBefore(attempts + 1, elapsed);
+            kept = loaded;
+            retryIn = closed || kept ? null : policy.delayBefore(attempts + 1, elapsed);
             if (retryIn != null) {
                 scheduleAttempt(current, retryIn.toMillis());
             }
@@ -326,9 +328,12 @@ public final class RegionManager {
                     + " the next one runs in {} s.", nameOf(owner), error.toString(), attempts, retryIn.toMillis() / 1000.0);
             return;
         }
-        String gaveUp = "Regions of " + nameOf(owner) + " did not load after " + attempts + (attempts == 1 ? " try" : " tries") + " in "
-                + elapsed.toMillis() / 1000.0 + " s (" + policy + "); last cause: " + error + ". Nothing retries on its own - call"
-                + " load again once the storage is reachable.";
+        String gaveUp = kept
+                ? "Regions of " + nameOf(owner) + " are loaded from an earlier read; the re-read failed (" + error + ") and what is"
+                        + " indexed stays. Call load again to read the storage once more."
+                : "Regions of " + nameOf(owner) + " did not load after " + attempts + (attempts == 1 ? " try" : " tries") + " in "
+                        + elapsed.toMillis() / 1000.0 + " s (" + policy + "); last cause: " + error + ". Nothing retries on its own - call"
+                        + " load again once the storage is reachable.";
         if (!closed) {
             owner.getLog().warning(gaveUp);
         }

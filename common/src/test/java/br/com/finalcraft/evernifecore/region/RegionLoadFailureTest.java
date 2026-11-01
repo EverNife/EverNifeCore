@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.region;
 import br.com.finalcraft.evernifecore.region.TestRegions.ManualAgenda;
 import br.com.finalcraft.evernifecore.region.event.RegionLoadFailedEvent;
 import br.com.finalcraft.evernifecore.testing.TestPlatform;
+import br.com.finalcraft.evernifecore.util.retry.RetryPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -11,6 +12,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -51,6 +53,25 @@ class RegionLoadFailureTest extends ManagedRegionFixture {
 
         agenda.runQueued();
         assertNotNull(manager.get("stored"), "the retry loads what the failed load could not");
+    }
+
+    @Test
+    void aFailedReReadOfALoadedOwnerSaysItKeptItsRegions() {
+        RegionManager manager = unloadedManager();
+        CompletableFuture<Void> first = manager.load();
+        agenda.runQueued();
+        first.join();
+        assertNotNull(manager.get("stored"));
+
+        backend.failNextAll(new IllegalStateException("backend unreachable"));
+        CompletableFuture<Void> reRead = manager.load(RetryPolicy.attempts(3));
+        agenda.runQueued();
+        CompletionException failed = assertThrows(CompletionException.class, reRead::join);
+
+        String message = failed.getCause().getMessage();
+        assertTrue(message.contains("are loaded"), message);
+        assertFalse(message.contains("did not load"), "the owner did load, from the earlier read: " + message);
+        assertNotNull(manager.get("stored"), "what is indexed stays");
     }
 
     @Test

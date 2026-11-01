@@ -468,6 +468,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **region: a failed re-read of an owner already loaded says it kept its regions** ("are loaded from an earlier
+  read; the re-read failed ...") instead of "did not load after 1 try", in the future and the log.
 - **region: the placeholder cache never re-admits a removed region**: a caller still holding the removed
   `Region` is answered, and the answer is not kept. `Region.isAttached()` (live in its manager) is public.
 - **minecraft: an `ECEvent` builds in a JVM without a Bukkit server** (synchronous: there is no other thread), so a
