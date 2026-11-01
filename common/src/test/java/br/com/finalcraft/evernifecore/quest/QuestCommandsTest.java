@@ -116,6 +116,25 @@ class QuestCommandsTest {
     }
 
     @Test
+    void listHidesASecretQuestWhileLockedAndAHiddenOneUntilStarted() {
+        alex.grant("fq.quest.list");
+        engine.register(quests.parse("{id: vault, meta: {visibility: secret}, gate: {require: [{type: permission, node: fq.vault}]},"
+                + " stages: [{id: s, objectives: [{id: o, type: kill}]}]}"));
+        engine.register(quests.parse("{id: cellar, meta: {visibility: hidden}, stages: [{id: s, objectives: [{id: o, type: kill}]}]}"));
+
+        fq(alex, "quest list");
+        assertTrue(alex.getMessages().stream().anyMatch(line -> line.contains("walk")), alex.getMessages().toString());
+        assertFalse(alex.getMessages().stream().anyMatch(line -> line.contains("vault") || line.contains("cellar")), alex.getMessages().toString());
+
+        alex.grant("fq.vault");
+        fq(admin, "quest start cellar Alex");
+        alex.clearMessages();
+        fq(alex, "quest list");
+        assertTrue(alex.getMessages().stream().anyMatch(line -> line.contains("vault")), "available now, so listed: " + alex.getMessages());
+        assertTrue(alex.getMessages().stream().anyMatch(line -> line.contains("cellar")), "started, so listed: " + alex.getMessages());
+    }
+
+    @Test
     void aPresenterRewritesTheNoGroupRefusalOfStartAndOffer() {
         GroupWorld parties = GroupWorld.open("FakeParty", tempDir.resolve("party"));
         try {

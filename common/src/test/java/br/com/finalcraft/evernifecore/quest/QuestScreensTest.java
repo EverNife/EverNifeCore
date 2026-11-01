@@ -18,9 +18,11 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.List;
 
 import static br.com.finalcraft.evernifecore.testing.QuestWorld.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** The core's default quest screens: the journal lists by status, the offer greys what the gate misses and accept starts. */
@@ -75,6 +77,28 @@ class QuestScreensTest {
         assertEquals(QuestStatus.AVAILABLE, journal.getFilter());
         assertEquals(Collections.singletonList(quests.id("vip")), journal.getListed(), "walk is active, vip is the available one");
         view.close();
+        screens.advanceTicks(2);
+    }
+
+    @Test
+    void theJournalHidesWhatVisibilityHides() {
+        engine.register(quests.parse("{id: vault, meta: {visibility: secret}, gate: {require: [{type: permission, node: fq.vault}]},"
+                + " stages: [{id: s, objectives: [{id: o, type: kill}]}]}"));
+        engine.register(quests.parse("{id: cellar, meta: {visibility: hidden}, stages: [{id: s, objectives: [{id: o, type: kill}]}]}"));
+
+        ScreenView before = open(ScreenKey.QUEST_JOURNAL, QuestJournalScreen.Request.of(engine, null));
+        List<QuestId> listed = ((QuestJournalScreen) before.getScreen()).getListed();
+        assertTrue(listed.contains(quests.id("vip")) && listed.contains(quests.id("walk")), "a visible quest lists even locked: " + listed);
+        assertFalse(listed.contains(quests.id("vault")) || listed.contains(quests.id("cellar")), listed.toString());
+        before.close();
+        screens.advanceTicks(2);
+
+        alex.grant("fq.vault");
+        assertTrue(await(engine.start(quests.owner(alex), quests.id("cellar"), QuestParams.NONE)).isSuccess());
+        ScreenView after = open(ScreenKey.QUEST_JOURNAL, QuestJournalScreen.Request.of(engine, null));
+        listed = ((QuestJournalScreen) after.getScreen()).getListed();
+        assertTrue(listed.contains(quests.id("vault")) && listed.contains(quests.id("cellar")), listed.toString());
+        after.close();
         screens.advanceTicks(2);
     }
 

@@ -100,8 +100,8 @@ public class QuestCommandNode implements VerbPermissionBase {
         Map<QuestDefinition, QuestStatus> shown = new LinkedHashMap<>();
         for (QuestDefinition definition : engine.getAll()) {
             ProgressOwner owner = engine.getOwnerFor(target.getUniqueId(), definition.getId());
-            QuestStatus current = owner == null ? QuestStatus.LOCKED : engine.getStatus(owner, definition.getId());
-            if (status == null || status == current) {
+            QuestStatus current = owner == null ? QuestStatus.LOCKED : engine.getStatus(owner, definition.getId(), target);
+            if ((status == null || status == current) && definition.getMeta().getVisibility().lists(current)) {
                 shown.put(definition, current);
             }
         }

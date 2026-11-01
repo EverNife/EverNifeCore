@@ -17,7 +17,19 @@ public final class QuestMeta {
         /** Listed only once started. */
         HIDDEN,
         /** Not listed until available. */
-        SECRET
+        SECRET;
+
+        /** Whether a list (the quest command, the journal) shows a quest of this visibility that stands at {@code status}. */
+        public boolean lists(QuestStatus status) {
+            switch (this) {
+                case HIDDEN:
+                    return status != QuestStatus.LOCKED && status != QuestStatus.AVAILABLE && status != QuestStatus.OFFERED;
+                case SECRET:
+                    return status != QuestStatus.LOCKED;
+                default:
+                    return true;
+            }
+        }
     }
 
     public static final QuestMeta NONE = new QuestMeta("", null, 0, Visibility.VISIBLE, Collections.<String>emptySet(),

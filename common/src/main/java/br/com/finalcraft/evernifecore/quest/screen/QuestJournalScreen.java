@@ -116,8 +116,8 @@ public final class QuestJournalScreen extends Screen<QuestJournalScreen.QuestJou
         for (QuestEngine engine : engines) {
             for (QuestDefinition definition : engine.getAll()) {
                 ProgressOwner owner = engine.getOwnerFor(viewer, definition.getId());
-                QuestStatus status = owner == null ? QuestStatus.LOCKED : engine.getStatus(owner, definition.getId());
-                if (wanted == null || wanted == status) {
+                QuestStatus status = owner == null ? QuestStatus.LOCKED : engine.getStatus(owner, definition.getId(), view.getViewer());
+                if ((wanted == null || wanted == status) && definition.getMeta().getVisibility().lists(status)) {
                     QuestState state = owner == null ? null : engine.getState(owner, definition.getId()).orElse(null);
                     found.add(new Row(engine, definition, status, state == null ? 0 : (int) Math.floor(definition.getStageProgress(state) * 100)));
                 }

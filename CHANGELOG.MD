@@ -462,6 +462,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **`QuestDefinitions.parse` names the key in every error**: `gate`, `requires`, `fail-when[i]`, `repeat`,
   `rewards[i]`, `on-start/on-complete/on-fail/on-abandon[i]`, and for an objective its stage too
   (`Quest 'x', stage 'dig', objective 'iron' key 'mode': 'bogus' is not a progress mode - write count or each-match.`).
+- **`quest list` and the quest journal obey `meta.visibility`** (`QuestMeta.Visibility.lists`): `secret` lists once it
+  is no longer LOCKED, `hidden` once started (not LOCKED, AVAILABLE nor OFFERED).
 - **A `quest-status` loop between gates answers LOCKED** where it closes and logs the chain once, instead of a
   `StackOverflowError` in every list and placeholder.
 - **A group or global quest's gate is checked and paid with the member who starts it**: a `permission` or item gate no
