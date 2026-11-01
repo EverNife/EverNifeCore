@@ -234,6 +234,34 @@ class DeliveriesTest {
     }
 
     @Test
+    void aDelayedCoreEffectWhosePlayerLeftBecomesADeliveryClaimedOnLogin() {
+        Deliveries.start();
+        ExecutionContext ctx = shop.context(alex).build();
+        Effects.apply(ctx, effect("{'type': 'give-item', 'item': '" + IRON + "', 'amount': 3, 'delay': '2s'}"));
+        shop.quit(alex);
+
+        shop.advance(Duration.ofSeconds(2));
+        shop.runDue();
+
+        assertTrue(ctx.getAudit().getEntries(AuditKind.DEFERRED_DROPPED).isEmpty(), ctx.getAudit().getEntries().toString());
+        List<Delivery> kept = pending();
+        assertEquals(1, kept.size(), kept.toString());
+        JsonNode node = kept.get(0).getEffects().get(0);
+        assertEquals(3, node.get("amount").asInt(), node.toString());
+        assertFalse(node.has("delay"), "the delay already ran: " + node);
+
+        shop.rejoin(alex);
+        PlayerData data = await(PlayerController.getOrCreate(alex.getUniqueId()));
+        ECEventBus.global().post(new ECPlayerFullyLoggedInEvent(data, false));
+        long until = System.currentTimeMillis() + 5000;
+        while (held(IRON) == 0 && System.currentTimeMillis() < until) {
+            Thread.yield();
+        }
+        assertEquals(3, held(IRON));
+        assertTrue(pending().isEmpty());
+    }
+
+    @Test
     void theSweepDropsWhatExpiredByTheInjectedClock() {
         inventory.fill(alex, "minecraft:dirt");
         Effects.apply(shop.context(alex).build(), effect("{'type': 'give-item', 'item': '" + IRON + "', 'amount': 4, 'expires': '1h'}"));

@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.economy.Currencies;
 import br.com.finalcraft.evernifecore.economy.Currency;
 import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
+import br.com.finalcraft.evernifecore.logic.DeferredEffects;
 import br.com.finalcraft.evernifecore.logic.delivery.Deliveries;
 import br.com.finalcraft.evernifecore.logic.delivery.DeliveryDestinations;
 import br.com.finalcraft.evernifecore.logic.delivery.InventoryDestination;
@@ -180,6 +181,8 @@ public final class ECoreTestWorld implements AutoCloseable {
             DeliveryDestinations.unregister(inventoryOwner, InventoryDestination.ID);
         }
         Deliveries.closeAll();
+        //a sink a test registered by hand outlives Deliveries: put the dropping one back for the next test
+        DeferredEffects.register(null);
         List<String> leaked = leftOnTheGlobalBus();
 
         ECBaseProvider providers = EverNifeCore.getProviders().getBaseProvider();

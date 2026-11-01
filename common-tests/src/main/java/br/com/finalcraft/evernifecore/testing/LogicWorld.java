@@ -194,6 +194,13 @@ public final class LogicWorld implements AutoCloseable {
         refreshOnline(Collections.<FPlayer>singletonList(player));
     }
 
+    /** Puts a player who {@link #quit} back online on the platform; posting the login event is the test's. */
+    public void rejoin(TestFPlayerSender player) {
+        player.online(true);
+        players.add(player);
+        refreshOnline(Collections.<FPlayer>emptyList());
+    }
+
     /** Adds or takes this world's players on the platform's list, leaving the players another world put there. */
     private void refreshOnline(List<FPlayer> leaving) {
         TestPlatform platform = platform();

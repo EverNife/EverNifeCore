@@ -5,6 +5,8 @@ import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.player.state.StateHolder;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
+import com.fasterxml.jackson.databind.JsonNode;
+import jakarta.annotation.Nullable;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -18,10 +20,13 @@ final class ModifiedEffect implements Effect {
 
     private final Effect effect;
     private final EffectModifiers modifiers;
+    /** The effect's own node without the modifiers that run before it fires; null once it no longer says what runs (a share). */
+    private final @Nullable JsonNode node;
 
-    ModifiedEffect(Effect effect, EffectModifiers modifiers) {
+    ModifiedEffect(Effect effect, EffectModifiers modifiers, @Nullable JsonNode node) {
         this.effect = effect;
         this.modifiers = modifiers;
+        this.node = node;
     }
 
     Effect getEffect() {
@@ -80,7 +85,11 @@ final class ModifiedEffect implements Effect {
         UUID id = player.getUniqueId();
         FPlayer now = EverNifeCore.getPlatform().getPlayer(id);
         if (now == null || !now.isOnline()) {
-            DeferredEffects.get().defer(run, effect, id);
+            if (node == null) {
+                DeferredEffects.dropShare(run, effect, id);
+            } else {
+                DeferredEffects.get().defer(run, effect, node, id);
+            }
             return;
         }
         Effects.apply(run.derive().player(now).build(), effect);
@@ -131,7 +140,8 @@ final class ModifiedEffect implements Effect {
 
     @Override
     public Effect withShare(BigDecimal share) {
-        return new ModifiedEffect(effect.withShare(share), modifiers);
+        //the node still says the whole amount: a share other than the whole that defers is dropped, never kept at full value
+        return new ModifiedEffect(effect.withShare(share), modifiers, share.compareTo(BigDecimal.ONE) == 0 ? node : null);
     }
 
     @Override

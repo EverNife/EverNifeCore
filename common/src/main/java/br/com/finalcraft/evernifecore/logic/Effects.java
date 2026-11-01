@@ -13,10 +13,12 @@ import br.com.finalcraft.evernifecore.types.PendingDefinition;
 import br.com.finalcraft.evernifecore.types.TypeRegistry;
 import br.com.finalcraft.evernifecore.types.TypeRegistryException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.annotation.Nullable;
 
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -28,6 +30,9 @@ public final class Effects {
 
     private static final TypeRegistry<Effect> REGISTRY = TypeRegistry.of(Effect.class, "effect")
             .reserveKeys(EffectModifiers.KEYS.toArray(new String[0]));
+
+    /** The modifiers already spent when a deferred effect fires; {@code as}, {@code to} and {@code scope} still apply. */
+    private static final List<String> SPENT_MODIFIERS = Arrays.asList("delay", "every", "repeat", "target", "chance", "if");
 
     private Effects() {
     }
@@ -68,7 +73,17 @@ public final class Effects {
                         + " write scope: permanent.");
             }
         }
-        return modifiers.isNone() ? effect : new ModifiedEffect(effect, modifiers);
+        return modifiers.isNone() ? effect : new ModifiedEffect(effect, modifiers, spent(node));
+    }
+
+    /** {@code node} without the modifiers that already ran when a deferred effect fires: what a delivery can replay. */
+    private static @Nullable JsonNode spent(JsonNode node) {
+        if (!(node instanceof ObjectNode)) {
+            return null;
+        }
+        ObjectNode copy = ((ObjectNode) node).deepCopy();
+        copy.remove(SPENT_MODIFIERS);
+        return copy;
     }
 
     /** The type {@code effect} (as {@link #parse} gave it) still waits for, or null when it reads - it resolves by itself. */

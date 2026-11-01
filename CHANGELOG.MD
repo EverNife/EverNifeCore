@@ -542,6 +542,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **A delayed or repeated effect whose player left becomes a delivery**: `Deliveries.start()` registers the deferred
+  sink (`closeAll()` puts the dropping one back), which keeps the core's own effects for the player to claim on login.
+  `DeferredEffectSink.defer(ctx, effect, node, absentPlayer)` carries the effect's node without the modifiers that
+  already ran (`delay`, `every`, `repeat`, `target`, `chance`, `if`); a share of a reward is still dropped, its node
+  saying the whole amount. `ECoreTestWorld.close()` restores the dropping sink; `LogicWorld.rejoin(player)`.
 - **Trade texts in the player's language**: every text `Transactions` writes for the player - the refusals (no room, not
   held, cannot be sold, catalog line, called off, nothing in hand, nobody buys, a price line not paid), the quantity
   prompt and its errors - and `TransactionResult.describe` ("Bought 3x sword for 30 coins") are core locale messages

@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.logic.Caller;
+import br.com.finalcraft.evernifecore.logic.DeferredEffects;
 import br.com.finalcraft.evernifecore.logic.Effect;
 import br.com.finalcraft.evernifecore.logic.Effects;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
@@ -77,6 +78,8 @@ public final class Deliveries {
         if (loginSubscription == null) {
             loginSubscription = ECEventBus.global().subscribe(ECPlayerFullyLoggedInEvent.class, event -> onLogin(event.getPlayer()));
         }
+        //a delayed effect whose player left waits here instead of being dropped
+        DeferredEffects.register(Deliveries::keepDeferred);
         int generation = GENERATIONS.incrementAndGet();
         SWEEP.set(generation);
         ECScheduler.scheduleAsync(() -> sweep(generation), SWEEP_INTERVAL.toMillis());
@@ -90,6 +93,15 @@ public final class Deliveries {
             subscription.unsubscribe();
         }
         SWEEP.set(0);
+        DeferredEffects.register(null);
+    }
+
+    private static void keepDeferred(ExecutionContext ctx, Effect effect, JsonNode node, UUID absentPlayer) {
+        get().enqueueSelfContained(ctx, absentPlayer, Collections.singletonList(node)).exceptionally(failure -> {
+            EverNifeCore.getLog().warning("[" + ctx.getCaller() + "] " + effect + " for " + absentPlayer + ", who left before it fired, was not"
+                    + " kept as a delivery: " + failure);
+            return null;
+        });
     }
 
     private static void onLogin(@Nullable FPlayer player) {
