@@ -290,6 +290,22 @@ class LayoutSeedTest {
     }
 
     @Test
+    void anIconReadBackFromItsFileKeepsTheFallbacksItsFieldDeclared() throws IOException {
+        LayoutScanner.load(plugin, ConfirmScreen.ConfirmLayout.class, null);
+        Path file = tempDir.resolve("guis/ConfirmLayout.yml");
+        assertTrue(new String(Files.readAllBytes(file), StandardCharsets.UTF_8).contains("EVERNIFEWORLDRPG_CUSTOMICON:13"),
+                "the file names only the primary item, the one the admin restyles");
+
+        ConfirmScreen.ConfirmLayout reread = LayoutScanner.load(plugin, ConfirmScreen.ConfirmLayout.class, null);
+
+        Icon confirm = reread.getIcon("CONFIRM");
+        assertEquals("EVERNIFEWORLDRPG_CUSTOMICON:13", confirm.getItem().getMaterialId());
+        assertEquals(DefaultIcons.confirm().getFallbacks(), confirm.getFallbacks(),
+                "the fallbacks are the plugin's knowledge of versions, never written to the file, so the file cannot drop them");
+        assertFalse(reread.getIcon("DENY").getFallbacks().isEmpty());
+    }
+
+    @Test
     void twoIconsOfTheSameLayerContestASlotAndTheDiffNamesBoth() throws IOException {
         LayoutScanner.load(plugin, ShopLayout.class, null);
         rewrite(seededPath(), "Slot: \"[22]\"", "Slot: \"[10]\"");

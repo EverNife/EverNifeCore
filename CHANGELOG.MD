@@ -420,6 +420,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **An icon read back from `guis/<Layout>.yml` keeps the fallbacks its field declared**: the file holds only the
+  primary item, and re-reading it dropped the rest, so from the second boot `CONFIRM`/`DENY` drew a barrier instead of
+  the lime/red wool on a server without the mod items. The same for a state's `DisplayItem`. New
+  `Icon.setFallbacks(List<ItemSpec>)` and `Icon.getStateFallbacks(name)`.
 - **`PermissionBoosterSource` no longer grants the largest factor to every op**: a `vip.booster.*` node counts only
   when it is set (`FCommandSender.isPermissionSet`, new) and granted, never by the op wildcard of Bukkit. A Hytale
   operator still gets it: its `hytale:Admin` group grants `*`, which is a set node. `TestFPlayerSender.op(true)`

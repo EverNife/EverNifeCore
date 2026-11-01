@@ -3,8 +3,11 @@ package br.com.finalcraft.evernifecore.minecraft.screen;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.minecraft.screen.testkit.BukkitScreenWorld;
 import br.com.finalcraft.evernifecore.minecraft.screen.testkit.PlayerDouble;
+import br.com.finalcraft.evernifecore.screen.ConfirmScreen;
+import br.com.finalcraft.evernifecore.screen.DefaultIcons;
 import br.com.finalcraft.evernifecore.screen.Icon;
 import br.com.finalcraft.evernifecore.screen.Layout;
+import br.com.finalcraft.evernifecore.screen.Layouts;
 import br.com.finalcraft.evernifecore.screen.Screen;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.bukkit.Material;
@@ -19,6 +22,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -98,6 +102,22 @@ class ChestItemsTest {
         assertEquals(1, warned.size(), "the same icon on the same screen is one warning, however often it is "
                 + "drawn: " + warned);
         assertTrue(warned.get(0).contains("fallback"), "and it says how to fix it: " + warned.get(0));
+    }
+
+    @Test
+    void aLayoutReadBackFromItsFileOnAServerWithoutTheModItemsDrawsTheDeclaredWool() {
+        Layouts.of(ConfirmScreen.ConfirmLayout.class); //seeds guis/ConfirmLayout.yml
+        Layouts.clear();
+        ConfirmScreen.ConfirmLayout reread = Layouts.of(ConfirmScreen.ConfirmLayout.class);
+        Screen<ConfirmScreen.ConfirmLayout> screen = Screen.of(reread);
+        screen.icon(l -> l.CONFIRM);
+
+        world.open(screen, player);
+
+        ItemStack shown = world.getSurface().getItem(11);
+        assertEquals(ChestItems.stackOf(DefaultIcons.wool(DefaultIcons.Color.LIME)).getType(), shown.getType(),
+                "the mod's icon is missing here, so the wool the field declared - never the placeholder: " + shown);
+        assertNotEquals(Material.STONE, shown.getType());
     }
 
     /** An id no server has, fresh per test: a warning is given once per process, not once per test. */

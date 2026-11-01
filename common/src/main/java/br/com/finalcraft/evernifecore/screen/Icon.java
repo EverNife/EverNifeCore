@@ -137,6 +137,13 @@ public class Icon {
         return look.fallbacks;
     }
 
+    /** Replaces the items drawn when this server does not know {@link #getItem()}, first known wins. */
+    @Nonnull
+    public Icon setFallbacks(@Nonnull List<ItemSpec> fallbacks) {
+        this.look = look.withFallbacks(fallbacks);
+        return this;
+    }
+
     /** The item-data lines the renderer applies as written: {@code nbt:...}, {@code enchant:...}. */
     @Nonnull
     public List<String> getDataLines() {
@@ -309,6 +316,13 @@ public class Icon {
     public List<String> getStateDataLines(@Nonnull String name) {
         Look state = states.get(name);
         return state == null ? Collections.<String>emptyList() : state.dataLines;
+    }
+
+    /** The fallbacks of a named state; empty when it has none or there is no such state. */
+    @Nonnull
+    public List<ItemSpec> getStateFallbacks(@Nonnull String name) {
+        Look state = states.get(name);
+        return state == null ? Collections.<ItemSpec>emptyList() : state.fallbacks;
     }
 
     /** Replaces a state's appearance as a whole - the scanner's door for what the yml says about it. */

@@ -381,7 +381,8 @@ public final class LayoutScanner {
 
         List<String> displayItem = source.getStringList(path + ".DisplayItem");
         if (!displayItem.isEmpty()) {
-            resolved.from(Icon.fromDisplayItem(displayItem));
+            //the file holds only the primary item: the fallbacks are the plugin's knowledge of versions, kept from the field
+            resolved.from(Icon.fromDisplayItem(displayItem).setFallbacks(declared.getFallbacks()));
         }
 
         String permission = source.getString(path + ".Permission");
@@ -393,7 +394,7 @@ public final class LayoutScanner {
             String statePath = path + ".States." + state;
             List<String> stateItem = source.getStringList(statePath + ".DisplayItem");
             if (!stateItem.isEmpty()) {
-                resolved.addState(state, Icon.fromDisplayItem(stateItem));
+                resolved.addState(state, Icon.fromDisplayItem(stateItem).setFallbacks(declared.getStateFallbacks(state)));
             }
             IconLocale stateLocale = resolveLocale(plugin, source, statePath,
                     declared.getStateLocale(state));
