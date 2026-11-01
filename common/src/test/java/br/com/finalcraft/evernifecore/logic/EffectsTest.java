@@ -206,6 +206,19 @@ class EffectsTest {
     }
 
     @Test
+    void targetOnlinePlayersAppliesToEveryOnlinePlayerWhateverTheOwner() {
+        open();
+        TestFPlayerSender alex = shop.player("Alex");
+        shop.player("Bia");
+        shop.player("Caio").at("nether", 0, 64, 0);
+        ExecutionContext ofARegion = shop.context(alex).owner(ProgressOwner.of(ProgressOwner.REGION, "fakeshop/plaza")).build();
+
+        Effects.apply(ofARegion, parse("{'type': 'reward', 'target': 'online-players'}"));
+
+        assertEquals(Arrays.asList("Alex", "Bia", "Caio"), reward.applied);
+    }
+
+    @Test
     void targetGroupWithoutAProviderFailsTeachingHowToRegisterOne() {
         open();
         ExecutionContext ctx = shop.context(shop.player("Alex")).owner(ProgressOwner.of("group", "finalparty/abc")).build();

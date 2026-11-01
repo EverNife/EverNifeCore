@@ -16,7 +16,7 @@ import java.util.Locale;
 /**
  * What the executor does around an effect, written as keys of the effect's own node and never read by its type:
  * {@code delay}, {@code chance}, {@code if}, {@code repeat} + {@code every}, {@code as: player|console},
- * {@code target: self|group|region-players|world-players} and {@code scope: permanent|held}. Immutable.
+ * {@code target: self|group|region-players|world-players|online-players} and {@code scope: permanent|held}. Immutable.
  */
 public final class EffectModifiers {
 
@@ -32,7 +32,7 @@ public final class EffectModifiers {
      */
     public static final String DESTINATION_ATTRIBUTE = "evernifecore:to";
 
-    public static final List<String> TARGETS = Arrays.asList("self", "group", "region-players", "world-players");
+    public static final List<String> TARGETS = Arrays.asList("self", "group", "region-players", "world-players", "online-players");
 
     private static final EffectModifiers NONE = new EffectModifiers(null, null, null, 1, null, null, "self", EffectScope.PERMANENT, null);
 

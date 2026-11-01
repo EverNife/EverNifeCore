@@ -91,11 +91,13 @@ final class ModifiedEffect implements Effect {
         if (target.equals("self")) {
             return Collections.singletonList(ctx);
         }
-        String kind = target.equals("group") ? "group" : target.equals("region-players") ? ProgressOwner.REGION : ProgressOwner.WORLD;
+        String kind = target.equals("group") ? "group" : target.equals("region-players") ? ProgressOwner.REGION
+                : target.equals("online-players") ? ProgressOwner.GLOBAL : ProgressOwner.WORLD;
         ProgressOwnerProvider provider = ProgressOwners.find(kind).orElseThrow(() -> new IllegalStateException("target: " + target
                 + " applies to the members of a " + kind + " owner, and no plugin registered a provider for that kind. The plugin"
                 + " that owns " + kind + "s registers one with ProgressOwners.register(plugin, provider)."));
-        ProgressOwner owner = ctx.getOwner();
+        //every online player is the members of the global owner, whatever owner the context has
+        ProgressOwner owner = kind.equals(ProgressOwner.GLOBAL) ? ProgressOwner.global() : ctx.getOwner();
         if (!owner.isKind(kind)) {
             FPlayer player = ctx.getPlayer();
             FLocation location = player == null ? null : player.getLocation();

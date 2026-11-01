@@ -18,6 +18,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **`target: online-players`**: an effect applies to every online player (the members of `ProgressOwner.global()`),
+  whatever the owner of the context.
 - **`GroupKindRegisteredEvent`**: `GroupManager.registerKind` posts it (after reading the stored groups of the kind, when
   the manager has loaded), so a plugin waiting for a kind no longer needs the first `GroupCreatedEvent`.
 - **`StartResult.getReason()` and `QuestPresenter.refusal(player, definition, result)`**: which check refused a start
