@@ -26,6 +26,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `QuestCommandNode.start` goes through the same group check as the other verbs, one `StartResult.noGroup` text for both.
 - **`QuestEngine.getStatus(owner, id, viewer)`**: the gate checked with the member who looks; `quest list` and the
   journal use it.
+- **`QuestEngine.of(owner, storage, section, configure)`** takes the section's `PDSectionConfiguration.Builder` (legacy
+  YAML, migration, collection) in its one registration; the lifecycle stays `ONLINE`.
 - **`Dialogue.parseYaml(owner, name, yaml)`**, in the server's zone; text that is not YAML names the dialogue.
 - **`QuestPool`: `reroll.per-window`** (`Builder.rerollsPerWindow`) caps the rerolls of an owner per window, and
   **`expire-active-on-turn`** (`Builder.expireActiveOnTurn`) expires the previous draw's ACTIVE quests when the window

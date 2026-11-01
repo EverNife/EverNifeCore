@@ -92,6 +92,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -177,9 +178,22 @@ public final class QuestEngine {
      * @throws IllegalStateException when {@code owner} already has an engine opened otherwise, or another plugin's engine
      *                               already keeps its players in {@code playerSection}
      */
-    public static QuestEngine of(ECPluginData owner, ECStorage storage, Class<? extends QuestSection> playerSection) {
+    public static <S extends QuestSection> QuestEngine of(ECPluginData owner, ECStorage storage, Class<S> playerSection) {
+        return of(owner, storage, playerSection, (engine, section) -> {
+        });
+    }
+
+    /**
+     * {@link #of(ECPluginData, ECStorage, Class)}, with {@code configure} shaping the section's registration - a legacy file
+     * layout, a migration, a collection - before the one {@code registerPDSectionCfg} of it. It runs only when this call
+     * registers the section; the lifecycle stays {@code ONLINE} whatever it sets, since the engine reads the section while the
+     * player is online. Any thread.
+     */
+    public static <S extends QuestSection> QuestEngine of(ECPluginData owner, ECStorage storage, Class<S> playerSection,
+                                                          BiConsumer<QuestEngine, PDSectionConfiguration.Builder<S>> configure) {
         Objects.requireNonNull(storage, "'storage' cannot be null - QuestEngine.of(owner) keeps everything in memory.");
         Objects.requireNonNull(playerSection, "'playerSection' cannot be null - QuestEngine.of(owner, storage) has no player quests.");
+        Objects.requireNonNull(configure, "configure");
         synchronized (ENGINES) {
             for (QuestEngine other : ENGINES.values()) {
                 if (other.owner != owner && other.sectionClass == playerSection) {
@@ -189,8 +203,9 @@ public final class QuestEngine {
             }
             QuestEngine engine = open(owner, storage, playerSection);
             if (engine.sectionClass == playerSection && !engine.playersListened) {
-                PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(owner, playerSection, QuestSection.SECTION_ID)
-                        .lifecycle(SectionLifecycle.ONLINE).build());
+                PDSectionConfiguration.Builder<S> section = PDSectionConfiguration.builder(owner, playerSection, QuestSection.SECTION_ID);
+                configure.accept(engine, section);
+                PlayerController.registerPDSectionCfg(section.lifecycle(SectionLifecycle.ONLINE).build());
                 engine.listenToPlayers();
                 engine.playersListened = true;
             }

@@ -18,6 +18,11 @@ import br.com.finalcraft.evernifecore.logic.Effects;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 import br.com.finalcraft.evernifecore.logic.ProgressOwner;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.playerdata.PDSectionConfiguration;
+import br.com.finalcraft.evernifecore.playerdata.PlayerController;
+import br.com.finalcraft.evernifecore.playerdata.storage.SectionLifecycle;
+import br.com.finalcraft.evernifecore.storage.ECStorage;
+import br.com.finalcraft.evernifecore.testing.ScriptedStorage;
 import br.com.finalcraft.evernifecore.quest.event.ObjectiveProgressPreEvent;
 import br.com.finalcraft.evernifecore.quest.event.QuestCompleteEvent;
 import br.com.finalcraft.evernifecore.quest.event.QuestStartEvent;
@@ -513,6 +518,37 @@ class QuestEngineTest {
         }
         StartResult started = await(engine.start(alexOwner(), quests.id("a"), QuestParams.NONE));
         assertEquals(StartResult.Reason.GATE, started.getReason(), started.toString());
+    }
+
+    /** The section class of {@link #ofTakesThePluginsSectionConfigurationInOneRegistration}'s own plugin. */
+    public static final class ConfiguredQuestSection extends QuestSection {
+        public ConfiguredQuestSection() {
+            //Jackson
+        }
+    }
+
+    @Test
+    void ofTakesThePluginsSectionConfigurationInOneRegistration() {
+        ECPluginData other = Plugins.fakePluginData("ConfiguredQuests", tempDir.resolve("configured").toFile());
+        List<QuestEngine> configured = new ArrayList<>();
+        ScriptedStorage backend = ScriptedStorage.inMemory();
+        backend.init().join();
+        ECStorage storage = backend.asECStorage();
+        try {
+            QuestEngine opened = QuestEngine.of(other, storage, ConfiguredQuestSection.class, (engine, section) -> {
+                configured.add(engine);
+                section.description("legacy quests").lifecycle(SectionLifecycle.LAZY);
+            });
+            QuestEngine.of(other, storage, ConfiguredQuestSection.class, (engine, section) -> configured.add(engine));
+
+            assertEquals(Collections.singletonList(opened), configured, "configured once, by the call that registered the section");
+            PDSectionConfiguration<?> registered = PlayerController.getConfiguredPDSections().get(ConfiguredQuestSection.class);
+            assertEquals("legacy quests", registered.getDescription());
+            assertEquals(SectionLifecycle.ONLINE, registered.getLifecycle(), "the engine reads the section while the player is online");
+        } finally {
+            QuestEngine.closeOwnedBy(other);
+            Plugins.forget("ConfiguredQuests");
+        }
     }
 
     @Test
