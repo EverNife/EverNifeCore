@@ -5,7 +5,7 @@ import java.util.List;
 
 /**
  * One owner's draw of one {@link QuestPool}: the window it was drawn in, the quests drawn, the last ones drawn before
- * (what {@code noRepeatLast} keeps out) and when the owner last rerolled. A Jackson POJO the engine mutates under the
+ * (what {@code noRepeatLast} keeps out), when the owner last rerolled and how many times in this window. A Jackson POJO the engine mutates under the
  * owner's lock.
  */
 public final class PoolDraw {
@@ -14,6 +14,7 @@ public final class PoolDraw {
     private List<String> drawn = new ArrayList<>();
     private List<String> history = new ArrayList<>();
     private long rerolledAt;
+    private int rerolls;
 
     public PoolDraw() {
         //Jackson
@@ -55,12 +56,22 @@ public final class PoolDraw {
         this.rerolledAt = rerolledAt;
     }
 
+    /** How many times the owner rerolled in this window; a new draw starts it at 0. */
+    public int getRerolls() {
+        return rerolls;
+    }
+
+    public void setRerolls(int rerolls) {
+        this.rerolls = rerolls;
+    }
+
     PoolDraw copy() {
         PoolDraw copy = new PoolDraw();
         copy.windowKey = windowKey;
         copy.drawn = new ArrayList<>(drawn);
         copy.history = new ArrayList<>(history);
         copy.rerolledAt = rerolledAt;
+        copy.rerolls = rerolls;
         return copy;
     }
 

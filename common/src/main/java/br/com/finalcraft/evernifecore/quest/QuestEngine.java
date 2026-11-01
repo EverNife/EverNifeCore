@@ -1591,6 +1591,26 @@ public final class QuestEngine {
         }
     }
 
+    /** A pool's window turned: the quests of its last draw the owner still has active expire as a closed window does. Under the lane. */
+    void expireActive(ProgressOwner progressOwner, List<QuestId> drawn) {
+        Map<String, QuestState> states = states(progressOwner);
+        if (states == null) {
+            return;
+        }
+        boolean expired = false;
+        for (QuestId id : drawn) {
+            QuestState state = states.get(id.toString());
+            QuestDefinition definition = definitions.get(id);
+            if (state != null && definition != null && state.getStatus() == QuestStatus.ACTIVE) {
+                windowEnded(progressOwner, definition, state);
+                expired = true;
+            }
+        }
+        if (expired) {
+            reindex(progressOwner);
+        }
+    }
+
     /** The window closed with the instance still active: its on-window-end rules pay, and it expires. */
     private void windowEnded(ProgressOwner progressOwner, QuestDefinition definition, QuestState state) {
         pay(progressOwner, definition, state, RewardTrigger.ON_WINDOW_END);

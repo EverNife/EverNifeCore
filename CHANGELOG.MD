@@ -21,6 +21,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **`GroupKindRegisteredEvent`**: `GroupManager.registerKind` posts it (after reading the stored groups of the kind, when
   the manager has loaded), so a plugin waiting for a kind no longer needs the first `GroupCreatedEvent`.
 - **`Dialogue.parseYaml(owner, name, yaml)`**, in the server's zone; text that is not YAML names the dialogue.
+- **`QuestPool`: `reroll.per-window`** (`Builder.rerollsPerWindow`) caps the rerolls of an owner per window, and
+  **`expire-active-on-turn`** (`Builder.expireActiveOnTurn`) expires the previous draw's ACTIVE quests when the window
+  turns, as a closed window does (`QuestExpireEvent`, `on-window-end` rules). `PoolDraw.getRerolls()` counts them.
 - **The Hytale `inventory-readers` conformance case**: in a live Hytale server, five stone in the bot's active hotbar
   slot are what `getHeld` reads, `getContents` lists them, and `roomFor` has room that is gone once every slot is full.
 - **Page arrows for a menu's paged offers**: `Menu.Builder.offers(region, previous, next, source)` draws the framework's

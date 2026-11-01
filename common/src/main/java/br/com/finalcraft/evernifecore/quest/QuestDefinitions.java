@@ -363,11 +363,12 @@ public final class QuestDefinitions {
 
     /** The keys a pool reads under {@code pools:}. */
     public static final List<String> POOL_KEYS = Collections.unmodifiableList(Arrays.asList("from-tag", "from", "draw", "window",
-            "no-repeat-last", "reroll", "owner"));
+            "no-repeat-last", "reroll", "expire-active-on-turn", "owner"));
 
     /**
      * Opens in {@code engine} every pool of a {@code pools:} map - {@code {daily-mission: {from-tag: daily, draw: 1,
-     * window: "daily at 04:00", no-repeat-last: 3, reroll: {gate: {cost: [...]}, cooldown: 24h}}}} - and returns them.
+     * window: "daily at 04:00", no-repeat-last: 3, reroll: {gate: {cost: [...]}, cooldown: 24h, per-window: 1},
+     * expire-active-on-turn: true}}} - and returns them.
      *
      * @throws IllegalArgumentException naming the pool, the key and what to write instead
      */
@@ -394,6 +395,7 @@ public final class QuestDefinitions {
                 Window window = node.hasNonNull("window") ? Window.parse(node.get("window"), zone) : null;
                 Gate gate = Gate.open();
                 Duration cooldown = null;
+                int perWindow = 0;
                 JsonNode reroll = node.get("reroll");
                 if (reroll != null && !reroll.isNull()) {
                     if (reroll.has("gate")) {
@@ -402,9 +404,17 @@ public final class QuestDefinitions {
                     if (reroll.hasNonNull("cooldown")) {
                         cooldown = duration(where, "reroll cooldown", reroll.get("cooldown"));
                     }
+                    if (reroll.hasNonNull("per-window")) {
+                        if (!reroll.get("per-window").canConvertToInt() || reroll.get("per-window").asInt() < 0) {
+                            throw new IllegalArgumentException(where + ": reroll per-window '" + reroll.get("per-window").asText() + "' is not a"
+                                    + " count - write how many rerolls an owner has per window, e.g. per-window: 1 (0 for no limit).");
+                        }
+                        perWindow = reroll.get("per-window").asInt();
+                    }
                 }
                 Gate rerollGate = gate;
                 Duration rerollCooldown = cooldown;
+                int rerollsPerWindow = perWindow;
                 opened.add(engine.pool(name, pool -> {
                     if (node.hasNonNull("from-tag")) {
                         pool.fromTag(node.get("from-tag").asText());
@@ -413,7 +423,8 @@ public final class QuestDefinitions {
                         pool.from(QuestId.parse(id.asText(), ownerName));
                     }
                     pool.draw(node.path("draw").asInt(1)).window(window).noRepeatLast(node.path("no-repeat-last").asInt(0))
-                            .reroll(rerollGate, rerollCooldown);
+                            .reroll(rerollGate, rerollCooldown).rerollsPerWindow(rerollsPerWindow)
+                            .expireActiveOnTurn(node.path("expire-active-on-turn").asBoolean(false));
                 }));
             } catch (IllegalArgumentException | TypeRegistryException failure) {
                 throw new IllegalArgumentException(where + ": " + failure.getMessage(), failure);

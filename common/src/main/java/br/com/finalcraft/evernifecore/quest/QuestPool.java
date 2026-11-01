@@ -51,6 +51,8 @@ public final class QuestPool {
     private final int noRepeatLast;
     private final Gate rerollGate;
     private final @Nullable Duration rerollCooldown;
+    private final int rerollsPerWindow;
+    private final boolean expireActiveOnTurn;
 
     private QuestPool(QuestEngine engine, String name, Builder builder) {
         this.engine = engine;
@@ -63,6 +65,8 @@ public final class QuestPool {
         this.noRepeatLast = builder.noRepeatLast;
         this.rerollGate = builder.rerollGate;
         this.rerollCooldown = builder.rerollCooldown;
+        this.rerollsPerWindow = builder.rerollsPerWindow;
+        this.expireActiveOnTurn = builder.expireActiveOnTurn;
     }
 
     static QuestPool build(QuestEngine engine, String name, Builder builder) {
@@ -94,6 +98,16 @@ public final class QuestPool {
         return rerollCooldown;
     }
 
+    /** How many rerolls an owner has per window; 0 for no limit. */
+    public int getRerollsPerWindow() {
+        return rerollsPerWindow;
+    }
+
+    /** Whether the quests of the last draw an owner still has active expire when the window turns. */
+    public boolean isExpireActiveOnTurn() {
+        return expireActiveOnTurn;
+    }
+
     /** The quests the pool draws from now: the registered ones with its tag, or named in it. */
     public List<QuestDefinition> getCandidates() {
         List<QuestDefinition> candidates = new ArrayList<>();
@@ -118,8 +132,12 @@ public final class QuestPool {
             PoolDraw current = draws.get(name);
             String key = windowKey(ECClock.now());
             if (current == null || !key.equals(current.getWindowKey())) {
+                if (current != null && expireActiveOnTurn) {
+                    engine.expireActive(owner, toIds(current.getDrawn()));
+                }
                 PoolDraw next = current == null ? new PoolDraw() : current;
                 next.setWindowKey(key);
+                next.setRerolls(0);
                 List<QuestId> picked = pick(draw, new LinkedHashSet<>(next.getHistory()), Collections.<String>emptySet());
                 next.setDrawn(toStrings(picked));
                 remember(next, picked);
@@ -159,6 +177,11 @@ public final class QuestPool {
                 return RerollResult.refused("The quests of " + owner + " are not loaded, so pool '" + name + "' cannot reroll now.");
             }
             Instant now = ECClock.now();
+            if (rerollsPerWindow > 0 && current.getRerolls() >= rerollsPerWindow) {
+                Instant next = window == null ? null : window.nextBoundary(now);
+                return RerollResult.refused("Pool '" + name + "' rerolled " + current.getRerolls() + " of " + rerollsPerWindow + " this window; "
+                        + (next == null ? "it never draws again." : "the next window opens at " + next + "."));
+            }
             if (rerollCooldown != null && current.getRerolledAt() > 0 && now.toEpochMilli() - current.getRerolledAt() < rerollCooldown.toMillis()) {
                 long left = rerollCooldown.toMillis() - (now.toEpochMilli() - current.getRerolledAt());
                 return RerollResult.refused("Pool '" + name + "' rerolls again in " + Duration.ofMillis(left).getSeconds() + "s.");
@@ -189,6 +212,7 @@ public final class QuestPool {
             drawn.addAll(picked);
             current.setDrawn(toStrings(drawn));
             current.setRerolledAt(now.toEpochMilli());
+            current.setRerolls(current.getRerolls() + 1);
             remember(current, picked);
             engine.markPoolDirty(owner, name);
             return RerollResult.done(drawn);
@@ -290,6 +314,8 @@ public final class QuestPool {
         private int noRepeatLast;
         private Gate rerollGate = Gate.open();
         private @Nullable Duration rerollCooldown;
+        private int rerollsPerWindow;
+        private boolean expireActiveOnTurn;
 
         Builder() {
         }
@@ -337,6 +363,24 @@ public final class QuestPool {
         public Builder reroll(Gate gate, @Nullable Duration cooldown) {
             this.rerollGate = Objects.requireNonNull(gate, "gate");
             this.rerollCooldown = cooldown;
+            return this;
+        }
+
+        /** How many rerolls an owner has per window (0, the default, for no limit); a new draw gives them back. */
+        public Builder rerollsPerWindow(int count) {
+            if (count < 0) {
+                throw new IllegalArgumentException("A pool allows 0 (no limit) or more rerolls per window, not " + count + ".");
+            }
+            this.rerollsPerWindow = count;
+            return this;
+        }
+
+        /**
+         * Whether a quest of the last draw that the owner still has active expires (posting {@code QuestExpireEvent} and
+         * paying its {@code on-window-end} rules) when the window turns; by default it stays active.
+         */
+        public Builder expireActiveOnTurn(boolean expire) {
+            this.expireActiveOnTurn = expire;
             return this;
         }
 

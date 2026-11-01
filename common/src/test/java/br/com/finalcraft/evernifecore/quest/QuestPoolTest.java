@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.quest;
 import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
 import br.com.finalcraft.evernifecore.logic.Gate;
 import br.com.finalcraft.evernifecore.logic.ProgressOwner;
+import br.com.finalcraft.evernifecore.quest.event.QuestExpireEvent;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Economies;
 import br.com.finalcraft.evernifecore.testing.Platforms;
@@ -117,12 +118,49 @@ class QuestPoolTest {
     }
 
     @Test
+    void aPoolAllowsOnlyItsRerollsPerWindow() {
+        QuestPool pool = engine.pool("daily-mission", p -> p.fromTag("daily").draw(1).window(Window.daily(LocalTime.of(4, 0), ZoneOffset.UTC))
+                .rerollsPerWindow(1));
+        ProgressOwner owner = quests.owner(alex);
+        pool.current(owner);
+
+        assertTrue(pool.reroll(alex).isSuccess());
+        RerollResult again = pool.reroll(alex);
+        assertFalse(again.isSuccess());
+        assertTrue(again.explain().contains("rerolled 1 of 1 this window; the next window opens at"), again.explain());
+
+        quests.advance(Duration.ofDays(1));
+        pool.current(owner);
+        assertTrue(pool.reroll(alex).isSuccess(), "a new window gives the reroll back");
+    }
+
+    @Test
+    void anActiveQuestOfTheLastWindowExpiresWhenTheWindowTurns() {
+        QuestPool pool = engine.pool("daily-mission", p -> p.fromTag("daily").draw(1).window(Window.daily(LocalTime.of(4, 0), ZoneOffset.UTC))
+                .noRepeatLast(1).expireActiveOnTurn(true));
+        ProgressOwner owner = quests.owner(alex);
+        QuestId yesterday = pool.current(owner).get(0);
+        assertTrue(await(engine.start(owner, yesterday, QuestParams.NONE)).isSuccess());
+        List<QuestExpireEvent> expired = quests.recorded(QuestExpireEvent.class);
+
+        quests.advance(Duration.ofDays(1));
+        List<QuestId> today = pool.current(owner);
+
+        assertEquals(QuestStatus.EXPIRED, engine.getState(owner, yesterday).get().getStatus());
+        assertEquals(1, expired.size(), expired.toString());
+        assertFalse(today.contains(yesterday), "the new draw is drawn as before");
+    }
+
+    @Test
     void poolsReadFromYaml() throws Exception {
         List<QuestPool> pools = QuestDefinitions.parsePools(engine, new YAMLMapper().readTree("{daily-mission: {from-tag: daily, draw: 1,"
-                + " window: 'daily at 04:00 zone UTC', no-repeat-last: 3, reroll: {cooldown: 24h}}}"), ZoneOffset.UTC);
+                + " window: 'daily at 04:00 zone UTC', no-repeat-last: 3, reroll: {cooldown: 24h, per-window: 2}, expire-active-on-turn: true}}"),
+                ZoneOffset.UTC);
 
         assertEquals(1, pools.size());
         assertEquals(1, engine.getPool("daily-mission").current(quests.owner(alex)).size());
         assertEquals(3, engine.getPool("daily-mission").getNoRepeatLast());
+        assertEquals(2, engine.getPool("daily-mission").getRerollsPerWindow());
+        assertTrue(engine.getPool("daily-mission").isExpireActiveOnTurn());
     }
 }
