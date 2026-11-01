@@ -12,6 +12,7 @@ import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.flag.Decision;
 import br.com.finalcraft.evernifecore.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.flag.ProtectionFlagGate;
@@ -174,6 +175,21 @@ class GroupFlagsTest {
 
         assertEquals(Decision.PASS, ProtectionFlagGate.decide(parties.regions().getLookup(), bobHitsAlice));
         assertEquals(3.0, bobHitsAlice.getDamageMultiplier());
+    }
+
+    @Test
+    void theHandlerOfAVictimFlagSeesTheVictimNotTheAttacker() {
+        Region arena = arena();
+        arena.setFlag(CoreFlags.INVINCIBLE, Tristate.TRUE);
+        List<FPlayer> seen = new ArrayList<>();
+        arena.setFlagHandler(parties.getOwner(), CoreFlags.INVINCIBLE, outcome -> seen.add(outcome.getPlayer()));
+
+        assertEquals(Decision.DENY, hit(Actors.player(bob), alice));
+        assertEquals(Decision.DENY, hit(Actors.entity("minecraft:zombie", ECEntityType.MONSTER), alice));
+
+        assertEquals(2, seen.size(), seen.toString());
+        assertEquals(alice.getUniqueId(), seen.get(0).getUniqueId(), "the victim, not Bob who hit her");
+        assertEquals(alice.getUniqueId(), seen.get(1).getUniqueId(), "the victim, though no player is behind a zombie");
     }
 
     @Test

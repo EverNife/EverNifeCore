@@ -48,7 +48,7 @@ public final class FlagOutcomeContext {
         return outcome;
     }
 
-    /** Null when no player is behind the action (an explosion, a spawn). */
+    /** The flag's subject - the victim for a flag that protects one, else the player behind the action; null when no player is behind it. */
     public @Nullable FPlayer getPlayer() {
         return player;
     }

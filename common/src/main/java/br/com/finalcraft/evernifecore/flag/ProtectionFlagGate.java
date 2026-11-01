@@ -65,8 +65,8 @@ public final class ProtectionFlagGate {
     }
 
     private static <T> boolean denies(RegionLookup lookup, Flag<T> flag, ActionContext context, List<Region> here, List<Runnable> passed) {
-        FPlayer player = context.getPlayer();
-        Resolution<T> resolution = lookup.resolution(flag, here, flag.getSubject(context));
+        FPlayer subject = flag.getSubject(context);
+        Resolution<T> resolution = lookup.resolution(flag, here, subject);
         T value = resolution.getValue();
         if (value == null) {
             return false;
@@ -77,7 +77,7 @@ public final class ProtectionFlagGate {
             fireApplied(flag, context, value, source, settings);
             FlagHandler handler = source == null ? null : source.getFlagHandler(flag);
             if (handler != null) {
-                handler.handle(new FlagOutcomeContext(FlagOutcome.DENIED, player, source, flag, value, context.getSource(), context,
+                handler.handle(new FlagOutcomeContext(FlagOutcome.DENIED, subject, source, flag, value, context.getSource(), context,
                         resolution, 0));
             }
             return true;
@@ -111,8 +111,8 @@ public final class ProtectionFlagGate {
 
     private static <T> MoveVerdict cross(RegionLookup lookup, Flag<T> flag, MoveContext context, RegionPlayerSession session) {
         Region crossed = context.getRegion();
-        FPlayer player = context.getPlayer();
-        Resolution<T> resolution = lookup.explain(flag, crossed, player);
+        FPlayer subject = flag.getSubject(context);
+        Resolution<T> resolution = lookup.explain(flag, crossed, subject);
         T value = resolution.getValue();
         FlagSettings settings = settingsOf(flag, resolution, crossed);
         if (value == null || flag.decide(context, value, settings) != Decision.DENY) {
@@ -128,7 +128,7 @@ public final class ProtectionFlagGate {
 
         FlagHandler handler = source.getFlagHandler(flag);
         if (handler != null) {
-            FlagOutcomeContext outcome = new FlagOutcomeContext(FlagOutcome.DENIED, player, source, flag, value, EventSource.MOVE, context,
+            FlagOutcomeContext outcome = new FlagOutcomeContext(FlagOutcome.DENIED, subject, source, flag, value, EventSource.MOVE, context,
                     resolution, denials);
             handler.handle(outcome);
             if (outcome.isAllowed()) {
@@ -267,7 +267,8 @@ public final class ProtectionFlagGate {
         if (own.getFlag() != flag || own.getRegion() == null || own.getValue() == null || flag.decide(context, own.getValue(), region.getEffectiveFlagSettings(flag)) != Decision.DENY) {
             return;
         }
-        handler.handle(new FlagOutcomeContext(FlagOutcome.ALLOWED, context.getPlayer(), region, flag, effective, context.getSource(), context,
+        FPlayer subject = flag.getSubject(context);
+        handler.handle(new FlagOutcomeContext(FlagOutcome.ALLOWED, subject, region, flag, effective, context.getSource(), context,
                 resolution, 0));
     }
 
