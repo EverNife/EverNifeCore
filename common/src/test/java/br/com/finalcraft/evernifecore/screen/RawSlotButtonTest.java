@@ -67,4 +67,21 @@ class RawSlotButtonTest {
         assertEquals("list#" + Slots.all().resolve(screen.getGrid()).serialize(), list.getId());
     }
 
+    /** Arrows on raw slots draw the icon handed to {@code arrows}; the side left {@code null} keeps the framework's. */
+    @Test
+    void rawSlotPageArrowsDrawTheIconsGivenToArrows() {
+        Screen<?> screen = Screen.of(3);
+        screen.<Integer>list(() -> Arrays.asList(1, 2, 3))
+                .into(Slots.of(0, 1))
+                .render((entry, icon) -> icon.setItem(ItemSpec.of("minecraft:paper", entry)))
+                .pagedBy(Slots.of(18), Slots.of(26))
+                .arrows(null, Icon.of(ItemSpec.of("minecraft:arrow", 1)));
+
+        ScreenView view = world.open(screen, world.viewer("Steve"));
+        RenderedIcon previous = world.getRenderer().surfaceOf(view).getSlot(18);
+        assertEquals(DefaultIcons.previousPage().getItem().getMaterialId(), previous == null ? null : previous.getItem().getMaterialId(),
+                "a null side keeps the framework's arrow");
+        assertEquals("minecraft:arrow", materialShownAndClose(view, 26));
+    }
+
 }

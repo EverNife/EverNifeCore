@@ -18,6 +18,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **`PagedList.arrows(previous, next)`**: the icons of page arrows placed on raw slots by `pagedBy(SlotSet, SlotSet)`;
+  a `null` side keeps the framework's arrow.
 - **`Button.visibleWhen(Predicate<ScreenView>[, ticks])`**: the predicate receives the view being drawn, so one
   screen can show an icon to one viewer and hide it from another (`view.getViewer()`, `view.test(condition)`). The
   `Supplier` forms stay.

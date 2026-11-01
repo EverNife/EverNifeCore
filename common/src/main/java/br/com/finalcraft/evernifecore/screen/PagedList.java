@@ -141,6 +141,17 @@ public final class PagedList<T, L extends Layout> implements Element {
     }
 
     /**
+     * The look of the page buttons - the companion of {@link #pagedBy(SlotSet, SlotSet)}, whose slots carry no icon.
+     * A {@code null} side draws the framework's own arrow. Called after the layout form, it replaces the layout icons.
+     */
+    @Nonnull
+    public PagedList<T, L> arrows(@Nullable Icon previous, @Nullable Icon next) {
+        this.previousIcon = previous;
+        this.nextIcon = next;
+        return this;
+    }
+
+    /**
      * Whether the page-button slots hold entries while the whole list fits on one page counting them.
      *
      * <p>A region of 24 with two arrow slots then shows up to 26 entries on a single screen, filling the
