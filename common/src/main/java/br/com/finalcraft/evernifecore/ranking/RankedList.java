@@ -3,7 +3,6 @@ package br.com.finalcraft.evernifecore.ranking;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.fancytext.MessagePlaceholders;
-import br.com.finalcraft.evernifecore.pageviewer.PageViewer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.time.ECClock;
 import jakarta.annotation.Nullable;
@@ -26,7 +25,7 @@ import java.util.regex.Pattern;
 /**
  * The data half of any ordered list: where the entries come from (a plain or a {@link CompletableFuture} source), how
  * many are kept, in which order, which values each entry answers, and how long one read stays good for. The chat page
- * ({@link PageViewer}), the placeholders ({@link RankedPlaceholders}) and any screen read the SAME
+ * ({@code PageViewer}), the placeholders ({@link RankedPlaceholders}) and any screen read the SAME
  * {@link RankedSnapshot}, so the expensive half - reading and ordering - is paid once whoever asks.
  *
  * <pre>{@code
@@ -72,8 +71,6 @@ public final class RankedList<T> {
     // tried once per lifetime of a snapshot, not once per reader.
     private @Nullable RankedSnapshot<T> failureProbe;
     private long generation;
-
-    private volatile @Nullable PageViewer<T> pageViewer;
 
     private RankedList(BuilderImp<T> builder) {
         this.id = builder.id;
@@ -139,16 +136,6 @@ public final class RankedList<T> {
     /** Whether the list declared an order; without one it keeps what the source returned. */
     public boolean isOrdered() {
         return orderExtractor != null;
-    }
-
-    /** The chat renderer the last {@code PageViewer.of(this).build()} attached - what {@code /ecpage <id>} sends. */
-    public @Nullable PageViewer<T> getPageViewer() {
-        return pageViewer;
-    }
-
-    /** Called by {@code PageViewer.Builder.build()}; the newest renderer wins. */
-    public void setPageViewer(@Nullable PageViewer<T> pageViewer) {
-        this.pageViewer = pageViewer;
     }
 
     // ------------------------------------------------------------------

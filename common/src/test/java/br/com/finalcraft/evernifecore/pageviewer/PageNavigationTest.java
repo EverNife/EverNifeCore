@@ -29,6 +29,8 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -84,6 +86,21 @@ class PageNavigationTest {
         String link = reader.clickValueOfMessageContaining("Page [");
         assertNotNull(link, "the page indicator should carry a click: " + reader.getMessages());
         return link;
+    }
+
+    @Test
+    void aNamedListAnswersTheViewerBuiltLastForItAndAnAnonymousOneNone() {
+        PageViewer<String> first = pageOf(PAGE_NAME, Arrays.asList("a")).build();
+        RankedList<?> firstList = RankedLists.find(pageId());
+        assertSame(first, PageViewer.attachedTo(firstList));
+
+        PageViewer<String> second = pageOf(PAGE_NAME, Arrays.asList("b")).build();
+        RankedList<?> secondList = RankedLists.find(pageId());
+        assertSame(second, PageViewer.attachedTo(secondList), "the list built last owns the id");
+        assertNull(PageViewer.attachedTo(firstList), "a list the registry replaced has no renderer anymore");
+
+        PageViewer<String> anonymous = pageOf(null, Arrays.asList("c")).build();
+        assertNull(PageViewer.attachedTo(anonymous.getList()), "an anonymous list is never reached by /ecpage");
     }
 
     @Test

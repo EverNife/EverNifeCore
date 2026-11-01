@@ -555,6 +555,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **common: `RankedList` no longer knows its chat renderer**: `getPageViewer`/`setPageViewer` are gone;
+  `PageViewer.attachedTo(list)` answers what `/ecpage <id>` sends. Keep the `PageViewer` you built in a field.
 - **common: the `evernifecore-common` and `-relocated` POMs carry `jakarta.annotation-api`**, so a plugin can use
   `@Nullable`/`@Nonnull` without declaring it.
 - **common-tests: `ECoreTestWorld` and `FinalCmdTestHarness` hand back the core's plugin data on close** (null

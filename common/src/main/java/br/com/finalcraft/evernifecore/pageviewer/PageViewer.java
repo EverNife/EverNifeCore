@@ -17,6 +17,7 @@ import br.com.finalcraft.evernifecore.placeholder.replacer.Closures;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.ranking.RankedEntry;
 import br.com.finalcraft.evernifecore.ranking.RankedList;
+import br.com.finalcraft.evernifecore.ranking.RankedLists;
 import br.com.finalcraft.evernifecore.ranking.RankedSnapshot;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 import jakarta.annotation.Nonnull;
@@ -31,6 +32,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -50,6 +52,10 @@ import java.util.function.Function;
  * {@code send}.</p>
  */
 public final class PageViewer<T> {
+
+    // The renderer each named list was last built with, by list id. A list the registry replaced or dropped is
+    // answered null and pruned on the next ask, so at most one stale renderer per id outlives its list.
+    private static final Map<String, PageViewer<?>> ATTACHED = new ConcurrentHashMap<>();
 
     // What a session handle is derived from, so re-sending the same page finds the reader's own session instead of
     // opening a second one beside it.
@@ -84,6 +90,26 @@ public final class PageViewer<T> {
 
     public static <T> Builder<T> of(RankedList<T> list) {
         return new BuilderImp<>(list);
+    }
+
+    /**
+     * The chat renderer the last {@code PageViewer.of(list).build()} attached to {@code list} - what
+     * {@code /ecpage <id>} sends; {@code null} for an anonymous list, one never paged, or one the registry no longer
+     * holds under its id.
+     */
+    public static @Nullable PageViewer<?> attachedTo(@Nullable RankedList<?> list) {
+        if (list == null || list.getId() == null) {
+            return null;
+        }
+        PageViewer<?> viewer = ATTACHED.get(list.getId());
+        if (viewer == null || viewer.list != list) {
+            return null;
+        }
+        if (RankedLists.find(list.getId()) != list) {
+            ATTACHED.remove(list.getId(), viewer);
+            return null;
+        }
+        return viewer;
     }
 
     public RankedList<T> getList() {
@@ -451,7 +477,7 @@ public final class PageViewer<T> {
             }
             PageViewer<T> pageViewer = new PageViewer<>(this);
             if (list.getId() != null) {
-                list.setPageViewer(pageViewer);
+                ATTACHED.put(list.getId(), pageViewer);
             }
             return pageViewer;
         }

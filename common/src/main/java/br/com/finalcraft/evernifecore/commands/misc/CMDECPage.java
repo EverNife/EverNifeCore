@@ -25,7 +25,7 @@ public class CMDECPage {
     public void onCommand(FCommandSender sender, @Arg("<page-ref>") String pageRef, @Arg("<page>") Integer page) {
 
         RankedList<?> list = RankedLists.find(pageRef);
-        PageViewer<?> viewer = list == null ? null : list.getPageViewer();
+        PageViewer<?> viewer = PageViewer.attachedTo(list);
         if (viewer != null) {
             //A registered page is reachable by anyone who may run the command that shows it: the id
             //carries no reader, so there is nothing here that could belong to somebody else.
