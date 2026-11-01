@@ -132,27 +132,24 @@ class PlayerControllerSectionHooksTest {
 
     @Test
     void onFlushedSkipsARowThatLostTheConflictUntilItsRetryLands() throws Exception {
-        //no backend here enforces the optimistic lock, so the race is scripted under the section
-        PlayerControllerConflictPipelineTest.wrapBackend("test_memory");
-        ConflictInjectingStorage.scripting(HookedSection.class);
         register();
         UUID uuid = UUID.randomUUID();
         HookedSection live = stored(uuid);
         assertEquals(1, live.flushed.get());
 
-        HookedSection winner = new HookedSection();
-        winner.uuid = uuid;
+        //another writer lands over version 0 first: the memory backend enforces the lock, so this server's flush loses
+        Repository<UUID, HookedSection> repository = PlayerController.get().getBinding(HookedSection.class).getRepository();
+        HookedSection winner = await(repository.find(uuid)).get();
         winner.level = 99;
-        winner.lockVersion = 7L;
-        ConflictInjectingStorage.serveWinnerAndConflict(winner);
+        await(repository.save(winner));
 
         live.level = 5;
         live.markDirty();
         world.flushAll();
         assertEquals(99, live.level, "the lost race adopted the winner");
+        assertEquals(Long.valueOf(1L), live.getLockVersion(), "and the winner's version with it");
         assertEquals(1, live.flushed.get(), "this server wrote nothing, so the plugin must not hear 'flushed'");
 
-        ConflictInjectingStorage.reset();
         live.level = 6;
         live.markDirty();
         world.flushAll();
@@ -207,14 +204,15 @@ class PlayerControllerSectionHooksTest {
         UUID uuid = UUID.randomUUID();
         HookedSection persisted = stored(uuid);
 
-        //another writer stamps a version behind this server's cache: only the backend knows it
+        assertEquals(Long.valueOf(0L), persisted.getLockVersion(), "the first write adopted version 0");
+
+        //another writer lands behind this server's cache: only the backend knows the version moved
         Repository<UUID, HookedSection> repository = PlayerController.get().getBinding(HookedSection.class).getRepository();
         HookedSection other = await(repository.find(uuid)).get();
-        other.lockVersion = 7L;
         await(repository.save(other));
 
-        assertEquals(Long.valueOf(7L), await(persisted.readStoredVersion()), "the backend's version, not the instance's");
-        assertNull(persisted.getLockVersion(), "the live instance never adopted it");
+        assertEquals(Long.valueOf(1L), await(persisted.readStoredVersion()), "the backend's version, not the instance's");
+        assertEquals(Long.valueOf(0L), persisted.getLockVersion(), "the live instance keeps the version it adopted");
 
         HookedSection neverWritten = login(UUID.randomUUID(), "Visitor");
         assertNull(neverWritten.getLockVersion());

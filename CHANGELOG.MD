@@ -476,6 +476,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **PlayerData on the memory and file backends keeps a real lock version.** The current EveryDatabase 1.5.1 makes
+  the in-memory, local-file and grouped-file backends check and advance the version of a versioned section like SQL and Mongo do: a
+  section adopts version 0 on its first write, each flush moves it by one, and a write behind another server's lands
+  as a conflict that resolves by `ADOPT_WINNER` instead of silently overwriting it.
+
 - **hytale: an environment block break reaches the track-changes journal and `BreakActionEvent.Post`; spawn-point
   teleports the respawned player.** A System hears `EnvironmentBreakBlockEvent` (fire, a harvest nobody did), keeps the
   block in the journal and posts a BREAK by `environment:break`; the event is not cancellable, so no flag denies it.
