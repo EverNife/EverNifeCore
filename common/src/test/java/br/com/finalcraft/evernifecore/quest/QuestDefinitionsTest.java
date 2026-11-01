@@ -112,6 +112,21 @@ class QuestDefinitionsTest {
     }
 
     @Test
+    void aBrokenEffectListNamesItsKey() {
+        IllegalArgumentException refused = refused("{id: x, stages: [{id: a, objectives: [{id: o, type: kill}]}],"
+                + " on-fail: [{type: message, text: bye}, {type: message}]}");
+        assertTrue(refused.getMessage().startsWith("Quest 'fakequests:x' key 'on-fail[1]': "), refused.getMessage());
+        assertTrue(refused.getMessage().contains("text"), refused.getMessage());
+    }
+
+    @Test
+    void anObjectiveErrorNamesItsStage() {
+        IllegalArgumentException refused = refused("{id: x, stages: [{id: dig, objectives: [{id: iron, type: kill, mode: bogus}]}]}");
+        assertTrue(refused.getMessage().startsWith("Quest 'fakequests:x', stage 'dig', objective 'iron' key 'mode': "), refused.getMessage());
+        assertTrue(refused.getMessage().contains("'bogus' is not a progress mode - write count or each-match"), refused.getMessage());
+    }
+
+    @Test
     void anObjectiveOfATypeNobodyRegisteredStaysPendingWithoutDroppingTheQuest() {
         QuestDefinition definition = quests.parse("{id: later, stages: [{id: a, objectives: [{id: o, type: 'fakequests:not-yet', goal: 2}]}]}");
         Objective objective = definition.getObjectives().get(0);

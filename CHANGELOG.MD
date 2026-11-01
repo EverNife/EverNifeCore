@@ -450,6 +450,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **`QuestDefinitions.parse` names the key in every error**: `gate`, `requires`, `fail-when[i]`, `repeat`,
+  `rewards[i]`, `on-start/on-complete/on-fail/on-abandon[i]`, and for an objective its stage too
+  (`Quest 'x', stage 'dig', objective 'iron' key 'mode': 'bogus' is not a progress mode - write count or each-match.`).
 - **The locale scanner tells a command class scanned by hand** that its `@FCLocale` live in the `@FinalCMD` annotations
   and are read when the command registers, instead of only "has no fields of LocaleMessage.class".
 - **`Transactions.quote` prices a per-player or per-group limited offer for a context without that owner**: a catalog

@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.quest;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.logic.Conditions;
 import br.com.finalcraft.evernifecore.logic.Costs;
+import br.com.finalcraft.evernifecore.logic.Effect;
 import br.com.finalcraft.evernifecore.logic.EffectList;
 import br.com.finalcraft.evernifecore.logic.Effects;
 import br.com.finalcraft.evernifecore.logic.Gate;
@@ -32,6 +33,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * Reads quest definitions from YAML or a {@link JsonNode}; every type key ({@code type: break-block}) is a key of a
@@ -109,23 +111,21 @@ public final class QuestDefinitions {
                 builder.owner(kind.trim().toLowerCase(Locale.ROOT), ownerNode.hasNonNull("provider") ? ownerNode.get("provider").asText() : null);
             }
             if (node.has("gate")) {
-                builder.gate(Gate.parse(owner, node.get("gate"), zone));
+                builder.gate(guard(where + " key 'gate'", () -> Gate.parse(owner, node.get("gate"), zone)));
             }
             for (JsonNode required : list(node.get("requires"))) {
-                builder.requires(QuestId.parse(required.asText(), ownerName));
+                builder.requires(guard(where + " key 'requires'", () -> QuestId.parse(required.asText(), ownerName)));
             }
             for (JsonNode stage : list(node.get("stages"))) {
                 builder.stage(stage(owner, where, stage, zone));
             }
-            for (JsonNode condition : list(node.get("fail-when"))) {
-                builder.failWhen(Conditions.parse(owner, condition, zone));
+            List<JsonNode> failWhen = list(node.get("fail-when"));
+            for (int i = 0; i < failWhen.size(); i++) {
+                JsonNode condition = failWhen.get(i);
+                builder.failWhen(guard(where + " key 'fail-when[" + i + "]'", () -> Conditions.parse(owner, condition, zone)));
             }
             if (node.has("repeat")) {
-                try {
-                    builder.repeat(RepeatPolicy.parse(node.get("repeat"), zone));
-                } catch (IllegalArgumentException invalid) {
-                    throw new IllegalArgumentException(where + ": " + invalid.getMessage(), invalid);
-                }
+                builder.repeat(guard(where + " key 'repeat'", () -> RepeatPolicy.parse(node.get("repeat"), zone)));
             }
             if (node.has("time-limit")) {
                 builder.timeLimit(duration(where, "time-limit", node.get("time-limit")));
@@ -151,8 +151,10 @@ public final class QuestDefinitions {
                 }
             }
             List<RewardRule> rules = new ArrayList<>();
-            for (JsonNode rule : list(node.get("rewards"))) {
-                rules.add(RewardRule.parse(owner, rule));
+            List<JsonNode> rewards = list(node.get("rewards"));
+            for (int i = 0; i < rewards.size(); i++) {
+                JsonNode rule = rewards.get(i);
+                rules.add(guard(where + " key 'rewards[" + i + "]'", () -> RewardRule.parse(owner, rule)));
             }
             builder.reward(Reward.of(rules));
             if (node.has("window")) {
@@ -173,10 +175,10 @@ public final class QuestDefinitions {
                 builder.window(window.hasNonNull("from") ? instant(where, "window from", window.get("from"), windowZone) : null,
                         window.hasNonNull("to") ? instant(where, "window to", window.get("to"), windowZone) : null);
             }
-            builder.onStart(effects(owner, node.get("on-start"), zone));
-            builder.onComplete(effects(owner, node.get("on-complete"), zone));
-            builder.onFail(effects(owner, node.get("on-fail"), zone));
-            builder.onAbandon(effects(owner, node.get("on-abandon"), zone));
+            builder.onStart(effects(owner, where, "on-start", node.get("on-start"), zone));
+            builder.onComplete(effects(owner, where, "on-complete", node.get("on-complete"), zone));
+            builder.onFail(effects(owner, where, "on-fail", node.get("on-fail"), zone));
+            builder.onAbandon(effects(owner, where, "on-abandon", node.get("on-abandon"), zone));
             return builder.build();
         } catch (IllegalArgumentException | TypeRegistryException failure) {
             if (failure instanceof IllegalArgumentException && failure.getMessage() != null && failure.getMessage().contains(id.toString())) {
@@ -223,23 +225,23 @@ public final class QuestDefinitions {
             }
             group = ObjectiveGroup.all(items);
         }
-        return new Stage(stageId, group, effects(owner, node.get("on-complete"), zone),
-                node.hasNonNull("then") ? Next.parse(node.get("then").asText()) : null);
+        return new Stage(stageId, group, effects(owner, where + ", stage '" + stageId + "'", "on-complete", node.get("on-complete"), zone),
+                node.hasNonNull("then") ? guard(where + ", stage '" + stageId + "' key 'then'", () -> Next.parse(node.get("then").asText())) : null);
     }
 
-    private static List<Objective> objectives(ECPluginData owner, String where, String stageId, @Nullable JsonNode nodes, ZoneId zone) {
+    private static List<Objective> objectives(ECPluginData owner, String quest, String stageId, @Nullable JsonNode nodes, ZoneId zone) {
         List<Objective> objectives = new ArrayList<>();
         for (JsonNode node : list(nodes)) {
             if (!node.isObject() || !node.hasNonNull("id")) {
-                throw new IllegalArgumentException(where + ", stage '" + stageId + "' has an objective without an id: every objective has a"
+                throw new IllegalArgumentException(quest + ", stage '" + stageId + "' has an objective without an id: every objective has a"
                         + " stable id, e.g. {id: ore, type: break-block, block: \"minecraft:iron_ore\", goal: 32}.");
             }
             String objectiveId = node.get("id").asText();
+            String where = quest + ", stage '" + stageId + "', objective '" + objectiveId + "'";
             try {
                 Objective.Builder builder = Objective.builder(objectiveId, owner, node);
                 if (node.has("mode")) {
-                    String mode = node.get("mode").asText().trim().toUpperCase(Locale.ROOT).replace('-', '_');
-                    builder.mode(ProgressMode.valueOf(mode));
+                    builder.mode(guard(where + " key 'mode'", () -> progressMode(node.get("mode").asText())));
                 }
                 if (node.has("goal")) {
                     builder.goal(node.get("goal").asLong());
@@ -251,9 +253,9 @@ public final class QuestDefinitions {
                     builder.cost(Costs.parse(owner, cost, zone));
                 }
                 if (node.hasNonNull("then")) {
-                    builder.then(Next.parse(node.get("then").asText()));
+                    builder.then(guard(where + " key 'then'", () -> Next.parse(node.get("then").asText())));
                 }
-                builder.onMatch(effects(owner, node.get("on-match"), zone));
+                builder.onMatch(effects(owner, where, "on-match", node.get("on-match"), zone));
                 builder.hidden(node.path("hidden").asBoolean(false));
                 if (node.has("description")) {
                     builder.description(node.get("description").asText());
@@ -266,7 +268,10 @@ public final class QuestDefinitions {
                 }
                 objectives.add(builder.build());
             } catch (IllegalArgumentException | TypeRegistryException failure) {
-                throw new IllegalArgumentException(where + ", objective '" + objectiveId + "': " + failure.getMessage(), failure);
+                if (failure.getMessage() != null && failure.getMessage().startsWith(where)) {
+                    throw failure; //a guard already named the key
+                }
+                throw new IllegalArgumentException(where + ": " + failure.getMessage(), failure);
             }
         }
         return objectives;
@@ -292,11 +297,32 @@ public final class QuestDefinitions {
                 node.path("order").asInt(0), read, tags, extra);
     }
 
-    private static EffectList effects(ECPluginData owner, @Nullable JsonNode node, ZoneId zone) {
-        if (node == null || node.isNull()) {
-            return Effects.of(Collections.emptyList());
+    /** Runs {@code read}, prefixing a failure with {@code where} - the quest and the key it was reading. */
+    private static <T> T guard(String where, Supplier<T> read) {
+        try {
+            return read.get();
+        } catch (IllegalArgumentException | IllegalStateException | TypeRegistryException failure) {
+            throw new IllegalArgumentException(where + ": " + failure.getMessage(), failure);
         }
-        return Effects.parseList(owner, node, zone);
+    }
+
+    private static ProgressMode progressMode(String written) {
+        try {
+            return ProgressMode.valueOf(written.trim().toUpperCase(Locale.ROOT).replace('-', '_'));
+        } catch (IllegalArgumentException invalid) {
+            throw new IllegalArgumentException("'" + written + "' is not a progress mode - write count or each-match.");
+        }
+    }
+
+    /** The effects under {@code key}, each read on its own so an error names its index. */
+    private static EffectList effects(ECPluginData owner, String where, String key, @Nullable JsonNode node, ZoneId zone) {
+        List<JsonNode> items = list(node);
+        List<Effect> effects = new ArrayList<>();
+        for (int i = 0; i < items.size(); i++) {
+            JsonNode each = items.get(i);
+            effects.add(guard(where + " key '" + key + "[" + i + "]'", () -> Effects.parse(owner, each, zone)));
+        }
+        return Effects.of(effects);
     }
 
     private static Duration duration(String where, String key, JsonNode node) {
