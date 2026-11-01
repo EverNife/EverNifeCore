@@ -11,6 +11,7 @@ import jakarta.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 /**
@@ -629,23 +632,24 @@ public final class Screens {
     // -----------------------------------------------------------------------------------------------------------------
 
     /**
-     * Closes every open screen ({@link CloseReason#SHUTDOWN}). Runs before the platform's listeners go, so each screen
-     * still gets its {@code onClose} - a shutdown with an editable screen open would otherwise turn its contents into
-     * free loot. Renderer thread.
+     * Closes every open screen ({@link CloseReason#SHUTDOWN}) and releases every one set aside. Runs before the
+     * platform's listeners go, so each screen still gets its {@code onClose} - a shutdown with an editable screen open
+     * would otherwise turn its contents into free loot. Any thread: each screen closes on its renderer's thread, and the
+     * call waits for them, at most 5 seconds.
      */
     public static void closeAll() {
-        ScreenNavigation.discardAll();
+        List<ScreenView> setAside = ScreenNavigation.detachAll();
         List<ScreenView> views;
         synchronized (OPEN) {
             views = new ArrayList<>(OPEN.values());
             OPEN.clear();
         }
-        close(views, CloseReason.SHUTDOWN);
+        closeOnRendererThreads(views, setAside, CloseReason.SHUTDOWN);
     }
 
     /**
      * Takes back every override {@code owner} registered, then closes every open screen whose content it owns, or whose
-     * renderer it registered - the plugin's shutdown. Renderer thread.
+     * renderer it registered - the plugin's shutdown. Any thread, as {@link #closeAll()}.
      */
     public static void closeOwnedBy(@Nonnull ECPluginData owner) {
         synchronized (OVERRIDES) {
@@ -666,28 +670,90 @@ public final class Screens {
                 OPEN.remove(view.getViewerId(), view);
             }
         }
+        List<ScreenView> setAside = new ArrayList<>();
         for (ScreenView view : owned) {
-            ScreenNavigation.discard(view.getViewerId());
+            setAside.addAll(ScreenNavigation.detach(view.getViewerId()));
         }
-        close(owned, CloseReason.SHUTDOWN);
+        closeOnRendererThreads(owned, setAside, CloseReason.SHUTDOWN);
     }
 
-    private static void close(List<ScreenView> views, CloseReason reason) {
-        for (ScreenView view : views) {
-            ScreenSurface surface = view.getSurface();
-            try {
-                view.release(reason);
-            } catch (Throwable e) {
-                EverNifeCore.getLog().severe("A screen of [{}] failed to close; the screens after it are still being closed",
-                        view.getViewerName(), e);
-            }
-            if (surface != null) {
+    /** How long {@link #closeAll()} waits for the renderer threads before it gives up on the screens left. */
+    private static final long CLOSE_WAIT_SECONDS = 5L;
+
+    /**
+     * Closes {@code windowed} with {@code reason} and releases {@code setAside} (which have no window), each on its
+     * renderer's thread - inline when the caller is already there - and waits for every one of them.
+     */
+    private static void closeOnRendererThreads(List<ScreenView> windowed, List<ScreenView> setAside, CloseReason reason) {
+        Map<ScreenScheduler, List<Runnable>> batches = new IdentityHashMap<>();
+        Set<ScreenView> pending = ConcurrentHashMap.newKeySet();
+        for (ScreenView view : windowed) {
+            pending.add(view);
+            batchOf(batches, view).add(() -> {
+                close(view, reason);
+                pending.remove(view);
+            });
+        }
+        for (ScreenView view : setAside) {
+            pending.add(view);
+            batchOf(batches, view).add(() -> {
+                release(view, CloseReason.REQUESTED);
+                pending.remove(view);
+            });
+        }
+        CountDownLatch done = new CountDownLatch(batches.size());
+        for (Map.Entry<ScreenScheduler, List<Runnable>> batch : batches.entrySet()) {
+            Runnable task = () -> {
                 try {
-                    surface.close(reason);
-                } catch (Throwable e) {
-                    EverNifeCore.getLog().severe("The window of [{}] failed to close", view.getViewerName(), e);
+                    batch.getValue().forEach(Runnable::run);
+                } finally {
+                    done.countDown();
                 }
+            };
+            try {
+                batch.getKey().run(task);
+            } catch (RuntimeException threadGone) {
+                //a renderer whose thread is already gone takes no task: close them here rather than leave them open
+                task.run();
             }
+        }
+        try {
+            if (!done.await(CLOSE_WAIT_SECONDS, TimeUnit.SECONDS)) {
+                List<String> viewers = new ArrayList<>();
+                for (ScreenView view : pending) {
+                    viewers.add(view.getViewerName());
+                }
+                EverNifeCore.getLog().severe("The screens of {} did not close within {}s: their renderer thread did not run the "
+                        + "close. Their onClose runs only if that thread wakes up, and whatever they hold is not given back "
+                        + "before it.", viewers, CLOSE_WAIT_SECONDS);
+            }
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private static List<Runnable> batchOf(Map<ScreenScheduler, List<Runnable>> batches, ScreenView view) {
+        return batches.computeIfAbsent(view.getScheduler(), scheduler -> new ArrayList<>());
+    }
+
+    private static void close(ScreenView view, CloseReason reason) {
+        ScreenSurface surface = view.getSurface();
+        release(view, reason);
+        if (surface != null) {
+            try {
+                surface.close(reason);
+            } catch (Throwable e) {
+                EverNifeCore.getLog().severe("The window of [{}] failed to close", view.getViewerName(), e);
+            }
+        }
+    }
+
+    private static void release(ScreenView view, CloseReason reason) {
+        try {
+            view.release(reason);
+        } catch (Throwable e) {
+            EverNifeCore.getLog().severe("A screen of [{}] failed to close; the screens after it are still being closed",
+                    view.getViewerName(), e);
         }
     }
 

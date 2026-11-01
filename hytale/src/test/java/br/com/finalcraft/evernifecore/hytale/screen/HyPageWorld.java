@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.hytale.screen;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.screen.ScreenScheduler;
 import br.com.finalcraft.evernifecore.screen.Screens;
 import br.com.finalcraft.evernifecore.screen.prompt.PromptRegistry;
 import br.com.finalcraft.evernifecore.testing.Platforms;
@@ -23,9 +24,9 @@ final class HyPageWorld implements AutoCloseable {
     /** The renderer is keyed {@code evernifecore:page}, and a type is registered by the plugin its key names. */
     private final ECPluginData core;
 
-    private HyPageWorld(ScreenWorld screens, Path dataFolder) {
+    private HyPageWorld(ScreenWorld screens, Path dataFolder, ScreenScheduler scheduler) {
         this.screens = screens;
-        this.renderer = new HyPageRenderer(transport, screens.getTicks());
+        this.renderer = new HyPageRenderer(transport, scheduler);
         this.core = Plugins.fakeCore(dataFolder.resolve("core").toFile());
         Screens.unregisterRenderers(screens.getOwner());
         Screens.registerRenderer(core, renderer);
@@ -35,11 +36,18 @@ final class HyPageWorld implements AutoCloseable {
     }
 
     static HyPageWorld open(Path dataFolder) {
-        return new HyPageWorld(ScreenWorld.open(dataFolder), dataFolder);
+        ScreenWorld screens = ScreenWorld.open(dataFolder);
+        return new HyPageWorld(screens, dataFolder, screens.getTicks());
     }
 
     static HyPageWorld open(Path dataFolder, UnaryOperator<Platforms> platform) {
-        return new HyPageWorld(ScreenWorld.open(dataFolder, platform), dataFolder);
+        ScreenWorld screens = ScreenWorld.open(dataFolder, platform);
+        return new HyPageWorld(screens, dataFolder, screens.getTicks());
+    }
+
+    /** The page renderer on the real screen thread instead of the world's tick clock: time is the wall clock's. */
+    static HyPageWorld onTheScreenThread(Path dataFolder) {
+        return new HyPageWorld(ScreenWorld.open(dataFolder), dataFolder, HyScreenScheduler.INSTANCE);
     }
 
     @Override

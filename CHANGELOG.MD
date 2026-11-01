@@ -465,6 +465,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **`Screens.closeAll()` and `Screens.closeOwnedBy(owner)` run from any thread**: each screen closes (and each one
+  set aside is released) on its renderer's thread, inline when the caller is already there, and the call waits for
+  them up to 5 s, naming in a SEVERE line the viewers whose screens did not close. On Hytale the shutdown thread used
+  to run every `onClose` itself, off the screen thread the screen lives on.
 - **`ScreenSurface.suspended()` tells the window its view was set aside** (a prompt asks, or a screen opened on top):
   a renderer that is not the chest now hears it. The chest closes its inventory there, a tick later and only if the
   player still has it open - a screen or an anvil opened on top keeps its window and the cursor where it was - instead

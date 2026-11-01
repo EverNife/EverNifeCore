@@ -6,6 +6,7 @@ import jakarta.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -172,14 +173,26 @@ public final class ScreenNavigation {
         return Screens.reopen(view);
     }
 
-    /** Forgets one player's chain, tearing down every screen in it that has no window of its own. */
+    /** Forgets one player's chain, tearing down every screen in it that has no window of its own. Renderer thread. */
     public static void discard(@Nonnull UUID viewerId) {
+        for (ScreenView setAside : detach(viewerId)) {
+            setAside.release(CloseReason.REQUESTED);
+        }
+    }
+
+    /**
+     * Forgets one player's chain, nobody left waiting on it, and hands back the screens in it that have no window of
+     * their own - still to be released, on their renderer's thread. Any thread.
+     */
+    @Nonnull
+    static List<ScreenView> detach(@Nonnull UUID viewerId) {
         NavStack<ScreenView> chain;
         synchronized (ScreenNavigation.class) {
             chain = CHAINS.remove(viewerId);
         }
+        List<ScreenView> setAside = new ArrayList<>();
         if (chain == null) {
-            return;
+            return setAside;
         }
         while (!chain.isEmpty()) {
             ScreenView frame = chain.peek();
@@ -187,20 +200,24 @@ public final class ScreenNavigation {
             cancel(frame.getPendingResult());
             frame.setPendingResult(null);
             if (frame.isSuspended()) {
-                frame.release(CloseReason.REQUESTED);
+                setAside.add(frame);
             }
         }
+        return setAside;
     }
 
-    /** {@link #discard(UUID)} for every player - the framework shutting down asks for it. */
-    static void discardAll() {
+    /** {@link #detach(UUID)} for every player - the framework shutting down asks for it. Any thread. */
+    @Nonnull
+    static List<ScreenView> detachAll() {
         ArrayList<UUID> viewers;
         synchronized (ScreenNavigation.class) {
             viewers = new ArrayList<>(CHAINS.keySet());
         }
+        List<ScreenView> setAside = new ArrayList<>();
         for (UUID viewerId : viewers) {
-            discard(viewerId);
+            setAside.addAll(detach(viewerId));
         }
+        return setAside;
     }
 
     private static synchronized NavStack<ScreenView> chainOf(UUID viewerId) {
