@@ -450,6 +450,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **The locale scanner tells a command class scanned by hand** that its `@FCLocale` live in the `@FinalCMD` annotations
+  and are read when the command registers, instead of only "has no fields of LocaleMessage.class".
 - **`Transactions.quote` prices a per-player or per-group limited offer for a context without that owner**: a catalog
   priced from the console or a server-wide screen gets the totals and every other check, without the limit, instead of
   an `IllegalStateException`; `buy`/`sell`/`trade` still refuse with it. New `LimitScope.findOwner(ctx)` (null when the

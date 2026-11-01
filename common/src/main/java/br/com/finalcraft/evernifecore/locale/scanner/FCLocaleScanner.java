@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.locale.scanner;
 
+import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
@@ -13,6 +14,7 @@ import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -77,12 +79,27 @@ public class FCLocaleScanner {
         }
 
         if (!atLeastOneLocaleField && !silent){
-            plugin.getLog().warning("[FCLocale] The class [" + localeClass.getName() + "] has no fields of LocaleMessage.class to be scanned!");
+            plugin.getLog().warning("[FCLocale] The class [" + localeClass.getSimpleName() + "] has no LocaleMessage fields to scan."
+                    + (isCommandClass(localeClass) ? " Its @FCLocale live inside @FinalCMD annotations and are"
+                    + " read when the command registers (FinalCMDManager.registerCommand): drop this scan." : " Declare a static LocaleMessage field with"
+                    + " @FCLocale, or drop this scan."));
         }
 
         localeMessageList.sort(Comparator.comparing(LocaleMessageImp::getKey));
 
         return localeMessageList;
+    }
+
+    private static boolean isCommandClass(Class<?> type) {
+        if (type.isAnnotationPresent(FinalCMD.class)) {
+            return true;
+        }
+        for (Method method : type.getDeclaredMethods()) {
+            if (method.isAnnotationPresent(FinalCMD.class) || method.isAnnotationPresent(FinalCMD.SubCMD.class)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static LocaleMessageImp scanForLocale(ECPluginData plugin, String key, boolean shouldSyncToFile, FCLocaleData... locales){

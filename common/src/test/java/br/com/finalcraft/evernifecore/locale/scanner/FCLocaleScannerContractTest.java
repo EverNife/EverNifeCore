@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginE
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformChatAdapter;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVecAdapter;
+import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
@@ -127,6 +128,27 @@ public class FCLocaleScannerContractTest {
                 "must name the field that won: " + report);
         assertTrue(report.contains("br.com.finalcraft.evernifecore.locale.scanner.beta.SharedSimpleName#GREETING"),
                 "must name the field that lost: " + report);
+    }
+
+    /** A command class: its locales sit in the annotations, no LocaleMessage field. */
+    @FinalCMD(aliases = "scannedbyhand")
+    public static class CommandWithoutLocaleFields {
+        @FinalCMD.SubCMD(subcmd = "go", locales = @FCLocale(text = "Go"))
+        public void go() {
+        }
+    }
+
+    @Test
+    void aCommandClassWithoutFieldsIsToldItsLocalesAreReadOnRegistration() {
+        List<String> capturedWarnings = new ArrayList<>();
+        ECPluginData plugin = pluginDataWithCapturedLog("ScannedByHandPlugin", capturedWarnings);
+
+        FCLocaleScanner.scanForLocale(plugin, false, CommandWithoutLocaleFields.class);
+
+        assertEquals(1, capturedWarnings.size(), "one warning: " + capturedWarnings);
+        String warning = capturedWarnings.get(0);
+        assertTrue(warning.contains("[CommandWithoutLocaleFields] has no LocaleMessage fields to scan"), warning);
+        assertTrue(warning.contains("read when the command registers (FinalCMDManager.registerCommand): drop this scan."), warning);
     }
 
     /** Root + one child, both using the new click()/clickType() attribute names. */
