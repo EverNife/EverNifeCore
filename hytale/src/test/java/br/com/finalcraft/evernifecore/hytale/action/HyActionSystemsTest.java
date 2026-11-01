@@ -9,10 +9,14 @@ import br.com.finalcraft.evernifecore.action.BlockContext;
 import br.com.finalcraft.evernifecore.action.ECEntityType;
 import br.com.finalcraft.evernifecore.action.ActionSupport;
 import br.com.finalcraft.evernifecore.action.DamageContext;
+import br.com.finalcraft.evernifecore.action.EntityContext;
+import br.com.finalcraft.evernifecore.action.event.InteractNpcActionEvent;
 import br.com.finalcraft.evernifecore.flag.core.ActorDenyFlag;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.npc.NpcRef;
 import br.com.finalcraft.evernifecore.testing.Logs;
 import com.hypixel.hytale.math.vector.Rotation3f;
+import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.server.core.event.events.ecs.EnvironmentBreakBlockEvent;
 import com.hypixel.hytale.server.core.modules.entity.teleport.Teleport;
 import br.com.finalcraft.evernifecore.action.SimpleContext;
@@ -592,6 +596,49 @@ class HyActionSystemsTest {
         } finally {
             ActionSupport.declare("an undeclared platform", null, null, true, null);
             FlagRegistry.get().setMissingCapabilities(Collections.emptyList());
+        }
+    }
+
+    /** {@code miner} hitting a quest giver with his hand: what the DAMAGE System builds for it. */
+    private DamageContext punch(Damage damage) {
+        return new DamageContext(EventSource.DAMAGE, HyActionContexts.position(WORLD, new Vector3d(5, 5, 5)), HyActionContexts.actor(miner, null, null, null),
+                damage, HyActionContexts.actor(null, "Quest_Giver", null, null, NpcRef.of("hytale", "giver")));
+    }
+
+    @Test
+    void aPunchOnAnNpcIsItsLeftClickAndAUseItsRightOne() {
+        assertSame(EntityContext.ClickType.RIGHT, HyActionSystems.npcClickOf(InteractionType.Use));
+        assertSame(EntityContext.ClickType.LEFT, HyActionSystems.npcClickOf(InteractionType.Primary));
+        assertNull(HyActionSystems.npcClickOf(InteractionType.Secondary));
+
+        List<InteractNpcActionEvent.Post> clicks = new ArrayList<>();
+        ECEventSubscription<InteractNpcActionEvent.Post> post = ECEventBus.global().subscribe(InteractNpcActionEvent.Post.class, clicks::add);
+        try {
+            Damage damage = new Damage(Damage.NULL_SOURCE, 0, 1f);
+            assertFalse(HyActionSystems.punchNpc(WORLD, damage, () -> punch(damage)));
+
+            assertEquals(1, clicks.size());
+            assertSame(EntityContext.ClickType.LEFT, clicks.get(0).getContext().getClickType());
+            assertEquals(NpcRef.of("hytale", "giver"), clicks.get(0).getContext().getEntity().getNpc());
+            assertSame(miner, clicks.get(0).getPlayer());
+        } finally {
+            post.unsubscribe();
+        }
+    }
+
+    @Test
+    void aCancelledPunchPreCancelsTheHitAndAHitByNobodyIsNoClick() {
+        ECEventSubscription<InteractNpcActionEvent.Pre> veto = ECEventBus.global().subscribe(InteractNpcActionEvent.Pre.class, pre -> pre.setCancelled(true));
+        try {
+            Damage punched = new Damage(Damage.NULL_SOURCE, 0, 1f);
+            assertTrue(HyActionSystems.punchNpc(WORLD, punched, () -> punch(punched)));
+            assertTrue(punched.isCancelled(), "a denied left click lands no hit");
+
+            Damage fell = new Damage(Damage.NULL_SOURCE, 0, 1f);
+            assertFalse(HyActionSystems.punchNpc(WORLD, fell, () -> hitAt(5, fell)), "the victim is no NPC and nobody hit him");
+            assertFalse(fell.isCancelled());
+        } finally {
+            veto.unsubscribe();
         }
     }
 }

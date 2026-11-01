@@ -282,6 +282,30 @@ public final class HyActionSystems {
         return HyActionContexts.isDisabled(world) ? null : RegionLookup.get().resolve(CoreFlags.SPAWN_POINT, world, diedAt.x, diedAt.y, diedAt.z, player);
     }
 
+    /** The click an entity interaction of {@code type} is on an NPC: Use is the right click, Primary the left; null for any other. */
+    static @Nullable EntityContext.ClickType npcClickOf(InteractionType type) {
+        return type == InteractionType.Use ? EntityContext.ClickType.RIGHT : type == InteractionType.Primary ? EntityContext.ClickType.LEFT : null;
+    }
+
+    /**
+     * A hit a player lands with his own hand - not a projectile - on an NPC is the left click on it: {@code interact-npc}
+     * with {@link EntityContext.ClickType#LEFT}. A denial cancels the hit.
+     */
+    static boolean punchNpc(String world, Damage damage, Supplier<DamageContext> context) {
+        if (!EventSourceUsage.get().isNeeded(EventSource.INTERACT_NPC)) {
+            return false;
+        }
+        DamageContext probe = context.get();
+        if (probe.getActor().getEntityType() != ECEntityType.PLAYER || probe.getVictim().getNpc() == null) {
+            return false;   //a projectile acts as itself, with its shooter only behind it
+        }
+        return judge(EventSource.INTERACT_NPC, world, damage, () -> {
+            DamageContext hit = context.get();   //fresh actors for every dispatch
+            return new EntityContext(EventSource.INTERACT_NPC, hit.getPosition(), hit.getActor(), damage, hit.getVictim(), null,
+                    EntityContext.ClickType.LEFT);
+        });
+    }
+
     /**
      * An item the entity at {@code actor} drops or picks up, asked where that entity stands. An event naming no item, or
      * an entity with no position, is left alone.
@@ -571,24 +595,30 @@ public final class HyActionSystems {
                 return;
             }
             //a use of an NPC is also an interact-npc, the source the NPC providers raise on every platform
-            if (event.getInteractionType() == InteractionType.Use && EventSourceUsage.get().isNeeded(EventSource.INTERACT_NPC)
+            EntityContext.ClickType click = npcClickOf(event.getInteractionType());
+            if (click != null && EventSourceUsage.get().isNeeded(EventSource.INTERACT_NPC)
                     && event.getTargetEntity() != null && HyActionContexts.actor(event.getTargetEntity(), store).getNpc() != null) {
                 InteractionContext context = event.getContext();
                 decideOnEntity(EventSource.INTERACT_NPC, user, event.getTargetEntity(), store, event,
-                        context == null ? null : HyActionContexts.itemKey(context.getHeldItem()));
+                        context == null ? null : HyActionContexts.itemKey(context.getHeldItem()), click);
             }
         }
     }
 
     private static boolean decideOnEntity(EventSource source, Ref<EntityStore> user, @Nullable Ref<EntityStore> target, Store<EntityStore> store,
                                           ICancellableEcsEvent event, @Nullable TypeKey itemInHand) {
+        return decideOnEntity(source, user, target, store, event, itemInHand, EntityContext.ClickType.RIGHT);
+    }
+
+    private static boolean decideOnEntity(EventSource source, Ref<EntityStore> user, @Nullable Ref<EntityStore> target, Store<EntityStore> store,
+                                          ICancellableEcsEvent event, @Nullable TypeKey itemInHand, EntityContext.ClickType click) {
         Vector3d at = target == null ? null : positionOf(target, store);
         if (at == null) {
             return false;
         }
         String world = worldOf(store);
         return judge(source, world, event, () -> new EntityContext(source, HyActionContexts.position(world, at),
-                HyActionContexts.actor(user, store), event, HyActionContexts.actor(target, store), itemInHand));
+                HyActionContexts.actor(user, store), event, HyActionContexts.actor(target, store), itemInHand, click));
     }
 
     /**
@@ -853,7 +883,7 @@ public final class HyActionSystems {
     /**
      * Damage to an entity, asked where the victim stands, in the filter group where the game's own protection runs; a
      * denial cancels it - the amount is never zeroed, which would still knock back and play the hit - and one let through
-     * is scaled by the factor the regions wrote on it.
+     * is scaled by the factor the regions wrote on it. A hit a player lands on an NPC is also its left click ({@link #punchNpc}).
      */
     private static final class DamageSystem extends DamageEventSystem {
 
@@ -873,8 +903,11 @@ public final class HyActionSystems {
             Vector3d at = chunk.getComponent(index, TransformComponent.getComponentType()).getPosition();
             Ref<EntityStore> victim = chunk.getReferenceTo(index);
             String world = worldOf(store);
-            judgeDamage(world, damage, () -> new DamageContext(EventSource.DAMAGE, HyActionContexts.position(world, at),
-                    attacker(damage, store), damage, HyActionContexts.actor(victim, store)));
+            Supplier<DamageContext> hit = () -> new DamageContext(EventSource.DAMAGE, HyActionContexts.position(world, at),
+                    attacker(damage, store), damage, HyActionContexts.actor(victim, store));
+            if (!judgeDamage(world, damage, hit)) {
+                punchNpc(world, damage, hit);
+            }
         }
 
         private static Actor attacker(Damage damage, Store<EntityStore> store) {
