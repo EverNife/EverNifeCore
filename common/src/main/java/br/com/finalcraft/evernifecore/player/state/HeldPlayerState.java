@@ -20,11 +20,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 /**
  * What was changed on one player, slot by slot, by whom, and what the player had there before: the first
  * {@link StateHolder} - a session flag, a held effect - to hold a slot saves the player's state, the last to let it go
- * writes it back, so the player ends with what they had before, even when it equals what was given. A slot held with
+ * writes it back, so the player ends with what they had before, even when it equals what was given. While the slot is
+ * shared, the latest holder's value is the one on the player; when it lets go, the holder now latest puts its own back.
+ * A slot held with
  * {@code persistent} also lands in the player's {@link PlayerStateBackup}: a player who was inside when the server
  * stopped gets it back on the next join ({@link #restoreLeftovers}). One per player while online ({@link #of}); on quit
  * every slot still held is given back ({@link #forget}). Calls run on the player's world thread.
@@ -44,6 +47,7 @@ public final class HeldPlayerState {
     private static final class Slot {
         final String before;
         final Map<String, Object> holders = new LinkedHashMap<>();
+        final Map<String, Consumer<FPlayer>> rewrites = new HashMap<>();
 
         Slot(String before) {
             this.before = before;
@@ -107,8 +111,11 @@ public final class HeldPlayerState {
      * {@code holder} holds {@code slot} at {@code value}; changing the player is the holder's part. The first holder
      * saves what the player has there now - or what the backup kept, when the server stopped with the player inside and
      * the slot was never given back.
+     *
+     * @param rewrite puts {@code value} on the player again, when a holder that came after lets the slot go
      */
-    public synchronized void hold(String slot, StateHolder holder, Object value, boolean persistent, FPlayer online) {
+    public synchronized void hold(String slot, StateHolder holder, Object value, Consumer<FPlayer> rewrite, boolean persistent,
+                                  FPlayer online) {
         watchQuits();
         Slot held = slots.get(slot);
         if (held == null) {
@@ -120,23 +127,36 @@ public final class HeldPlayerState {
                 backup.put(slot, held.before);
             }
         }
+        //a holder that takes the slot again just wrote its value: it is the latest now
+        held.holders.remove(holder.getHolderId());
         held.holders.put(holder.getHolderId(), value);
+        held.rewrites.put(holder.getHolderId(), rewrite);
     }
 
-    /** The holders of {@code slot} now, by {@link StateHolder#getHolderId() id}, with their values, in the order they took it. */
+    /** The holders of {@code slot} now, by {@link StateHolder#getHolderId() id}, with their values, the latest to (re)take it last. */
     public synchronized Map<String, Object> getHolders(String slot) {
         Slot held = slots.get(slot);
         return held == null ? Collections.emptyMap() : new LinkedHashMap<>(held.holders);
     }
 
     /**
-     * {@code holder} lets {@code slot} go. The last holder writes back what the player had.
+     * {@code holder} lets {@code slot} go. The last holder writes back what the player had; while others still hold it,
+     * the latest of them puts its value back when {@code holder} was the latest (its value was the one on the player).
      *
      * @return whether the slot was given back; false while another holder still holds it, or when {@code holder} never did
      */
     public synchronized boolean release(String slot, StateHolder holder, FPlayer online) {
         Slot held = slots.get(slot);
-        if (held == null || held.holders.remove(holder.getHolderId()) == null || !held.holders.isEmpty()) {
+        if (held == null || !held.holders.containsKey(holder.getHolderId())) {
+            return false;
+        }
+        String latest = latest(held);
+        held.holders.remove(holder.getHolderId());
+        held.rewrites.remove(holder.getHolderId());
+        if (!held.holders.isEmpty()) {
+            if (latest.equals(holder.getHolderId())) {
+                rewrite(online, slot, held.rewrites.get(latest(held)));
+            }
             return false;
         }
         slots.remove(slot);
@@ -161,6 +181,22 @@ public final class HeldPlayerState {
             if (!slots.containsKey(kept.getKey())) {
                 give(online, kept.getKey(), kept.getValue());
             }
+        }
+    }
+
+    private static String latest(Slot held) {
+        String latest = null;
+        for (String id : held.holders.keySet()) {
+            latest = id;
+        }
+        return latest;
+    }
+
+    private static void rewrite(FPlayer online, String slot, Consumer<FPlayer> rewrite) {
+        try {
+            rewrite.accept(online);
+        } catch (RuntimeException refused) {
+            ECDebugModule.REGIONS.debug("Could not put {}'s {} back for the holder still there: {}", online.getName(), slot, refused.toString());
         }
     }
 

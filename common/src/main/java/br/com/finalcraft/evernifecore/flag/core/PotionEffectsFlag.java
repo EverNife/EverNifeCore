@@ -74,7 +74,8 @@ public final class PotionEffectsFlag extends Flag<List<EffectLevel>> implements 
         HeldPlayerState held = context.getSession().getHeldState();
         for (EffectLevel effect : value) {
             if (access.isEffect(effect.getEffect())) {
-                held.hold(HeldPlayerState.effect(effect.getEffect()), this, effect, settings.isPersistent(), context.getPlayer());
+                held.hold(HeldPlayerState.effect(effect.getEffect()), this, effect, player -> access.addEffect(player, effect, LENGTH),
+                        settings.isPersistent(), context.getPlayer());
                 access.addEffect(context.getPlayer(), effect, LENGTH);
             }
         }

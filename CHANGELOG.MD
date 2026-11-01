@@ -542,6 +542,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **`HeldPlayerState.release` puts back the value of the holder that stays**: when the latest holder of a shared slot
+  lets go, the holder now latest writes its own value again - a `scope: held` gamemode released inside a `game-mode`
+  region gives back the region's mode, not the effect's. `hold(slot, holder, value, rewrite, persistent, online)` takes
+  that writer; a holder that takes the slot again becomes the latest. The flags lost their own work-around for it.
 - **A delayed or repeated effect whose player left becomes a delivery**: `Deliveries.start()` registers the deferred
   sink (`closeAll()` puts the dropping one back), which keeps the core's own effects for the player to claim on login.
   `DeferredEffectSink.defer(ctx, effect, node, absentPlayer)` carries the effect's node without the modifiers that

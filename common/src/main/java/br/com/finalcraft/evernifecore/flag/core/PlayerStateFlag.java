@@ -68,7 +68,7 @@ public abstract class PlayerStateFlag<T> extends Flag<T> {
         }
         PlayerStateSettings settings = context.getSettings(this);
         HeldPlayerState held = context.getSession().getHeldState();
-        held.hold(getSlot(), this, value, settings.isPersistent(), context.getPlayer());
+        held.hold(getSlot(), this, value, player -> apply(context, access, held), settings.isPersistent(), context.getPlayer());
         apply(context, access, held);
     }
 
@@ -92,10 +92,7 @@ public abstract class PlayerStateFlag<T> extends Flag<T> {
         if (access == null) {
             return;
         }
-        HeldPlayerState held = context.getSession().getHeldState();
-        if (!held.release(getSlot(), this, context.getPlayer()) && !held.getHolders(getSlot()).isEmpty()) {
-            apply(context, access, held); //another flag still holds the slot: what it asks for stands alone now
-        }
+        context.getSession().getHeldState().release(getSlot(), this, context.getPlayer());
     }
 
     private @Nullable IPlayerStateAccess access() {

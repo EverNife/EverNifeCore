@@ -293,7 +293,7 @@ final class StockEffects {
         public HeldEffect hold(ExecutionContext ctx, StateHolder holder) {
             FPlayer player = player(ctx, name);
             HeldPlayerState state = HeldPlayerState.of(player.getUniqueId());
-            state.hold(slot, holder, value, false, player);
+            state.hold(slot, holder, value, held -> write(access(), held), false, player);
             write(access(), player);
             ctx.getAudit().add(ctx, AuditKind.HELD, name + " held by " + holder.getHolderId());
             return () -> {

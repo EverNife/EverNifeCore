@@ -32,7 +32,7 @@ public final class WeatherLockFlag extends PlayerStateFlag<String> {
     @Override
     protected void apply(SessionContext context, IPlayerStateAccess access, HeldPlayerState held) {
         Object weather = held.getHolders(getSlot()).get(getHolderId());
-        if (weather != null) { //null: another holder (a held effect) keeps the slot, with the weather it set
+        if (weather != null) { //null: this flag does not hold the slot
             access.setWeather(context.getPlayer(), (String) weather);
         }
     }

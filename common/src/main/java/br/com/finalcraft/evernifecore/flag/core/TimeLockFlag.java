@@ -47,7 +47,7 @@ public final class TimeLockFlag extends PlayerStateFlag<TimeLock> {
     @Override
     protected void apply(SessionContext context, IPlayerStateAccess access, HeldPlayerState held) {
         TimeLock value = (TimeLock) held.getHolders(getSlot()).get(getHolderId());
-        if (value == null) { //another holder (a held effect) keeps the slot, with the time it set
+        if (value == null) { //this flag does not hold the slot
             return;
         }
         TimeLockSettings settings = context.getSettings(this);

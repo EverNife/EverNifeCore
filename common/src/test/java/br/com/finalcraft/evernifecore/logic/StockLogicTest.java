@@ -186,13 +186,30 @@ class StockLogicTest {
         HeldPlayerState held = HeldPlayerState.of(alex.getUniqueId());
 
         HoldableEffect.HeldEffect byLogic = adventure.hold(ctx(), stage);
-        held.hold(HeldPlayerState.GAME_MODE, flag, ECGameMode.CREATIVE, false, alex);
+        held.hold(HeldPlayerState.GAME_MODE, flag, ECGameMode.CREATIVE, player -> state.of(player).gameMode = ECGameMode.CREATIVE, false, alex);
         state.of(alex).gameMode = ECGameMode.CREATIVE;
 
         assertEquals(Arrays.asList(stage.getHolderId(), flag.getHolderId()), new ArrayList<>(held.getHolders(HeldPlayerState.GAME_MODE).keySet()));
         assertFalse(byLogic.release(), "the flag still holds the slot");
         assertEquals(ECGameMode.CREATIVE, state.of(alex).gameMode);
         assertTrue(held.release(HeldPlayerState.GAME_MODE, flag, alex), "the last holder gives it back");
+        assertEquals(ECGameMode.SURVIVAL, state.of(alex).gameMode, "what the player had before the first holder");
+    }
+
+    @Test
+    void releasingAHeldEffectWhileAFlagStillHoldsTheSlotPutsTheFlagsValueBack() {
+        FlagKey flag = FlagKey.of("evernifecore", "game-mode");
+        HeldPlayerState held = HeldPlayerState.of(alex.getUniqueId());
+        held.hold(HeldPlayerState.GAME_MODE, flag, ECGameMode.CREATIVE, player -> state.of(player).gameMode = ECGameMode.CREATIVE, false, alex);
+        state.of(alex).gameMode = ECGameMode.CREATIVE;
+        HoldableEffect adventure = (HoldableEffect) Effects.parse(shop.getOwner(), node("{'type': 'gamemode', 'value': 'adventure'}"), ZoneOffset.UTC);
+
+        HoldableEffect.HeldEffect byLogic = adventure.hold(ctx(), StateHolder.of("finalquests:tutorial/stage:mine"));
+        assertEquals(ECGameMode.ADVENTURE, state.of(alex).gameMode);
+
+        assertFalse(byLogic.release(), "the flag still holds the slot");
+        assertEquals(ECGameMode.CREATIVE, state.of(alex).gameMode, "the flag's mode is back, not the effect's");
+        assertTrue(held.release(HeldPlayerState.GAME_MODE, flag, alex));
         assertEquals(ECGameMode.SURVIVAL, state.of(alex).gameMode, "what the player had before the first holder");
     }
 
