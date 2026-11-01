@@ -207,10 +207,24 @@ public class FancyFormatter implements FancyText {
         return true;
     }
 
+    /**
+     * The raw text of every piece, concatenated in order (colour codes and {@code ${key}} placeholders
+     * kept), or {@code null} when the chain has no piece. Unlike the other getters this is not the last
+     * piece's: a joined text read through it must not lose all but its tail.
+     */
     @Override
     public String getText() {
-        FancyText last = lastOrNull();
-        return last == null ? null : last.getText();
+        if (fancyTextList.isEmpty()) {
+            return null;
+        }
+        StringBuilder text = new StringBuilder();
+        for (FancyText piece : fancyTextList) {
+            String pieceText = piece.getText();
+            if (pieceText != null) {
+                text.append(pieceText);
+            }
+        }
+        return text.toString();
     }
 
     @Override

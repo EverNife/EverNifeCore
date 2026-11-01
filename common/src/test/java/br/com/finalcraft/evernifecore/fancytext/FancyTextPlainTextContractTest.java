@@ -5,6 +5,8 @@ import br.com.finalcraft.evernifecore.testing.TestCommandSender;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
@@ -44,6 +46,13 @@ public class FancyTextPlainTextContractTest {
         String plain = segment.toPlainText();
         assertEquals("Hello world", plain, "toPlainText() must strip every colour/format code");
         assertFalse(plain.contains("§"), "no section sign may survive toPlainText()");
+    }
+
+    @Test
+    void getTextOfAJoinedTextReadsEveryPiece() {
+        FancyText joined = FancyText.join("\n", Arrays.asList("a", "b"), FancyText::of);
+
+        assertEquals("a\nb", joined.getText(), "getText() of a chain is every piece's text, not the last one's");
     }
 
     @Test

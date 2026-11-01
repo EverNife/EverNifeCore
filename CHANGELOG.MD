@@ -461,6 +461,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **`FancyFormatter.getText()` returns the text of every piece**, concatenated in order; it returned only the last
+  piece's, so a joined `GateResult.explain().getText()` (and every text read that way) lost all but its last failure.
 - **`QuestDefinitions.parse` names the key in every error**: `gate`, `requires`, `fail-when[i]`, `repeat`,
   `rewards[i]`, `on-start/on-complete/on-fail/on-abandon[i]`, and for an objective its stage too
   (`Quest 'x', stage 'dig', objective 'iron' key 'mode': 'bogus' is not a progress mode - write count or each-match.`).

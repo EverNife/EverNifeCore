@@ -131,6 +131,15 @@ class GateTest {
     }
 
     @Test
+    void explainGetTextCarriesEveryFailure() {
+        Gate gate = Gate.builder().require(fixed("vip", false), fixed("quest", false)).build();
+
+        String text = gate.check(ctx()).explain().getText();
+
+        assertTrue(text.contains("vip is not met") && text.contains("quest is not met"), text);
+    }
+
+    @Test
     void atLeastTwoPassesWithTwoAndDeniesWithOneListingTheFailures() {
         Condition two = Conditions.atLeast(2, fixed("a", true), fixed("b", true), fixed("c", false));
         Condition one = Conditions.atLeast(2, fixed("a", true), fixed("b", false), fixed("c", false));
