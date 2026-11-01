@@ -18,6 +18,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **The Hytale `inventory-readers` conformance case**: in a live Hytale server, five stone in the bot's active hotbar
+  slot are what `getHeld` reads, `getContents` lists them, and `roomFor` has room that is gone once every slot is full.
 - **Page arrows for a menu's paged offers**: `Menu.Builder.offers(region, previous, next, source)` draws the framework's
   arrows on the raw slots given (a null side draws none), and `Menu.getOfferList()` hands back the screen's own
   `PagedList<Offer, ?>` (id `offers`) - `arrows(...)`, `pagedBy(...)`, `spillIntoPageArrows` or `pager` on it without a
