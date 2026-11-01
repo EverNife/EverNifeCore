@@ -480,6 +480,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **`ConfirmScreen<L extends ConfirmLayout>` is extensible**: `protected ConfirmScreen(L layout, ConfirmRequest)`, and
+  `ConfirmScreen.of(request)` returns `ConfirmScreen<ConfirmLayout>`. A plugin's own confirmation extends it over a
+  layout that extends `ConfirmLayout` and keeps the shift-click of a dangerous request, the paid gate and `{cost}`.
 - **`Screens.closeAll()` and `Screens.closeOwnedBy(owner)` run from any thread**: each screen closes (and each one
   set aside is released) on its renderer's thread, inline when the caller is already there, and the call waits for
   them up to 5 s, naming in a SEVERE line the viewers whose screens did not close. On Hytale the shutdown thread used

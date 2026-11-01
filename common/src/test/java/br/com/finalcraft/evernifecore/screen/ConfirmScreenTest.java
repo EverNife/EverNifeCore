@@ -176,6 +176,47 @@ class ConfirmScreenTest {
         assertEquals(Boolean.TRUE, answer.getNow(null));
     }
 
+    /** A plugin's own confirmation: one field more on the layout, and every rule of the core's screen kept. */
+    @ScreenLayout(title = "§8Claim it?", rows = 3)
+    public static class ClaimLayout extends ConfirmScreen.ConfirmLayout {
+
+        @IconData(slot = {4})
+        public Icon REWARD = Icon.of(ItemSpec.of("minecraft:chest", 1));
+
+    }
+
+    static final class ClaimScreen extends ConfirmScreen<ClaimLayout> {
+
+        ClaimScreen(ConfirmRequest request) {
+            super(Layouts.of(ClaimLayout.class), request);
+            icon(l -> l.REWARD).id("reward");
+        }
+
+    }
+
+    @Test
+    void aSubclassOverAChildLayoutKeepsTheShiftClickAndTheGate() {
+        Gate gate = Gate.builder().cost(gold(true)).build();
+        ClaimScreen claim = new ClaimScreen(ConfirmRequest.of("Claim it?", gate, ctx -> log.add("claimed")).dangerous());
+        ScreenView view = world.open(claim.debounce(0), alex);
+        CompletableFuture<Boolean> answer = Screens.answerOf(CompletableFuture.completedFuture(view), Boolean.class);
+
+        assertEquals("minecraft:chest", world.getRenderer().surfaceOf(view).getSlot(4).getItem().getMaterialId(),
+                "the field the child layout adds is drawn");
+        assertEquals(DefaultIcons.confirm().getItem().getMaterialId(), world.getRenderer().surfaceOf(view).getSlot(11).getItem().getMaterialId(),
+                "and the parent's CONFIRM still sits where the parent put it");
+
+        world.click(view, "CONFIRM", ClickGesture.PRIMARY);
+        world.advanceTicks(2);
+        assertFalse(answer.isDone(), "a dangerous request still takes a shift-click");
+        assertTrue(log.isEmpty(), "and a plain click charges nothing: " + log);
+
+        world.click(view, "CONFIRM", ClickGesture.SHIFT_PRIMARY);
+        world.advanceTicks(2);
+        assertEquals("[take gold, claimed]", log.toString(), "the gate the core's screen pays, paid here too");
+        assertEquals(Boolean.TRUE, answer.getNow(null));
+    }
+
     @Test
     void aGateNotMetKeepsTheScreenOpenAndChargesNothing() {
         Gate gate = Gate.builder().cost(gold(false)).build();

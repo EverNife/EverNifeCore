@@ -21,8 +21,12 @@ import jakarta.annotation.Nonnull;
  * <p>What it looks like is the admin's: {@code guis/ConfirmLayout.yml} restyles the buttons, the background and the
  * size, and the plugin keeps saying only what it asks. With a {@link ConfirmRequest#getGate() gate}, confirming pays it
  * (a {@link ClickRule}) and the confirm button's lore reads {@code {cost}}.</p>
+ *
+ * <p>A plugin with a confirmation of its own extends it over a layout that extends {@link ConfirmLayout} - its extra
+ * fields bound in the subclass constructor - and keeps the shift-click a dangerous request takes, the gate a confirm
+ * pays and the {@code {cost}} of the lore.</p>
  */
-public final class ConfirmScreen extends Screen<ConfirmScreen.ConfirmLayout> {
+public class ConfirmScreen<L extends ConfirmScreen.ConfirmLayout> extends Screen<L> {
 
     @FCLocale(lang = LocaleType.EN_US, text = "§cThis one is serious - hold SHIFT and click to confirm.")
     @FCLocale(lang = LocaleType.PT_BR, text = "§cEssa é séria - segure SHIFT e clique para confirmar.")
@@ -35,7 +39,8 @@ public final class ConfirmScreen extends Screen<ConfirmScreen.ConfirmLayout> {
     private final ConfirmRequest request;
     private final ClickRule payment;
 
-    private ConfirmScreen(ConfirmLayout layout, ConfirmRequest request) {
+    /** {@code request} on {@code layout}, already wired: CONFIRM answers (or pays, or asks for SHIFT), DENY says no. */
+    protected ConfirmScreen(@Nonnull L layout, @Nonnull ConfirmRequest request) {
         super(layout.getRows(), layout);
         this.request = request;
         this.payment = request.getGate() == null ? null
@@ -53,14 +58,14 @@ public final class ConfirmScreen extends Screen<ConfirmScreen.ConfirmLayout> {
         }
         if (payment != null) {
             //the gate's costs as it writes them, for whoever looks: a cost that depends on the viewer reads its base here
-            addReplacer(new RegexReplacer<ConfirmScreen>(Closures.BRACKET).addParser("cost", screen -> screen.describeCost()), this);
+            addReplacer(new RegexReplacer<ConfirmScreen<?>>(Closures.BRACKET).addParser("cost", screen -> screen.describeCost()), this);
         }
     }
 
     /** The confirmation {@code request} on the admin's {@code ConfirmLayout}. */
     @Nonnull
-    public static ConfirmScreen of(@Nonnull ConfirmRequest request) {
-        return new ConfirmScreen(Layouts.of(ConfirmLayout.class), request);
+    public static ConfirmScreen<ConfirmLayout> of(@Nonnull ConfirmRequest request) {
+        return new ConfirmScreen<>(Layouts.of(ConfirmLayout.class), request);
     }
 
     @Nonnull
