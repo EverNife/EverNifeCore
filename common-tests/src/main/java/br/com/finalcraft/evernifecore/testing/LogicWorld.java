@@ -156,6 +156,11 @@ public final class LogicWorld implements AutoCloseable {
         return AuditLog.of(owner, storage);
     }
 
+    /** Blocks until every write the owner's open audit log started so far landed; no log open, nothing to wait for. */
+    public void awaitAudit() {
+        AuditLog.ofIfPresent(owner).ifPresent(log -> log.awaitWrites().join());
+    }
+
     /** A caller of this world's plugin at {@code origin}. */
     public Caller caller(String origin) {
         return Caller.of(owner, origin);

@@ -374,8 +374,11 @@ public final class AuditLog {
         });
     }
 
-    /** Completes once every write started so far is done. */
-    CompletableFuture<Void> awaitWrites() {
+    /**
+     * For tests and shutdown: completes when every write started so far landed (a failed one too - it was logged). A write
+     * starts when the entry is recorded, on the thread that recorded it.
+     */
+    public CompletableFuture<Void> awaitWrites() {
         return CompletableFuture.allOf(pendingWrites.toArray(new CompletableFuture[0])).exceptionally(error -> null);
     }
 

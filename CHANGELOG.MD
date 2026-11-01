@@ -18,6 +18,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **`AuditLog.awaitWrites()` is public** (for tests and shutdown: completes when every write started so far landed),
+  and the test kit's `LogicWorld.awaitAudit()` waits on the owner's open log - no more polling a query.
 - **`target: online-players`**: an effect applies to every online player (the members of `ProgressOwner.global()`),
   whatever the owner of the context.
 - **`GroupKindRegisteredEvent`**: `GroupManager.registerKind` posts it (after reading the stored groups of the kind, when

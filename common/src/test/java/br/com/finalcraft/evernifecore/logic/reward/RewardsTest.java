@@ -253,11 +253,8 @@ class RewardsTest {
             assertEquals(rule, event.getRule());
             assertEquals(event.getMember().equals(offline), event.isDelivered());
         }
+        duel.awaitAudit(); //the log writes off the paying thread
         List<AuditEntry> lines = await(log.query(new AuditQuery().kind(AuditKind.REWARD_PAID)));
-        for (long deadline = System.currentTimeMillis() + 5000; lines.size() < 3 && System.currentTimeMillis() < deadline; ) {
-            Thread.sleep(20); //the log writes off the paying thread
-            lines = await(log.query(new AuditQuery().kind(AuditKind.REWARD_PAID)));
-        }
         assertEquals(3, lines.size(), lines.toString());
         assertTrue(lines.stream().anyMatch(line -> offline.equals(line.getPlayer()) && line.getText().contains("pending delivery")), lines.toString());
         assertTrue(lines.stream().allMatch(line -> ("group:" + alpha.getId()).equals(line.getSubject())), lines.toString());
