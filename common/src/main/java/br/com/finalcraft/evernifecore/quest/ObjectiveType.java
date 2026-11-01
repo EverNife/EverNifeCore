@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.event.ActionEvent;
 import br.com.finalcraft.evernifecore.action.event.ActionEvents;
 import br.com.finalcraft.evernifecore.logic.Condition;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.types.ParamSpec;
 import br.com.finalcraft.evernifecore.types.ParsedParams;
 import br.com.finalcraft.evernifecore.types.TypeRegistryException;
@@ -62,6 +63,11 @@ public interface ObjectiveType<C> {
      * {@code quest} attribute.
      */
     default @Nullable Condition stateOf(C filter) {
+        return null;
+    }
+
+    /** Where the objective sends the player, for the tracked quest's waypoint; null when it has no place. */
+    default @Nullable WorldLocPos targetOf(C filter) {
         return null;
     }
 

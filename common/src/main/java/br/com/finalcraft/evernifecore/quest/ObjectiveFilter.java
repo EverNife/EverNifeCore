@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.quest;
 
 import br.com.finalcraft.evernifecore.action.event.ActionEvent;
 import br.com.finalcraft.evernifecore.logic.Condition;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import jakarta.annotation.Nullable;
 
 /** One objective's parsed filter, bound to the type that reads it. */
@@ -38,6 +39,10 @@ public final class ObjectiveFilter {
 
     public @Nullable Condition stateOf() {
         return type.stateOf(filter);
+    }
+
+    public @Nullable WorldLocPos targetOf() {
+        return type.targetOf(filter);
     }
 
     @Override

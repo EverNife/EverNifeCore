@@ -53,6 +53,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `tracked_<op>`, `quests_active_count`, `quests_completed_count` and `pool_[pool]_<n>|count|reroll_in`; the core serves
   them under `%evernifecore_...%` over every engine by full id. New readers: `QuestDefinition.getStageProgress(state)` /
   `getObjective(id)`, `QuestEngine.getTracked(UUID)`, `QuestPool.getRerollCooldown()`.
+- **Quest presenter**: `QuestPresenter` (progress, objective, stage, complete, fail, abandon, track, untrack) is how an
+  engine shows quest moments to the player of a player's quest or the online members of a group's;
+  `NotifierQuestPresenter` is the default (`PROGRESS`, `COMPLETE` with the level-up sound, `TRACKED` with the stage's
+  progress, through the admin's notify chains) and points a `Waypoint` at each target of the tracked quest
+  (`ObjectiveType.targetOf`, answered by `reach-location`). `QuestEngine.setPresenter` swaps it; a failing presenter is
+  logged and the quest moves on. Engine: `RecordingQuestPresenter`.
 
 - **Screens render on Hytale**: `HyPageRenderer` (`evernifecore:page`, `hytale.screen`) draws any `Screen` as a server
   page (`InteractiveCustomUIPage`) from the core's own layouts in its asset pack (`EverNifeCore/Screen.ui`, `Cell.ui`,

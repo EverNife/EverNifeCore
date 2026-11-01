@@ -148,6 +148,7 @@ public final class QuestEngine {
     /** Open while a registered quest has an objective with an origin test: what keeps the owner's tracker recording. */
     private @Nullable ProvenanceHold provenanceHold;
     private volatile @Nullable ProvenanceTracker provenance;
+    private volatile QuestPresenter presenter = new NotifierQuestPresenter();
     private volatile boolean loaded;
     private volatile boolean closed;
 
@@ -325,6 +326,15 @@ public final class QuestEngine {
 
     public boolean isClosed() {
         return closed;
+    }
+
+    /** How this engine shows quest moments to players; a {@link NotifierQuestPresenter} unless a product set its own. */
+    public QuestPresenter getPresenter() {
+        return presenter;
+    }
+
+    public void setPresenter(QuestPresenter presenter) {
+        this.presenter = Objects.requireNonNull(presenter, "presenter");
     }
 
     // ------------------------------------------------------------------
@@ -934,6 +944,7 @@ public final class QuestEngine {
             markDirty(progressOwner, id.toString());
             post(QuestAbandonEvent.class,
                     () -> new QuestAbandonEvent(this, id, progressOwner, caller, state.copy()));
+            present(progressOwner, (viewer, shown) -> shown.onQuestAbandon(viewer, this, definition, state.copy()));
             apply(definition.getOnAbandon(), context(progressOwner, definition, state, playerOf(progressOwner), null, null, null));
             reindex(progressOwner);
             return CompletableFuture.completedFuture(null);
@@ -1042,8 +1053,25 @@ public final class QuestEngine {
             if (section == null) {
                 return failed(notLoaded(progressOwner, id));
             }
+            String before = section.getTracked();
             section.setTracked(id == null ? null : id.toString());
             section.markDirty();
+            QuestPresenter shown = presenter;
+            try {
+                if (before != null && !before.equals(section.getTracked())) {
+                    shown.onUntrack(player, this, QuestId.parse(before, nameOf(owner)));
+                }
+                QuestDefinition definition = id == null ? null : definitions.get(id);
+                if (definition != null) {
+                    Map<String, QuestState> states = states(ProgressOwner.player(player.getUniqueId()));
+                    ProgressOwner holder = getOwnerFor(player.getUniqueId(), id);
+                    Map<String, QuestState> held = holder == null ? states : states(holder);
+                    QuestState state = held == null ? null : held.get(id.toString());
+                    shown.onTrack(player, this, definition, state == null ? new QuestState(id) : state.copy());
+                }
+            } catch (RuntimeException failed) {
+                owner.getLog().warning("The quest presenter of {} failed on a track change: {}", nameOf(owner), failed.toString());
+            }
             return CompletableFuture.completedFuture(null);
         }
     }
@@ -1212,6 +1240,7 @@ public final class QuestEngine {
                 () -> new ObjectiveProgressEvent(this, id, progressOwner, caller, state.copy(),
                         objective.getId(), finalCounted, actor));
         if (objectiveState.getCount() < objective.getGoal()) {
+            present(progressOwner, (viewer, shown) -> shown.onProgress(viewer, this, definition, state.copy(), objective));
             return false;
         }
         closeObjective(progressOwner, definition, state, objective, actor);
@@ -1230,6 +1259,7 @@ public final class QuestEngine {
         post(ObjectiveCompleteEvent.class,
                 () -> new ObjectiveCompleteEvent(this, definition.getId(), progressOwner, caller, state.copy(),
                         objective.getId()));
+        present(progressOwner, (viewer, shown) -> shown.onObjectiveComplete(viewer, this, definition, state.copy(), objective));
         evaluateStage(progressOwner, definition, state, objective, 0);
     }
 
@@ -1278,6 +1308,7 @@ public final class QuestEngine {
                 () -> new StageCompleteEvent(this, definition.getId(), progressOwner, caller, state.copy(),
                         stage.getId()));
         apply(stage.getOnComplete(), context(progressOwner, definition, state, playerOf(progressOwner), null, stage, null));
+        present(progressOwner, (viewer, shown) -> shown.onStageComplete(viewer, this, definition, state.copy(), stage));
         Next next = stage.getObjectives().getMode() == ObjectiveGroup.Mode.ANY && closer != null && closer.getThen() != null
                 ? closer.getThen() : stage.getThen();
         int index = definition.getStages().indexOf(stage);
@@ -1347,6 +1378,7 @@ public final class QuestEngine {
         ECDebugModule.QUESTS.debug("{} completed {} for {} ({} time(s)).", nameOf(owner), id, progressOwner, state.getTimes());
         post(QuestCompleteEvent.class,
                 () -> new QuestCompleteEvent(this, id, progressOwner, caller, state.copy()));
+        present(progressOwner, (viewer, shown) -> shown.onQuestComplete(viewer, this, definition, state.copy()));
         apply(definition.getOnComplete(), context(progressOwner, definition, state, playerOf(progressOwner), null, null, null));
         pay(progressOwner, definition, state, RewardTrigger.ON_COMPLETE);
         for (QuestEngine engine : ENGINES.values()) {
@@ -1366,6 +1398,7 @@ public final class QuestEngine {
         ECDebugModule.QUESTS.debug("{} failed {} for {}: {}.", nameOf(owner), definition.getId(), progressOwner, cause);
         post(QuestFailEvent.class,
                 () -> new QuestFailEvent(this, definition.getId(), progressOwner, caller, state.copy(), cause));
+        present(progressOwner, (viewer, shown) -> shown.onQuestFail(viewer, this, definition, state.copy()));
         apply(definition.getOnFail(), context(progressOwner, definition, state, playerOf(progressOwner), null, null, null));
         if (cause == FailCause.OWNER_GONE) {
             pay(progressOwner, definition, state, RewardTrigger.ON_OWNER_GONE);
@@ -1872,6 +1905,41 @@ public final class QuestEngine {
             values.putIfAbsent(extra.getKey(), extra.getValue());
         }
         return QuestParams.of(values);
+    }
+
+    private interface Presentation {
+        void show(FPlayer viewer, QuestPresenter presenter);
+    }
+
+    /** Shows a moment to the players {@code progressOwner} concerns; a failing presenter is logged, the quest moves on. */
+    private void present(ProgressOwner progressOwner, Presentation presentation) {
+        QuestPresenter shown = presenter;
+        for (FPlayer viewer : audienceOf(progressOwner)) {
+            try {
+                presentation.show(viewer, shown);
+            } catch (RuntimeException failed) {
+                owner.getLog().warning("The quest presenter of {} failed for {}: {}", nameOf(owner), viewer.getName(), failed.toString());
+            }
+        }
+    }
+
+    /** The player of a player's quest, the online members of a group's; nobody for the other owners. */
+    private List<FPlayer> audienceOf(ProgressOwner progressOwner) {
+        if (progressOwner.isKind(ProgressOwner.PLAYER)) {
+            FPlayer player = playerOf(progressOwner);
+            return player == null ? Collections.<FPlayer>emptyList() : Collections.singletonList(player);
+        }
+        if (!progressOwner.isKind(ProgressOwner.GROUP)) {
+            return Collections.emptyList();
+        }
+        List<FPlayer> online = new ArrayList<>();
+        for (UUID member : GroupLookup.get().getMembers(GroupId.parse(progressOwner.getId()))) {
+            FPlayer player = playerOf(ProgressOwner.player(member));
+            if (player != null) {
+                online.add(player);
+            }
+        }
+        return online;
     }
 
     private @Nullable FPlayer playerOf(ProgressOwner progressOwner) {

@@ -63,6 +63,11 @@ public final class ReachLocationObjectiveType implements RegionObjectiveType<Rea
     }
 
     @Override
+    public WorldLocPos targetOf(Target target) {
+        return target.getCenter();
+    }
+
+    @Override
     public void onRegister(QuestEngine engine, QuestId quest, Objective objective, Target target) {
         RegionManager regions = RegionManager.of(engine.getOwner());
         String name = regionName(quest, objective);
