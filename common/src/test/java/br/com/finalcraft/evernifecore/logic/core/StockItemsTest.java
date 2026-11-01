@@ -4,7 +4,9 @@ import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.item.ItemMatcher;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
+import br.com.finalcraft.evernifecore.logic.Condition;
 import br.com.finalcraft.evernifecore.logic.ConditionResult;
+import br.com.finalcraft.evernifecore.logic.Conditions;
 import br.com.finalcraft.evernifecore.logic.Cost;
 import br.com.finalcraft.evernifecore.logic.Costs;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
@@ -99,6 +101,25 @@ class StockItemsTest {
         assertTrue(three.test(ctx).isPassed());
         assertTrue(three.take(ctx));
         assertEquals(1, diamonds());
+    }
+
+    @Test
+    void aCostTypeReadsAsAConditionThatTakesNothing() throws IOException {
+        ObjectMapper json = new ObjectMapper();
+        Condition items = Conditions.parse(shop.getOwner(), json.readTree("{\"type\": \"item\", \"item\": \"diamond\", \"amount\": 3}"), ZoneOffset.UTC);
+        Condition money = Conditions.parse(shop.getOwner(), json.readTree("{\"type\": \"money\", \"amount\": 60, \"currency\": \"fakeshop:gold\"}"),
+                ZoneOffset.UTC);
+        ExecutionContext ctx = shop.context(alex).build();
+
+        inventory.add(alex, ItemSpec.of(DIAMOND, 2));
+        assertFalse(items.test(ctx).isPassed(), "2 of 3 diamonds");
+        inventory.add(alex, ItemSpec.of(DIAMOND, 1));
+        assertTrue(items.test(ctx).isPassed());
+        assertTrue(money.test(ctx).isPassed());
+        assertTrue(Gate.builder().require(items, money).build().pay(ctx).isPassed());
+
+        assertEquals(3, diamonds(), "a cost in a conditions list only tests");
+        assertEquals(0, new BigDecimal(100).compareTo(gold.getBalance(alexWallet)), "balance " + gold.getBalance(alexWallet));
     }
 
     @Test
