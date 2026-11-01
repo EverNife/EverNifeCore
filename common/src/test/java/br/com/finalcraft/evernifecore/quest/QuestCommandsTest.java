@@ -6,12 +6,16 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.commands.CoreCommand;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.group.GroupKind;
 import br.com.finalcraft.evernifecore.group.command.CoreGroupCommands;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.quest.command.ArgParserQuest;
 import br.com.finalcraft.evernifecore.quest.command.QuestCommandNode;
 import br.com.finalcraft.evernifecore.testing.Commands;
 import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
+import br.com.finalcraft.evernifecore.testing.GroupWorld;
 import br.com.finalcraft.evernifecore.testing.QuestWorld;
 import br.com.finalcraft.evernifecore.testing.Senders;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
@@ -109,6 +113,29 @@ class QuestCommandsTest {
         assertNull(engine.getTracked(alex));
         fq(alex, "quest abandon talk");
         assertEquals(QuestStatus.ABANDONED, status("talk"));
+    }
+
+    @Test
+    void aPresenterRewritesTheNoGroupRefusalOfStartAndOffer() {
+        GroupWorld parties = GroupWorld.open("FakeParty", tempDir.resolve("party"));
+        try {
+            parties.kind("party", GroupKind.Cardinality.ONE);
+            engine.register(quests.parse("{id: raid, owner: {type: group}, stages: [{id: s, objectives: [{id: z, type: kill}]}]}"));
+            engine.setPresenter(new QuestPresenter() {
+                @Override
+                public FancyText refusal(FPlayer player, QuestDefinition definition, StartResult result) {
+                    return result.getReason() == StartResult.Reason.NO_GROUP ? FancyText.of("Join a party, " + player.getName()) : null;
+                }
+            });
+
+            fq(admin, "quest start raid Alex");
+            fq(admin, "quest offer raid Alex");
+
+            assertEquals(2, admin.getMessages().stream().filter(line -> line.contains("Join a party, Alex")).count(), admin.getMessages().toString());
+            assertFalse(admin.getMessages().stream().anyMatch(line -> line.contains("no such group")), admin.getMessages().toString());
+        } finally {
+            parties.close();
+        }
     }
 
     @Test

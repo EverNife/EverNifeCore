@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.quest;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import jakarta.annotation.Nullable;
 
 /**
  * How an engine shows quest moments to the players they concern: the player of a player's quest, the online members of a
@@ -35,5 +37,14 @@ public interface QuestPresenter {
 
     /** {@code viewer} stopped tracking {@code quest}. */
     default void onUntrack(FPlayer viewer, QuestEngine engine, QuestId quest) {
+    }
+
+    /**
+     * The text the quest command node and the offer screen send when a start or an offer of {@code definition} for
+     * {@code player} did not happen, or null to keep the core's. {@link StartResult#getReason()} says which check said no.
+     * Called on whatever thread answered the start, the lane not held.
+     */
+    default @Nullable FancyText refusal(FPlayer player, QuestDefinition definition, StartResult result) {
+        return null;
     }
 }

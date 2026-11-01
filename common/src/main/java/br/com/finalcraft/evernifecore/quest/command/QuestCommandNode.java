@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.NodeVer
 import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.VerbPermissionBase;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
+import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
@@ -156,8 +157,10 @@ public class QuestCommandNode implements VerbPermissionBase {
             REFUSED.addPlaceholder("reason", malformed.getMessage()).send(sender);
             return;
         }
-        reportStart(sender, quest.getId(), target.getName(), engine.start(ProgressOwner.player(target.getUniqueId()), quest.getId(),
-                QuestParams.of(values)));
+        if (ownerOf(sender, target, quest.getId()) == null) {
+            return;
+        }
+        reportStart(sender, quest, target, engine.start(ProgressOwner.player(target.getUniqueId()), quest.getId(), QuestParams.of(values)));
     }
 
     @FinalCMD.SubCMD(subcmd = "offer", validation = NodeVerbAccess.class, locales = {
@@ -167,7 +170,7 @@ public class QuestCommandNode implements VerbPermissionBase {
     public void offer(FCommandSender sender, @Arg("<quest>") QuestDefinition quest, @Arg("<player>") FPlayer target) {
         ProgressOwner owner = ownerOf(sender, target, quest.getId());
         if (owner != null) {
-            reportStart(sender, quest.getId(), target.getName(), engine.offer(owner, quest.getId()));
+            reportStart(sender, quest, target, engine.offer(owner, quest.getId()));
         }
     }
 
@@ -269,23 +272,39 @@ public class QuestCommandNode implements VerbPermissionBase {
         }
         ProgressOwner owner = engine.getOwnerFor(target.getUniqueId(), id);
         if (owner == null) {
-            REFUSED.addPlaceholder("reason", "Quest '" + id + "' belongs to a group, and " + target.getName() + " is in none of its kind.").send(sender);
+            QuestDefinition definition = engine.get(id);
+            if (definition != null && definition.getOwnerKind().equals(ProgressOwner.GROUP)) {
+                refuse(sender, target, definition, StartResult.noGroup(definition, ProgressOwner.player(target.getUniqueId())));
+            } else {
+                REFUSED.addPlaceholder("reason", "Quest '" + id + "' is owned by a " + (definition == null ? "?" : definition.getOwnerKind())
+                        + ", not by a player.").send(sender);
+            }
         }
         return owner;
     }
 
-    private static void reportStart(FCommandSender sender, QuestId id, String ownerName, CompletableFuture<StartResult> started) {
+    private void reportStart(FCommandSender sender, QuestDefinition quest, FPlayer target, CompletableFuture<StartResult> started) {
         started.whenComplete((result, failure) -> {
             if (failure != null) {
                 REFUSED.addPlaceholder("reason", reasonOf(failure)).send(sender);
             } else if (!result.isSuccess()) {
-                REFUSED.addPlaceholder("reason", result.getWhy() != null ? result.getWhy()
-                        : result.getGate() != null ? result.getGate().explain() : result.toString()).send(sender);
+                refuse(sender, target, quest, result);
             } else {
-                QUEST_DONE.addPlaceholder("quest", id).addPlaceholder("action", result.getOutcome().name().toLowerCase(Locale.ROOT))
-                        .addPlaceholder("owner", ownerName).send(sender);
+                QUEST_DONE.addPlaceholder("quest", quest.getId()).addPlaceholder("action", result.getOutcome().name().toLowerCase(Locale.ROOT))
+                        .addPlaceholder("owner", target.getName()).send(sender);
             }
         });
+    }
+
+    /** The engine's presenter rewrites the refusal when it wants to; else the core's text. */
+    private void refuse(FCommandSender sender, FPlayer target, QuestDefinition quest, StartResult result) {
+        FancyText rewritten = engine.getPresenter().refusal(target, quest, result);
+        if (rewritten != null) {
+            sender.sendMessage(rewritten);
+            return;
+        }
+        REFUSED.addPlaceholder("reason", result.getWhy() != null ? result.getWhy()
+                : result.getGate() != null ? result.getGate().explain() : result.toString()).send(sender);
     }
 
     private static void report(FCommandSender sender, QuestId id, ProgressOwner owner, String action, CompletableFuture<Void> task) {

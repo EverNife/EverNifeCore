@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.quest.screen;
 
+import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
@@ -89,7 +90,10 @@ public final class QuestOfferScreen extends Screen<QuestOfferScreen.QuestOfferLa
                 click.close();
                 return;
             }
-            if (NOT_STARTED != null) {
+            FancyText rewritten = result == null ? null : engine.getPresenter().refusal(click.getViewer(), definition, result);
+            if (rewritten != null) {
+                click.getViewer().sendMessage(rewritten);
+            } else if (NOT_STARTED != null) {
                 String why = failure != null ? failure.toString() : result.getWhy() != null ? result.getWhy()
                         : result.getGate() != null ? ClickRule.missingOf(result.getGate()) : result.toString();
                 NOT_STARTED.custom().addPlaceholder("%why%", why).send(click.getViewer());

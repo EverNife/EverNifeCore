@@ -823,22 +823,22 @@ public final class QuestEngine {
     public CompletableFuture<StartResult> offer(ProgressOwner progressOwner, QuestId id) {
         QuestDefinition definition = definitions.get(id);
         if (definition == null) {
-            return done(StartResult.refused(unknown(id)));
+            return done(StartResult.refused(StartResult.Reason.UNKNOWN_QUEST, unknown(id)));
         }
         synchronized (lane(progressOwner)) {
             Map<String, QuestState> states = states(progressOwner);
             if (states == null) {
-                return done(StartResult.refused(notLoaded(progressOwner, id)));
+                return done(StartResult.refused(StartResult.Reason.NOT_LOADED, notLoaded(progressOwner, id)));
             }
             QuestState state = states.get(id.toString());
             QuestStatus status = effectiveStatus(state);
             if (status != null && status != QuestStatus.AVAILABLE) {
-                return done(StartResult.refused("Quest '" + id + "' is " + status + " for " + progressOwner + ": only an available quest is offered."));
+                return done(StartResult.refused(StartResult.Reason.STATUS, "Quest '" + id + "' is " + status + " for " + progressOwner + ": only an available quest is offered."));
             }
             QuestState offered = state != null ? state : new QuestState(id);
             Caller caller = caller(definition, null, null);
             if (cancelled(new QuestOfferPreEvent(this, id, progressOwner, caller, offered.copy()))) {
-                return done(StartResult.refused("A listener cancelled the offer of quest '" + id + "'."));
+                return done(StartResult.refused(StartResult.Reason.CANCELLED, "A listener cancelled the offer of quest '" + id + "'."));
             }
             offered.setStatus(QuestStatus.OFFERED);
             offered.setDefinitionVersion(definition.getVersion());
@@ -858,46 +858,45 @@ public final class QuestEngine {
     public CompletableFuture<StartResult> start(ProgressOwner requested, QuestId id, QuestParams params) {
         QuestDefinition definition = definitions.get(id);
         if (definition == null) {
-            return done(StartResult.refused(unknown(id)));
+            return done(StartResult.refused(StartResult.Reason.UNKNOWN_QUEST, unknown(id)));
         }
         ProgressOwner resolved = requested;
         if (definition.getOwnerKind().equals(ProgressOwner.GROUP) && requested.isKind(ProgressOwner.PLAYER)) {
             GroupId group = groupOf(UUID.fromString(requested.getId()), definition.getOwnerProvider());
             if (group == null) {
-                return done(StartResult.refused("Quest '" + id + "' is a group quest" + (definition.getOwnerProvider() == null ? ""
-                        : " of " + definition.getOwnerProvider()) + ", and " + requested + " is in no such group: join one first."));
+                return done(StartResult.noGroup(definition, requested));
             }
             resolved = ProgressOwner.group(group);
         }
         final ProgressOwner progressOwner = resolved;
         Instant at = ECClock.now();
         if (definition.getWindowStart() != null && at.isBefore(definition.getWindowStart())) {
-            return done(StartResult.refused("Quest '" + id + "' opens at " + definition.getWindowStart() + "; it cannot start before that."));
+            return done(StartResult.refused(StartResult.Reason.WINDOW, "Quest '" + id + "' opens at " + definition.getWindowStart() + "; it cannot start before that."));
         }
         if (definition.getWindowEnd() != null && !at.isBefore(definition.getWindowEnd())) {
-            return done(StartResult.refused("Quest '" + id + "' closed at " + definition.getWindowEnd() + "; it cannot start any more."));
+            return done(StartResult.refused(StartResult.Reason.WINDOW, "Quest '" + id + "' closed at " + definition.getWindowEnd() + "; it cannot start any more."));
         }
         if (!definition.getOwnerKind().equals(progressOwner.getKind())) {
-            return done(StartResult.refused("Quest '" + id + "' is owned by a " + definition.getOwnerKind() + ", not by a " + progressOwner.getKind()
+            return done(StartResult.refused(StartResult.Reason.OWNER_KIND, "Quest '" + id + "' is owned by a " + definition.getOwnerKind() + ", not by a " + progressOwner.getKind()
                     + " - start it for a " + definition.getOwnerKind() + " owner."));
         }
         if (progressOwner.isKind(ProgressOwner.PLAYER) && sectionClass == null && storage != null) {
-            return done(StartResult.refused("The QuestEngine of " + nameOf(owner) + " keeps no player quests: open it with QuestEngine.of(plugin,"
+            return done(StartResult.refused(StartResult.Reason.NOT_LOADED, "The QuestEngine of " + nameOf(owner) + " keeps no player quests: open it with QuestEngine.of(plugin,"
                     + " storage, MyQuestSection.class) to start '" + id + "' for a player."));
         }
         synchronized (lane(progressOwner)) {
             Map<String, QuestState> states = states(progressOwner);
             if (states == null) {
-                return done(StartResult.refused(notLoaded(progressOwner, id)));
+                return done(StartResult.refused(StartResult.Reason.NOT_LOADED, notLoaded(progressOwner, id)));
             }
             QuestState previous = states.get(id.toString());
             QuestStatus status = effectiveStatus(previous);
             if (status == QuestStatus.ACTIVE || status == QuestStatus.COMPLETED || status == QuestStatus.COOLDOWN) {
-                return done(StartResult.refused("Quest '" + id + "' is " + status + " for " + progressOwner + ": it cannot start again now."));
+                return done(StartResult.refused(StartResult.Reason.STATUS, "Quest '" + id + "' is " + status + " for " + progressOwner + ": it cannot start again now."));
             }
             List<QuestId> missing = missingRequires(progressOwner, definition);
             if (!missing.isEmpty()) {
-                return done(StartResult.refused("Quest '" + id + "' requires " + missing + " completed first."));
+                return done(StartResult.refused(StartResult.Reason.REQUIRES, "Quest '" + id + "' requires " + missing + " completed first."));
             }
             ExecutionContext ctx = context(progressOwner, definition, previous, playerOf(progressOwner), null, null, null);
             GateResult checked = definition.getGate().check(ctx);
@@ -912,7 +911,7 @@ public final class QuestEngine {
             state.setParams(resolveParams(definition, params).asMap());
             Caller caller = caller(definition, null, null);
             if (cancelled(new QuestStartPreEvent(this, id, progressOwner, caller, state.copy()))) {
-                return done(StartResult.refused("A listener cancelled the start of quest '" + id + "'."));
+                return done(StartResult.refused(StartResult.Reason.CANCELLED, "A listener cancelled the start of quest '" + id + "'."));
             }
             GateResult paid = definition.getGate().pay(ctx);
             if (!paid.isPassed()) {

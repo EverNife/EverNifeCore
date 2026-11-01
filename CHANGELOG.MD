@@ -20,6 +20,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 - **`GroupKindRegisteredEvent`**: `GroupManager.registerKind` posts it (after reading the stored groups of the kind, when
   the manager has loaded), so a plugin waiting for a kind no longer needs the first `GroupCreatedEvent`.
+- **`StartResult.getReason()` and `QuestPresenter.refusal(player, definition, result)`**: which check refused a start
+  or an offer (`NO_GROUP`, `NOT_LOADED`, `STATUS`, `REQUIRES`, `WINDOW`, `OWNER_KIND`, `GATE`, `CANCELLED`,
+  `UNKNOWN_QUEST`), and a presenter that rewrites the text the quest command node and the offer screen send for it.
+  `QuestCommandNode.start` goes through the same group check as the other verbs, one `StartResult.noGroup` text for both.
 - **`Dialogue.parseYaml(owner, name, yaml)`**, in the server's zone; text that is not YAML names the dialogue.
 - **`QuestPool`: `reroll.per-window`** (`Builder.rerollsPerWindow`) caps the rerolls of an owner per window, and
   **`expire-active-on-turn`** (`Builder.expireActiveOnTurn`) expires the previous draw's ACTIVE quests when the window
