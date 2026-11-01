@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.npc;
 
+import br.com.finalcraft.evernifecore.action.EntityContext;
 import br.com.finalcraft.evernifecore.api.platoverride.entity.NativeEntity;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.minecraft.action.listener.McActionContexts;
@@ -15,9 +16,9 @@ import org.bukkit.plugin.Plugin;
 import java.util.Optional;
 
 /**
- * Citizens 2: NPCs are real entities, {@code citizens:<numeric id>}. The click heard is Citizens' own
- * {@code NPCRightClickEvent}: Citizens cancels the Bukkit interact of an NPC that runs commands, so listening to the
- * Bukkit event would miss those talks.
+ * Citizens 2: NPCs are real entities, {@code citizens:<numeric id>}. The clicks heard are Citizens' own
+ * {@code NPCRightClickEvent} and {@code NPCLeftClickEvent}: Citizens cancels the Bukkit interact of an NPC that runs
+ * commands, so listening to the Bukkit events would miss those talks.
  */
 public final class CitizensNpcProvider extends ReflectedNpcProvider {
 
@@ -26,9 +27,10 @@ public final class CitizensNpcProvider extends ReflectedNpcProvider {
     public static final String CITIZENS_NPC_METADATA = "NPC";
 
     private static final String API = "net.citizensnpcs.api.CitizensAPI";
+    static final String LEFT_CLICK_EVENT = "net.citizensnpcs.api.event.NPCLeftClickEvent";
 
     public CitizensNpcProvider(Plugin core) {
-        super(ID, "Citizens", API, "net.citizensnpcs.api.event.NPCRightClickEvent", core);
+        super(ID, "Citizens", API, core, "net.citizensnpcs.api.event.NPCRightClickEvent", LEFT_CLICK_EVENT);
     }
 
     /** Whether {@code entity} carries the {@code NPC} metadata: the cheap check, before any reflection. */
@@ -84,6 +86,8 @@ public final class CitizensNpcProvider extends ReflectedNpcProvider {
         if (entity == null) {
             return null;
         }
-        return new Click((Player) call(event, "getClicker"), McActionContexts.actor(entity), entity.getLocation());
+        EntityContext.ClickType clickType = LEFT_CLICK_EVENT.equals(event.getClass().getName())
+                ? EntityContext.ClickType.LEFT : EntityContext.ClickType.RIGHT;
+        return new Click((Player) call(event, "getClicker"), McActionContexts.actor(entity), entity.getLocation(), clickType);
     }
 }

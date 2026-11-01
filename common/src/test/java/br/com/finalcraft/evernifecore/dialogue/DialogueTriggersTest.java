@@ -64,8 +64,12 @@ class DialogueTriggersTest {
     }
 
     private void useNpc(NpcRef npc) {
+        clickNpc(npc, EntityContext.ClickType.RIGHT);
+    }
+
+    private void clickNpc(NpcRef npc, EntityContext.ClickType click) {
         ECEventBus.global().post(new InteractNpcActionEvent.Post(new EntityContext(EventSource.INTERACT_NPC, WorldLocPos.of(0, 64, 0, "world"),
-                Actors.player(world.alex), null, Actors.npc("citizens:npc", npc), null)));
+                Actors.player(world.alex), null, Actors.npc("citizens:npc", npc), null, click)));
     }
 
     private Dialogue withTrigger(String name, DialogueTrigger trigger) {
@@ -106,6 +110,17 @@ class DialogueTriggersTest {
             Dialogues.closeOwnedBy(world.owner()); //before the regions close: the trigger held MOVE
             world.screens.advanceTicks(2);
         }
+    }
+
+    @Test
+    void punchingTheTriggerNpcStartsNothingAndTheRightClickStartsIt() {
+        withTrigger("tomas", DialogueTrigger.npc(TOMAS));
+
+        clickNpc(TOMAS, EntityContext.ClickType.LEFT);
+        assertNull(Dialogues.sessionOf(world.alex), "a left click is a punch, not a talk");
+
+        clickNpc(TOMAS, EntityContext.ClickType.RIGHT);
+        assertNotNull(Dialogues.sessionOf(world.alex));
     }
 
     @Test

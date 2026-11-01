@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.dialogue;
 
+import br.com.finalcraft.evernifecore.action.EntityContext;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.EventSourceUsage;
 import br.com.finalcraft.evernifecore.action.UsageHold;
@@ -268,7 +269,9 @@ public final class Dialogues {
     private static void onNpcUsed(InteractNpcActionEvent.Post event) {
         FPlayer player = event.getPlayer();
         NpcRef npc = event.getContext().getEntity().getNpc();
-        if (player == null || npc == null || SESSIONS.containsKey(player.getUniqueId())) {
+        //a punch is not a talk: only the right click opens a dialogue
+        if (player == null || npc == null || event.getContext().getClickType() != EntityContext.ClickType.RIGHT
+                || SESSIONS.containsKey(player.getUniqueId())) {
             return;
         }
         for (Dialogues registry : OWNED.values()) {

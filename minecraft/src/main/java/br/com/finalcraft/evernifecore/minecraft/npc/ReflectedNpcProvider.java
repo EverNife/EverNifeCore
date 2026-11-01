@@ -23,49 +23,60 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 /**
- * An NPC plugin the core never compiles against: named by its plugin name, an API class and a click event, all as
- * strings. Whether the API class loads is looked up once and kept; the click event is subscribed with
- * {@code registerEvent} only while {@code interact-npc} is needed.
+ * An NPC plugin the core never compiles against: named by its plugin name, an API class and its click events, all as
+ * strings. Whether the API class loads is looked up once and kept; the click events are subscribed with
+ * {@code registerEvent} only while {@code interact-npc} is needed. Both clicks raise it, each with its
+ * {@link EntityContext.ClickType}.
  */
 abstract class ReflectedNpcProvider implements NpcProvider {
 
     private final String id;
     private final String pluginName;
     private final String apiClass;
-    private final String clickEvent;
+    private final List<String> clickEvents;
     private final Plugin core;
     private final Listener listener = new Listener() {
     };
     private volatile @Nullable Boolean apiLoaded;
     private volatile int apiLookups;
 
-    ReflectedNpcProvider(String id, String pluginName, String apiClass, String clickEvent, Plugin core) {
+    ReflectedNpcProvider(String id, String pluginName, String apiClass, Plugin core, String... clickEvents) {
         this.id = id;
         this.pluginName = pluginName;
         this.apiClass = apiClass;
-        this.clickEvent = clickEvent;
+        this.clickEvents = Arrays.asList(clickEvents);
         this.core = core;
     }
 
-    /** A click on an NPC: who, which NPC (its actor carries the reference), and where it stands. */
+    /** A click on an NPC: who, which NPC (its actor carries the reference), where it stands, and which click. */
     static final class Click {
 
         final Player player;
         final Actor npc;
         final Location at;
+        final EntityContext.ClickType clickType;
 
-        Click(Player player, Actor npc, Location at) {
+        Click(Player player, Actor npc, Location at, EntityContext.ClickType clickType) {
             this.player = player;
             this.npc = npc;
             this.at = at;
+            this.clickType = clickType;
         }
     }
 
-    /** The right-click {@code event} reports; null for a left click, or an NPC this provider cannot place. */
+    /** The click {@code event} reports, left or right; null for an NPC this provider cannot place or a click it does not know. */
     abstract @Nullable Click click(Event event);
+
+    /** {@code LEFT_CLICK}/{@code RIGHT_CLICK} - the names the NPC plugins give a click - as a click type; null for any other. */
+    static @Nullable EntityContext.ClickType clickTypeOf(@Nullable Object name) {
+        String text = String.valueOf(name);
+        return "LEFT_CLICK".equals(text) ? EntityContext.ClickType.LEFT : "RIGHT_CLICK".equals(text) ? EntityContext.ClickType.RIGHT : null;
+    }
 
     @Override
     public String getId() {
@@ -109,18 +120,20 @@ abstract class ReflectedNpcProvider implements NpcProvider {
         if (!isAvailable()) {
             return;
         }
-        Class<? extends Event> type = (Class<? extends Event>) Reflect.type(clickEvent);
-        //the Pre where other plugins still change the click, the Post after every one of them had its say
-        Bukkit.getPluginManager().registerEvent(type, listener, EventPriority.NORMAL, (ignored, event) -> {
-            if (type.isInstance(event)) {
-                pre(event);
-            }
-        }, core, true);
-        Bukkit.getPluginManager().registerEvent(type, listener, EventPriority.MONITOR, (ignored, event) -> {
-            if (type.isInstance(event)) {
-                post(event);
-            }
-        }, core, true);
+        for (String clickEvent : clickEvents) {
+            Class<? extends Event> type = (Class<? extends Event>) Reflect.type(clickEvent);
+            //the Pre where other plugins still change the click, the Post after every one of them had its say
+            Bukkit.getPluginManager().registerEvent(type, listener, EventPriority.NORMAL, (ignored, event) -> {
+                if (type.isInstance(event)) {
+                    pre(event);
+                }
+            }, core, true);
+            Bukkit.getPluginManager().registerEvent(type, listener, EventPriority.MONITOR, (ignored, event) -> {
+                if (type.isInstance(event)) {
+                    post(event);
+                }
+            }, core, true);
+        }
     }
 
     @Override
@@ -141,7 +154,8 @@ abstract class ReflectedNpcProvider implements NpcProvider {
         }
     }
 
-    private @Nullable EntityContext context(Event event) {
+    /** The context {@code event} raises {@code interact-npc} with; null when it raises none. */
+    @Nullable EntityContext context(Event event) {
         Click click;
         try {
             click = click(event);
@@ -150,7 +164,7 @@ abstract class ReflectedNpcProvider implements NpcProvider {
                     + apiChanged.getMessage() + ". Update EverNifeCore, or report the " + pluginName + " version in use.");
             return null;
         }
-        return click == null ? null : McActionContexts.npcUse(click.player, click.npc, click.at, event);
+        return click == null ? null : McActionContexts.npcUse(click.player, click.npc, click.at, event, click.clickType);
     }
 
     static Optional<WorldLocPos> position(@Nullable Location at) {

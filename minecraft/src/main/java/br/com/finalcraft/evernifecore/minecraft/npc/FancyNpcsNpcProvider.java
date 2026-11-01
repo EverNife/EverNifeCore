@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.npc;
 
+import br.com.finalcraft.evernifecore.action.EntityContext;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.minecraft.waypoint.Reflect;
 import br.com.finalcraft.evernifecore.npc.NpcRef;
@@ -13,7 +14,7 @@ import java.util.Optional;
 
 /**
  * FancyNpcs: packet NPCs with no server entity, {@code fancynpcs:<npc id>} - the id of its {@code NpcData}, a UUID.
- * Only the click is heard of them: {@code de.oliver.fancynpcs.api.events.NpcInteractEvent}, right clicks only.
+ * Only the click is heard of them: {@code de.oliver.fancynpcs.api.events.NpcInteractEvent}, left and right.
  */
 public final class FancyNpcsNpcProvider extends ReflectedNpcProvider {
 
@@ -22,7 +23,7 @@ public final class FancyNpcsNpcProvider extends ReflectedNpcProvider {
     private static final String API = "de.oliver.fancynpcs.api.FancyNpcsPlugin";
 
     public FancyNpcsNpcProvider(Plugin core) {
-        super(ID, "FancyNpcs", API, "de.oliver.fancynpcs.api.events.NpcInteractEvent", core);
+        super(ID, "FancyNpcs", API, core, "de.oliver.fancynpcs.api.events.NpcInteractEvent");
     }
 
     private static @Nullable Object data(NpcRef ref) {
@@ -44,11 +45,12 @@ public final class FancyNpcsNpcProvider extends ReflectedNpcProvider {
 
     @Override
     @Nullable Click click(Event event) {
-        if (!"RIGHT_CLICK".equals(String.valueOf(call(event, "getInteractionType")))) {
+        EntityContext.ClickType clickType = clickTypeOf(call(event, "getInteractionType"));
+        if (clickType == null) {
             return null;
         }
         Object data = call(call(event, "getNpc"), "getData");
         Location at = (Location) call(data, "getLocation");
-        return at == null ? null : new Click((Player) call(event, "getPlayer"), packetNpc(NpcRef.of(ID, (String) call(data, "getId"))), at);
+        return at == null ? null : new Click((Player) call(event, "getPlayer"), packetNpc(NpcRef.of(ID, (String) call(data, "getId"))), at, clickType);
     }
 }

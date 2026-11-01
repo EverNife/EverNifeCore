@@ -19,8 +19,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * "An NPC" without an NPC plugin: a provider that knows the entities, places and names a test gives it, and clicks the
- * way a real provider does - {@link #click} raises {@code interact-npc} only while {@link Npcs} started it, that is while
- * somebody needs the source. Register it with {@link Npcs#register} and unregister its owner after the test.
+ * way a real provider does - {@link #click} (the right click) and {@link #leftClick} (the punch) raise {@code interact-npc}
+ * only while {@link Npcs} started it, that is while somebody needs the source. Register it with {@link Npcs#register} and unregister its owner after the test.
  */
 public final class FakeNpcProvider implements NpcProvider {
 
@@ -76,19 +76,28 @@ public final class FakeNpcProvider implements NpcProvider {
      * @return whether the click was denied
      */
     public boolean click(FPlayer player, NpcRef ref, @Nullable String itemInHandKey) {
+        return click(player, ref, itemInHandKey, EntityContext.ClickType.RIGHT);
+    }
+
+    /** {@code player} punching {@code ref} with an empty hand: the same decide-then-post as {@link #click}, with the left click. */
+    public boolean leftClick(FPlayer player, NpcRef ref) {
+        return click(player, ref, null, EntityContext.ClickType.LEFT);
+    }
+
+    private boolean click(FPlayer player, NpcRef ref, @Nullable String itemInHandKey, EntityContext.ClickType clickType) {
         if (!started) {
             return false;
         }
-        if (Actions.denied(context(player, ref, itemInHandKey))) {
+        if (Actions.denied(context(player, ref, itemInHandKey, clickType))) {
             return true;
         }
-        Actions.post(EventSource.INTERACT_NPC, () -> context(player, ref, itemInHandKey));
+        Actions.post(EventSource.INTERACT_NPC, () -> context(player, ref, itemInHandKey, clickType));
         return false;
     }
 
-    private EntityContext context(FPlayer player, NpcRef ref, @Nullable String itemInHandKey) {
+    private EntityContext context(FPlayer player, NpcRef ref, @Nullable String itemInHandKey, EntityContext.ClickType clickType) {
         return new EntityContext(EventSource.INTERACT_NPC, locations.getOrDefault(ref, NOWHERE), Actors.player(player), null,
-                Actors.npc(id + ":npc", ref), itemInHandKey == null ? null : TypeKey.parse(itemInHandKey));
+                Actors.npc(id + ":npc", ref), itemInHandKey == null ? null : TypeKey.parse(itemInHandKey), clickType);
     }
 
     @Override

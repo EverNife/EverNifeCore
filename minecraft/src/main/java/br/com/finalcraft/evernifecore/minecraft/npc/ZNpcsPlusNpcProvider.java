@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.npc;
 
+import br.com.finalcraft.evernifecore.action.EntityContext;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.minecraft.waypoint.Reflect;
 import br.com.finalcraft.evernifecore.npc.NpcRef;
@@ -25,7 +26,7 @@ public final class ZNpcsPlusNpcProvider extends ReflectedNpcProvider {
     private static final String API = "lol.pyr.znpcsplus.api.NpcApiProvider";
 
     public ZNpcsPlusNpcProvider(Plugin core) {
-        super(ID, "ZNPCsPlus", API, "lol.pyr.znpcsplus.api.event.NpcInteractEvent", core);
+        super(ID, "ZNPCsPlus", API, core, "lol.pyr.znpcsplus.api.event.NpcInteractEvent");
     }
 
     private static @Nullable Object entry(NpcRef ref) {
@@ -59,11 +60,12 @@ public final class ZNpcsPlusNpcProvider extends ReflectedNpcProvider {
 
     @Override
     @Nullable Click click(Event event) {
-        if (!"RIGHT_CLICK".equals(String.valueOf(call(event, "getClickType")))) {
+        EntityContext.ClickType clickType = clickTypeOf(call(event, "getClickType"));
+        if (clickType == null) {
             return null;
         }
         Object entry = call(event, "getEntry");
         Location at = location(call(entry, "getNpc"));
-        return at == null ? null : new Click((Player) call(event, "getPlayer"), packetNpc(NpcRef.of(ID, (String) call(entry, "getId"))), at);
+        return at == null ? null : new Click((Player) call(event, "getPlayer"), packetNpc(NpcRef.of(ID, (String) call(entry, "getId"))), at, clickType);
     }
 }

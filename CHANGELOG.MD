@@ -18,6 +18,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **A left click on an NPC raises `interact-npc` too**: `EntityContext.getClickType()` (`ClickType.LEFT`/`RIGHT`) says
+  which. The Bukkit providers hear both clicks (Citizens' `NPCLeftClickEvent` beside `NPCRightClickEvent`, the left
+  click of FancyNpcs and ZNPCsPlus), and the test kit's `FakeNpcProvider.leftClick(player, ref)` punches. An
+  `interact-npc` objective takes `click: right|left` (default `right`), and a dialogue opens on the right click only, so
+  today's quests and dialogues behave as before. A cancelled `Pre` of a punch cancels the NPC plugin's left-click event.
+  `McActionContexts.npcUse` takes the click type. Hytale still raises the right click (`Use`) only.
 - **`ECoreTestWorld.withCorePluginData(data)`** lends the core its own plugin data (`EverNifeCore.getLog()`, the core's
   debug modules) for the life of the world; `EverNifeCore.onLoaderInstantiate(null)` clears it. `-Dec.debug=LOGIC,QUESTS`
   on a test run switches those debug modules and the core's debug on in every world.

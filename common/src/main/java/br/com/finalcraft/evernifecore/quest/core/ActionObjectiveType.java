@@ -121,12 +121,12 @@ public abstract class ActionObjectiveType implements ObjectiveType<ActionObjecti
         return null;
     }
 
-    /** The glob an objective wrote; null for "every action". */
-    public static final class KeyFilter {
+    /** The glob an objective wrote; null for "every action". A subclass adds what one source alone filters on. */
+    public static class KeyFilter {
 
         final @Nullable String pattern;
 
-        KeyFilter(@Nullable String pattern) {
+        protected KeyFilter(@Nullable String pattern) {
             this.pattern = pattern;
         }
 

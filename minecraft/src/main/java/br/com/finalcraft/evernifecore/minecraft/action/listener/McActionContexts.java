@@ -152,12 +152,12 @@ public final class McActionContexts {
     }
 
     /**
-     * {@code player} using the NPC {@code npc} standing at {@code at}, holding what is in their hand - the context every
-     * NPC provider posts {@link EventSource#INTERACT_NPC} with; null in a disabled world.
+     * {@code player} clicking the NPC {@code npc} standing at {@code at} with {@code clickType}, holding what is in their
+     * hand - the context every NPC provider posts {@link EventSource#INTERACT_NPC} with; null in a disabled world.
      *
      * @throws IllegalArgumentException for an actor no provider recognised: {@code npc.getNpc()} names the NPC used
      */
-    public static @Nullable EntityContext npcUse(Player player, Actor npc, Location at, Object nativeEvent) {
+    public static @Nullable EntityContext npcUse(Player player, Actor npc, Location at, Object nativeEvent, EntityContext.ClickType clickType) {
         if (npc.getNpc() == null) {
             throw new IllegalArgumentException("The NPC used, " + npc + ", carries no NpcRef: build its actor with the reference its provider"
                     + " answers, e.g. Actor.entity(key, ECEntityType.NPC, null, handle, NpcRef.of(\"citizens\", \"12\")).");
@@ -165,7 +165,7 @@ public final class McActionContexts {
         if (isDisabled(at.getWorld())) {
             return null;
         }
-        return new EntityContext(EventSource.INTERACT_NPC, position(at), actor(player), nativeEvent, npc, itemInHandKey(player));
+        return new EntityContext(EventSource.INTERACT_NPC, position(at), actor(player), nativeEvent, npc, itemInHandKey(player), clickType);
     }
 
     /** {@code player} acting as itself - or as the machine it is, when {@code fakePlayer} - with a handle on demand. */
