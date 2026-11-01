@@ -594,7 +594,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **common: `ItemSpec.of(id, name, lore)` keeps the id's case**, as `of(id, amount)` already did - a Hytale asset id is
   case-sensitive. Only the blanks around it go.
 - **common: the `evernifecore-common` and `-relocated` POMs carry `jakarta.annotation-api`**, so a plugin can use
-  `@Nullable`/`@Nonnull` without declaring it.
+  `@Nullable`/`@Nonnull` without declaring it. The Hytale jar leaves it out: the annotations only
+  serve the compiler, and a missing annotation class never fails at runtime.
 - **common-tests: `ECoreTestWorld` and `FinalCmdTestHarness` hand back the core's plugin data on close** (null
   included) instead of leaving the last one lent for the rest of the JVM; the one a world lends when none is set is built
   on a lenient double, so a strict world needs no logging for it. **`QuestWorld.login` attaches the `FPlayer`**
@@ -673,7 +674,7 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   value, an item the server lacks is a barrier, warned once); an editable area is backed by an `ItemStore` or a
   `GenericInventory` and `ScreenSurface.released(reason)` gives back what a window held before `onClose`;
   `FCItemBuilder.asIcon()` answers a `screen.Icon`; permission `evernifecore.command.screen`. ECoreConformance's `gui`
-  suite is `screen` (`/ecc screen <screen> <player>`, 17 screens on every Bukkit flavor).
+  suite is `screen` (`/ecc screen <screen> <player>`, 19 screens on every Bukkit flavor).
 - **`RegionVerbAccess` is `NodeVerbAccess`** (`commands.finalcmd.accessvalidation`): any node that implements
   `VerbPermissionBase` (`getPermissionBase()`) - the region and the group nodes and their branches - gates each verb on
   `<base>.<verb>`. `RegionCommandNode.getVerbPermission(verb)` and `RegionCommandNode.of(executor)` are gone.
@@ -809,6 +810,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **`RendererCapability.FREE_LAYOUT` and `TEXT_INPUT`**: no screen ever required them and no renderer could serve
   them - a `NamedRegion` has no coordinates to place by, and an `InputField` asks through `PromptRegistry` on every
   renderer. A capability comes back together with the API that uses it.
+- **`minecraft.region.listener`** (the 13 `Region*Listener` classes): the Bukkit native listeners are
+  `minecraft.action.listener`, attached only while a loaded region uses a flag of their `EventSource`.
+  `minecraft.commands.CMDGuiLayout` (`/ecoregui`) is gone with `minecraft.gui`: `/ecore screen reload|diff|which`.
 - **Removed `br.com.finalcraft.evernifecore.minecraft.gui`** (65 classes), `ResultGui`, `LayoutGui`, `LayoutResultGui`,
   `SubjectHolder`, `EnumWool`, `EnumStainedGlassPane` (`DefaultIcons.wool/pane(Color)`), `GuiType` (`minecraft.screen.ChestKind`),
   `FCItemBuilder.onClick/every` (`asIcon()` stays), `ClickContext.sound(...)` (a `sound` effect does it). Plugins compiled
