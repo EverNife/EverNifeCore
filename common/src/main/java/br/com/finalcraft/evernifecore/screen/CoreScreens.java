@@ -1,5 +1,8 @@
 package br.com.finalcraft.evernifecore.screen;
 
+import br.com.finalcraft.evernifecore.quest.screen.QuestJournalScreen;
+import br.com.finalcraft.evernifecore.quest.screen.QuestOfferScreen;
+
 import jakarta.annotation.Nullable;
 
 import java.util.Collections;
@@ -17,6 +20,8 @@ final class CoreScreens {
         defaults.put(ScreenKey.CONFIRM, ctx -> ConfirmScreen.of(ctx.getRequest(ConfirmRequest.class)));
         defaults.put(ScreenKey.DELIVERIES, ctx -> DeliveriesScreen.of());
         defaults.put(ScreenKey.RANKING, ctx -> RankingScreen.of(ctx.getRequest(RankingRequest.class)));
+        defaults.put(ScreenKey.QUEST_JOURNAL, ctx -> QuestJournalScreen.of(ctx.getRequest(QuestJournalScreen.Request.class)));
+        defaults.put(ScreenKey.QUEST_OFFER, ctx -> QuestOfferScreen.of(ctx.getRequest(QuestOfferScreen.Request.class)));
         DEFAULTS = Collections.unmodifiableMap(defaults);
     }
 

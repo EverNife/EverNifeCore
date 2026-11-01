@@ -1,5 +1,8 @@
 package br.com.finalcraft.evernifecore.config;
 
+import br.com.finalcraft.evernifecore.quest.command.ArgParserQuest;
+import br.com.finalcraft.evernifecore.quest.command.QuestCommandNode;
+import br.com.finalcraft.evernifecore.quest.screen.QuestOfferScreen;
 import br.com.finalcraft.evernifecore.group.command.CoreGroupCommands;
 import br.com.finalcraft.evernifecore.group.command.GroupCommandNode;
 import br.com.finalcraft.evernifecore.logic.audit.command.AuditCommandNode;
@@ -67,7 +70,10 @@ public class ConfigManager {
                 CoreDeliveriesCommands.class,
                 DefaultIcons.class,
                 ConfirmScreen.class,
-                DeliveriesScreen.class
+                DeliveriesScreen.class,
+                QuestCommandNode.class,
+                ArgParserQuest.class,
+                QuestOfferScreen.class
         );
 
         FCLocaleManager.updateEverNifeCoreLocale();

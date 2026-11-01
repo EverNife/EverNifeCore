@@ -1045,6 +1045,20 @@ public final class QuestEngine {
         return null;
     }
 
+    /**
+     * What the gate of quest {@code id} answers for {@code player} now, without paying it - what an offer shows before the
+     * player accepts. Null for an unknown quest, or a group quest of a player in no such group.
+     */
+    public @Nullable GateResult checkStart(FPlayer player, QuestId id) {
+        QuestDefinition definition = definitions.get(id);
+        ProgressOwner holder = definition == null ? null : getOwnerFor(player.getUniqueId(), id);
+        if (holder == null) {
+            return null;
+        }
+        QuestState state = getState(holder, id).orElse(null);
+        return definition.getGate().check(context(holder, definition, state, player, null, null, null));
+    }
+
     /** The quest {@code player} tracks (null for none). Any thread. */
     public CompletableFuture<Void> track(FPlayer player, @Nullable QuestId id) {
         ProgressOwner progressOwner = ProgressOwner.player(player.getUniqueId());

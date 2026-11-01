@@ -15,6 +15,10 @@ public final class ScreenKey {
     public static final ScreenKey DELIVERIES = of("evernifecore", "deliveries");
     /** The entries of a {@code RankedList}, built from a {@code RankingRequest}. */
     public static final ScreenKey RANKING = of("evernifecore", "ranking");
+    /** The viewer's quests by status, built from a {@code QuestJournalScreen.Request}. */
+    public static final ScreenKey QUEST_JOURNAL = of("evernifecore", "quest-journal");
+    /** One quest offered, accept or decline, built from a {@code QuestOfferScreen.Request}. */
+    public static final ScreenKey QUEST_OFFER = of("evernifecore", "quest-offer");
 
     private final String owner;
     private final String name;

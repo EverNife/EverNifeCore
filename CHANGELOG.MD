@@ -59,6 +59,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   progress, through the admin's notify chains) and points a `Waypoint` at each target of the tracked quest
   (`ObjectiveType.targetOf`, answered by `reach-location`). `QuestEngine.setPresenter` swaps it; a failing presenter is
   logged and the quest moves on. Engine: `RecordingQuestPresenter`.
+- **Quest screens**: `ScreenKey.QUEST_JOURNAL` (`QuestJournalScreen`, from a `QuestJournalScreen.Request` of one engine or
+  all and a status filter the viewer cycles; a click tracks) and `ScreenKey.QUEST_OFFER` (`QuestOfferScreen`, from a
+  `QuestOfferScreen.Request`: name, description, what the gate still misses on the accept button; accept starts, decline
+  closes) are core defaults, restyled in `guis/QuestJournalLayout.yml` / `guis/QuestOfferLayout.yml`.
+  `QuestEngine.checkStart(player, quest)` answers the gate without paying it.
 
 - **Screens render on Hytale**: `HyPageRenderer` (`evernifecore:page`, `hytale.screen`) draws any `Screen` as a server
   page (`InteractiveCustomUIPage`) from the core's own layouts in its asset pack (`EverNifeCore/Screen.ui`, `Cell.ui`,
