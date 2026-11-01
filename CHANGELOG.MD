@@ -436,7 +436,7 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `RESPAWN` (`RespawnEvent`, with a `.Pre` that keeps the player dead), `EXPLORE` (the region tick, on a chunk change,
   `.Post` only) and `COMMAND` (through `FinalCMD`); it has no event for smelting, fishing, eating, experience,
   enchanting, taming, breeding or shearing, and declares those sources not raised. With `RESPAWN` raised, Hytale's boot
-  no longer warns about `spawn-point`, which still sends nobody anywhere there.
+  no longer warns about `spawn-point`.
 - **Provenance** (`action.provenance`): `ProvenanceTracker.open(owner, storage)` records who placed a block
   (`PLAYER_PLACED`), what made a creature (`SPAWNER`, `EGG`, `BREEDING`, `COMMAND`) and who dropped an item
   (`PLAYER_DROP`), as a subscriber of the action events - `record()` returns the `ProvenanceHold` that keeps it
@@ -474,6 +474,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **hytale: an environment block break reaches the track-changes journal and `BreakActionEvent.Post`; spawn-point
+  teleports the respawned player.** A System hears `EnvironmentBreakBlockEvent` (fire, a harvest nobody did), keeps the
+  block in the journal and posts a BREAK by `environment:break`; the event is not cancellable, so no flag denies it.
+  `spawn-point` sends the player to its point once the server's own respawn moved him (immediately for a `RespawnEvent`
+  with no death behind it).
 - **region: a failed re-read of an owner already loaded says it kept its regions** ("are loaded from an earlier
   read; the re-read failed ...") instead of "did not load after 1 try", in the future and the log.
 - **region: the placeholder cache never re-admits a removed region**: a caller still holding the removed

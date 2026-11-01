@@ -18,12 +18,15 @@ import br.com.finalcraft.evernifecore.action.SpawnContext;
 import br.com.finalcraft.evernifecore.action.TypeKey;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.flag.FlagRegistry;
+import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.hytale.loader.imp.HyPlatform;
 import br.com.finalcraft.evernifecore.hytale.region.HyRegionMoveSystem;
 import br.com.finalcraft.evernifecore.hytale.region.HySelectionItems;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.selection.SelectionClick;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSession;
 import br.com.finalcraft.evernifecore.region.selection.SelectionTool;
@@ -58,6 +61,7 @@ import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent;
 import com.hypixel.hytale.server.core.asset.type.item.config.CraftingRecipe;
 import com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.CraftRecipeEvent;
+import com.hypixel.hytale.server.core.event.events.ecs.EnvironmentBreakBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.RespawnEvent;
 import com.hypixel.hytale.server.core.inventory.MaterialQuantity;
 import com.hypixel.hytale.server.core.modules.entity.damage.DeathComponent;
@@ -75,8 +79,10 @@ import com.hypixel.hytale.server.core.modules.entity.damage.Damage;
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageCause;
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageEventSystem;
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageModule;
+import com.hypixel.hytale.server.core.modules.entity.teleport.Teleport;
 import com.hypixel.hytale.server.core.modules.interaction.event.InteractionChainStartEvent;
 import com.hypixel.hytale.server.core.plugin.PluginBase;
+import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.npc.entities.NPCEntity;
 import jakarta.annotation.Nullable;
@@ -87,7 +93,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -127,6 +136,8 @@ public final class HyActionSystems {
     /** The actor kinds no context built here ever carries: Hytale has no fake players. */
     public static final Set<ECEntityType> NEVER_CLASSIFIED = Collections.singleton(ECEntityType.FAKE_PLAYER);
     static final HyRegionMoveSystem MOVE = new HyRegionMoveSystem(RegionMovementTracker::get);
+    /** The spawn-point of each player the server is respawning, applied when its respawn ends ({@link RespawnedSystem}). */
+    static final Map<UUID, WorldLocPos> RESPAWN_POINTS = new ConcurrentHashMap<>();
 
     private HyActionSystems() {
     }
@@ -149,6 +160,7 @@ public final class HyActionSystems {
                 event -> {
                     MOVE.quit(event.getPlayerRef().getUuid(), () -> FCHytaleUtil.adapt(event.getPlayerRef()));
                     HyPlatform.PLAYER_STATE.forget(event.getPlayerRef().getUuid()); //after the quit restored what the regions changed
+                    RESPAWN_POINTS.remove(event.getPlayerRef().getUuid());
                 });
         ComponentRegistryProxy<EntityStore> registry = plugin.getEntityStoreRegistry();
         registry.registerSystem(MOVE);
@@ -171,6 +183,8 @@ public final class HyActionSystems {
         registry.registerSystem(new CraftedSystem());
         registry.registerSystem(new KillSystem());
         registry.registerSystem(new RespawnSystem());
+        registry.registerSystem(new RespawnedSystem());
+        registry.registerSystem(new EnvironmentBreakSystem());
         declareSupport(platformName());
         return true;
     }
@@ -245,6 +259,27 @@ public final class HyActionSystems {
         return judge(EventSource.BREAK, world, event, () -> new BlockContext(EventSource.BREAK,
                 HyActionContexts.position(world, event.getTargetBlock()), Actor.environment(HyActionContexts.EXPLOSION), event,
                 HyActionContexts.key(event.getBlockType()), null), false);
+    }
+
+    /**
+     * A block the world itself broke - fire, a harvest nobody did - in {@code world}: kept by the {@code track-changes}
+     * journals and posted as a BREAK by {@link HyActionContexts#ENVIRONMENT_BREAK}. The server cannot be told no: the event
+     * is not cancellable, so no flag denies it and no {@code Pre} is posted.
+     */
+    static void environmentBreak(String world, EnvironmentBreakBlockEvent event) {
+        if (!EventSourceUsage.get().isNeeded(EventSource.BREAK) || HyActionContexts.isDisabled(world)) {
+            return;
+        }
+        Vector3i block = event.getTargetBlock();
+        RegionTerrain.recordChange(world, block.x, block.y, block.z,
+                content -> EverNifeCore.getPlatform().getTerrainAccess().captureBlock(world, block.x, block.y, block.z, content));
+        Actions.post(EventSource.BREAK, () -> new BlockContext(EventSource.BREAK, HyActionContexts.position(world, block),
+                Actor.environment(HyActionContexts.ENVIRONMENT_BREAK), event, HyActionContexts.key(event.getBlockType()), null));
+    }
+
+    /** Where the regions send {@code player}, dead at {@code diedAt}, back to life: the {@code spawn-point} resolved there; null for none. */
+    static @Nullable WorldLocPos spawnPointOf(String world, Vector3d diedAt, @Nullable FPlayer player) {
+        return HyActionContexts.isDisabled(world) ? null : RegionLookup.get().resolve(CoreFlags.SPAWN_POINT, world, diedAt.x, diedAt.y, diedAt.z, player);
     }
 
     /**
@@ -735,7 +770,10 @@ public final class HyActionSystems {
 
     /**
      * A player about to respawn, asked where he died: a denial, or a cancelled {@code Pre}, keeps him dead - the game
-     * checks the event before it respawns him; one left uncancelled posts its {@code Post}.
+     * checks the event before it respawns him; one left uncancelled posts its {@code Post} and goes to the
+     * {@code spawn-point} resolved where he died. The server's own respawn teleports him later, off this event (its
+     * respawn controller adds a {@link Teleport} once the point it picked is ready), so the point waits for the end of
+     * that respawn ({@link RespawnedSystem}); a respawn with no death behind it - a plugin firing the event - goes now.
      */
     private static final class RespawnSystem extends ByActor<RespawnEvent> {
         RespawnSystem() {
@@ -745,14 +783,70 @@ public final class HyActionSystems {
         @Override
         public void handle(int index, ArchetypeChunk<EntityStore> chunk, Store<EntityStore> store, CommandBuffer<EntityStore> buffer,
                            RespawnEvent event) {
+            if (!EventSourceUsage.get().isNeeded(EventSource.RESPAWN)) {
+                return;   //no region holds a spawn-point, and nobody listens
+            }
             Ref<EntityStore> player = chunk.getReferenceTo(index);
-            Vector3d at = positionOf(player, store);
-            if (at == null) {
+            TransformComponent transform = store.getComponent(player, TransformComponent.getComponentType());
+            if (transform == null) {
                 return;
             }
+            Vector3d at = transform.getPosition();
             String world = worldOf(store);
-            judge(EventSource.RESPAWN, world, event, () -> new SimpleContext(EventSource.RESPAWN, HyActionContexts.position(world, at),
-                    HyActionContexts.actor(player, store), event));
+            if (judge(EventSource.RESPAWN, world, event, () -> new SimpleContext(EventSource.RESPAWN, HyActionContexts.position(world, at),
+                    HyActionContexts.actor(player, store), event)) || event.isCancelled()) {
+                return;
+            }
+            PlayerRef playerRef = store.getComponent(player, PlayerRef.getComponentType());
+            WorldLocPos point = playerRef == null ? null : spawnPointOf(world, at, HyActionContexts.player(player, store));
+            if (point == null) {
+                return;
+            }
+            if (store.getComponent(player, DeathComponent.getComponentType()) == null) {
+                buffer.putComponent(player, Teleport.getComponentType(),
+                        HyRegionMoveSystem.teleport(point, store.getExternalData().getWorld(), transform.getRotation()));
+            } else {
+                RESPAWN_POINTS.put(playerRef.getUuid(), point);
+            }
+        }
+    }
+
+    /**
+     * The end of a respawn - the server removes the {@link DeathComponent} once its own respawn teleport is on the player:
+     * a spawn-point {@link RespawnSystem} held for him replaces that teleport.
+     */
+    private static final class RespawnedSystem extends DeathSystems.OnDeathSystem {
+
+        @Override
+        public Query<EntityStore> getQuery() {
+            return PlayerRef.getComponentType();
+        }
+
+        @Override
+        public void onComponentAdded(Ref<EntityStore> ref, DeathComponent death, Store<EntityStore> store, CommandBuffer<EntityStore> buffer) {
+        }
+
+        @Override
+        public void onComponentRemoved(Ref<EntityStore> ref, DeathComponent death, Store<EntityStore> store, CommandBuffer<EntityStore> buffer) {
+            PlayerRef player = store.getComponent(ref, PlayerRef.getComponentType());
+            WorldLocPos point = player == null ? null : RESPAWN_POINTS.remove(player.getUuid());
+            TransformComponent transform = point == null ? null : store.getComponent(ref, TransformComponent.getComponentType());
+            if (transform != null) {
+                buffer.putComponent(ref, Teleport.getComponentType(),
+                        HyRegionMoveSystem.teleport(point, store.getExternalData().getWorld(), transform.getRotation()));
+            }
+        }
+    }
+
+    /** {@link #environmentBreak} for every block the world breaks by itself; the event comes at the whole store. */
+    private static final class EnvironmentBreakSystem extends WorldEventSystem<EntityStore, EnvironmentBreakBlockEvent> {
+        EnvironmentBreakSystem() {
+            super(EnvironmentBreakBlockEvent.class);
+        }
+
+        @Override
+        public void handle(Store<EntityStore> store, CommandBuffer<EntityStore> buffer, EnvironmentBreakBlockEvent event) {
+            environmentBreak(worldOf(store), event);
         }
     }
 

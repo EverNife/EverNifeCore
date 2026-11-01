@@ -32,6 +32,8 @@ public final class HyActionContexts {
     public static final String NAMESPACE = "hytale";
     /** What breaks blocks with no entity behind the event: on 0.7.2 that is an explosion. */
     public static final TypeKey EXPLOSION = TypeKey.of("environment", "explosion");
+    /** What breaks a block in an {@code EnvironmentBreakBlockEvent}: fire burning it away, a harvest nobody did. */
+    public static final TypeKey ENVIRONMENT_BREAK = TypeKey.of("environment", "break");
     /** An entity that is neither a player nor an NPC - a dropped item, a projectile: the server gives it no type id. */
     public static final TypeKey ENTITY = TypeKey.of(NAMESPACE, "entity");
 

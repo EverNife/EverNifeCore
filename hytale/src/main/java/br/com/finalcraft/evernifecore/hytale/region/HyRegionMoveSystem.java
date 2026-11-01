@@ -202,7 +202,7 @@ public final class HyRegionMoveSystem extends EntityTickingSystem<EntityStore> {
     }
 
     /** A teleport to {@code to}, keeping the player's facing; into another world only when that world is loaded. */
-    static Teleport teleport(WorldLocPos to, @Nullable World here, Rotation3fc rotation) {
+    public static Teleport teleport(WorldLocPos to, @Nullable World here, Rotation3fc rotation) {
         Vector3d position = new Vector3d(to.getX(), to.getY(), to.getZ());
         if (here == null || here.getName().equals(to.getWorldName())) {
             return Teleport.createForPlayer(position, rotation);

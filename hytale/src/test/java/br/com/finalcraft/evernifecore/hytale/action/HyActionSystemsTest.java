@@ -10,7 +10,11 @@ import br.com.finalcraft.evernifecore.action.ECEntityType;
 import br.com.finalcraft.evernifecore.action.ActionSupport;
 import br.com.finalcraft.evernifecore.action.DamageContext;
 import br.com.finalcraft.evernifecore.flag.core.ActorDenyFlag;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.testing.Logs;
+import com.hypixel.hytale.math.vector.Rotation3f;
+import com.hypixel.hytale.server.core.event.events.ecs.EnvironmentBreakBlockEvent;
+import com.hypixel.hytale.server.core.modules.entity.teleport.Teleport;
 import br.com.finalcraft.evernifecore.action.SimpleContext;
 import br.com.finalcraft.evernifecore.action.event.BreakActionEvent;
 import br.com.finalcraft.evernifecore.action.event.CraftActionEvent;
@@ -532,6 +536,42 @@ class HyActionSystemsTest {
 
         assertEquals(10f, inside.getAmount(), "the region doubles the hit");
         assertEquals(5f, outside.getAmount(), "outside the region the hit is untouched");
+    }
+
+    @Test
+    void anEnvironmentBreakReachesTheJournalAndThePost() {
+        FlagRegistry.get().register(core, CoreFlags.TRACK_CHANGES);
+        Region garden = regions.cuboid("garden", WORLD, 0, 0, 0, 10, 10, 10);
+        garden.getManager().getTerrain().track(garden);
+        List<BreakActionEvent.Post> posts = new ArrayList<>();
+        ECEventSubscription<BreakActionEvent.Post> post = ECEventBus.global().subscribe(BreakActionEvent.Post.class, posts::add);
+        try {
+            HyActionSystems.environmentBreak(WORLD, new EnvironmentBreakBlockEvent(new Vector3i(5, 5, 5), null));
+            HyActionSystems.environmentBreak(WORLD, new EnvironmentBreakBlockEvent(new Vector3i(50, 5, 5), null));
+
+            assertEquals(1, garden.getManager().getTerrain().getJournalSize(garden), "only the break inside the tracking region is kept");
+            assertEquals(2, posts.size(), "every break the world made is posted");
+            Actor actor = posts.get(0).getContext().getActor();
+            assertSame(Actor.Type.ENVIRONMENT, actor.getType());
+            assertEquals(HyActionContexts.ENVIRONMENT_BREAK, actor.getKey());
+            assertTrue(actor.getKey().toString().startsWith("environment:"), actor.getKey().toString());
+        } finally {
+            post.unsubscribe();
+        }
+    }
+
+    @Test
+    void respawnInsideASpawnPointRegionTeleportsThere() {
+        FlagRegistry.get().register(core, CoreFlags.SPAWN_POINT);
+        WorldLocPos camp = WorldLocPos.of(100.5, 64, -20.5, WORLD);
+        regions.cuboid("camp", WORLD, 0, 0, 0, 10, 10, 10).setFlag(CoreFlags.SPAWN_POINT, camp);
+
+        WorldLocPos point = HyActionSystems.spawnPointOf(WORLD, new Vector3d(5, 5, 5), miner);
+
+        assertEquals(camp, point, "died inside the camp: back to its spawn-point");
+        Teleport teleport = HyRegionMoveSystem.teleport(point, null, new Rotation3f());
+        assertEquals(new Vector3d(100.5, 64, -20.5), teleport.getPosition());
+        assertNull(HyActionSystems.spawnPointOf(WORLD, new Vector3d(50, 5, 5), miner), "died where no spawn-point is defined: no teleport");
     }
 
     @Test
