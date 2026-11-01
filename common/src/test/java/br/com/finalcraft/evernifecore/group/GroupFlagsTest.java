@@ -223,6 +223,19 @@ class GroupFlagsTest {
         assertFalse(pair.add(carol.getUniqueId()));
     }
 
+    @Test
+    void theKindsDefaultReachesTheResolutionOfAGroupThatSetsNothing() {
+        GroupKind team = GroupKind.of(parties.getOwner(), "team").flagDefault(CoreFlags.DENY_FRIENDLY_FIRE, Tristate.TRUE).build();
+        parties.getManager().registerKind(team);
+        Group red = parties.group("red", team);
+        red.add(alice.getUniqueId());
+        red.add(bob.getUniqueId());
+
+        assertEquals(Decision.DENY, hit(Actors.player(bob), alice));
+        red.setFlag(CoreFlags.DENY_FRIENDLY_FIRE, Tristate.FALSE);
+        assertEquals(Decision.PASS, hit(Actors.player(bob), alice), "the group's own value wins over the kind's default");
+    }
+
     // ---- share-xp / share-money ----
 
     @Test

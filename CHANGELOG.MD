@@ -365,6 +365,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **A group kind's flag default now reaches the flag resolution**: `Group.getFlagValue` answers the kind's
+  `flagDefault` when the group sets nothing, so a kind that defaults `deny-friendly-fire` (or `invincible`,
+  `damage-multiplier`) acts on its members; before, only `getEffectiveFlag` saw the default and the resolution read the
+  flag's own default instead. The group's own value still wins.
+
 - **`LogicWorld` beside another world**: it puts the stock on a core plugin data the test already built (and leaves it
   there when it closes), and adds or takes only its own players on the platform's online list instead of replacing it,
   so a `GroupWorld` (or `RegionWorld`) open next to it keeps its players.
