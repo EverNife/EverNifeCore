@@ -793,6 +793,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   (EveryCommands, FinalHomesAndWarps, FinalRTP) migrate in the template round.
 - **`Group.resolve(flag, player)`**: use `getEffectiveFlag(flag)` (the kind's default included) and
   `contains(player)`.
+- **`time.DayOfToday`**: `Window.getServerZone()` is the server zone (`Settings.Time.ZONE_ID_OF_DAY_OF_TODAY`, the
+  system's when unset or unreadable) and `ECTimeFormat` formats in it; its `currentTimeMillisWithOffset` ignored daylight
+  saving.
 
 ## [3.0.1-alpha.70] - 2026-10-19
 

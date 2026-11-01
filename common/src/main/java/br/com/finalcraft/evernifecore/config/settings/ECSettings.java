@@ -13,11 +13,9 @@ import br.com.finalcraft.evernifecore.notify.Notifier;
 import br.com.finalcraft.evernifecore.region.RegionIndex;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.RegionSweeper;
-import br.com.finalcraft.evernifecore.time.DayOfToday;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.waypoint.Waypoints;
 import br.com.finalcraft.everyconfig.config.Config;
-import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import br.com.finalcraft.everylibs.util.FCTimeUtil;
 
 import java.math.BigDecimal;
@@ -116,8 +114,6 @@ public class ECSettings {
                         "\n - 'GMT-3'     # Time at GMT minus 3 Hours." +
                         "\n - 'GMT+8'     # Time at GMT plus 8 Hours."
         );
-        FCReflectionUtil.getFields().getField(DayOfToday.class, "INSTANCE")
-                .set(null, new DayOfToday(ZONE_ID_OF_DAY_OF_TODAY));
 
         SIMPLE_DATE_FORMAT = DateTimeFormatter.ofPattern(
                 ConfigManager.getMainConfig().getOrSetValueIfAbsent("Settings.Time.SIMPLE_DATE_FORMAT", "dd/MM/yyyy")

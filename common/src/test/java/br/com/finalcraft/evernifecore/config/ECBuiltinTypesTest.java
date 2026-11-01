@@ -12,7 +12,6 @@ import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.LocPos;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
-import br.com.finalcraft.evernifecore.time.DayOfToday;
 import br.com.finalcraft.everylibs.util.FCTimeUtil;
 import br.com.finalcraft.everylibs.util.numberwrapper.NumberWrapper;
 import br.com.finalcraft.everyconfig.config.Config;
@@ -20,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -139,8 +139,9 @@ class ECBuiltinTypesTest {
     void zonedDateTimeRoundTrips(@TempDir Path dir) {
         // Seed from the same formatter the codec uses, so no sub-second precision is expected to survive.
         String formatted = "2024/03/15 13:45:30";
+        // The codec reads the text back in UTC, so only an instant seeded there keeps its wall-clock digits.
         ZonedDateTime original = FCTimeUtil.universalDateConverter(formatted)
-                .atZone(DayOfToday.getInstance().getZoneId());
+                .atZone(ZoneOffset.UTC);
 
         Config cfg = open(dir);
         cfg.setValue("when", original);
