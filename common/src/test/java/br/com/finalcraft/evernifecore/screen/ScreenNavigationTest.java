@@ -387,6 +387,19 @@ class ScreenNavigationTest {
     }
 
     @Test
+    void aScreenSetAsideTellsItsWindowSoARendererThatIsNotTheChestCanLetGo() {
+        ScreenView view = world.open(screen("A", "minecraft:iron_ingot"), alex);
+        RecordingSurface window = world.getRenderer().surfaceOf(view);
+        assertFalse(window.isSuspended());
+
+        assertTrue(ScreenNavigation.suspend(view));
+
+        assertTrue(window.isSuspended(), "the window learns the view went aside - a page or a mod screen has no inventory "
+                + "close to hear it from");
+        assertNull(window.getClosedWith(), "set aside is not closed: the view comes back on a new window");
+    }
+
+    @Test
     void onlyTheScreenOnDisplayCanBeSetAsideAndOnlyASetAsideOneComesBack() {
         ScreenView view = world.open(screen("A", "minecraft:iron_ingot"), alex);
 

@@ -29,6 +29,15 @@ public interface ScreenSurface {
      */
     void close(@Nonnull CloseReason reason);
 
+    /**
+     * The view drawn here was set aside - a prompt asks, or a screen opened on top of it: the window goes, the view
+     * stays, and comes back on a new surface. Nothing reports this window closed; the renderer lets it go quietly (a
+     * chest closes its inventory unless something opened over it). Renderer thread.
+     */
+    default void suspended() {
+
+    }
+
     /** Whether {@code nativeWindow} - the renderer's own window object - is this surface. {@code null} never is. */
     boolean isBackedBy(@Nullable Object nativeWindow);
 

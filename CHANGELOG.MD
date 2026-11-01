@@ -465,6 +465,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **`ScreenSurface.suspended()` tells the window its view was set aside** (a prompt asks, or a screen opened on top):
+  a renderer that is not the chest now hears it. The chest closes its inventory there, a tick later and only if the
+  player still has it open - a screen or an anvil opened on top keeps its window and the cursor where it was - instead
+  of the chat prompt channel closing it; a click on that chest in the tick between is cancelled.
+  `RecordingSurface.isSuspended()` records it.
 - **Prompts have one registry and an anvil channel**: `PromptRegistry.get().ask(view, spec)` keeps the one pending
   question per screen (set aside and given back, timeout on the screen's clock, a second question cancels the first,
   `QUIT` when the screen is released mid-question, delivery on the screen's thread) for every channel; `PromptKind`

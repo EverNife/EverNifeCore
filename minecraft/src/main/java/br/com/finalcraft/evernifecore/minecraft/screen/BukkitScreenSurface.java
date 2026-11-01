@@ -136,6 +136,22 @@ public final class BukkitScreenSurface extends GridSurface {
         }
     }
 
+    /**
+     * Closes the chest a tick later, and only if the player still has it open: a screen opened on top (or an anvil
+     * prompt) replaces the window by itself, and closing first would recentre the player's cursor. A chat prompt leaves
+     * it standing, so it goes here. The close event that follows is ignored - the view is no longer registered as open.
+     */
+    @Override
+    public void suspended() {
+        BukkitScreenScheduler.INSTANCE.later(1L, () -> {
+            Player player = ChestScreenRenderer.playerOf(view);
+            if (player != null && player.isOnline() && player.getOpenInventory() != null
+                    && isBackedBy(player.getOpenInventory().getTopInventory())) {
+                player.closeInventory();
+            }
+        });
+    }
+
     /** By reference: two containers with the same contents are still two windows. */
     @Override
     public boolean isBackedBy(@Nullable Object nativeWindow) {

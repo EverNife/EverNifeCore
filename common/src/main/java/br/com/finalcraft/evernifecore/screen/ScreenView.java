@@ -717,6 +717,9 @@ public final class ScreenView {
         }
         suspended = true;
         cancelPendingCommit();
+        if (surface != null) {
+            surface.suspended();
+        }
     }
 
     private synchronized void cancelPendingCommit() {

@@ -12,6 +12,7 @@ import br.com.finalcraft.evernifecore.screen.Icon;
 import br.com.finalcraft.evernifecore.screen.Layout;
 import br.com.finalcraft.evernifecore.screen.MutableState;
 import br.com.finalcraft.evernifecore.screen.Screen;
+import br.com.finalcraft.evernifecore.screen.ScreenNavigation;
 import br.com.finalcraft.evernifecore.screen.ScreenView;
 import br.com.finalcraft.evernifecore.screen.Screens;
 import br.com.finalcraft.evernifecore.screen.prompt.PromptRegistry;
@@ -38,7 +39,9 @@ import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -143,6 +146,25 @@ class ChatPromptTest {
     // -----------------------------------------------------------------------------------------------------------------
     //  The answer
     // -----------------------------------------------------------------------------------------------------------------
+
+    @Test
+    void aScreenSetAsideClosesItsChestByItselfAndAScreenOpenedOnTopKeepsItsWindow() {
+        Screen<Layout> alone = Screen.of(3).title("Alone");
+        ScreenView view = world.open(alone, player);
+        assertNotNull(player.getOpenView());
+
+        assertTrue(ScreenNavigation.suspend(view));
+        assertTrue(clicks.leftClick(player, 0).isCancelled(), "for the tick the chest outlives its view, nothing in it is loot");
+        world.advanceTicks(1);
+
+        assertNull(player.getOpenView(), "the surface closes the chest of a view set aside - no channel had to");
+
+        ScreenView deeper = openTheScreenThatAsks(context -> { });
+        assertNotNull(player.getOpenView(), "a screen opened on top of a set-aside one keeps the window it took");
+        world.advanceTicks(2);
+        assertSame(deeper, Screens.getOpenView(player.getUniqueId()));
+        assertNotNull(player.getOpenView(), "the set-aside one's close is only for a window still showing it");
+    }
 
     @Test
     void theAnswerArrivesOnTheMainThreadWithTheScreenBackAsItWas() {

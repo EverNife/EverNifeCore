@@ -27,6 +27,7 @@ public class RecordingSurface extends GridSurface {
     private final List<String> titles = new ArrayList<>();
     private CloseReason closedWith;
     private boolean silent;
+    private boolean suspended;
 
     public RecordingSurface(@Nonnull ScreenView view) {
         super(view.getGrid());
@@ -55,6 +56,11 @@ public class RecordingSurface extends GridSurface {
     @Override
     public void setTitle(@Nonnull String title) {
         titles.add(title);
+    }
+
+    @Override
+    public void suspended() {
+        suspended = true;
     }
 
     /** Takes the window away and reports it gone, as a platform confirming the close would. */
@@ -146,6 +152,11 @@ public class RecordingSurface extends GridSurface {
     @Nullable
     public CloseReason getClosedWith() {
         return closedWith;
+    }
+
+    /** Whether the view drawn here was set aside - a prompt, or a screen opened on top of it. */
+    public boolean isSuspended() {
+        return suspended;
     }
 
 }

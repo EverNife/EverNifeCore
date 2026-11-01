@@ -63,6 +63,9 @@ public class BukkitScreenListener implements ECListener {
         //it through getView() would freeze a call against InventoryView, a class before 1.21 and an interface after
         BukkitScreenSurface surface = ChestScreenRenderer.surfaceOf(view);
         if (surface == null || !view.isSurface(event.getInventory())) {
+            if (ChestScreenRenderer.isSetAside(event.getInventory())) {
+                event.setCancelled(true); //its icons are real stacks, and nothing guards them until it closes
+            }
             return;
         }
         processClick(view, surface, event);
@@ -227,6 +230,9 @@ public class BukkitScreenListener implements ECListener {
         ScreenView view = Screens.getOpenView(player.getUniqueId());
         BukkitScreenSurface surface = ChestScreenRenderer.surfaceOf(view);
         if (surface == null || !view.isSurface(event.getInventory())) {
+            if (ChestScreenRenderer.isSetAside(event.getInventory())) {
+                event.setCancelled(true);
+            }
             return;
         }
 

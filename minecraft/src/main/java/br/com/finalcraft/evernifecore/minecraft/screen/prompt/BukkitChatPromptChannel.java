@@ -47,7 +47,6 @@ public final class BukkitChatPromptChannel implements PromptChannel {
             session.cancel();
             return;
         }
-        player.closeInventory();
         player.sendMessage(session.getSpec().getQuestion());
         //no expiry and no quit callback: the registry is the one that times a question out and hears a player leave
         waits.put(session, ChatExpectationListener.get().expectPlayerChat(player, line -> onChat(session, line), 0L, null, null));

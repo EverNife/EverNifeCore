@@ -119,6 +119,21 @@ public final class ChestScreenRenderer implements ScreenRenderer {
         return view == null ? null : SURFACES.get(view);
     }
 
+    /**
+     * Whether {@code inventory} is the chest of a view set aside - still in front of the player for the tick before
+     * {@link BukkitScreenSurface#suspended()} closes it, and no open view answers for it.
+     */
+    public static boolean isSetAside(@Nullable Inventory inventory) {
+        synchronized (SURFACES) {
+            for (BukkitScreenSurface surface : SURFACES.values()) {
+                if (surface.isBackedBy(inventory) && surface.getView().isSuspended()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     /** The online Bukkit player behind {@code viewer}, or {@code null}. */
     @Nullable
     public static Player playerOf(@Nullable FPlayer viewer) {
