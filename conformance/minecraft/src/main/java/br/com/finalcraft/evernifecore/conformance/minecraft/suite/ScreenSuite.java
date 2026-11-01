@@ -12,6 +12,8 @@ import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.logic.Condition;
 import br.com.finalcraft.evernifecore.logic.ConditionResult;
 import br.com.finalcraft.evernifecore.logic.Conditions;
+import br.com.finalcraft.evernifecore.logic.Effect;
+import br.com.finalcraft.evernifecore.logic.Effects;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 import br.com.finalcraft.evernifecore.logic.Gate;
 import br.com.finalcraft.evernifecore.logic.delivery.Deliveries;
@@ -65,6 +67,7 @@ import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionDefault;
 
 import java.io.File;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -76,6 +79,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 
 /**
@@ -114,6 +119,8 @@ public final class ScreenSuite implements ConformanceSuite {
     };
 
     private static final Map<String, Sample> SCREENS = new LinkedHashMap<>();
+    /** The {@code storage} screen's store of each player who opened it by hand. */
+    private static final Map<UUID, GenericInventory> MANUAL_STORES = new ConcurrentHashMap<>();
 
     static {
         screen("basic", 27, "", probe -> {
@@ -133,8 +140,11 @@ public final class ScreenSuite implements ConformanceSuite {
         });
         screen("storage", 27, "", probe -> {
             Screen<Layout> screen = named(Screen.of(3), "storage", probe);
-            screen.icon(Slots.row(1), Icon.of("minecraft:stone"));
-            screen.storage(Slots.box(2, 1, 3, 9)).backedBy(new GenericInventory()).policy(ClickPolicy.EDIT_ALL);
+            screen.icon(Slots.row(1), Icon.of("minecraft:stone").lore("§7border - not takeable"));
+            //by hand the store is the player's and outlives the window, so a reopen shows what was left in it
+            GenericInventory store = probe.viewer == null ? new GenericInventory()
+                    : MANUAL_STORES.computeIfAbsent(probe.viewer, id -> new GenericInventory());
+            screen.storage(Slots.box(2, 1, 3, 9)).backedBy(store).policy(ClickPolicy.EDIT_ALL);
             return screen;
         });
         screen("prompt", 27, "", probe -> {
@@ -145,7 +155,10 @@ public final class ScreenSuite implements ConformanceSuite {
         screen("prompt-anvil", 27, "", probe -> {
             Screen<Layout> screen = named(Screen.of(3), "prompt-anvil", probe);
             screen.icon(13, Icon.of("minecraft:paper")).onClick(click -> click.ask(anvilQuestion(Duration.ofSeconds(60)))
-                    .thenAccept(amount -> Bukkit.getLogger().info("[ECoreConformance] prompt-anvil answered " + amount)));
+                    .thenAccept(amount -> {
+                        Bukkit.getLogger().info("[ECoreConformance] prompt-anvil answered " + amount);
+                        click.getViewer().sendMessage("§a[ECoreConformance] prompt-anvil accepted " + amount);
+                    }));
             return screen;
         });
         screen("pager", 27, "", probe -> {
@@ -170,29 +183,46 @@ public final class ScreenSuite implements ConformanceSuite {
         screen("confirm", 27, "§8ecc confirm?", probe -> ConfirmScreen.of(ConfirmRequest.of("§8ecc confirm?"))
                 .onClose(close -> probe.closes.add(close.getReason())));
         screen("deliveries", 36, "", probe -> named(DeliveriesScreen.of(), "deliveries", probe));
-        screen("shop", 27, "", probe -> named(ShopSample.build(ECPluginManager.getProvidingPlugin(ScreenSuite.class)), "shop", probe));
+        screen("shop", 27, "", probe -> named(ShopSample.build(ECPluginManager.getProvidingPlugin(ScreenSuite.class), probe.viewer), "shop", probe));
         screen("ranking", 36, "", probe -> named(RankingScreen.of(RankingRequest.of(threeRanked())), "ranking", probe));
         screen("input", 27, "", probe -> {
             Screen<InputLayout> screen = named(Screen.of(InputLayout.class), "input", probe);
-            screen.input(l -> l.FIELD).onInput(PromptSpec.of("§e[ECoreConformance] screen/input - no answer needed, it times out")
-                    .prefer(PromptKind.CHAT).timeout(Duration.ofSeconds(2)), (view, typed) -> probe.answers.add(typed));
+            PromptSpec<String> question = probe.viewer == null
+                    ? PromptSpec.of("§e[ECoreConformance] screen/input - no answer needed, it times out")
+                            .prefer(PromptKind.CHAT).timeout(Duration.ofSeconds(2))
+                    : PromptSpec.of("§e[ECoreConformance] screen/input - type anything within 30 s")
+                            .prefer(PromptKind.CHAT).timeout(Duration.ofSeconds(30))
+                            .onTimeout(view -> view.getViewer().sendMessage("§c[ECoreConformance] screen/input - 30 s passed, nothing typed"));
+            screen.input(l -> l.FIELD).onInput(question, (view, typed) -> {
+                probe.answers.add(typed);
+                if (probe.viewer != null) view.getViewer().sendMessage("§a[ECoreConformance] screen/input - you typed: " + typed);
+            });
             return screen;
         });
         screen("progress", 27, "", probe -> {
             Screen<ProgressLayout> screen = named(Screen.of(ProgressLayout.class), "progress", probe);
-            screen.progress(l -> l.BAR, new MutableState<>(0.5d));
+            MutableState<Double> ratio = new MutableState<>(0.5d);
+            screen.progress(l -> l.BAR, ratio).dependsOn(ratio);
+            if (probe.viewer != null) {
+                //by hand the bar fills a tenth a second and starts over; the check reads it standing at 0.5
+                screen.addComponent(component -> component.getView().repeat(20L, () -> ratio.set(ratio.get() >= 0.999d ? 0d : Math.min(1d, ratio.get() + 0.1d))));
+            }
             return screen;
         });
         screen("choice", 27, "", probe -> {
             Screen<ChoiceLayout> screen = named(Screen.of(ChoiceLayout.class), "choice", probe);
-            screen.choice(l -> l.ANYONE, FancyText.of("§aanyone may pick this"), Gate.open(), Collections.emptyList());
+            screen.choice(l -> l.ANYONE, FancyText.of("§aanyone may pick this"), Gate.open(),
+                    Collections.singletonList(effect("{\"type\": \"evernifecore:message\", \"text\": \"§a[ECoreConformance] choice picked\"}")));
             screen.choice(l -> l.NOBODY, FancyText.of("§cnobody may pick this"), Gate.builder().require(nobodyHasIt()).build(),
                     Collections.emptyList());
             return screen;
         });
         screen("reactive", 27, "", probe -> {
             Screen<Layout> screen = named(Screen.of(3), "reactive", probe);
-            screen.icon(13, Icon.of("minecraft:hopper")).dependsOn(AFTER_A_PICKUP);
+            AtomicInteger draws = new AtomicInteger();
+            screen.icon(13, Icon.of("minecraft:hopper").lore("§7Drop an item and pick it up again", "§7- every pickup re-checks this icon"))
+                    .dependsOn(AFTER_A_PICKUP)
+                    .render(icon -> icon.displayName("§eRe-checked " + (draws.getAndIncrement()) + " x"));
             return screen;
         });
     }
@@ -207,10 +237,16 @@ public final class ScreenSuite implements ConformanceSuite {
         return new ArrayList<>(SCREENS.keySet());
     }
 
-    /** Opens {@code screen} for {@code player} and leaves it open; {@code null} when no screen has that id. */
+    /**
+     * Opens {@code screen} for {@code player} and leaves it open, built for a person at the keyboard (see
+     * {@link Probe#viewer}); {@code null} when no screen has that id.
+     */
     public static CompletableFuture<ScreenView> open(String screen, Player player) {
         Sample found = SCREENS.get(screen);
-        return found == null ? null : found.build.apply(new Probe()).open(viewer(player));
+        if (found == null) return null;
+        Probe probe = new Probe();
+        probe.viewer = player.getUniqueId();
+        return prepare(screen, player, probe).thenCompose(prepared -> found.build.apply(probe).open(viewer(player)));
     }
 
     @Override
@@ -279,7 +315,7 @@ public final class ScreenSuite implements ConformanceSuite {
         return answer;
     }
 
-    /** What has to exist on the server before a screen opens; only the check prepares, {@code /ecc screen} does not. */
+    /** What has to exist on the server before a screen opens - a delivery to claim, by hand as in the check. */
     private static CompletableFuture<?> prepare(String id, Player player, Probe probe) {
         if (!id.equals("deliveries")) {
             return CompletableFuture.completedFuture(null);
@@ -525,6 +561,14 @@ public final class ScreenSuite implements ConformanceSuite {
                 .build();
     }
 
+    private static Effect effect(String json) {
+        try {
+            return Effects.parse(ECPluginManager.getProvidingPlugin(ScreenSuite.class), JSON.readTree(json), Window.getServerZone());
+        } catch (IOException unreadable) {
+            throw new IllegalStateException("The effect " + json + " of a sample screen is not JSON", unreadable);
+        }
+    }
+
     /** The stock {@code permission} condition, on a node no player holds. */
     private static Condition nobodyHasIt() {
         if (Bukkit.getPluginManager().getPermission(NOBODY_NODE) == null) {
@@ -623,6 +667,12 @@ public final class ScreenSuite implements ConformanceSuite {
 
     /** What a check reads back from the screen it built: every close, the pager, typed answers, the seeded delivery. */
     private static final class Probe {
+        /**
+         * Who opened it through {@code /ecc screen}, {@code null} under the check. A person gets the visible answers the
+         * check has no use for - a longer question, a moving bar, a store kept between windows, a real wallet - and the
+         * check reads the values it always read.
+         */
+        private UUID viewer;
         private final List<CloseReason> closes = Collections.synchronizedList(new ArrayList<>());
         private final List<String> answers = Collections.synchronizedList(new ArrayList<>());
         private Pager pager;

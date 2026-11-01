@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.economy.AbstractCurrency;
 import br.com.finalcraft.evernifecore.economy.Currencies;
+import br.com.finalcraft.evernifecore.economy.Currency;
 import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
 import br.com.finalcraft.evernifecore.economy.EcoResponse;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
@@ -24,18 +25,21 @@ import br.com.finalcraft.evernifecore.screen.ClickGesture;
 import br.com.finalcraft.evernifecore.screen.Screen;
 import br.com.finalcraft.evernifecore.screen.ScreenView;
 import br.com.finalcraft.everylibs.util.numberwrapper.NumericSpec;
+import jakarta.annotation.Nullable;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * The {@code shop} screen of {@link ScreenSuite}: a menu registered as {@code ecoreconformance:shop} whose one button
  * buys a diamond for 10 tokens (left) and buys it back for 4 (right, plain diamonds only), the tokens being an in-memory
- * currency of the check-up - a test server has no economy plugin behind {@code money}.
+ * currency of the check-up - a test server has no economy plugin behind {@code money}. Opened by hand on a server that has
+ * one, it prices in {@code money} instead.
  */
 final class ShopSample {
 
@@ -47,17 +51,29 @@ final class ShopSample {
     private ShopSample() {
     }
 
-    /** Registers the menu again (and the tokens once) and answers its screen. */
-    static synchronized Screen<?> build(ECPluginData plugin) {
+    /**
+     * Registers the menu again (and the tokens once) and answers its screen. {@code manualViewer} is who opened it through
+     * {@code /ecc screen} ({@code null} under the check): they pay in {@code money} when an economy answers for it, and
+     * otherwise in tokens, 100 of them given on every open.
+     */
+    static synchronized Screen<?> build(ECPluginData plugin, @Nullable UUID manualViewer) {
         if (tokens == null) {
             tokens = new Tokens(plugin.getMetaInfo().getName().toLowerCase(Locale.ROOT) + ":tokens");
             Currencies.register(plugin, tokens);
         }
+        Currency currency = tokens;
+        if (manualViewer != null) {
+            if (Currencies.money().isAvailable()) {
+                currency = Currencies.money();
+            } else {
+                tokens.set(CurrencyOwner.player(manualViewer), new BigDecimal("100"));
+            }
+        }
         MenuRegistry.get().unregisterAll(plugin);
         Menu menu = Menu.of(plugin, NAME)
                 .offer("diamond", 13,
-                        Offer.buy(Goods.ofItem(DIAMOND, ANY_DIAMOND.plainOnly()), Price.of(tokens, 10)).build(),
-                        Offer.sell(Goods.ofItem(DIAMOND, ANY_DIAMOND.plainOnly()), Price.of(tokens, 4)).build())
+                        Offer.buy(Goods.ofItem(DIAMOND, ANY_DIAMOND.plainOnly()), Price.of(currency, 10)).build(),
+                        Offer.sell(Goods.ofItem(DIAMOND, ANY_DIAMOND.plainOnly()), Price.of(currency, 4)).build())
                 .build();
         MenuRegistry.get().register(plugin, menu);
         return menu.getScreen().debounce(0);
