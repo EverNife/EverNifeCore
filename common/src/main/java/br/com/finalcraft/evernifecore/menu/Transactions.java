@@ -40,11 +40,14 @@ public final class Transactions {
     private Transactions() {
     }
 
-    /** What {@link #buy}/{@link #sell} would answer now - every check and the totals - with nothing taken and nothing posted. */
+    /**
+     * What {@link #buy}/{@link #sell} would answer now - every check and the totals - with nothing taken and nothing posted.
+     * A limit whose {@link LimitScope#findOwner owner} the context lacks (a catalog priced without a player) is not checked.
+     */
     public static TransactionResult quote(ExecutionContext ctx, Offer offer, int quantity) {
         requirePositive(quantity, offer);
         Quote quote = offer.getPrice().quote(ctx, quantity);
-        TransactionResult refused = precheck(ctx, offer, quantity, quote);
+        TransactionResult refused = precheck(ctx, offer, quantity, quote, true);
         if (refused != null) {
             return refused;
         }
@@ -168,7 +171,7 @@ public final class Transactions {
     private static TransactionResult run(ExecutionContext ctx, Offer offer, int quantity) {
         requirePositive(quantity, offer);
         Quote asked = offer.getPrice().quote(ctx, quantity);
-        TransactionResult refused = precheck(ctx, offer, quantity, asked);
+        TransactionResult refused = precheck(ctx, offer, quantity, asked, false);
         if (refused != null) {
             return refused;
         }
@@ -194,7 +197,7 @@ public final class Transactions {
     }
 
     /** The checks that refuse before the pre-event: read-only, the gate, the limit, room or units held. */
-    private static @Nullable TransactionResult precheck(ExecutionContext ctx, Offer offer, int quantity, Quote quote) {
+    private static @Nullable TransactionResult precheck(ExecutionContext ctx, Offer offer, int quantity, Quote quote, boolean quoting) {
         if (offer.isReadOnly()) {
             return TransactionResult.failed(TransactionResult.Failure.GATE_DENIED, offer, quantity, quote,
                     FancyText.of("This offer is a catalog line: it shows a price and trades nothing."));
@@ -207,7 +210,8 @@ public final class Transactions {
         if (!gate.isPassed()) {
             return TransactionResult.denied(TransactionResult.Failure.GATE_DENIED, offer, quantity, quote, gate, null);
         }
-        Cooldown counter = offer.getCounter(ctx);
+        //a quote without the limit's owner prices the offer; a trade asks ownerOf, which says how to build the context
+        Cooldown counter = quoting && offer.getLimitScope().findOwner(ctx) == null ? null : offer.getCounter(ctx);
         if (counter != null && (counter.getUsesLeft() < quantity || !counter.canUse())) {
             return TransactionResult.failed(TransactionResult.Failure.LIMIT_REACHED, offer, quantity, quote, counter.explain(ctx.getLocale()));
         }

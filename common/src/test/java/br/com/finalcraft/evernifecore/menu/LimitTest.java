@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.menu;
 
+import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
 import br.com.finalcraft.evernifecore.logic.RepeatPolicy;
 import br.com.finalcraft.evernifecore.testing.Menus;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
@@ -12,6 +13,7 @@ import java.time.LocalTime;
 import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** An offer's limit: counted per owner and per window, by the quantity traded, never by a quote. */
@@ -76,6 +78,20 @@ class LimitTest extends MenuTestWorlds {
 
         assertEquals(TransactionResult.Failure.LIMIT_REACHED, Transactions.buy(menus.context(alex), offer, 1).getFailure(),
                 "Bia's purchase counted against the same server-wide limit");
+    }
+
+    @Test
+    void aQuoteWithoutAPlayerPricesAPerPlayerLimitAndATradeStillRefuses() {
+        Offer offer = threeADay("sword-e");
+        menus.coins().balance(CurrencyOwner.global(), 100); //the wallet of a context without a player
+
+        TransactionResult quoted = Transactions.quote(shop.context().build(), offer, 2);
+
+        assertTrue(quoted.isSuccess(), quoted.toString());
+        assertAmount("20", quoted.getQuote().getTotal(menus.coins().getId()));
+        IllegalStateException refused = assertThrows(IllegalStateException.class,
+                () -> Transactions.trade(shop.context().build(), offer, Quantity.of(1)));
+        assertTrue(refused.getMessage().contains("counted per player"), refused.getMessage());
     }
 
     @Test

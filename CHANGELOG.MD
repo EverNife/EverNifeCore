@@ -432,6 +432,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **`Transactions.quote` prices a per-player or per-group limited offer for a context without that owner**: a catalog
+  priced from the console or a server-wide screen gets the totals and every other check, without the limit, instead of
+  an `IllegalStateException`; `buy`/`sell`/`trade` still refuse with it. New `LimitScope.findOwner(ctx)` (null when the
+  context has no owner of that scope); `ownerOf` keeps throwing.
 - **A slot whose item did not change still reaches the renderer when its element state did**: a `ProgressBar` whose
   ratio moved, or an element turning disabled with the same item, sends its patch. The commit compared only the
   drawn item, so a renderer that draws by element kept the old ratio.
