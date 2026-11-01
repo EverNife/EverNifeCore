@@ -54,6 +54,9 @@ dependencies {
 
     implementation libs.guava
 
+    // @Nullable/@Nonnull sit on common's public signatures: a plugin compiling against it needs them too
+    api libs.jakarta.annotation
+
     testImplementation platform(libs.junit.bom)
     testImplementation libs.junit.jupiter
     testRuntimeOnly libs.junit.platform.launcher
@@ -184,6 +187,7 @@ publishing {
                 addDep('net.kyori', 'adventure-text-serializer-gson', adventureVersion, 'runtime', null)
                 addDep('net.kyori', 'adventure-text-serializer-legacy', adventureVersion, 'runtime', null)
                 addDep('com.google.guava', 'guava', libs.versions.guava.get(), 'runtime', null)
+                addDep('jakarta.annotation', 'jakarta.annotation-api', libs.versions.jakarta.annotation.get(), 'compile', null)
                 asNode().appendNode('url', 'https://petrus.dev')
             }
         }

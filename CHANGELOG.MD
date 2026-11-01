@@ -555,6 +555,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **common: the `evernifecore-common` and `-relocated` POMs carry `jakarta.annotation-api`**, so a plugin can use
+  `@Nullable`/`@Nonnull` without declaring it.
 - **common-tests: `ECoreTestWorld` and `FinalCmdTestHarness` hand back the core's plugin data on close** (null
   included) instead of leaving the last one lent for the rest of the JVM; the one a world lends when none is set is built
   on a lenient double, so a strict world needs no logging for it. **`QuestWorld.login` attaches the `FPlayer`**
