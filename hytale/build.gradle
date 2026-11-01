@@ -77,6 +77,9 @@ shadowJar {
         // checker-qual (dragged in by guava/adventure) carries only compile-time annotations - no
         // reason to ship it; excluding keeps the jar free of org.checkerframework classes.
         exclude(dependency('org.checkerframework:checker-qual'))
+        // jakarta.annotation-api is :common's @Nullable/@Nonnull, for the compiler only: a missing annotation class
+        // never fails at runtime.
+        exclude(dependency('jakarta.annotation:jakarta.annotation-api'))
         // The server provides org.bson but not its record codec (org.bson.codecs.record), which the
         // driver probes for by name: bson-record-codec ships unrelocated, linking to the server's bson.
         exclude(dependency('org.mongodb:bson'))
