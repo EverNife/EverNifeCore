@@ -365,6 +365,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **A plugin that fails before EverNifeCore enables no longer takes the core down**: a section registered by a plugin
+  whose enable failed ahead of the core (its jar already closed) is dropped with a SEVERE line naming the plugin, and the
+  core and every other section boot; before, `PlayerController` died binding it (`IllegalStateException: zip file closed`)
+  and every plugin on the core failed with it.
 - **A group kind's flag default now reaches the flag resolution**: `Group.getFlagValue` answers the kind's
   `flagDefault` when the group sets nothing, so a kind that defaults `deny-friendly-fire` (or `invincible`,
   `damage-multiplier`) acts on its members; before, only `getEffectiveFlag` saw the default and the resolution read the

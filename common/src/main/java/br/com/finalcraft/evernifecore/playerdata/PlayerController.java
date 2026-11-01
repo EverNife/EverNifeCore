@@ -267,12 +267,12 @@ public class PlayerController {
             //static registry but before the swap) bound to the OLD instance only - sweep it in
             for (PDSectionConfiguration<?> configuration : REGISTERED_SECTIONS.values()){
                 if (!fresh.bindings.containsKey(configuration.getPdSectionClass())){
-                    fresh.bindSection(configuration);
+                    fresh.bindRegistered(configuration);
                 }
             }
             for (AccountSectionConfiguration<?> configuration : REGISTERED_ACCOUNT_SECTIONS.values()){
                 if (fresh.accountEngine.getBindingUnchecked(configuration.getSectionClass()) == null){
-                    fresh.accountEngine.bindUnchecked(configuration);
+                    fresh.bindRegistered(configuration);
                 }
             }
         }
@@ -437,10 +437,10 @@ public class PlayerController {
 
         //bind + hot-load each registered section (one by one, timed - as before)
         for (PDSectionConfiguration<?> configuration : REGISTERED_SECTIONS.values()){
-            bindSection(configuration);
+            bindRegistered(configuration);
         }
         for (AccountSectionConfiguration<?> configuration : REGISTERED_ACCOUNT_SECTIONS.values()){
-            accountEngine.bindUnchecked(configuration);
+            bindRegistered(configuration);
         }
 
         //network-wide server cooldowns: bound unconditionally (the reach is declared at the call site,
@@ -1070,6 +1070,39 @@ public class PlayerController {
     }
 
     @SuppressWarnings("unchecked")
+    /**
+     * Binds a section another plugin registered before this bootstrap. One that cannot bind is dropped
+     * with the reason instead of failing the bootstrap: that plugin may already be gone - a plugin whose
+     * enable failed ahead of EverNifeCore leaves its registration behind with its jar closed - and one
+     * broken registration must not take the core, and every plugin on it, down.
+     */
+    private void bindRegistered(PDSectionConfiguration<?> configuration){
+        try {
+            bindSection(configuration);
+        }catch (RuntimeException | LinkageError unbindable){
+            REGISTERED_SECTIONS.remove(configuration.getPdSectionClass());
+            logUnbindable(configuration.getPluginData(), configuration.getPdSectionClass(), unbindable);
+        }
+    }
+
+    /** @see #bindRegistered(PDSectionConfiguration) */
+    private void bindRegistered(AccountSectionConfiguration<?> configuration){
+        try {
+            accountEngine.bindUnchecked(configuration);
+        }catch (RuntimeException | LinkageError unbindable){
+            REGISTERED_ACCOUNT_SECTIONS.remove(configuration.getSectionClass());
+            logUnbindable(configuration.getPluginData(), configuration.getSectionClass(), unbindable);
+        }
+    }
+
+    private static void logUnbindable(ECPluginData owner, Class<?> sectionClass, Throwable unbindable){
+        String pluginName = owner != null ? owner.getMetaInfo().getName() : "UnknownPlugin";
+        EverNifeCore.getLog().severe("The section {{}} of plugin '{}' could not be bound and was dropped: {}."
+                        + " If '{}' failed to enable (look for its own error above), fix that and restart;"
+                        + " otherwise check its entry in storage.yml. EverNifeCore and the other sections keep running.",
+                sectionClass.getName(), pluginName, String.valueOf(unbindable), pluginName);
+    }
+
     void bindSection(PDSectionConfiguration<?> configuration){
         bindSectionTyped((PDSectionConfiguration<PDSection>) configuration, false);
     }

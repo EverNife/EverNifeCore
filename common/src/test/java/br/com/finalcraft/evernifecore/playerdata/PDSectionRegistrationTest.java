@@ -4,11 +4,14 @@ import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
 import br.com.finalcraft.evernifecore.testing.Senders;
 import br.com.finalcraft.evernifecore.testing.Storages;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.UUID;
 import java.util.concurrent.CompletionException;
@@ -227,5 +230,64 @@ class PDSectionRegistrationTest {
         assertNotNull(PlayerController.getLoadedSection(online, JobsSection.class),
                 "an online player's cell has to stay canonical");
         assertNull(PlayerController.getLoadedSection(offline, JobsSection.class));
+    }
+
+    // ------------------------------------------------------------------
+    // A registration left behind by a plugin that is already gone
+    // ------------------------------------------------------------------
+
+    public static class DeadPluginSection extends PDSection {
+        @JsonProperty("level")
+        public int level;
+    }
+
+    /**
+     * Defines {@link DeadPluginSection} on its own and, once closed, refuses every class lookup with
+     * the exception Bukkit's plugin class loader throws after the plugin's jar was closed.
+     */
+    private static final class ClosingLoader extends ClassLoader {
+        private final String definedHere = DeadPluginSection.class.getName();
+        private volatile boolean closed;
+
+        ClosingLoader() {
+            super(PDSectionRegistrationTest.class.getClassLoader());
+        }
+
+        @Override
+        protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+            if (closed) throw new IllegalStateException("zip file closed");
+            if (!name.equals(definedHere)) return super.loadClass(name, resolve);
+            synchronized (getClassLoadingLock(name)) {
+                Class<?> loaded = findLoadedClass(name);
+                if (loaded != null) return loaded;
+                String resource = name.replace('.', '/') + ".class";
+                try (InputStream in = getParent().getResourceAsStream(resource)) {
+                    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                    byte[] buffer = new byte[4096];
+                    for (int read; (read = in.read(buffer)) > 0; ) bytes.write(buffer, 0, read);
+                    return defineClass(name, bytes.toByteArray(), 0, bytes.size());
+                } catch (IOException e) {
+                    throw new ClassNotFoundException(name, e);
+                }
+            }
+        }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void aSectionOfAPluginWhoseJarClosedBeforeTheBootstrapIsDroppedAndTheCoreStillStarts() throws Exception {
+        ClosingLoader loader = new ClosingLoader();
+        Class<? extends PDSection> dead = (Class<? extends PDSection>) loader.loadClass(DeadPluginSection.class.getName());
+        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, dead, "dead").build());
+        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, JobsSection.class, "jobs").build());
+        loader.closed = true; //its enable failed ahead of the core: Bukkit disabled it and closed its jar
+
+        PlayerController.initialize(Storages.h2("r_dead_plugin").writeTo(tempDir));
+
+        UUID uuid = UUID.randomUUID();
+        PlayerController.handleLogin(uuid, "Alive").join();
+        assertNotNull(PlayerController.getLoaded(uuid).getPDSection(JobsSection.class).join(),
+                "the sections of the plugins still alive must bind");
+        assertUnregistered(() -> PlayerController.getLoaded(uuid).getPDSection(dead).join());
     }
 }
