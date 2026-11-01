@@ -539,6 +539,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **A plugin's PlaceholderAPI expansion is unregistered on its disable** (Bukkit): a runtime disable/re-enable no
   longer leaves the old expansion answering. Best effort - a PlaceholderAPI build without unregister (1.7.10) keeps it
   until a restart, with a warning.
+- **Plugin teardown drops the `ActorHolders` providers the plugin registered** (`onECPluginShutdownPre` and
+  `ECPluginManager.removePluginData`), so no holder of a gone plugin joins a resolution.
 
 ### Changed
 

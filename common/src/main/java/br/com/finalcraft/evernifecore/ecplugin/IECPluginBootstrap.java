@@ -23,6 +23,7 @@ import br.com.finalcraft.evernifecore.action.EventSourceUsage;
 import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.flag.ActorHolders;
 import br.com.finalcraft.evernifecore.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ECLogger;
@@ -166,6 +167,7 @@ public interface IECPluginBootstrap {
         Waypoints.get().hideOwnedBy(getPluginData());
         Npcs.unregisterAll(getPluginData());
         FlagRegistry.get().unregisterAll(getPluginData());
+        ActorHolders.unregisterAll(getPluginData());
         Currencies.unregisterAll(getPluginData());
         DeliveryDestinations.unregisterAll(getPluginData());
         TypeRegistries.unregisterAll(getPluginData());

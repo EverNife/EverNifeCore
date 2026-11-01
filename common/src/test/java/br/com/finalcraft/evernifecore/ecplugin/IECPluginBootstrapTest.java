@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.ecplugin;
 
+import br.com.finalcraft.evernifecore.flag.ActorHolders;
 import br.com.finalcraft.evernifecore.testing.Plugins;
+import br.com.finalcraft.evernifecore.testing.TestActorHolder;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
@@ -19,6 +21,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -167,6 +170,32 @@ class IECPluginBootstrapTest {
         boot.runECPluginShutdown();
 
         assertNull(ArgParserManager.getParser(data, ShutdownToken.class), "the global parser left with its owner");
+    }
+
+    @Test
+    void defaultShutdownPreDropsTheActorHoldersThePluginRegistered() {
+        ECPluginData data = pluginData("BootActorHolders");
+        RecordingBootstrap boot = new RecordingBootstrap(data);
+        boot.runECPluginEnable();
+        TestActorHolder party = new TestActorHolder("boot-party");
+        ActorHolders.register(data, TestActorHolder.providerOf(Collections.singletonList(party)));
+        assertTrue(ActorHolders.all().contains(party));
+
+        boot.runECPluginShutdown();
+
+        assertFalse(ActorHolders.all().contains(party), "the provider left with its owner");
+    }
+
+    @Test
+    void removePluginDataDropsTheActorHoldersThePluginRegistered() {
+        ECPluginData data = pluginData("RemovedActorHolders");
+        TestActorHolder party = new TestActorHolder("removed-party");
+        ActorHolders.register(data, TestActorHolder.providerOf(Collections.singletonList(party)));
+        assertTrue(ActorHolders.all().contains(party));
+
+        ECPluginManager.removePluginData("RemovedActorHolders");
+
+        assertFalse(ActorHolders.all().contains(party), "the provider left with the plugin's data");
     }
 
     // ------------------------------------------------------------------
