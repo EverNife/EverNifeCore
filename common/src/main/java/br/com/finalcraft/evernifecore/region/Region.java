@@ -125,7 +125,7 @@ public final class Region implements FlagHolder {
     }
 
     /** Whether the region is live in its manager: indexed, evented and written. A removed region is not. */
-    boolean isAttached() {
+    public boolean isAttached() {
         return attached;
     }
 

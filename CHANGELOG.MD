@@ -468,6 +468,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **region: the placeholder cache never re-admits a removed region**: a caller still holding the removed
+  `Region` is answered, and the answer is not kept. `Region.isAttached()` (live in its manager) is public.
 - **minecraft: an `ECEvent` builds in a JVM without a Bukkit server** (synchronous: there is no other thread), so a
   plugin's unit test posts one on the global bus without the Bukkit event rig. **`PluginListener` cleans up after a plugin
   disabled before the core enabled** - one ahead of the core in Bukkit's enable order and disabled now loses its sections,

@@ -294,6 +294,20 @@ class RegionPlaceholdersTest {
         assertEquals(cachedBefore - 1, RegionPlaceholders.getCachedRegions(), "a removed region leaves the cache");
     }
 
+    @Test
+    void aRemovedRegionIsNeverCachedAgain() {
+        Region gone = duel.cuboid("gone", WORLD, 300, 0, 0, 310, 10, 10);
+        gone.setFlag(CoreFlags.GREETING, "bye");
+        duel.getManager().remove(gone);
+        int cachedBefore = RegionPlaceholders.getCachedRegions();
+
+        //someone still holding the dead reference is answered, and the answer is not kept
+        assertEquals(0, RegionPlaceholders.playersInside(gone).size());
+        assertEquals("bye", RegionPlaceholders.flagValue(gone, CoreFlags.GREETING));
+
+        assertEquals(cachedBefore, RegionPlaceholders.getCachedRegions(), "nothing is cached for a region no longer live");
+    }
+
     // ------------------------------------------------------------------
     //  The core's own prefix, and formatting
     // ------------------------------------------------------------------

@@ -286,21 +286,25 @@ public final class RegionPlaceholders {
     //  The one-second cache
     // ------------------------------------------------------------------
 
-    /** The online players inside, alphabetically - computed at most once a second per region. */
-    private static List<FPlayer> playersInside(Region region) {
-        return PLAYERS.computeIfAbsent(region, key -> CacheableSupplier.of(() -> {
+    /** The online players inside, alphabetically - computed at most once a second per live region. */
+    static List<FPlayer> playersInside(Region region) {
+        List<FPlayer> players = PLAYERS.computeIfAbsent(region, key -> CacheableSupplier.of(() -> {
             List<FPlayer> inside = new ArrayList<>(key.getPlayersInside());
             inside.sort(Comparator.comparing(FPlayer::getName, String.CASE_INSENSITIVE_ORDER));
             return Collections.unmodifiableList(inside);
         }).withInterval(CACHE_MILLIS)).getValue();
+        forgetIfRemoved(region);
+        return players;
     }
 
-    /** The region's own effective value - parents and the flag's default, no player - at most once a second. */
-    private static String flagValue(Region region, Flag<?> flag) {
-        return FLAG_VALUES.computeIfAbsent(region, key -> new ConcurrentHashMap<>())
+    /** The region's own effective value - parents and the flag's default, no player - at most once a second per live region. */
+    static String flagValue(Region region, Flag<?> flag) {
+        String value = FLAG_VALUES.computeIfAbsent(region, key -> new ConcurrentHashMap<>())
                 .computeIfAbsent(flag.getKey(), key -> CacheableSupplier.of(() -> format(flag, RegionLookup.get().resolve(flag, region, null)))
                         .withInterval(CACHE_MILLIS))
                 .getValue();
+        forgetIfRemoved(region);
+        return value;
     }
 
     /** {@code true}/{@code false} for a yes/no flag ({@code ""} when undefined), {@code world x y z} for a place. */
@@ -327,6 +331,14 @@ public final class RegionPlaceholders {
                 ECEventBus.global().subscribe(RegionRemovedEvent.class, event -> forget(event.getRegion()));
                 followingRemovals = true;
             }
+        }
+    }
+
+    // A caller still holding a removed region is answered, but the answer is not kept: the removal already emptied
+    // the cache, and nothing would ever empty it again.
+    private static void forgetIfRemoved(Region region) {
+        if (!region.isAttached()) {
+            forget(region);
         }
     }
 
