@@ -21,6 +21,7 @@ import br.com.finalcraft.evernifecore.pageviewer.PageViewer;
 import br.com.finalcraft.evernifecore.pageviewer.theme.PageTheme;
 import br.com.finalcraft.evernifecore.ranking.RankedList;
 import br.com.finalcraft.evernifecore.logic.command.CoreLogicCommands;
+import br.com.finalcraft.evernifecore.quest.command.CoreQuestCommands;
 import br.com.finalcraft.evernifecore.region.command.CoreRegionCommands;
 import br.com.finalcraft.evernifecore.screen.command.CoreScreenCommands;
 import br.com.finalcraft.evernifecore.group.command.CoreGroupCommands;
@@ -58,6 +59,18 @@ public class CoreCommand {
             return;
         }
         CoreGroupCommands.show(sender, target);
+    }
+
+    @FinalCMD.SubCMD(subcmd = "quest", permission = PermissionNodes.EVERNIFECORE_COMMAND_QUEST, locales = {
+            @FCLocale(lang = LocaleType.EN_US, text = "Read a player's quests in every plugin: active, orphans and the sources listened to"),
+            @FCLocale(lang = LocaleType.PT_BR, text = "Lê as quests de um jogador em todo plugin: ativas, órfãs e as fontes ouvidas")
+    })
+    public void quest(FCommandSender sender, @Arg(value = "[player]", fromSender = true) FPlayer target) {
+        if (target == null) {
+            CoreGroupCommands.NEEDS_A_PLAYER.send(sender);
+            return;
+        }
+        CoreQuestCommands.show(sender, target);
     }
 
     @FinalCMD.Node(subcmd = "logic", permission = PermissionNodes.EVERNIFECORE_COMMAND_LOGIC, locales = {

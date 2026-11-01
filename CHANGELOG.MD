@@ -43,6 +43,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   origin of its block, creature or item answers each written test (`ProvenanceFilter`). The engine keeps the owner's
   `ProvenanceTracker` (on the engine's storage, or the shared one) recording while a registered quest tests origins; a
   transient engine without a tracker refuses such a quest. Engine: `QuestWorld.contexts()` / `provenance()`.
+- **Quest commands**: `QuestCommandNode` is the mountable node of a plugin's quests - `list [status] [player]`, `info`,
+  `start <quest> [player] [k=v...]`, `offer`, `abandon`, admin `reset` (an orphan state too), `complete`, `progress`, and
+  `track <quest|off>` - with `<base>.<verb>` permissions; `ArgParserQuest` reads `<quest>` (a `QuestDefinition`). The core
+  reads only: `/ecore quest <player>` (`evernifecore.command.quest`) lists every engine's active quests, orphans, objectives
+  waiting for their type and the sources the index listens to. `QuestEngine.getOwnerFor(player, quest)` resolves a group quest.
 
 - **Screens render on Hytale**: `HyPageRenderer` (`evernifecore:page`, `hytale.screen`) draws any `Screen` as a server
   page (`InteractiveCustomUIPage`) from the core's own layouts in its asset pack (`EverNifeCore/Screen.ui`, `Cell.ui`,

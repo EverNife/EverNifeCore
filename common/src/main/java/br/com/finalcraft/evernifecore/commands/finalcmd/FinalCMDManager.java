@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd;
 
 import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.quest.QuestDefinition;
+import br.com.finalcraft.evernifecore.quest.command.ArgParserQuest;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.command.ArgParserRegion;
 import br.com.finalcraft.evernifecore.region.command.ArgParserRegionFlag;
@@ -74,6 +76,7 @@ public class FinalCMDManager {
         ArgParserManager.addBuiltinParser(FCTimeFrame.class, ArgParserFCTimeFrame.class);
         ArgParserManager.addBuiltinParser(FPlayer.class, ArgParserFPlayer.class);
         ArgParserManager.addBuiltinParser(Region.class, ArgParserRegion.class);
+        ArgParserManager.addBuiltinParser(QuestDefinition.class, ArgParserQuest.class);
         ArgParserManager.addBuiltinParser(Flag.class, ArgParserRegionFlag.class);
 
         ArgParserManager.addBuiltinContextualParser(FPlayer.class, ArgParserContextualFPlayer.class);

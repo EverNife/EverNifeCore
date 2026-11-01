@@ -1018,6 +1018,22 @@ public final class QuestEngine {
         }
     }
 
+    /**
+     * Who holds {@code player}'s instance of quest {@code id}: the player, or their group of the quest's provider kind for a
+     * group quest; null when it is a group quest and the player is in no such group, or a quest of another owner kind.
+     */
+    public @Nullable ProgressOwner getOwnerFor(UUID player, QuestId id) {
+        QuestDefinition definition = definitions.get(id);
+        if (definition == null || definition.getOwnerKind().equals(ProgressOwner.PLAYER)) {
+            return ProgressOwner.player(player);
+        }
+        if (definition.getOwnerKind().equals(ProgressOwner.GROUP)) {
+            GroupId group = groupOf(player, definition.getOwnerProvider());
+            return group == null ? null : ProgressOwner.group(group);
+        }
+        return null;
+    }
+
     /** The quest {@code player} tracks (null for none). Any thread. */
     public CompletableFuture<Void> track(FPlayer player, @Nullable QuestId id) {
         ProgressOwner progressOwner = ProgressOwner.player(player.getUniqueId());
