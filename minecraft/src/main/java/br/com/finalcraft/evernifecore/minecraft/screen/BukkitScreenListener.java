@@ -63,7 +63,7 @@ public class BukkitScreenListener implements ECListener {
         //it through getView() would freeze a call against InventoryView, a class before 1.21 and an interface after
         BukkitScreenSurface surface = ChestScreenRenderer.surfaceOf(view);
         if (surface == null || !view.isSurface(event.getInventory())) {
-            if (ChestScreenRenderer.isSetAside(event.getInventory())) {
+            if (ChestScreenRenderer.setAsideSurfaceOf(event.getInventory()) != null) {
                 event.setCancelled(true); //its icons are real stacks, and nothing guards them until it closes
             }
             return;
@@ -230,7 +230,7 @@ public class BukkitScreenListener implements ECListener {
         ScreenView view = Screens.getOpenView(player.getUniqueId());
         BukkitScreenSurface surface = ChestScreenRenderer.surfaceOf(view);
         if (surface == null || !view.isSurface(event.getInventory())) {
-            if (ChestScreenRenderer.isSetAside(event.getInventory())) {
+            if (ChestScreenRenderer.setAsideSurfaceOf(event.getInventory()) != null) {
                 event.setCancelled(true);
             }
             return;
@@ -329,6 +329,11 @@ public class BukkitScreenListener implements ECListener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
     public void onInventoryClose(InventoryCloseEvent event) {
+        BukkitScreenSurface setAside = ChestScreenRenderer.setAsideSurfaceOf(event.getInventory());
+        if (setAside != null) {
+            setAside.windowGone(); //replaced by what opened on top, or closed: nobody closed a screen
+            return;
+        }
         ScreenView view = Screens.getOpenView(event.getPlayer().getUniqueId());
         BukkitScreenSurface surface = ChestScreenRenderer.surfaceOf(view);
         if (surface == null || surface.isSwapping() || !view.isSurface(event.getInventory())) {

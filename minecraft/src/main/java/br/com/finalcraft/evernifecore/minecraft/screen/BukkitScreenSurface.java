@@ -44,6 +44,7 @@ public final class BukkitScreenSurface extends GridSurface {
     private Map<StorageBinding, StorageView> storagesByBinding = new IdentityHashMap<>();
     private boolean swapping = false;
     private boolean released = false;
+    private volatile boolean windowGone = false;
 
     BukkitScreenSurface(@Nonnull ChestScreenRenderer renderer, @Nonnull ScreenView view, @Nonnull Inventory inventory) {
         super(view.getGrid());
@@ -137,19 +138,24 @@ public final class BukkitScreenSurface extends GridSurface {
     }
 
     /**
-     * Closes the chest a tick later, and only if the player still has it open: a screen opened on top (or an anvil
-     * prompt) replaces the window by itself, and closing first would recentre the player's cursor. A chat prompt leaves
-     * it standing, so it goes here. The close event that follows is ignored - the view is no longer registered as open.
+     * Closes the chest a tick later, unless its window went by then: a screen opened on top (or an anvil prompt)
+     * replaces the window by itself, and closing first would recentre the player's cursor. A chat prompt leaves it
+     * standing, so it goes here. The listener reports the window gone ({@link #windowGone()}) instead of a close.
      */
     @Override
     public void suspended() {
+        windowGone = false;
         BukkitScreenScheduler.INSTANCE.later(1L, () -> {
             Player player = ChestScreenRenderer.playerOf(view);
-            if (player != null && player.isOnline() && player.getOpenInventory() != null
-                    && isBackedBy(player.getOpenInventory().getTopInventory())) {
+            if (!windowGone && player != null && player.isOnline()) {
                 player.closeInventory();
             }
         });
+    }
+
+    /** The chest of this set-aside view left the player's screen - replaced or closed. */
+    void windowGone() {
+        windowGone = true;
     }
 
     /** By reference: two containers with the same contents are still two windows. */
