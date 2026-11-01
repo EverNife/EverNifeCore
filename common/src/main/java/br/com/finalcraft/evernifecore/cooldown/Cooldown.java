@@ -183,10 +183,19 @@ public final class Cooldown {
         return start == 0 ? Optional.<Instant>empty() : Optional.of(Instant.ofEpochMilli(start));
     }
 
-    /** Adopts a last use from elsewhere (a plugin migrating its own date): the gap counts from {@code lastUseAt}. */
+    /**
+     * Adopts a last use from elsewhere (a plugin migrating its own date): the gap counts from {@code lastUseAt}, and a
+     * limited policy counts that one use in the window of {@code lastUseAt} - so a use seeded in an older window leaves
+     * the current one untouched.
+     */
     public Cooldown seed(Instant lastUseAt) {
         synchronized (entry) {
-            stamp(lastUseAt.toEpochMilli());
+            long at = lastUseAt.toEpochMilli();
+            //a window already opened after that instant keeps its own count
+            if (policy.getWindow() == null || entry.getWindowStart() <= windowStartAt(at)) {
+                countUses(at, 1);
+            }
+            stamp(at);
             touch();
         }
         return this;

@@ -463,6 +463,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **`Cooldown.seed(lastUseAt)` counts one use in the window of that instant** for a limited policy, so an adopted
+  claim of today leaves one use fewer; a use seeded in an older window counts nothing now and leaves the current
+  window's count as it is. A caller that did `tryUse()` + `seed()` to count it now counts it twice.
 - **The `currency` of the stock `money` cost and effect resolves `{variables}`** when it runs
   (`currency: "finalpoints:{points-currency}"`); `toString` keeps what was written.
 - **`Effects` no longer audits `EFFECT_APPLIED` after an effect audited its own `EFFECT_FAILED`**: an effect that

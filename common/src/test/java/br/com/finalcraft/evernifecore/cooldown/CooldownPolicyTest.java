@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.cooldown;
 import br.com.finalcraft.evernifecore.cooldown.player.PlayerCooldownsLocal;
 import br.com.finalcraft.evernifecore.logic.RepeatPolicy;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
+import br.com.finalcraft.evernifecore.time.Window;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.everyconfig.config.Config;
@@ -21,6 +22,8 @@ import java.nio.file.Path;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 import java.util.Map;
@@ -63,6 +66,29 @@ class CooldownPolicyTest {
         assertEquals(lastUse, kit.getLastUseAt().get());
         assertTrue(kit.isInCooldown(), "the gap counts from the seeded use");
         assertFalse(kit.canUse());
+    }
+
+    @Test
+    void seedCountsOneUseInTheWindowOfThatInstant() {
+        Cooldown daily = counter("daily", RepeatPolicy.limited(2).window(Window.daily(LocalTime.MIDNIGHT, ZoneOffset.UTC)));
+        daily.seed(Instant.now());
+
+        assertEquals(1, daily.getUsesLeft(), "the seeded use counts in today's window");
+        assertTrue(daily.tryUse());
+        assertFalse(daily.canUse(), "two of two used today");
+    }
+
+    @Test
+    void seedInAnOlderWindowCountsNothingNow() {
+        Cooldown daily = counter("daily", RepeatPolicy.limited(2).window(Window.daily(LocalTime.MIDNIGHT, ZoneOffset.UTC)));
+        assertTrue(daily.tryUse());
+
+        daily.seed(Instant.now().minus(3, ChronoUnit.DAYS));
+
+        assertEquals(1, daily.getUsesLeft(), "a use three days ago neither counts today nor erases today's");
+        Cooldown fresh = counter("fresh", RepeatPolicy.limited(2).window(Window.daily(LocalTime.MIDNIGHT, ZoneOffset.UTC)));
+        fresh.seed(Instant.now().minus(3, ChronoUnit.DAYS));
+        assertEquals(2, fresh.getUsesLeft());
     }
 
     @Test
