@@ -58,6 +58,11 @@ final class StockEconomy {
                 .build());
     }
 
+    /** The currency {@code written} names once its {@code {variables}} are resolved for {@code ctx}. */
+    static Currency currency(ExecutionContext ctx, String written) {
+        return currency(ctx.resolve(written));
+    }
+
     /** The currency {@code id} names, {@code money} answering even before its registration. */
     static Currency currency(String id) {
         if (DEFAULT_CURRENCY.equals(id) || ("evernifecore:" + DEFAULT_CURRENCY).equals(id)) {
@@ -105,7 +110,7 @@ final class StockEconomy {
 
         @Override
         public ConditionResult test(ExecutionContext ctx) {
-            Currency currency = currency(currencyId);
+            Currency currency = currency(ctx, currencyId);
             String noWallet = noWallet(currency, ctx);
             if (noWallet != null) {
                 return ConditionResult.fail(FancyText.of(noWallet));
@@ -120,14 +125,14 @@ final class StockEconomy {
 
         @Override
         public boolean take(ExecutionContext ctx) {
-            Currency currency = currency(currencyId);
+            Currency currency = currency(ctx, currencyId);
             Optional<CurrencyOwner> owner = CurrencyOwner.of(ctx.getOwner());
             return owner.isPresent() && currency.take(owner.get(), amount(ctx, amount), ctx.getCaller()).isSuccess();
         }
 
         @Override
         public void refund(ExecutionContext ctx) {
-            Currency currency = currency(currencyId);
+            Currency currency = currency(ctx, currencyId);
             EcoResponse given = currency.give(CurrencyOwner.of(ctx.getOwner()).get(), amount(ctx, amount), ctx.getCaller());
             if (!given.isSuccess()) {
                 throw new IllegalStateException("The refund of " + describe(ctx).getText() + " to " + ctx.getOwner() + " failed: " + given);
@@ -136,7 +141,7 @@ final class StockEconomy {
 
         @Override
         public FancyText describe(ExecutionContext ctx) {
-            return currency(currencyId).format(amount(ctx, amount));
+            return currency(ctx, currencyId).format(amount(ctx, amount));
         }
 
         @Override
@@ -180,7 +185,7 @@ final class StockEconomy {
          */
         @Override
         public void apply(ExecutionContext ctx) {
-            Currency currency = currency(currencyId);
+            Currency currency = currency(ctx, currencyId);
             BigDecimal given = amount(ctx, amount).multiply(share);
             if (boosted) {
                 given = given.multiply(ctx.getMultiplier(currency.getId()));

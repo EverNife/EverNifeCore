@@ -2,7 +2,9 @@ package br.com.finalcraft.evernifecore.logic.core;
 
 import br.com.finalcraft.evernifecore.booster.Booster;
 import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
+import br.com.finalcraft.evernifecore.logic.Condition;
 import br.com.finalcraft.evernifecore.logic.ConditionResult;
+import br.com.finalcraft.evernifecore.logic.Conditions;
 import br.com.finalcraft.evernifecore.logic.Cost;
 import br.com.finalcraft.evernifecore.logic.Costs;
 import br.com.finalcraft.evernifecore.logic.Effect;
@@ -94,6 +96,34 @@ class StockEconomyTest {
         assertTrue(cost.test(ctx).isPassed());
         assertTrue(cost.take(ctx));
         assertBalance("100");
+    }
+
+    @Test
+    void theBalanceVariableReadsTheOwnersWallet() {
+        ExecutionContext ctx = shop.context(alex).build();
+        Condition enough = Conditions.parse(shop.getOwner(), node("{'type': 'compare', 'variable': 'fakeshop:gold', 'op': '>=', 'amount': 100}"),
+                ZoneOffset.UTC);
+        Condition more = Conditions.parse(shop.getOwner(), node("{'type': 'compare', 'variable': 'fakeshop:gold', 'op': '>', 'amount': 100}"),
+                ZoneOffset.UTC);
+
+        assertTrue(enough.test(ctx).isPassed());
+        assertFalse(more.test(ctx).isPassed());
+        assertEquals("100", ctx.resolve("{fakeshop:gold}"), "the currency's id is the variable of its balance");
+        assertEquals(0, new BigDecimal(100).compareTo(gold.getBalance(alexWallet)), "reading takes nothing");
+    }
+
+    @Test
+    void theCurrencyIdResolvesItsVariables() {
+        ExecutionContext ctx = shop.context(alex).variable("cur", "gold").build();
+        Cost cost = cost("{'type': 'money', 'amount': 30, 'currency': 'fakeshop:{cur}'}");
+
+        assertTrue(cost.test(ctx).isPassed());
+        assertTrue(cost.take(ctx));
+        assertBalance("70");
+        effect("{'type': 'money', 'amount': 5, 'currency': 'fakeshop:{cur}', 'boosted': false}").apply(ctx);
+        assertBalance("75");
+        assertTrue(cost.describe(ctx).toPlainText().contains("30"), cost.describe(ctx).toPlainText());
+        assertTrue(String.valueOf(cost).contains("fakeshop:{cur}"), "toString keeps what was written: " + cost);
     }
 
     @Test

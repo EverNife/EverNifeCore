@@ -461,6 +461,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **The `currency` of the stock `money` cost and effect resolves `{variables}`** when it runs
+  (`currency: "finalpoints:{points-currency}"`); `toString` keeps what was written.
 - **`Effects` no longer audits `EFFECT_APPLIED` after an effect audited its own `EFFECT_FAILED`**: an effect that
   refuses (`open-screen` without a player, a `money` effect the wallet refused) reads as failed only, not as both.
 - **`FancyFormatter.getText()` returns the text of every piece**, concatenated in order; it returned only the last
