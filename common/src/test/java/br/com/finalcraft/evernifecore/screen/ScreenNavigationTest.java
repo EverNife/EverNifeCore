@@ -235,6 +235,35 @@ class ScreenNavigationTest {
     }
 
     @Test
+    void aStepBackWhoseScreenCannotComeBackStillClosesTheWindow() {
+        Screen<Layout> second = goesBackWith(screen("B", "minecraft:gold_ingot"), "from B");
+        world.open(opens(screen("A", "minecraft:iron_ingot"), second), alex);
+        navigate(1);
+        ScreenView viewB = current();
+        RecordingSurface window = world.getRenderer().surfaceOf(viewB);
+
+        world.getRenderer().refuseOpens(true);
+        navigate(2);
+
+        assertTrue(viewB.isClosed());
+        assertNull(current(), "the screen underneath was refused its window");
+        assertTrue(window.isClosed(), "so nothing took the window over, and it goes instead of standing unguarded");
+    }
+
+    @Test
+    void aRefusedReplacementStillClosesTheWindowItWasToTakeOver() {
+        ScreenView viewA = world.open(replacesWith(screen("A", "minecraft:iron_ingot"), screen("B", "minecraft:redstone")), alex);
+        RecordingSurface window = world.getRenderer().surfaceOf(viewA);
+
+        world.getRenderer().refuseOpens(true);
+        navigate(3);
+
+        assertTrue(viewA.isClosed());
+        assertNull(current());
+        assertTrue(window.isClosed(), "the replacement never opened, so the window it was to take over goes");
+    }
+
+    @Test
     void anOpenNobodyNavigatedToStartsOverInsteadOfContinuingTheChain() {
         Screen<Layout> second = goesBackWith(screen("B", "minecraft:gold_ingot"), "from B");
         ScreenView viewA = world.open(opens(screen("A", "minecraft:iron_ingot"), second), alex);

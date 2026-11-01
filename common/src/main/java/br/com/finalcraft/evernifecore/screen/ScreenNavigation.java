@@ -106,6 +106,10 @@ public final class ScreenNavigation {
                 surface.close(CloseReason.REQUESTED);
             }
         } else if (!resume(revealed.getScreen())) {
+            //nothing replaced the window, so it would stay up with nobody guarding it
+            if (surface != null) {
+                surface.close(CloseReason.REQUESTED);
+            }
             discard(viewer.getUniqueId());
         }
         answer(current, revealed.getValue());
@@ -137,12 +141,17 @@ public final class ScreenNavigation {
         if (chain != null && chain.peek() == current) {
             chain.pop();
         }
+        ScreenSurface surface = current.getSurface();
         Screens.forget(current);
         current.setPendingResult(null);
         current.release(CloseReason.REQUESTED);
 
         ScreenView opened = openedOrNull(Screens.openWithinChain(next, viewer, current.getArguments().toArray()));
         if (opened == null) {
+            //the refused replacement never took the window over
+            if (surface != null) {
+                surface.close(CloseReason.REQUESTED);
+            }
             discard(viewer.getUniqueId());
             cancel(inherited);
             return;

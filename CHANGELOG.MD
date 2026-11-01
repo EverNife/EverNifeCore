@@ -476,6 +476,13 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **A chest screen that goes away closes its window on Bukkit.** A `back()` out of a root screen (CONFIRM/DENY of the
+  confirmation included), `Screens.closeAll()`/`closeOwnedBy()` and a failed open released the view first and then
+  looked the player up through it, so `closeInventory` never ran: the chest stayed up unguarded, its icons could be
+  taken, and an editable area's items, already read back into the store, could be taken a second time. The window now
+  keeps its viewer's id. A step back whose screen underneath is refused its window, and a refused `replace`, close the
+  window they left behind too.
+
 - **PlayerData on the memory and file backends keeps a real lock version.** The current EveryDatabase 1.5.1 makes
   the in-memory, local-file and grouped-file backends check and advance the version of a versioned section like SQL and Mongo do: a
   section adopts version 0 on its first write, each flush moves it by one, and a write behind another server's lands

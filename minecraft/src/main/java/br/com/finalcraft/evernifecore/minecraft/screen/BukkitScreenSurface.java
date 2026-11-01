@@ -11,6 +11,7 @@ import br.com.finalcraft.evernifecore.screen.ScreenView;
 import br.com.finalcraft.evernifecore.screen.StorageBinding;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -21,6 +22,7 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * One chest window: the Bukkit container a {@link ScreenView} draws through, and the editable areas that live in it.
@@ -36,6 +38,8 @@ public final class BukkitScreenSurface extends GridSurface {
 
     private final ChestScreenRenderer renderer;
     private final ScreenView view;
+    //kept apart from the view: a released view no longer names its viewer, and the window is closed after the release
+    private final UUID viewerId;
     private Inventory inventory;
     private final ItemStack[] written;
     private final RenderedIcon[] icons;
@@ -50,6 +54,7 @@ public final class BukkitScreenSurface extends GridSurface {
         super(view.getGrid());
         this.renderer = renderer;
         this.view = view;
+        this.viewerId = view.getViewerId();
         this.inventory = inventory;
         this.written = new ItemStack[view.getGrid().getSize()];
         this.icons = new RenderedIcon[view.getGrid().getSize()];
@@ -131,8 +136,8 @@ public final class BukkitScreenSurface extends GridSurface {
 
     @Override
     public void close(@Nonnull CloseReason reason) {
-        Player player = ChestScreenRenderer.playerOf(view);
-        if (player != null && player.isOnline()) {
+        Player player = viewer();
+        if (player != null) {
             player.closeInventory();
         }
     }
@@ -146,8 +151,8 @@ public final class BukkitScreenSurface extends GridSurface {
     public void suspended() {
         windowGone = false;
         BukkitScreenScheduler.INSTANCE.later(1L, () -> {
-            Player player = ChestScreenRenderer.playerOf(view);
-            if (!windowGone && player != null && player.isOnline()) {
+            Player player = viewer();
+            if (!windowGone && player != null) {
                 player.closeInventory();
             }
         });
@@ -273,7 +278,7 @@ public final class BukkitScreenSurface extends GridSurface {
      * off the cursor first and handed over afterwards, which also stops the platform from giving out a second copy.
      */
     private void returnCarriedItem() {
-        Player player = ChestScreenRenderer.playerOf(view);
+        Player player = viewer();
         if (player == null) {
             return;
         }
@@ -283,6 +288,16 @@ public final class BukkitScreenSurface extends GridSurface {
         }
         player.setItemOnCursor(new ItemStack(Material.AIR));
         FCBukkitUtil.giveItemsTo(player, carried);
+    }
+
+    /**
+     * The player this window was opened for, while online. Looked up by id, never kept: a player who relogged is another
+     * {@code Player}, and a quit releases the view before this window could be asked to close.
+     */
+    @Nullable
+    private Player viewer() {
+        Player player = Bukkit.getPlayer(viewerId);
+        return player != null && player.isOnline() ? player : null;
     }
 
     /** Same item and amount; every way of holding nothing is the same nothing. */
