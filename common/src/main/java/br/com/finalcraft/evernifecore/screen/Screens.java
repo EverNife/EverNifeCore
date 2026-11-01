@@ -361,6 +361,21 @@ public final class Screens {
         return future;
     }
 
+    /**
+     * Builds {@code screen} for {@code viewer} already suspended - armed, but with no window until the chain resumes it.
+     * What replacing a screen that is not on top produces. No {@link ScreenOpenEvent}: no window is up. Renderer thread.
+     *
+     * @throws IllegalStateException when no renderer draws it for this viewer
+     */
+    @Nonnull
+    static ScreenView buildSuspended(Screen<?> screen, FPlayer viewer, Object[] args) {
+        Pick choice = choose(viewer, screen, args, 0);
+        ScreenView view = new ScreenView(choice.screen, viewer, choice.renderer, args);
+        view.suspend();
+        view.start();
+        return view;
+    }
+
     private static final class Pick {
 
         private final Screen<?> screen;

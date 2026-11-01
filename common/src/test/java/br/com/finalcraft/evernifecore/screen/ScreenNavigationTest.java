@@ -333,6 +333,45 @@ class ScreenNavigationTest {
         closeWhatIsOpen();
     }
 
+    @Test
+    void replacingAScreenSetAsideSwapsItInPlaceAndLeavesTheTopAlone() {
+        Screen<Layout> replacement = goesBackWith(screen("Replacement", "minecraft:redstone"), "from the replacement");
+        Screen<Layout> top = goesBackWith(screen("Top", "minecraft:emerald"), "from the top");
+        Screen<Layout> middle = opens(screen("Middle", "minecraft:gold_ingot"), top);
+        Screen<Layout> root = opens(screen("Root", "minecraft:iron_ingot"), middle);
+
+        ScreenView viewRoot = world.open(root, alex);
+        navigate(1);
+        ScreenView viewMiddle = current();
+        navigate(1);
+        ScreenView viewTop = current();
+        RecordingSurface topWindow = world.getRenderer().surfaceOf(viewTop);
+
+        ScreenNavigation.replace(viewMiddle, replacement); //a plugin swapping a screen the player is not looking at
+        world.advanceTicks(1);
+
+        assertSame(viewTop, current(), "the screen on display is not the one replaced, so it keeps the window");
+        assertFalse(viewTop.isSuspended());
+        assertFalse(topWindow.isClosed());
+        assertTrue(viewMiddle.isClosed(), "the replaced screen is torn down");
+        assertTrue(viewRoot.isSuspended(), "and the one under it was never touched");
+
+        navigate(2);
+
+        assertEquals("from the top", valueOf(answers.get(1)));
+        ScreenView viewReplacement = current();
+        assertNotSame(viewMiddle, viewReplacement);
+        assertNotSame(viewRoot, viewReplacement, "the step back lands on the replacement, where the middle was");
+        assertEquals("minecraft:redstone", onScreen().getMaterialId());
+        assertFalse(answers.get(0).isDone(), "the root still waits - on the replacement now");
+
+        navigate(2);
+
+        assertEquals("from the replacement", valueOf(answers.get(0)), "the replacement inherited what the middle owed");
+        assertSame(viewRoot, current());
+        closeWhatIsOpen();
+    }
+
     // -----------------------------------------------------------------------------------------------------------------
     //  Set aside, and picked up again
     // -----------------------------------------------------------------------------------------------------------------

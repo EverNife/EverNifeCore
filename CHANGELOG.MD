@@ -425,6 +425,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **`ScreenNavigation.replace` of a screen set aside swaps it in place**: the replacement waits set aside where the
+  old one was (inheriting what it owed its opener), the screen on top keeps its window, and stepping back from the top
+  lands on the replacement. It used to push the replacement on top, taking the window of the screen the player was
+  looking at. New `NavStack.replace(old, next)`, `contains` and `remove`. A refused replacement drops the old screen
+  from the chain and cancels its answer.
 - **`DialogueScreen` checks each option's gate once per redraw**: the one check a `Choice` makes decides whether it
   is hidden (new `Choice.hiddenUntilPassed()`), disabled with its reasons or enabled with its costs - before, a hidden
   option was checked three times per redraw and a visible one twice, each check posting a `GateCheckEvent`. A

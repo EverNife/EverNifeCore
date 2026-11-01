@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.screen;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -112,7 +113,8 @@ public final class ScreenNavigation {
 
     /**
      * Puts {@code next} where {@code current} was: the screen underneath is untouched, and {@code next} inherits what
-     * {@code current} owed its opener. Any thread.
+     * {@code current} owed its opener. A {@code current} set aside under another screen is swapped in place: {@code next}
+     * waits there set aside too, and the screen on top keeps its window. Any thread.
      */
     public static void replace(@Nonnull ScreenView current, @Nonnull Screen<?> next) {
         current.getScheduler().later(1L, () -> replaceOnRenderThread(current, next));
@@ -128,6 +130,10 @@ public final class ScreenNavigation {
             chain = CHAINS.get(viewer.getUniqueId());
         }
         CompletableFuture<Object> inherited = current.getPendingResult();
+        if (chain != null && chain.peek() != current && current.isSuspended() && chain.contains(current)) {
+            replaceSuspended(chain, current, next, viewer, inherited);
+            return;
+        }
         if (chain != null && chain.peek() == current) {
             chain.pop();
         }
@@ -144,6 +150,33 @@ public final class ScreenNavigation {
         opened.setPendingResult(inherited);
         if (chain != null) {
             chain.push(opened);
+        }
+    }
+
+    //a view under the top has no window to hand over: the replacement is built set aside in its place, and the screen
+    //the player is looking at is not touched
+    private static void replaceSuspended(NavStack<ScreenView> chain, ScreenView current, Screen<?> next, FPlayer viewer,
+                                         CompletableFuture<Object> inherited) {
+        ScreenView replacement = null;
+        try {
+            replacement = Screens.buildSuspended(next, viewer, current.getArguments().toArray());
+        } catch (RuntimeException refused) {
+            EverNifeCore.getLog().warning("The screen opened in place of [" + current.getScreen().describe()
+                    + "] was refused, so the suspended one was dropped: " + refused.getMessage());
+        }
+        current.setPendingResult(null);
+        current.release(CloseReason.REQUESTED);
+        synchronized (ScreenNavigation.class) {
+            if (replacement == null) {
+                chain.remove(current);
+            } else {
+                chain.replace(current, replacement);
+            }
+        }
+        if (replacement == null) {
+            cancel(inherited);
+        } else {
+            replacement.setPendingResult(inherited);
         }
     }
 
