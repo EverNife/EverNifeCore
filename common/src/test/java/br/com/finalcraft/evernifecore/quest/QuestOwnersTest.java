@@ -154,6 +154,22 @@ class QuestOwnersTest {
         assertTrue(result.toString().contains("in no such group"), result.toString());
     }
 
+    @Test
+    void aGroupQuestGatedByPermissionStartsForAMemberWhoHoldsIt() {
+        engine.register(quests.parse("{id: raid, owner: {type: group}, gate: {require: [{type: permission, node: fq.raid}]},"
+                + " stages: [{id: s, objectives: [{id: z, type: kill, goal: 3}]}]}"));
+        steve.grant("fq.raid");
+
+        assertEquals(QuestStatus.AVAILABLE, engine.getStatus(party(), quests.id("raid"), steve), "the list asks with the member who looks");
+        assertEquals(QuestStatus.LOCKED, engine.getStatus(party(), quests.id("raid"), alex), "Alex lacks the permission");
+        StartResult refused = await(engine.start(quests.owner(alex), quests.id("raid"), QuestParams.NONE));
+        StartResult started = await(engine.start(quests.owner(steve), quests.id("raid"), QuestParams.NONE));
+
+        assertEquals(StartResult.Reason.GATE, refused.getReason(), refused.toString());
+        assertTrue(started.isSuccess(), started.toString());
+        assertEquals(QuestStatus.ACTIVE, engine.getStatus(party(), quests.id("raid")));
+    }
+
     // ------------------------------------------------------------------
     //  Rewards through logic.reward
     // ------------------------------------------------------------------

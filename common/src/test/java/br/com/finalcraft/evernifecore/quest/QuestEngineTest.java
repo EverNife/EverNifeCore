@@ -501,6 +501,21 @@ class QuestEngineTest {
     }
 
     @Test
+    void aQuestStatusCycleInGatesAnswersLockedInsteadOfOverflowing() {
+        engine.register(quests.parse("{id: a, gate: {require: [{type: quest-status, quest: b, is: AVAILABLE}]},"
+                + " stages: [{id: s, objectives: [{id: o, type: kill}]}]}"));
+        engine.register(quests.parse("{id: b, gate: {require: [{type: quest-status, quest: a, is: AVAILABLE}]},"
+                + " stages: [{id: s, objectives: [{id: o, type: kill}]}]}"));
+
+        for (int round = 0; round < 2; round++) { //the guard is left clean after a loop
+            assertEquals(QuestStatus.LOCKED, engine.getStatus(alexOwner(), quests.id("a")));
+            assertEquals(QuestStatus.LOCKED, engine.getStatus(alexOwner(), quests.id("b")));
+        }
+        StartResult started = await(engine.start(alexOwner(), quests.id("a"), QuestParams.NONE));
+        assertEquals(StartResult.Reason.GATE, started.getReason(), started.toString());
+    }
+
+    @Test
     void aQuestOfAnotherPluginIsRefused() {
         ECPluginData other = Plugins.fakePluginData("OtherQuests", tempDir.resolve("other").toFile());
         try {

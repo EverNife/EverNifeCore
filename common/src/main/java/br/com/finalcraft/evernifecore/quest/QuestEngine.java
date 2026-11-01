@@ -143,6 +143,9 @@ public final class QuestEngine {
     private final Set<String> dirty = ConcurrentHashMap.newKeySet();
     private final Set<String> removed = ConcurrentHashMap.newKeySet();
     private final AtomicBoolean flushScheduled = new AtomicBoolean();
+    /** The owner|quest gates this thread is checking, in order: a quest-status that comes back to one is a loop. */
+    private final ThreadLocal<Set<String>> evaluating = ThreadLocal.withInitial(LinkedHashSet::new);
+    private final AtomicBoolean gateLoopWarned = new AtomicBoolean();
     private final Object writeChain = new Object();
     private CompletableFuture<Void> lastWrite = CompletableFuture.completedFuture(null);
     private final List<ECEventSubscription<?>> subscriptions = new ArrayList<>();
@@ -898,7 +901,8 @@ public final class QuestEngine {
             if (!missing.isEmpty()) {
                 return done(StartResult.refused(StartResult.Reason.REQUIRES, "Quest '" + id + "' requires " + missing + " completed first."));
             }
-            ExecutionContext ctx = context(progressOwner, definition, previous, playerOf(progressOwner), null, null, null);
+            //a group or global quest is checked and paid by the member who asked for it
+            ExecutionContext ctx = context(progressOwner, definition, previous, playerOf(requested), null, null, null);
             GateResult checked = definition.getGate().check(ctx);
             if (!checked.isPassed()) {
                 return done(StartResult.denied(checked));
@@ -1154,21 +1158,62 @@ public final class QuestEngine {
         return orphans;
     }
 
-    /** Where the owner stands: the state's status, else LOCKED when {@code requires} or the gate fail, else AVAILABLE. */
+    /** {@link #getStatus(ProgressOwner, QuestId, FPlayer)} with the owner's own player (none for a group or global owner). */
     public QuestStatus getStatus(ProgressOwner progressOwner, QuestId id) {
+        return getStatus(progressOwner, id, playerOf(progressOwner));
+    }
+
+    /**
+     * Where the owner stands: the state's status, else LOCKED when {@code requires} or the gate fail, else AVAILABLE. The
+     * gate is checked with {@code viewer} as its player - the member who would start a group or global quest. Gates that
+     * reach each other through {@code quest-status} answer LOCKED where the loop closes.
+     */
+    public QuestStatus getStatus(ProgressOwner holder, QuestId id, @Nullable FPlayer viewer) {
         QuestDefinition definition = definitions.get(id);
-        synchronized (lane(progressOwner)) {
-            Map<String, QuestState> states = states(progressOwner);
+        synchronized (lane(holder)) {
+            Map<String, QuestState> states = states(holder);
             QuestStatus status = effectiveStatus(states == null ? null : states.get(id.toString()));
             if (status != null && status != QuestStatus.AVAILABLE) {
                 return status;
             }
-            if (definition != null && (!missingRequires(progressOwner, definition).isEmpty()
-                    || !definition.getGate().check(context(progressOwner, definition, null, playerOf(progressOwner), null, null, null)).isPassed())) {
+            if (definition == null) {
+                return QuestStatus.AVAILABLE;
+            }
+            if (!missingRequires(holder, definition).isEmpty()) {
                 return QuestStatus.LOCKED;
             }
-            return QuestStatus.AVAILABLE;
+            Set<String> chain = evaluating.get();
+            String key = holder + "|" + id;
+            if (!chain.add(key)) {
+                warnGateLoop(chain, key, id);
+                return QuestStatus.LOCKED;
+            }
+            try {
+                boolean open = definition.getGate().check(context(holder, definition, null, viewer, null, null, null)).isPassed();
+                return open ? QuestStatus.AVAILABLE : QuestStatus.LOCKED;
+            } finally {
+                chain.remove(key);
+                if (chain.isEmpty()) {
+                    evaluating.remove();
+                }
+            }
         }
+    }
+
+    private void warnGateLoop(Set<String> chain, String closing, QuestId id) {
+        if (!gateLoopWarned.compareAndSet(false, true)) {
+            return;
+        }
+        StringBuilder names = new StringBuilder();
+        boolean inLoop = false;
+        for (String key : chain) {
+            inLoop |= key.equals(closing);
+            if (inLoop) {
+                names.append(key.substring(key.lastIndexOf('|') + 1)).append(" -> ");
+            }
+        }
+        owner.getLog().warning("Quests {}{} gate each other through quest-status: the loop answers LOCKED - drop one edge, or use requires:.",
+                names, id);
     }
 
     // ------------------------------------------------------------------

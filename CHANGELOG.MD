@@ -24,6 +24,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   or an offer (`NO_GROUP`, `NOT_LOADED`, `STATUS`, `REQUIRES`, `WINDOW`, `OWNER_KIND`, `GATE`, `CANCELLED`,
   `UNKNOWN_QUEST`), and a presenter that rewrites the text the quest command node and the offer screen send for it.
   `QuestCommandNode.start` goes through the same group check as the other verbs, one `StartResult.noGroup` text for both.
+- **`QuestEngine.getStatus(owner, id, viewer)`**: the gate checked with the member who looks; `quest list` and the
+  journal use it.
 - **`Dialogue.parseYaml(owner, name, yaml)`**, in the server's zone; text that is not YAML names the dialogue.
 - **`QuestPool`: `reroll.per-window`** (`Builder.rerollsPerWindow`) caps the rerolls of an owner per window, and
   **`expire-active-on-turn`** (`Builder.expireActiveOnTurn`) expires the previous draw's ACTIVE quests when the window
@@ -460,6 +462,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **`QuestDefinitions.parse` names the key in every error**: `gate`, `requires`, `fail-when[i]`, `repeat`,
   `rewards[i]`, `on-start/on-complete/on-fail/on-abandon[i]`, and for an objective its stage too
   (`Quest 'x', stage 'dig', objective 'iron' key 'mode': 'bogus' is not a progress mode - write count or each-match.`).
+- **A `quest-status` loop between gates answers LOCKED** where it closes and logs the chain once, instead of a
+  `StackOverflowError` in every list and placeholder.
+- **A group or global quest's gate is checked and paid with the member who starts it**: a `permission` or item gate no
+  longer denies the member who holds it. A money cost still takes from the owner's wallet.
 - **The locale scanner tells a command class scanned by hand** that its `@FCLocale` live in the `@FinalCMD` annotations
   and are read when the command registers, instead of only "has no fields of LocaleMessage.class".
 - **`Transactions.quote` prices a per-player or per-group limited offer for a context without that owner**: a catalog
