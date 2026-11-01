@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
@@ -40,7 +41,7 @@ public class Button implements Element {
     private long sampleTicks = DEFAULT_SAMPLE_TICKS;
     private final List<ClickRule> rules = new ArrayList<>();
     private Supplier<String> state;
-    private Supplier<Boolean> visibleWhen;
+    private Predicate<ScreenView> visibleWhen;
     private long visibleWhenTicks;
     private Consumer<ClickContext> onClick;
     private CycleBinder<?> cycle;
@@ -169,6 +170,21 @@ public class Button implements Element {
     /** {@link #visibleWhen(Supplier)} asked every {@code checkEveryTicks}; {@code 0} asks only when something redraws. */
     @Nonnull
     public Button visibleWhen(@Nullable Supplier<Boolean> live, long checkEveryTicks) {
+        return visibleWhen(live == null ? null : view -> Boolean.TRUE.equals(live.get()), checkEveryTicks);
+    }
+
+    /**
+     * Draws it only while {@code live} answers true for the view being drawn - so the answer can depend on who looks
+     * ({@link ScreenView#getViewer()}, {@link ScreenView#test}). Asked once a tick.
+     */
+    @Nonnull
+    public Button visibleWhen(@Nullable Predicate<ScreenView> live) {
+        return visibleWhen(live, 1L);
+    }
+
+    /** {@link #visibleWhen(Predicate)} asked every {@code checkEveryTicks}; {@code 0} asks only when something redraws. */
+    @Nonnull
+    public Button visibleWhen(@Nullable Predicate<ScreenView> live, long checkEveryTicks) {
         this.visibleWhen = live;
         this.visibleWhenTicks = Math.max(0L, checkEveryTicks);
         return this;
@@ -288,8 +304,10 @@ public class Button implements Element {
             icon.state(chosen);
             component.watch(chosen);
         }
-        if (visibleWhen != null && visibleWhenTicks > 0) {
-            component.watch(visibleWhen, visibleWhenTicks);
+        ScreenView view = component.getView();
+        Predicate<ScreenView> visible = visibleWhen;
+        if (visible != null && visibleWhenTicks > 0) {
+            component.watch(() -> visible.test(view), visibleWhenTicks);
         }
         if (everyTicks > 0) {
             component.every(everyTicks);
@@ -300,11 +318,9 @@ public class Button implements Element {
         component.dependOn(conditions, sampleTicks);
 
         Paint base = Paint.of(this).onClick(clickHandler(cycleClick));
-        ScreenView view = component.getView();
-        Supplier<Boolean> visible = visibleWhen;
         Consumer<Icon> perRender = renderer;
         component.render(writer -> {
-            if (visible != null && !Boolean.TRUE.equals(visible.get())) {
+            if (visible != null && !visible.test(view)) {
                 return;
             }
             if (perRender != null) {

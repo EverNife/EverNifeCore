@@ -18,6 +18,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **`Button.visibleWhen(Predicate<ScreenView>[, ticks])`**: the predicate receives the view being drawn, so one
+  screen can show an icon to one viewer and hide it from another (`view.getViewer()`, `view.test(condition)`). The
+  `Supplier` forms stay.
 - **Quest engine** (`evernifecore.quest`): a plugin opens `QuestEngine.of(plugin, storage, MyQuestSection.class)` and
   registers `QuestDefinition`s (YAML through `QuestDefinitions` or a builder) - stages as graph nodes (`then`, goto,
   `COMPLETE`/`FAIL`, `all`/`any`/`at-least` groups), objectives of event (one stock `ObjectiveType` per action source,

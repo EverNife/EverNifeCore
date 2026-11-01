@@ -198,6 +198,22 @@ class IconVisibilityTest {
     }
 
     @Test
+    void aPredicateOverTheViewShowsTheIconOnlyToTheViewerItAnswersFor() {
+        TestFPlayerSender alex = world.viewer("Alex");
+        Screen<?> screen = Screen.of(3);
+        screen.icon(0, emerald()).visibleWhen(view -> "Steve".equals(view.getViewerName()));
+
+        ScreenView steveView = world.open(screen, player);
+        ScreenView alexView = world.open(screen, alex);
+
+        assertEquals("minecraft:emerald", materialAt(world.getRenderer().surfaceOf(steveView), 0));
+        assertNull(world.getRenderer().surfaceOf(alexView).getSlot(0), "the same screen, another viewer, no icon");
+        assertNull(alexView.getIconAt(0), "and nothing to click where nothing is drawn");
+        close(steveView);
+        close(alexView);
+    }
+
+    @Test
     void aDeclaredDependencyRedrawsTheIconWithoutAnyPredicateAtAll() {
         MutableState<Boolean> lit = State.of(false);
         Screen<?> screen = Screen.of(3);
