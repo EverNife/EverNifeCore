@@ -210,6 +210,24 @@ public class Screen<L extends Layout> {
         return declare(new ProgressBar(this, placed.getName(), placed.getSlots(), placed.getIcon(), ratio));
     }
 
+    /** {@link #label(Function)} on raw slots. */
+    @Nonnull
+    public Label label(@Nonnull SlotSet slots, @Nonnull Icon icon) {
+        return declare(new Label(this, rawId(slots, icon), requireSlots(slots, icon), icon));
+    }
+
+    /** {@link #input(Function)} on raw slots. */
+    @Nonnull
+    public InputField input(@Nonnull SlotSet slots, @Nonnull Icon icon) {
+        return declare(new InputField(this, rawId(slots, icon), requireSlots(slots, icon), icon));
+    }
+
+    /** {@link #progress(Function, State)} on raw slots. */
+    @Nonnull
+    public ProgressBar progress(@Nonnull SlotSet slots, @Nonnull Icon icon, @Nonnull State<Double> ratio) {
+        return declare(new ProgressBar(this, rawId(slots, icon), requireSlots(slots, icon), icon, ratio));
+    }
+
     /** A dialogue option: {@code text}, picked when {@code gate} passes and is paid, running {@code effects}. */
     @Nonnull
     public Choice choice(@Nonnull Function<L, Icon> selector, @Nonnull FancyText text, @Nonnull Gate gate,

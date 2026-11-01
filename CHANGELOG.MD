@@ -18,6 +18,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **`Screen.label(SlotSet, Icon)`, `Screen.input(SlotSet, Icon)`, `Screen.progress(SlotSet, Icon, State<Double>)`**: the
+  three element kinds that only had a layout form can sit on raw slots, like `icon` and `choice`.
 - **`PagedList.arrows(previous, next)`**: the icons of page arrows placed on raw slots by `pagedBy(SlotSet, SlotSet)`;
   a `null` side keeps the framework's arrow.
 - **`Button.visibleWhen(Predicate<ScreenView>[, ticks])`**: the predicate receives the view being drawn, so one
@@ -425,6 +427,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **A slot whose item did not change still reaches the renderer when its element state did**: a `ProgressBar` whose
+  ratio moved, or an element turning disabled with the same item, sends its patch. The commit compared only the
+  drawn item, so a renderer that draws by element kept the old ratio.
 - **`ScreenNavigation.replace` of a screen set aside swaps it in place**: the replacement waits set aside where the
   old one was (inheriting what it owed its opener), the screen on top keeps its window, and stepping back from the top
   lands on the replacement. It used to push the replacement on top, taking the window of the screen the player was

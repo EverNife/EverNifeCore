@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -61,6 +62,8 @@ public final class ScreenView {
     private final String viewerName;
     private final Grid grid;
     private final SlotBuffer buffer;
+    //what each slot's last patch said beyond its item - a bar's ratio, a disabled reason: the buffer diffs items only
+    private final String[] committedStates;
     private final ScreenScheduler scheduler;
 
     private final List<ScreenComponent> components = new ArrayList<>();
@@ -103,6 +106,8 @@ public final class ScreenView {
         this.viewerName = viewer.getName();
         this.grid = screen.getGrid();
         this.buffer = new SlotBuffer(grid.getSize());
+        this.committedStates = new String[grid.getSize()];
+        Arrays.fill(committedStates, NO_STATE);
         this.scheduler = renderer.getScheduler();
         this.currentTitle = screen.getTitleFor(viewer, argumentsOrNull());
     }
@@ -491,7 +496,17 @@ public final class ScreenView {
                     + "]. Every write to a screen happens on its renderer's thread - hop with view.getScheduler().run(...) "
                     + "before touching it.");
         }
-        List<Integer> changed = buffer.commit();
+        Set<Integer> changed = new TreeSet<>(buffer.commit());
+        for (int slot = 0; slot < committedStates.length; slot++) {
+            if (!buffer.owns(slot)) {
+                continue;
+            }
+            String state = stateOf(paintedAt(slot));
+            if (!state.equals(committedStates[slot])) {
+                committedStates[slot] = state;
+                changed.add(slot);
+            }
+        }
         if (changed.isEmpty()) {
             return 0;
         }
@@ -504,6 +519,13 @@ public final class ScreenView {
         }
         surface.apply(Collections.unmodifiableList(patch));
         return patch.size();
+    }
+
+    private static final String NO_STATE = stateOf(null);
+
+    private static String stateOf(@Nullable Painted painted) {
+        Paint paint = painted == null ? Paint.decoration("") : painted.paint;
+        return paint.getProgress() + "|" + paint.isEnabled() + "|" + paint.getReason();
     }
 
     /** Re-reads a grid surface and puts back whatever stopped showing what this screen drew. Renderer thread. */
