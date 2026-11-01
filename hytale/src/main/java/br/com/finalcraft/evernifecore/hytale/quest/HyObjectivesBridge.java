@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -86,6 +87,7 @@ public final class HyObjectivesBridge extends TickingSystem<EntityStore> {
     //native objective uuid + player -> what it advances
     private final Map<String, Mirror> mirrors = new ConcurrentHashMap<>();
     private final Set<String> loadedAssets = ConcurrentHashMap.newKeySet();
+    private final Set<String> loading = ConcurrentHashMap.newKeySet();
 
     private HyObjectivesBridge() {
     }
@@ -174,8 +176,13 @@ public final class HyObjectivesBridge extends TickingSystem<EntityStore> {
             if (markers.containsKey(want.getKey())) {
                 continue;
             }
+            String asset = targetAssetId(want.getValue());
+            if (!loadedAssets.contains(asset)) {
+                loadLater(want.getValue(), asset); //the asset store must not be loaded from a world thread; started on a later scan
+                continue;
+            }
             UUID player = UUID.fromString(want.getKey().substring(0, want.getKey().indexOf('|')));
-            var started = objectives.startObjective(loadTargetAsset(want.getValue()), Set.of(player), world.getWorldConfig().getUuid(), null, store);
+            var started = objectives.startObjective(asset, Set.of(player), world.getWorldConfig().getUuid(), null, store);
             if (started != null) {
                 markers.put(want.getKey(), started.getObjectiveUUID());
                 markerWorld.put(want.getKey(), world.getName());
@@ -183,16 +190,33 @@ public final class HyObjectivesBridge extends TickingSystem<EntityStore> {
         }
     }
 
+    private void loadLater(WorldLocPos target, String asset) {
+        if (!loading.add(asset)) {
+            return;
+        }
+        CompletableFuture.runAsync(() -> loadTargetAsset(target)).whenComplete((done, failed) -> {
+            if (failed != null) {
+                EverNifeCore.getLog().warning("[Quests] hytale-native markers: " + failed.getCause().getMessage());
+            } else {
+                loading.remove(asset); //a refused one stays here: asked once, logged once
+            }
+        });
+    }
+
+    private static String targetAssetId(WorldLocPos target) {
+        return "EverNifeCore_QuestTarget_" + (int) Math.floor(target.getX()) + "_" + (int) Math.floor(target.getY()) + "_" + (int) Math.floor(target.getZ());
+    }
+
     /**
      * Makes, once per block, the native objective asset whose only task marks {@code target} on the map, and returns its
-     * id. Any thread.
+     * id. Never on a world thread: loading an asset waits on the worlds, so it blocks the one it runs on.
      *
      * @throws IllegalStateException when the asset store refuses an asset made at runtime; quests then need markers
      *                               from an asset of a pack ({@code asset:})
      */
     public static String loadTargetAsset(WorldLocPos target) {
         Vector3i block = new Vector3i((int) Math.floor(target.getX()), (int) Math.floor(target.getY()), (int) Math.floor(target.getZ()));
-        String id = "EverNifeCore_QuestTarget_" + block.x + "_" + block.y + "_" + block.z;
+        String id = targetAssetId(target);
         if (INSTANCE.loadedAssets.contains(id) && ObjectiveAsset.getAssetMap().getAsset(id) != null) {
             return id;
         }

@@ -19,6 +19,7 @@ import org.joml.Vector3d;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * The quest engine on a Hytale server, on the player's world thread: three real {@link BreakBlockEvent}s fired at the
@@ -56,18 +57,19 @@ public final class HyQuestsSuite implements ConformanceSuite {
                 HyRegionsSuite.withPlayer("native-marker-accepts-runtime-asset", ctx, player -> {
                     PlayerRef ref = HyWorld.player(player);
                     World world = HyWorld.worldOf(ref);
-                    return HyWorld.on(world, () -> {
-                        ObjectivePlugin objectives = ObjectivePlugin.get();
-                        if (objectives == null) {
-                            return Verdict.skipped("the Hytale:Objectives plugin is not enabled here");
-                        }
-                        Vector3d at = HyWorld.position(ref);
-                        String asset;
+                    ObjectivePlugin objectives = ObjectivePlugin.get();
+                    if (objectives == null) {
+                        return CompletableFuture.completedFuture(Verdict.skipped("the Hytale:Objectives plugin is not enabled here"));
+                    }
+                    //the asset store is loaded off the world thread: loading waits on the worlds
+                    return HyWorld.on(world, () -> HyWorld.position(ref)).thenApplyAsync(at -> {
                         try {
-                            asset = HyObjectivesBridge.loadTargetAsset(WorldLocPos.of(at.x + 8, at.y, at.z, world.getName()));
+                            return HyObjectivesBridge.loadTargetAsset(WorldLocPos.of(at.x + 8, at.y, at.z, world.getName()));
                         } catch (IllegalStateException refused) {
-                            return Verdict.skipped(refused.getMessage());
+                            return "refused: " + refused.getMessage();
                         }
+                    }).thenCompose(asset -> asset.startsWith("refused: ") ? CompletableFuture.completedFuture(Verdict.skipped(asset))
+                            : HyWorld.on(world, () -> {
                         Objective started = objectives.startObjective(asset, Collections.singleton(ref.getUuid()),
                                 world.getWorldConfig().getUuid(), null, ref.getReference().getStore());
                         if (started == null) {
@@ -75,7 +77,7 @@ public final class HyQuestsSuite implements ConformanceSuite {
                         }
                         objectives.cancelObjective(started.getObjectiveUUID(), ref.getReference().getStore());
                         return Verdict.pass("loaded " + asset + ", started " + started.getObjectiveUUID() + " for " + player.getName() + ", cancelled");
-                    });
+                    }));
                 }));
     }
 }
