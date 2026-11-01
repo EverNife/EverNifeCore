@@ -20,7 +20,8 @@ class HyPageRendererConformanceTest {
             "open-registers-view", "open-posts-event", "click-routes-by-id-and-gesture", "patch-batches-per-tick",
             "patch-touches-only-dirty-elements", "close-runs-onclose-once", "close-posts-event-with-reason",
             "prompt-sets-aside-and-restores", "nav-push-pop-hands-value", "capability-refusal-teaches",
-            "title-change-when-declared"};
+            "title-change-when-declared", "label-draws-its-text", "choice-disabled-carries-reason",
+            "progress-reports-ratio", "input-asks-through-a-prompt", "list-pages-with-arrows"};
 
     @TempDir
     Path tempDir;

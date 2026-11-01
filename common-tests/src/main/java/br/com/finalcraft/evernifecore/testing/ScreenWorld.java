@@ -173,12 +173,22 @@ public final class ScreenWorld implements AutoCloseable {
         ticker.accept(ticks);
     }
 
-    /** A click on the element {@code elementId}, the way a renderer that draws by element sends one. */
+    /**
+     * A click on the element {@code elementId}, the way a renderer that draws by element sends one.
+     *
+     * @return whether the item move the gesture would make may go through - never whether a handler ran; assert the
+     *         effect of the click, not this value
+     */
     public boolean click(@Nonnull ScreenView view, @Nonnull String elementId, @Nonnull ClickGesture gesture) {
         return view.click(elementId, gesture);
     }
 
-    /** A click on {@code slot}, the way a grid renderer sends one. */
+    /**
+     * A click on {@code slot}, the way a grid renderer sends one.
+     *
+     * @return whether the item move the gesture would make may go through - never whether a handler ran; assert the
+     *         effect of the click, not this value
+     */
     public boolean click(@Nonnull ScreenView view, int slot, @Nonnull ClickGesture gesture, @Nonnull ClickKind kind) {
         return view.click(slot, gesture, kind, null);
     }

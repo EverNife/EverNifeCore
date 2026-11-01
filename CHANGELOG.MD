@@ -18,6 +18,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **`RendererConformance` checks each element kind**: `label-draws-its-text`, `choice-disabled-carries-reason`,
+  `progress-reports-ratio`, `input-asks-through-a-prompt` and `list-pages-with-arrows`, and
+  `check(renderer, world, Supplier<FPlayer> viewers)` lets a renderer whose `supports` needs a handshake give its own
+  viewers. The probe now forwards `suspended()` to the renderer's window. `ScreenWorld.click` documents that its
+  boolean is whether the item move may go through, never whether a handler ran.
 - **`Screen.label(SlotSet, Icon)`, `Screen.input(SlotSet, Icon)`, `Screen.progress(SlotSet, Icon, State<Double>)`**: the
   three element kinds that only had a layout form can sit on raw slots, like `icon` and `choice`.
 - **`PagedList.arrows(previous, next)`**: the icons of page arrows placed on raw slots by `pagedBy(SlotSet, SlotSet)`;
