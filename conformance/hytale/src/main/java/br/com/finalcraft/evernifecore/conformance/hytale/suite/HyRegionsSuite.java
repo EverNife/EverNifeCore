@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.conformance.hytale.suite;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.EventSourceUsage;
+import br.com.finalcraft.evernifecore.action.event.BreakActionEvent;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.conformance.ConformanceCase;
 import br.com.finalcraft.evernifecore.conformance.ConformanceContext;
@@ -17,6 +18,7 @@ import br.com.finalcraft.evernifecore.flag.Tristate;
 import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.flag.core.EntryDenySettings;
 import br.com.finalcraft.evernifecore.flag.core.TrackChangesSettings;
+import br.com.finalcraft.evernifecore.hytale.action.HyActionContexts;
 import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.hytale.region.HySelectionItems;
 import br.com.finalcraft.evernifecore.logic.audit.EffectApplyEvent;
@@ -58,7 +60,9 @@ import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent;
 import com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.DamageBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.DropItemEvent;
+import com.hypixel.hytale.server.core.event.events.ecs.EnvironmentBreakBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.InteractivelyPickupItemEvent;
+import com.hypixel.hytale.server.core.event.events.ecs.RespawnEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.UseBlockEvent;
 import com.hypixel.hytale.server.core.inventory.InventoryComponent;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
@@ -140,7 +144,9 @@ public final class HyRegionsSuite implements ConformanceSuite {
                 withPlayer("terrain-prefab-without-nbt", ctx, this::terrainPrefabWithoutNbt),
                 withPlayer("terrain-prefab-retention", ctx, this::terrainPrefabRetention),
                 withPlayer("terrain-snapshot-polygon-box", ctx, this::terrainSnapshotPolygonBox),
-                withPlayer("terrain-cost-grid", ctx, GRID_TIMEOUT_SECONDS, this::terrainCostGrid));
+                withPlayer("terrain-cost-grid", ctx, GRID_TIMEOUT_SECONDS, this::terrainCostGrid),
+                withPlayer("environment-break-journaled", ctx, this::environmentBreakJournaled),
+                withPlayer("respawn-at-spawn-point", ctx, this::respawnAtSpawnPoint));
     }
 
     /** A case that needs the run's player; skipped without one, failed past {@link #TIMEOUT_SECONDS}. */
@@ -353,6 +359,68 @@ public final class HyRegionsSuite implements ConformanceSuite {
                                 }
                                 return Verdict.of(recorded == 3 && back == 3, "recorded=" + recorded + " restored=" + restored + " back=" + back + "/3");
                             })))));
+        });
+    }
+
+    /**
+     * A rock block in a {@code track-changes} region broken by the world itself - the {@link EnvironmentBreakBlockEvent}
+     * fire raises - then cleared as the break would: the journal keeps it, and a BREAK by the environment is posted.
+     */
+    private CompletableFuture<Verdict> environmentBreakJournaled(FPlayer fplayer) {
+        PlayerRef player = HyWorld.player(fplayer);
+        World world = HyWorld.worldOf(player);
+        return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(at -> {
+            Vector3i c = block(at, 6, 4, 3);
+            return HyWorld.chunksLoaded(world, c.x - 1, c.z - 1, c.x + 1, c.z + 1).thenCompose(loaded -> HyWorld.on(world, () -> {
+                HyWorld.setBlock(world, c.x, c.y, c.z, SOLID);
+                return null;
+            })).thenCompose(built -> inRegion(regions, "ecc-environment-break", world.getName(), pos(c).add(-1, -1, -1), pos(c).add(1, 1, 1),
+                    region -> region.getManager().getTerrain().track(region),
+                    region -> HyWorld.on(world, () -> {
+                        List<String> actors = new ArrayList<>();
+                        ECEventSubscription<BreakActionEvent.Post> posts = ECEventBus.global().subscribe(BreakActionEvent.Post.class,
+                                post -> actors.add(post.getContext().getActor().getKey().toString()));
+                        try {
+                            Ref<EntityStore> ref = player.getReference();
+                            ref.getStore().invoke(new EnvironmentBreakBlockEvent(c, typeAt(world, c)));
+                        } finally {
+                            posts.unsubscribe();
+                        }
+                        HyWorld.setBlock(world, c.x, c.y, c.z, BlockType.EMPTY_KEY);
+                        int recorded = region.getManager().getTerrain().getJournalSize(region);
+                        boolean posted = actors.contains(HyActionContexts.ENVIRONMENT_BREAK.toString());
+                        return Verdict.of(recorded == 1 && posted, "recorded=" + recorded + " posts=" + actors);
+                    })));
+        });
+    }
+
+    /**
+     * A {@link RespawnEvent} the server raises on the player standing in a region with a {@code spawn-point}: a few ticks
+     * later he stands at the point. The player is put back where the case found him.
+     */
+    private CompletableFuture<Verdict> respawnAtSpawnPoint(FPlayer fplayer) {
+        PlayerRef player = HyWorld.player(fplayer);
+        World world = HyWorld.worldOf(player);
+        return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(start -> {
+            Vector3i here = block(start, 0, 0, 0);
+            Vector3d point = new Vector3d(here.x + 10.5, start.y, here.z + 0.5);
+            return inRegion(regions, "ecc-spawn-point", world.getName(), pos(here).add(-2, -3, -2), pos(here).add(2, 4, 2),
+                    region -> region.setFlag(CoreFlags.SPAWN_POINT, WorldLocPos.of(point.x, point.y, point.z, world.getName())),
+                    region -> HyWorld.on(world, () -> {
+                        Ref<EntityStore> ref = player.getReference();
+                        RespawnEvent respawn = new RespawnEvent();
+                        ref.getStore().invoke(ref, respawn);
+                        return respawn.isCancelled();
+                    }).thenCompose(cancelled -> HyWorld.ticks(world, 20).thenCompose(waited -> HyWorld.on(world, () -> {
+                        Vector3d now = HyWorld.position(player);
+                        boolean atPoint = Math.abs(now.x - point.x) < 1 && Math.abs(now.z - point.z) < 1;
+                        boolean pending = HyWorld.isTeleportPending(player);
+                        return Verdict.of(!cancelled && atPoint && !pending, "start=" + fmt(start) + " point=" + fmt(point) + " standsAt=" + fmt(now)
+                                + " cancelled=" + cancelled + " pendingAfter=" + pending);
+                    })))).thenCompose(verdict -> HyWorld.on(world, () -> {
+                HyWorld.teleport(player, world, start);
+                return verdict;
+            })).thenCompose(verdict -> HyWorld.ticks(world, 10).thenApply(back -> verdict));
         });
     }
 
