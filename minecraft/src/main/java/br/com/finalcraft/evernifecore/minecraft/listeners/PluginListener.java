@@ -18,6 +18,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Arrays;
@@ -32,7 +33,28 @@ public class PluginListener implements ECListener {
 
     @Override
     public void onRegister() {
-        for (Plugin plugin : Arrays.stream(Bukkit.getPluginManager().getPlugins())
+        onRegister(Bukkit.getPluginManager());
+    }
+
+    /**
+     * Replays the enable of every plugin already enabled, and the disable of every plugin that died before this
+     * listener could hear it: one Bukkit enabled ahead of the core ({@code getPlugins()} is the enable order) and that
+     * is disabled now. A plugin after the core is not disabled, only not enabled yet - what it built during its load
+     * stays - and a name Bukkit does not know is not a Bukkit plugin to reconcile.
+     */
+    void onRegister(PluginManager pluginManager) {
+        Plugin[] plugins = pluginManager.getPlugins();
+        String coreName = EverNifeCore.getEcPluginData().getMetaInfo().getName();
+        Map<String, ECPluginData> known = ECPluginManager.getECPluginsMap();
+        for (Plugin plugin : plugins) {
+            if (plugin.getName().equals(coreName)) {
+                break;
+            }
+            if (!plugin.isEnabled() && known.containsKey(plugin.getName())) {
+                forget(plugin.getName());
+            }
+        }
+        for (Plugin plugin : Arrays.stream(plugins)
                 .filter(plugin -> plugin.isEnabled())
                 .collect(Collectors.toList())) {
             onPluginEnable(new PluginEnableEvent(plugin));
@@ -72,8 +94,10 @@ public class PluginListener implements ECListener {
          *
          * Will remove data Like "TabCompletion" and "Localization" from the memory cache
          */
-        String pluginName = event.getPlugin().getName();
+        forget(event.getPlugin().getName());
+    }
 
+    private void forget(String pluginName) {
         ProtectionHandler builtIn = builtInProtections.remove(pluginName);
         if (builtIn != null) {
             ProtectionAll.getInstance().unregister(builtIn);
@@ -93,6 +117,4 @@ public class PluginListener implements ECListener {
 
         ECPluginManager.removePluginData(pluginName);
     }
-
-
 }

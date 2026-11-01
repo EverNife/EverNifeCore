@@ -29,8 +29,9 @@ public abstract class ECEvent extends Event implements IECEvent {
 
     protected ECEvent() {
         //snapshot of the thread that built it - the producer's contract is to build and post on the
-        //same thread, and Bukkit refuses a sync event posted off the main thread
-        super(!Bukkit.isPrimaryThread());
+        //same thread, and Bukkit refuses a sync event posted off the main thread. With no server (a headless
+        //test JVM) there is no main thread to be off of: the event is synchronous.
+        super(Bukkit.getServer() != null && !Bukkit.isPrimaryThread());
     }
 
     protected ECEvent(boolean async) {

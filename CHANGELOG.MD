@@ -468,6 +468,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **minecraft: an `ECEvent` builds in a JVM without a Bukkit server** (synchronous: there is no other thread), so a
+  plugin's unit test posts one on the global bus without the Bukkit event rig. **`PluginListener` cleans up after a plugin
+  disabled before the core enabled** - one ahead of the core in Bukkit's enable order and disabled now loses its sections,
+  protections, PAPI expansions and plugin data, as a disable heard live would; a plugin after the core and a name Bukkit
+  does not know are left alone.
 - **`Cooldown.seed(lastUseAt)` counts one use in the window of that instant** for a limited policy, so an adopted
   claim of today leaves one use fewer; a use seeded in an older window counts nothing now and leaves the current
   window's count as it is. A caller that did `tryUse()` + `seed()` to count it now counts it twice.
