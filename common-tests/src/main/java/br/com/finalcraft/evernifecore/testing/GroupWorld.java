@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.testing;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
+import br.com.finalcraft.evernifecore.api.events.player.ECPlayerFullyLoggedInEvent;
 import br.com.finalcraft.evernifecore.api.events.player.ECPlayerQuitEvent;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
@@ -11,6 +12,7 @@ import br.com.finalcraft.evernifecore.group.GroupKind;
 import br.com.finalcraft.evernifecore.group.GroupLookup;
 import br.com.finalcraft.evernifecore.group.GroupManager;
 import br.com.finalcraft.evernifecore.group.GroupRole;
+import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import jakarta.annotation.Nullable;
 
@@ -102,6 +104,32 @@ public final class GroupWorld implements AutoCloseable {
             platform.setOnlinePlayers(online);
         }
         return player;
+    }
+
+    /** Announces {@code player}'s quit while it is still online, as the platform does, then takes it offline. */
+    public void quit(TestFPlayerSender player) {
+        ECEventBus.global().post(new ECPlayerQuitEvent(new PlayerData(player.getUniqueId(), player.getName())));
+        player.online(false);
+        setOnline(player, false);
+    }
+
+    /** Puts {@code player} back online and announces its full login. */
+    public void login(TestFPlayerSender player) {
+        player.online(true);
+        setOnline(player, true);
+        ECEventBus.global().post(new ECPlayerFullyLoggedInEvent(new PlayerData(player.getUniqueId(), player.getName()), false));
+    }
+
+    private static void setOnline(FPlayer player, boolean online) {
+        if (EverNifeCore.getPlatform() instanceof TestPlatform) {
+            TestPlatform platform = (TestPlatform) EverNifeCore.getPlatform();
+            List<FPlayer> now = platform.onlinePlayers == null ? new ArrayList<FPlayer>() : new ArrayList<>(platform.onlinePlayers);
+            now.remove(player);
+            if (online) {
+                now.add(player);
+            }
+            platform.setOnlinePlayers(now);
+        }
     }
 
     /**

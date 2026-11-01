@@ -541,6 +541,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   until a restart, with a warning.
 - **Plugin teardown drops the `ActorHolders` providers the plugin registered** (`onECPluginShutdownPre` and
   `ECPluginManager.removePluginData`), so no holder of a gone plugin joins a resolution.
+- **`glow-members` glows a member who logs in and stops glowing one who quits**: the quit unglows while the player is
+  still online, so no `Glowing` tag rides the logout and comes back after the flag went away. Nothing listens while no
+  group glows.
 
 ### Changed
 

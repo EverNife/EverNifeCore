@@ -306,6 +306,34 @@ class GroupFlagsTest {
     }
 
     @Test
+    void aMemberWhoLogsInWhileTheGroupGlowsStartsGlowing() {
+        TestGlow glow = world.platform().getTestGlow();
+        Group alpha = alphaWith(alice, bob);
+        parties.quit(bob);
+        alpha.setFlag(CoreFlags.GLOW_MEMBERS, Tristate.TRUE);
+        assertFalse(glow.isGlowing(bob.getUniqueId()));
+
+        parties.login(bob);
+
+        assertTrue(glow.isGlowing(bob.getUniqueId()));
+        assertTrue(glow.isGlowing(alice.getUniqueId()));
+    }
+
+    @Test
+    void aMemberWhoQuitsStopsGlowing() {
+        TestGlow glow = world.platform().getTestGlow();
+        alphaWith(alice, bob).setFlag(CoreFlags.GLOW_MEMBERS, Tristate.TRUE);
+        assertTrue(glow.isGlowing(bob.getUniqueId()));
+
+        parties.quit(bob);
+
+        assertFalse(glow.isGlowing(bob.getUniqueId()), "unglowed while still online, so no Glowing tag rides the logout");
+        assertTrue(glow.isGlowing(alice.getUniqueId()));
+        parties.login(bob);
+        assertTrue(glow.isGlowing(bob.getUniqueId()), "glows again on the way back in");
+    }
+
+    @Test
     void aDissolvedGroupStopsGlowing() {
         TestGlow glow = world.platform().getTestGlow();
         Group alpha = alphaWith(alice);
