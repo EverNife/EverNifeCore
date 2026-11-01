@@ -89,6 +89,11 @@ public final class QuestPool {
         return noRepeatLast;
     }
 
+    /** How long a reroll waits for the next; null for no wait. */
+    public @Nullable Duration getRerollCooldown() {
+        return rerollCooldown;
+    }
+
     /** The quests the pool draws from now: the registered ones with its tag, or named in it. */
     public List<QuestDefinition> getCandidates() {
         List<QuestDefinition> candidates = new ArrayList<>();

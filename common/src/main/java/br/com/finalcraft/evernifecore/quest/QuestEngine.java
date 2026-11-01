@@ -1050,7 +1050,12 @@ public final class QuestEngine {
 
     /** The quest {@code player} tracks; null for none, or when their section is not loaded. */
     public @Nullable QuestId getTracked(FPlayer player) {
-        QuestSection section = section(ProgressOwner.player(player.getUniqueId()));
+        return getTracked(player.getUniqueId());
+    }
+
+    /** The quest the player {@code player} tracks; null for none, or when their section is not loaded. */
+    public @Nullable QuestId getTracked(UUID player) {
+        QuestSection section = section(ProgressOwner.player(player));
         String tracked = section == null ? null : section.getTracked();
         return tracked == null ? null : QuestId.parse(tracked, nameOf(owner));
     }

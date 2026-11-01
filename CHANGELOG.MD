@@ -48,6 +48,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `track <quest|off>` - with `<base>.<verb>` permissions; `ArgParserQuest` reads `<quest>` (a `QuestDefinition`). The core
   reads only: `/ecore quest <player>` (`evernifecore.command.quest`) lists every engine's active quests, orphans, objectives
   waiting for their type and the sources the index listens to. `QuestEngine.getOwnerFor(player, quest)` resolves a group quest.
+- **Quest placeholders**: `QuestPlaceholders.register(replacer, QuestPlaceholderScope.ownedBy(plugin))` serves
+  `quest_[quest]_status|stage|percent|times|cooldown|time_left|name|description|progress_[obj]|goal_[obj]|param_[k]`,
+  `tracked_<op>`, `quests_active_count`, `quests_completed_count` and `pool_[pool]_<n>|count|reroll_in`; the core serves
+  them under `%evernifecore_...%` over every engine by full id. New readers: `QuestDefinition.getStageProgress(state)` /
+  `getObjective(id)`, `QuestEngine.getTracked(UUID)`, `QuestPool.getRerollCooldown()`.
 
 - **Screens render on Hytale**: `HyPageRenderer` (`evernifecore:page`, `hytale.screen`) draws any `Screen` as a server
   page (`InteractiveCustomUIPage`) from the core's own layouts in its asset pack (`EverNifeCore/Screen.ui`, `Cell.ui`,

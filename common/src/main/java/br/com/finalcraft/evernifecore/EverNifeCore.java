@@ -30,6 +30,7 @@ import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.ranking.RankedPlaceholders;
 import br.com.finalcraft.evernifecore.quest.QuestEngine;
 import br.com.finalcraft.evernifecore.region.RegionManager;
+import br.com.finalcraft.evernifecore.quest.placeholder.QuestPlaceholders;
 import br.com.finalcraft.evernifecore.region.placeholder.RegionPlaceholders;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 
@@ -101,6 +102,7 @@ public class EverNifeCore {
         if (corePlaceholders != null) {
             //one replacer for the core's prefix: PlaceholderAPI keeps only the last expansion registered under a name
             RankedPlaceholders.registerCore(corePlaceholders);
+            QuestPlaceholders.registerCore(corePlaceholders);
         }
 
         getLog().info("§aRegistering Commands!");

@@ -217,6 +217,41 @@ public final class QuestDefinition {
         return all;
     }
 
+    /** The objective {@code objectiveId} of any stage; null for none. */
+    public @Nullable Objective getObjective(String objectiveId) {
+        for (Objective objective : getObjectives()) {
+            if (objective.getId().equals(objectiveId)) {
+                return objective;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * How far {@code state} is through its current stage, 0 to 1: the counted share of the goals of its counting
+     * objectives (a done objective counts whole). 1 once completed, 0 without a current stage.
+     */
+    public double getStageProgress(QuestState state) {
+        if (state.getStatus() == QuestStatus.COMPLETED) {
+            return 1;
+        }
+        Stage stage = state.getStageId() == null ? null : getStage(state.getStageId());
+        if (stage == null) {
+            return 0;
+        }
+        double goals = 0;
+        double counted = 0;
+        for (Objective objective : stage.getObjectives().getObjectives()) {
+            if (objective.isHidden() || objective.getMode() != ProgressMode.COUNT) {
+                continue;
+            }
+            ObjectiveState progress = state.getObjectives().get(objective.getId());
+            goals += objective.getGoal();
+            counted += progress != null && progress.isDone() ? objective.getGoal() : Math.min(objective.getGoal(), state.getCount(objective.getId()));
+        }
+        return goals == 0 ? 0 : counted / goals;
+    }
+
     @Override
     public String toString() {
         return id + " v" + version;
