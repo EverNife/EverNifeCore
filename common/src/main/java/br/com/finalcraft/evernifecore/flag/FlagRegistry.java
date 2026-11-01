@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.flag.core.ActorDenyFlag;
 import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.region.Region;
@@ -219,12 +220,25 @@ public final class FlagRegistry {
         return unserved;
     }
 
-    /** The line a flag without effect on this platform logs; null for a flag that has its effect. */
+    /**
+     * The line a flag that cannot act in full on this platform logs: it has no effect (no source it needs is raised, or a
+     * capability is missing), acts in part (some of its sources are raised), or never matches (it refines another flag
+     * only for actors the platform never classifies); null for a flag that has its whole effect.
+     */
     public @Nullable String describeWithoutEffect(Flag<?> flag) {
         List<EventSource> unserved = getUnservedSources(flag);
         if (!unserved.isEmpty()) {
-            return "Flag " + flag.getKey() + " has no effect on this platform: it needs " + unserved
+            boolean someServed = flag.getNeeds().stream().anyMatch(source -> !source.equals(EventSource.NONE) && !unserved.contains(source));
+            return someServed
+                    ? "Flag " + flag.getKey() + " acts in part on this platform: it needs " + unserved + ", which this server never raises;"
+                    + " the rest applies."
+                    : "Flag " + flag.getKey() + " has no effect on this platform: it needs " + unserved
                     + ", which this server never raises. A region may hold it; nothing will enforce it here.";
+        }
+        if (flag instanceof ActorDenyFlag && ((ActorDenyFlag) flag).getActorEntries().stream().allMatch(ActionSupport::neverClassifies)) {
+            ActorDenyFlag refinement = (ActorDenyFlag) flag;
+            return "Flag " + flag.getKey() + " never matches on this platform: it refines " + refinement.getParent().getKey() + " for "
+                    + refinement.getActorEntries() + ", and this server has none.";
         }
         List<IPlayerStateAccess.Capability> lacking = getMissingCapabilities(flag);
         return lacking.isEmpty() ? null : "Flag " + flag.getKey() + " has no effect on this platform: it changes " + lacking

@@ -9,6 +9,8 @@ import br.com.finalcraft.evernifecore.action.BlockContext;
 import br.com.finalcraft.evernifecore.action.ECEntityType;
 import br.com.finalcraft.evernifecore.action.ActionSupport;
 import br.com.finalcraft.evernifecore.action.DamageContext;
+import br.com.finalcraft.evernifecore.flag.core.ActorDenyFlag;
+import br.com.finalcraft.evernifecore.testing.Logs;
 import br.com.finalcraft.evernifecore.action.SimpleContext;
 import br.com.finalcraft.evernifecore.action.event.BreakActionEvent;
 import br.com.finalcraft.evernifecore.action.event.CraftActionEvent;
@@ -373,16 +375,21 @@ class HyActionSystemsTest {
             }
         }
         try {
-            ActionSupport.declare("Hytale", HyActionSystems.SERVED_SOURCES, HyActionSystems.PRE_SOURCES, false);
-            FlagRegistry.get().setMissingCapabilities(HyPlatform.PLAYER_STATE.getUnsupported());
+            HyActionSystems.declareSupport("Hytale");
             List<String> lines = new ArrayList<>();
             Set<String> lackingCapability = new TreeSet<>();
             for (Flag<?> flag : CoreFlags.all()) {
                 String line = FlagRegistry.get().describeWithoutEffect(flag);
                 boolean served = HyActionSystems.SERVED_SOURCES.containsAll(flag.getNeeds()) || flag.getNeeds().equals(Collections.singleton(EventSource.NONE));
+                boolean partly = !served && flag.getNeeds().stream().anyMatch(HyActionSystems.SERVED_SOURCES::contains);
                 boolean capable = FlagRegistry.get().getMissingCapabilities(flag).isEmpty();
+                boolean neverMatches = flag instanceof ActorDenyFlag && ((ActorDenyFlag) flag).getActorEntries().equals(Collections.singletonList("fake-player"));
                 if (line == null) {
-                    assertTrue(served && capable, flag.getKey() + " has no effect here and must say so");
+                    assertTrue(served && capable && !neverMatches, flag.getKey() + " cannot act in full here and must say so");
+                    continue;
+                }
+                if (neverMatches) {
+                    assertTrue(line.contains(" never matches "), line);
                     continue;
                 }
                 assertFalse(served && capable, flag.getKey() + " has its effect here and must stay silent: " + line);
@@ -390,7 +397,7 @@ class HyActionSystemsTest {
                     lackingCapability.add(flag.getKey().getName());
                     assertTrue(line.contains("which this server cannot"), line);
                 }
-                assertTrue(line.startsWith("Flag " + flag.getKey() + " has no effect"), line);
+                assertTrue(line.startsWith("Flag " + flag.getKey() + (partly ? " acts in part" : " has no effect")), line);
                 lines.add(line);
             }
             assertFalse(lines.isEmpty());
@@ -403,7 +410,7 @@ class HyActionSystemsTest {
             assertTrue(lines.stream().anyMatch(line -> line.startsWith("Flag evernifecore:force-fly ") && line.contains("flight-toggle")),
                     "force-fly cannot keep a player from landing here: " + lines);
         } finally {
-            ActionSupport.declare("an undeclared platform", null, null, true);
+            ActionSupport.declare("an undeclared platform", null, null, true, null);
             FlagRegistry.get().setMissingCapabilities(Collections.emptyList());
         }
     }
@@ -525,5 +532,26 @@ class HyActionSystemsTest {
 
         assertEquals(10f, inside.getAmount(), "the region doubles the hit");
         assertEquals(5f, outside.getAmount(), "outside the region the hit is untouched");
+    }
+
+    @Test
+    void bootNamesTheFakePlayerFlagsThatNeverMatch() {
+        for (Flag<?> flag : CoreFlags.all()) {
+            if (!flag.isRegistered()) {
+                FlagRegistry.get().register(core, flag);
+            }
+        }
+        try {
+            List<String> logged = Logs.capture(() -> HyActionSystems.declareSupport("Hytale"));
+
+            for (String key : Arrays.asList("deny-block-break-fake-players", "deny-block-place-fake-players")) {
+                assertTrue(logged.stream().anyMatch(line -> line.contains("Flag evernifecore:" + key + " never matches")), key + " in " + logged);
+            }
+            assertTrue(logged.stream().anyMatch(line -> line.contains("Flag evernifecore:track-changes acts in part") && line.contains("explosion")),
+                    "track-changes keeps breaks and places here, never an explosion: " + logged);
+        } finally {
+            ActionSupport.declare("an undeclared platform", null, null, true, null);
+            FlagRegistry.get().setMissingCapabilities(Collections.emptyList());
+        }
     }
 }

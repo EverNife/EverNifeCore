@@ -8,6 +8,7 @@ import com.hypixel.hytale.common.util.java.ManifestUtil;
 import br.com.finalcraft.evernifecore.action.Actor;
 import br.com.finalcraft.evernifecore.action.BlockContext;
 import br.com.finalcraft.evernifecore.action.DamageContext;
+import br.com.finalcraft.evernifecore.action.ECEntityType;
 import br.com.finalcraft.evernifecore.action.EntityContext;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.EventSourceUsage;
@@ -123,6 +124,8 @@ public final class HyActionSystems {
             EventSource.CRAFT, EventSource.RESPAWN, EventSource.COMMAND, EventSource.INTERACT_NPC)));
     /** The killer of a death the server recorded no damage for. */
     public static final TypeKey UNKNOWN_DEATH = TypeKey.of("environment", "death");
+    /** The actor kinds no context built here ever carries: Hytale has no fake players. */
+    public static final Set<ECEntityType> NEVER_CLASSIFIED = Collections.singleton(ECEntityType.FAKE_PLAYER);
     static final HyRegionMoveSystem MOVE = new HyRegionMoveSystem(RegionMovementTracker::get);
 
     private HyActionSystems() {
@@ -168,9 +171,14 @@ public final class HyActionSystems {
         registry.registerSystem(new CraftedSystem());
         registry.registerSystem(new KillSystem());
         registry.registerSystem(new RespawnSystem());
-        ActionSupport.declare(platformName(), SERVED_SOURCES, PRE_SOURCES, false);
-        FlagRegistry.get().setMissingCapabilities(HyPlatform.PLAYER_STATE.getUnsupported());
+        declareSupport(platformName());
         return true;
+    }
+
+    /** Tells the core what this platform raises and lacks; each flag that cannot act in full here then says so in the boot log. */
+    static void declareSupport(String platform) {
+        ActionSupport.declare(platform, SERVED_SOURCES, PRE_SOURCES, false, NEVER_CLASSIFIED);
+        FlagRegistry.get().setMissingCapabilities(HyPlatform.PLAYER_STATE.getUnsupported());
     }
 
     /** {@link #judge(EventSource, String, ICancellableEcsEvent, Supplier, boolean)} for an event that is the outcome itself. */

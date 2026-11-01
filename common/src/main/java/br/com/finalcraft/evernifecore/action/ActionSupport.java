@@ -7,6 +7,7 @@ import jakarta.annotation.Nullable;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -18,7 +19,7 @@ import java.util.Set;
  */
 public final class ActionSupport {
 
-    private static volatile Declaration declared = new Declaration("an undeclared platform", null, null, true);
+    private static volatile Declaration declared = new Declaration("an undeclared platform", null, null, true, Collections.emptySet());
 
     private ActionSupport() {
     }
@@ -32,10 +33,13 @@ public final class ActionSupport {
      * @param pre                 the core sources with a cancellable {@code Pre}; null for every one raised
      * @param nativeCommandSource whether the platform raises the command source from its own command event, so the
      *                            core's command framework must not raise it a second time
+     * @param neverClassified     the actor kinds no context of this platform ever carries (Hytale has no fake players): a
+     *                            flag only about them says in the boot log that it never matches; null for none
      */
     public static void declare(String platform, @Nullable Collection<EventSource> post, @Nullable Collection<EventSource> pre,
-                               boolean nativeCommandSource) {
-        declared = new Declaration(Objects.requireNonNull(platform, "platform"), copy(post), copy(pre), nativeCommandSource);
+                               boolean nativeCommandSource, @Nullable Collection<ECEntityType> neverClassified) {
+        declared = new Declaration(Objects.requireNonNull(platform, "platform"), copy(post), copy(pre), nativeCommandSource,
+                neverClassified == null || neverClassified.isEmpty() ? Collections.emptySet() : Collections.unmodifiableSet(EnumSet.copyOf(neverClassified)));
         FlagRegistry.get().warnFlagsWithoutEffect();
     }
 
@@ -58,6 +62,16 @@ public final class ActionSupport {
     public static boolean hasPre(EventSource source) {
         Declaration now = declared;
         return ActionEvents.of(source) != null && isServed(source) && (now.pre == null || now.pre.contains(source));
+    }
+
+    /** Whether no actor this platform builds is of the kind {@code entry} names ({@link ECEntityType#getWord()}); false for any other entry. */
+    public static boolean neverClassifies(String entry) {
+        for (ECEntityType kind : declared.neverClassified) {
+            if (kind.getWord().equals(entry)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Whether the platform's own command event raises the command source - the command framework then stays out of it. */
@@ -89,12 +103,15 @@ public final class ActionSupport {
         final @Nullable Set<EventSource> post;
         final @Nullable Set<EventSource> pre;
         final boolean nativeCommandSource;
+        final Set<ECEntityType> neverClassified;
 
-        Declaration(String platform, @Nullable Set<EventSource> post, @Nullable Set<EventSource> pre, boolean nativeCommandSource) {
+        Declaration(String platform, @Nullable Set<EventSource> post, @Nullable Set<EventSource> pre, boolean nativeCommandSource,
+                    Set<ECEntityType> neverClassified) {
             this.platform = platform;
             this.post = post;
             this.pre = pre;
             this.nativeCommandSource = nativeCommandSource;
+            this.neverClassified = neverClassified;
         }
     }
 }

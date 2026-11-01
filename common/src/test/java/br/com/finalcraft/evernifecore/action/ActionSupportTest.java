@@ -29,13 +29,13 @@ class ActionSupportTest {
 
     @AfterEach
     void tearDown() {
-        ActionSupport.declare("an undeclared platform", null, null, true);
+        ActionSupport.declare("an undeclared platform", null, null, true, null);
         Plugins.forget("SupportOwner");
     }
 
     @Test
     void declaringNothingServesEverySourceWithAPre() {
-        ActionSupport.declare("Paper 1.21.1", null, null, true);
+        ActionSupport.declare("Paper 1.21.1", null, null, true, null);
 
         assertTrue(ActionSupport.isServed(EventSource.FLUID));
         assertTrue(ActionSupport.hasPre(EventSource.BREAK));
@@ -46,7 +46,7 @@ class ActionSupportTest {
 
     @Test
     void aSourceThePlatformNeverRaisesFailsNamingTheSourceAndThePlatform() {
-        ActionSupport.declare("Hytale 0.7.2", Arrays.asList(EventSource.BREAK, EventSource.PLACE), null, false);
+        ActionSupport.declare("Hytale 0.7.2", Arrays.asList(EventSource.BREAK, EventSource.PLACE), null, false, null);
 
         UnsupportedSourceException failure = assertThrows(UnsupportedSourceException.class,
                 () -> ActionSupport.requireServed(EventSource.FLUID, false, "The objective 'flow' of test:quest"));
@@ -63,7 +63,7 @@ class ActionSupportTest {
     @Test
     void aSourceWithoutAPreOnThisPlatformRefusesTheNeedToCancelIt() {
         Set<EventSource> pre = new HashSet<>(Arrays.asList(EventSource.BREAK, EventSource.PLACE));
-        ActionSupport.declare("Paper 1.21.1", null, pre, true);
+        ActionSupport.declare("Paper 1.21.1", null, pre, true, null);
 
         assertDoesNotThrow(() -> ActionSupport.requireServed(EventSource.RESPAWN, false, "The objective 'respawn' of test:quest"));
         UnsupportedSourceException failure = assertThrows(UnsupportedSourceException.class,
@@ -77,7 +77,7 @@ class ActionSupportTest {
         ECPluginData owner = Plugins.fakePluginData("SupportOwner", tempDir.toFile());
         EventSource own = EventSource.register(owner, "ritual");
         try {
-            ActionSupport.declare("Hytale 0.7.2", Collections.singleton(EventSource.BREAK), Collections.<EventSource>emptySet(), false);
+            ActionSupport.declare("Hytale 0.7.2", Collections.singleton(EventSource.BREAK), Collections.<EventSource>emptySet(), false, null);
 
             assertTrue(ActionSupport.isServed(own));
             assertFalse(ActionSupport.isServed(EventSource.PLACE));

@@ -479,7 +479,7 @@ class QuestEngineTest {
 
     @Test
     void anObjectiveOnASourceThisPlatformNeverRaisesFailsNamingObjectiveSourceAndPlatform() {
-        ActionSupport.declare("Hytale 0.7.5", Collections.singleton(EventSource.BREAK), null, false);
+        ActionSupport.declare("Hytale 0.7.5", Collections.singleton(EventSource.BREAK), null, false, null);
         try {
             QuestDefinition fisher = quests.parse("{id: fisher, stages: [{id: s, objectives: [{id: lake, type: fish, goal: 3}]}]}");
             RuntimeException refused = assertThrows(RuntimeException.class, () -> engine.register(fisher));
@@ -491,7 +491,7 @@ class QuestEngineTest {
                     + "{id: lake, type: fish, goal: 3, platforms: [minecraft]}, {id: ore, type: break-block, goal: 1}]}]}"));
             assertTrue(engine.get(quests.id("fisher")) != null, "skipped on this platform, the objective no longer refuses");
         } finally {
-            ActionSupport.declare("an undeclared platform", null, null, true);
+            ActionSupport.declare("an undeclared platform", null, null, true, null);
         }
     }
 

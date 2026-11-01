@@ -55,13 +55,13 @@ class CommandActionSourceTest {
     @AfterEach
     void close() {
         subscriptions.forEach(ECEventSubscription::unsubscribe);
-        ActionSupport.declare("an undeclared platform", null, null, true);
+        ActionSupport.declare("an undeclared platform", null, null, true, null);
         harness.close();
     }
 
     @Test
     void withoutANativeCommandSourceThePreComesBeforeTheRunAndThePostAfterIt() {
-        ActionSupport.declare("Hytale 0.7.2", null, null, false);
+        ActionSupport.declare("Hytale 0.7.2", null, null, false, null);
         WarpCommand warp = new WarpCommand();
         FinalCMDPluginCommand command = harness.register(warp);
         List<CommandActionEvent.Post> posts = new ArrayList<>();
@@ -84,7 +84,7 @@ class CommandActionSourceTest {
 
     @Test
     void withoutANativeCommandSourceACancelledPreKeepsTheCommandFromRunning() {
-        ActionSupport.declare("Hytale 0.7.2", null, null, false);
+        ActionSupport.declare("Hytale 0.7.2", null, null, false, null);
         WarpCommand warp = new WarpCommand();
         FinalCMDPluginCommand command = harness.register(warp);
         List<CommandActionEvent.Post> posts = new ArrayList<>();
@@ -99,7 +99,7 @@ class CommandActionSourceTest {
 
     @Test
     void withANativeCommandSourceTheFrameworkPostsNothing() {
-        ActionSupport.declare("Paper 1.21.1", null, null, true);
+        ActionSupport.declare("Paper 1.21.1", null, null, true, null);
         WarpCommand warp = new WarpCommand();
         FinalCMDPluginCommand command = harness.register(warp);
         List<CommandActionEvent> heard = new ArrayList<>();

@@ -565,6 +565,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **flag: the boot log says "acts in part" for a flag with some sources served and "never matches" for an actor kind
+  the platform has none of**: `track-changes` and `force-fly` on Hytale act in part (no explosion, no flight toggle there),
+  `deny-block-break-fake-players`/`-place-fake-players` never match. `ActionSupport.declare` takes a fifth argument, the
+  `ECEntityType`s no context of the platform ever carries (null for none; Hytale declares `FAKE_PLAYER`), and
+  `ActionSupport.neverClassifies(entry)` answers it. "Has no effect" stays for a flag none of whose sources is raised.
 - **common: `RankedList` no longer knows its chat renderer**: `getPageViewer`/`setPageViewer` are gone;
   `PageViewer.attachedTo(list)` answers what `/ecpage <id>` sends. Keep the `PageViewer` you built in a field.
 - **common: `ItemSpec.of(id, name, lore)` keeps the id's case**, as `of(id, amount)` already did - a Hytale asset id is

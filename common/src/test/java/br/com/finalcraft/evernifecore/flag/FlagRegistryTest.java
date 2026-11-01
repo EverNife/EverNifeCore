@@ -2,7 +2,11 @@ package br.com.finalcraft.evernifecore.flag;
 
 import java.util.Set;
 import java.util.EnumSet;
+import br.com.finalcraft.evernifecore.action.ActionSupport;
+import br.com.finalcraft.evernifecore.action.ECEntityType;
 import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.flag.core.ActorDenyFlag;
+import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.region.Region;
@@ -20,7 +24,9 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -228,5 +234,36 @@ class FlagRegistryTest {
             FlagRegistry.get().setMissingCapabilities(Collections.emptySet());
         }
         assertNull(FlagRegistry.get().describeWithoutEffect(feeds));
+    }
+
+    @Test
+    void aFlagWithOnlySomeOfItsSourcesRaisedActsInPart() {
+        TristateFlag tracks = new TristateFlag(FlagKey.of(flagOwner, "tracks"), new HashSet<>(Arrays.asList(EventSource.BREAK, EventSource.EXPLOSION)),
+                Tristate.FALSE, Tristate.TRUE);
+        TristateFlag blasts = new TristateFlag(FlagKey.of(flagOwner, "blasts"), Collections.singleton(EventSource.EXPLOSION), Tristate.FALSE, Tristate.TRUE);
+        ActionSupport.declare("Hytale 0.7.5", Collections.singleton(EventSource.BREAK), null, false, null);
+        try {
+            assertEquals("Flag flagregistryflagowner:tracks acts in part on this platform: it needs [evernifecore:explosion], which this server never"
+                    + " raises; the rest applies.", FlagRegistry.get().describeWithoutEffect(tracks));
+            assertTrue(FlagRegistry.get().describeWithoutEffect(blasts).contains("has no effect"), "none of its sources is raised");
+        } finally {
+            ActionSupport.declare("an undeclared platform", null, null, true, null);
+        }
+    }
+
+    @Test
+    void aRefinementOnlyForActorsThePlatformNeverClassifiesNeverMatches() {
+        ActorDenyFlag robots = new ActorDenyFlag(FlagKey.of(flagOwner, "deny-break-robots"), CoreFlags.DENY_BLOCK_BREAK, "robots", "fake-player");
+        ActorDenyFlag robotsAndMobs = new ActorDenyFlag(FlagKey.of(flagOwner, "deny-break-robots-and-mobs"), CoreFlags.DENY_BLOCK_BREAK,
+                "robots and mobs", "fake-player", "monster");
+        assertNull(FlagRegistry.get().describeWithoutEffect(robots), "every actor kind is classified until a platform says otherwise");
+        ActionSupport.declare("Hytale 0.7.5", null, null, false, Collections.singleton(ECEntityType.FAKE_PLAYER));
+        try {
+            assertEquals("Flag flagregistryflagowner:deny-break-robots never matches on this platform: it refines evernifecore:deny-block-break"
+                    + " for [fake-player], and this server has none.", FlagRegistry.get().describeWithoutEffect(robots));
+            assertNull(FlagRegistry.get().describeWithoutEffect(robotsAndMobs), "a monster still matches");
+        } finally {
+            ActionSupport.declare("an undeclared platform", null, null, true, null);
+        }
     }
 }
