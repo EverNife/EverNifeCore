@@ -186,7 +186,7 @@ class SelectionSessionTest {
 
     @Test
     void startGivesTheToolThroughThePlatform() {
-        ItemSpec wand = ItemSpec.of("MINECRAFT:STICK", "Wand", new ArrayList<>());
+        ItemSpec wand = ItemSpec.of("minecraft:stick", "Wand", new ArrayList<>());
         start(SelectionSpec.cuboid().withTool(wand));
         start(SelectionSpec.polygon());
 

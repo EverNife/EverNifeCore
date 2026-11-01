@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -40,10 +39,15 @@ public final class ItemSpec {
         this.data = data;
     }
 
-    /** @param materialId a namespaced id such as {@code minecraft:golden_hoe}; it is lower-cased */
+    /**
+     * The item {@code materialId} with a name and a lore of its own. The id is kept as written, blanks around it aside:
+     * a Hytale item id is case-sensitive.
+     *
+     * @param materialId a namespaced id such as {@code minecraft:golden_hoe} or {@code hytale:Rock_Stone}
+     */
     public static ItemSpec of(String materialId, String displayName, List<String> lore) {
         Objects.requireNonNull(materialId, "materialId");
-        return new ItemSpec(materialId.toLowerCase(Locale.ROOT), displayName,
+        return new ItemSpec(materialId.trim(), displayName,
                 Collections.unmodifiableList(new ArrayList<>(lore)), null, 1, -1);
     }
 
