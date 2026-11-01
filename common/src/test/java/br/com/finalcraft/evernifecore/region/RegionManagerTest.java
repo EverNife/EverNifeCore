@@ -9,6 +9,7 @@ import br.com.finalcraft.evernifecore.region.overlap.OverlapProvider;
 import br.com.finalcraft.evernifecore.region.overlap.OverlapProviders;
 import br.com.finalcraft.evernifecore.region.overlap.OverlapSource;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
+import br.com.finalcraft.evernifecore.storage.Persistence;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;

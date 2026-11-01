@@ -750,6 +750,7 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **A `FlagHandler` of a flag that protects a victim** (`invincible`, `deny-damage-from-mobs`, `damage-multiplier`)
   **gets the victim as `FlagOutcomeContext.getPlayer()`**, not the attacker (nor null under a mob's hit): the outcome
   carries the flag's subject, the player its value was resolved for.
+- **`region.Persistence` moved to `storage.Persistence`**: regions, groups and quests share it.
 
 ### Removed
 

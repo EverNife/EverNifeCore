@@ -6,7 +6,7 @@ import br.com.finalcraft.evernifecore.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.flag.FlagScope;
 import br.com.finalcraft.evernifecore.flag.Tristate;
 import br.com.finalcraft.evernifecore.flag.TristateFlag;
-import br.com.finalcraft.evernifecore.region.Persistence;
+import br.com.finalcraft.evernifecore.storage.Persistence;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.GroupWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;

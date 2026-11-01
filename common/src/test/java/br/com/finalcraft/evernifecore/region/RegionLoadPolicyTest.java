@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.region;
 import br.com.finalcraft.evernifecore.region.TestRegions.ManualAgenda;
 import br.com.finalcraft.evernifecore.region.TestRegions.ManualClock;
 import br.com.finalcraft.evernifecore.region.event.RegionLoadFailedEvent;
+import br.com.finalcraft.evernifecore.storage.Persistence;
 import br.com.finalcraft.evernifecore.testing.TestPlatform;
 import br.com.finalcraft.evernifecore.util.retry.RetryPolicy;
 import org.junit.jupiter.api.BeforeEach;

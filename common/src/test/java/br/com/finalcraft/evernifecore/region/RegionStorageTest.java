@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.group.Group;
 import br.com.finalcraft.evernifecore.group.GroupKind;
 import br.com.finalcraft.evernifecore.group.GroupRole;
 import br.com.finalcraft.evernifecore.group.MembershipCheck;
+import br.com.finalcraft.evernifecore.storage.Persistence;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import org.junit.jupiter.api.Test;

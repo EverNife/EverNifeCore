@@ -24,6 +24,7 @@ import br.com.finalcraft.evernifecore.group.GroupId;
 import br.com.finalcraft.evernifecore.group.GroupKind;
 import br.com.finalcraft.evernifecore.group.event.GroupCreatedEvent;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
+import br.com.finalcraft.evernifecore.storage.Persistence;
 import br.com.finalcraft.evernifecore.time.ECClock;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;

@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.group;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.logic.Condition;
-import br.com.finalcraft.evernifecore.region.Persistence;
+import br.com.finalcraft.evernifecore.storage.Persistence;
 import jakarta.annotation.Nullable;
 
 import java.util.ArrayList;

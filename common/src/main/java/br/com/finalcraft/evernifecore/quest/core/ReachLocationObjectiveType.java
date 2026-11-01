@@ -7,12 +7,12 @@ import br.com.finalcraft.evernifecore.quest.QuestEngine;
 import br.com.finalcraft.evernifecore.quest.QuestId;
 import br.com.finalcraft.evernifecore.quest.RegionObjectiveType;
 import br.com.finalcraft.evernifecore.region.CreationResult;
-import br.com.finalcraft.evernifecore.region.Persistence;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.region.RegionOptions;
 import br.com.finalcraft.evernifecore.region.event.RegionCrossedEvent;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
+import br.com.finalcraft.evernifecore.storage.Persistence;
 import br.com.finalcraft.evernifecore.types.ParamSpec;
 import br.com.finalcraft.evernifecore.types.ParsedParams;
 

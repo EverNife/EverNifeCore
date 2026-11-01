@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.region.storage;
 
-import br.com.finalcraft.evernifecore.region.Persistence;
+import br.com.finalcraft.evernifecore.storage.Persistence;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.JsonNode;

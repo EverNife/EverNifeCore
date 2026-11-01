@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.group;
 
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.logic.Condition;
-import br.com.finalcraft.evernifecore.region.Persistence;
+import br.com.finalcraft.evernifecore.storage.Persistence;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.annotation.Nullable;
 
