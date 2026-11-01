@@ -18,6 +18,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **Page arrows for a menu's paged offers**: `Menu.Builder.offers(region, previous, next, source)` draws the framework's
+  arrows on the raw slots given (a null side draws none), and `Menu.getOfferList()` hands back the screen's own
+  `PagedList<Offer, ?>` (id `offers`) - `arrows(...)`, `pagedBy(...)`, `spillIntoPageArrows` or `pager` on it without a
+  cast. A menu pours one paged offer list: a second `offers(...)` is refused.
 - **An item's data value**: `ItemSpec.getData()`/`withData(int)` (`-1` = unspecified, the default) and
   `ItemMatcher.of(id, data)`/`withData(int)`, compared only when both sides specify one - `of("minecraft:wool", 14)` no
   longer takes white wool. `ItemSpec.equals` includes it. The Bukkit inventory describes every stack with its

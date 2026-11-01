@@ -12,6 +12,7 @@ import br.com.finalcraft.evernifecore.screen.ClickGesture;
 import br.com.finalcraft.evernifecore.screen.ClickRule;
 import br.com.finalcraft.evernifecore.screen.ConfirmRequest;
 import br.com.finalcraft.evernifecore.screen.Icon;
+import br.com.finalcraft.evernifecore.screen.PagedList;
 import br.com.finalcraft.evernifecore.screen.Screen;
 import br.com.finalcraft.evernifecore.screen.ScreenKey;
 import br.com.finalcraft.evernifecore.screen.ScreenRequest;
@@ -55,8 +56,8 @@ final class OfferButtons {
     }
 
     /** A paged list of offers on {@code screen}: each entry drawn as its goods, each click through the same rules. */
-    static void list(Menu menu, Screen<?> screen, SlotSet region, Supplier<List<Offer>> source) {
-        screen.list(source).into(region).id("offers")
+    static PagedList<Offer, ?> list(Menu menu, Screen<?> screen, SlotSet region, Supplier<List<Offer>> source) {
+        return screen.list(source).into(region).id("offers")
                 .render((offer, icon) -> {
                     if (offer.getGoods().getIcon() != null) {
                         icon.from(offer.getGoods().getIcon());

@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.logic.Gate;
 import br.com.finalcraft.evernifecore.screen.ClickRule;
 import br.com.finalcraft.evernifecore.screen.Icon;
+import br.com.finalcraft.evernifecore.screen.PagedList;
 import br.com.finalcraft.evernifecore.screen.Screen;
 import br.com.finalcraft.evernifecore.screen.SlotSet;
 import br.com.finalcraft.evernifecore.screen.Slots;
@@ -36,6 +37,7 @@ public final class Menu {
     private final ClickMap clicks;
     private final @Nullable String successText;
     private final @Nullable String denyText;
+    private @Nullable PagedList<Offer, ?> offerList; //set once by build(), right after the menu its buttons read exists
 
     private Menu(Builder builder, Screen<?> screen, Map<String, List<Offer>> offers) {
         this.id = builder.id;
@@ -82,6 +84,15 @@ public final class Menu {
         return offers;
     }
 
+    /**
+     * The paged list {@link Builder#offers} poured the offers into (element id {@code offers}, arrows {@code offers#previous}
+     * and {@code offers#next}); null when the menu has none. It is the screen's own list: {@code arrows}, {@code pagedBy},
+     * {@code spillIntoPageArrows} or {@code pager} on it change what the menu draws.
+     */
+    public @Nullable PagedList<Offer, ?> getOfferList() {
+        return offerList;
+    }
+
     public ClickMap getClicks() {
         return clicks;
     }
@@ -120,7 +131,7 @@ public final class Menu {
         private String successText = "§a{result}";
         private String denyText = "§c{missing}";
         private final Map<String, OfferSlot> offers = new LinkedHashMap<>();
-        private final List<PagedOffers> paged = new ArrayList<>();
+        private @Nullable PagedOffers paged;
 
         private Builder(ECPluginData owner, MenuId id) {
             this.owner = owner;
@@ -175,9 +186,28 @@ public final class Menu {
             return this;
         }
 
-        /** A paged list of offers poured into {@code region}, one button per offer, read again from {@code source} on every page. */
+        /**
+         * A paged list of offers poured into {@code region}, one button per offer, read again from {@code source} on every
+         * page; {@link Menu#getOfferList()} hands it back to place its arrows. One list per menu.
+         *
+         * @throws IllegalStateException when the menu already has one
+         */
         public Builder offers(SlotSet region, Supplier<List<Offer>> source) {
-            this.paged.add(new PagedOffers(Objects.requireNonNull(region, "region"), Objects.requireNonNull(source, "source")));
+            return offers(region, null, null, source);
+        }
+
+        /**
+         * {@link #offers(SlotSet, Supplier)} with the framework's page arrows on {@code previous} and {@code next} (a null
+         * side draws none); {@code getOfferList().arrows(...)} changes their look.
+         *
+         * @throws IllegalStateException when the menu already has one
+         */
+        public Builder offers(SlotSet region, @Nullable SlotSet previous, @Nullable SlotSet next, Supplier<List<Offer>> source) {
+            if (paged != null) {
+                throw new IllegalStateException("The menu " + id + " already pours a paged offer list: a menu has one. Put every offer in"
+                        + " one source, or give the others their own offer(id, slot, ...) buttons.");
+            }
+            this.paged = new PagedOffers(Objects.requireNonNull(region, "region"), previous, next, Objects.requireNonNull(source, "source"));
             return this;
         }
 
@@ -212,8 +242,11 @@ public final class Menu {
                 target.icon(slot.slots, icon).id(entry.getKey())
                         .rule(OfferButtons.rules(menu, entry.getKey(), offerList).toArray(new ClickRule[0]));
             }
-            for (PagedOffers list : paged) {
-                OfferButtons.list(menu, target, list.region, list.source);
+            if (paged != null) {
+                menu.offerList = OfferButtons.list(menu, target, paged.region, paged.source);
+                if (paged.previous != null || paged.next != null) {
+                    menu.offerList.pagedBy(paged.previous, paged.next);
+                }
             }
             return menu;
         }
@@ -248,10 +281,14 @@ public final class Menu {
 
     private static final class PagedOffers {
         private final SlotSet region;
+        private final @Nullable SlotSet previous;
+        private final @Nullable SlotSet next;
         private final Supplier<List<Offer>> source;
 
-        private PagedOffers(SlotSet region, Supplier<List<Offer>> source) {
+        private PagedOffers(SlotSet region, @Nullable SlotSet previous, @Nullable SlotSet next, Supplier<List<Offer>> source) {
             this.region = region;
+            this.previous = previous;
+            this.next = next;
             this.source = source;
         }
     }

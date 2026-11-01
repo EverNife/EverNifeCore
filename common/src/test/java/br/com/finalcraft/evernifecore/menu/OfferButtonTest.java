@@ -17,9 +17,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** The button of an offer on a screen: which gesture trades what, the prompt, the confirmation, the texts. */
@@ -63,6 +67,50 @@ class OfferButtonTest extends MenuTestWorlds {
 
     private Menu market() {
         return shop(menus.buy(swords, 10).build(), menus.sell(swords, 4).build());
+    }
+
+    @Test
+    void pagedOffersDrawTheFrameworkArrowsOnTheSlotsGiven() {
+        List<Offer> thirty = new ArrayList<>();
+        for (int i = 0; i < 30; i++) {
+            thirty.add(menus.buy(Goods.ofItem(ItemSpec.of("minecraft:iron_sword", 1)), 10 + i).build());
+        }
+        Menu menu = Menu.of(shop.getOwner(), "paged").offers(Slots.row(1), Slots.of(18), Slots.of(26), () -> thirty).build();
+
+        ScreenView view = open(menu);
+
+        assertNotNull(menu.getOfferList(), "the paged list is handed back to place its arrows");
+        assertEquals("offers#next", screens.getRenderer().surfaceOf(view).getLastPatch(26).getElementId());
+        assertEquals("offers#previous", screens.getRenderer().surfaceOf(view).getLastPatch(18).getElementId());
+        close(view);
+    }
+
+    @Test
+    void theOfferListArrowsTakeTheIconsGiven() {
+        List<Offer> thirty = new ArrayList<>();
+        for (int i = 0; i < 30; i++) {
+            thirty.add(menus.buy(Goods.ofItem(ItemSpec.of("minecraft:iron_sword", 1)), 10).build());
+        }
+        Menu menu = Menu.of(shop.getOwner(), "paged").offers(Slots.row(1), Slots.of(18), Slots.of(26), () -> thirty).build();
+        menu.getOfferList().arrows(null, Icon.of(ItemSpec.of("minecraft:arrow", 1)));
+
+        ScreenView view = open(menu);
+
+        assertEquals("minecraft:arrow", screens.getRenderer().surfaceOf(view).getSlot(26).getItem().getMaterialId());
+        close(view);
+    }
+
+    @Test
+    void aSecondPagedOfferListIsRefused() {
+        Menu.Builder builder = Menu.of(shop.getOwner(), "paged").offers(Slots.row(1), ArrayList::new);
+
+        IllegalStateException refused = assertThrows(IllegalStateException.class, () -> builder.offers(Slots.row(2), ArrayList::new));
+        assertTrue(refused.getMessage().contains("a menu has one"), refused.getMessage());
+    }
+
+    @Test
+    void aMenuWithoutPagedOffersHasNoOfferList() {
+        assertNull(market().getOfferList());
     }
 
     @Test
