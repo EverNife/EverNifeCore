@@ -94,7 +94,7 @@ public final class ActionWorld implements AutoCloseable {
     /** The contexts the native listeners build, over {@link Actors}; an entity is named by the uuid its handle answers. */
     public static final class Contexts {
 
-        private Contexts() {
+        Contexts() {
         }
 
         public BlockContext place(FPlayer player, String world, int x, int y, int z, String blockKey) {

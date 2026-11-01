@@ -43,6 +43,7 @@ public final class Objective {
     private final boolean hidden;
     private final String description;
     private final Set<String> platforms;
+    private final @Nullable ProvenanceFilter provenance;
     private final Map<QuestParams, PendingDefinition<ObjectiveFilter>> byParams = new ConcurrentHashMap<>();
 
     private Objective(Builder builder) {
@@ -59,6 +60,7 @@ public final class Objective {
         this.hidden = builder.hidden;
         this.description = builder.description;
         this.platforms = Collections.unmodifiableSet(new LinkedHashSet<>(builder.platforms));
+        this.provenance = builder.provenance;
     }
 
     /** An objective over a filter already parsed ({@code ObjectiveTypes.registry().parseLater(...)}). */
@@ -167,6 +169,11 @@ public final class Objective {
         return platforms;
     }
 
+    /** The origin tests a match passes before it counts; null = any origin. */
+    public @Nullable ProvenanceFilter getProvenance() {
+        return provenance;
+    }
+
     /** Whether this platform skips it ({@link #getPlatforms()}). */
     public boolean isSkippedHere() {
         return !platforms.isEmpty() && !platforms.contains(EverNifeCore.getPlatform().getPlatformProviderId());
@@ -193,6 +200,7 @@ public final class Objective {
         private boolean hidden;
         private String description = "";
         private final Set<String> platforms = new LinkedHashSet<>();
+        private @Nullable ProvenanceFilter provenance;
 
         private Builder(String id, PendingDefinition<ObjectiveFilter> filter, @Nullable ECPluginData caller, @Nullable JsonNode rawFilter) {
             this.id = Objects.requireNonNull(id, "id");
@@ -244,6 +252,11 @@ public final class Objective {
 
         public Builder platforms(String... platformIds) {
             Collections.addAll(platforms, platformIds);
+            return this;
+        }
+
+        public Builder provenance(@Nullable ProvenanceFilter provenance) {
+            this.provenance = provenance;
             return this;
         }
 

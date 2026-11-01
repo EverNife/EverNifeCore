@@ -1,5 +1,8 @@
 package br.com.finalcraft.evernifecore.testing;
 
+import br.com.finalcraft.evernifecore.action.provenance.ProvenanceTracker;
+import jakarta.annotation.Nullable;
+
 import br.com.finalcraft.evernifecore.action.ActionContext;
 import br.com.finalcraft.evernifecore.action.Actions;
 import br.com.finalcraft.evernifecore.action.BlockContext;
@@ -76,6 +79,7 @@ public final class QuestWorld implements AutoCloseable {
     private final LogicWorld logic;
     private final QuestEngine engine;
     private final Map<FPlayer, WorldLocPos> positions = new LinkedHashMap<>();
+    private final ActionWorld.Contexts contexts = new ActionWorld.Contexts();
     private boolean closed;
 
     private QuestWorld(String ownerName, Path dataFolder) {
@@ -186,6 +190,16 @@ public final class QuestWorld implements AutoCloseable {
         return ((ECCancellable) event).isCancelled();
     }
 
+    /** Contexts at a chosen block, or of a creature or item by uuid: what an origin test reads. */
+    public ActionWorld.Contexts contexts() {
+        return contexts;
+    }
+
+    /** The tracker an origin test of this world's quests reads; null until a quest with {@code provenance:} is registered. */
+    public @Nullable ProvenanceTracker provenance() {
+        return ProvenanceTracker.ofIfPresent(getOwner());
+    }
+
     public BlockContext breakBlock(FPlayer player, String blockKey) {
         return new BlockContext(EventSource.BREAK, WorldLocPos.of(0, 64, 0, "world"), Actors.player(player), null, TypeKey.parse(blockKey), null);
     }
@@ -270,6 +284,7 @@ public final class QuestWorld implements AutoCloseable {
         }
         closed = true;
         QuestEngine.closeOwnedBy(getOwner());
+        ProvenanceTracker.closeOwnedBy(getOwner());
         for (FPlayer player : positions.keySet()) {
             RegionMovementTracker.get().onQuit(player);
         }

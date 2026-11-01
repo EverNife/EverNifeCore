@@ -258,6 +258,9 @@ public final class QuestDefinitions {
                 for (JsonNode platform : list(node.get("platforms"))) {
                     builder.platforms(platform.asText());
                 }
+                if (node.hasNonNull("provenance")) {
+                    builder.provenance(ProvenanceFilter.parse(node.get("provenance")));
+                }
                 objectives.add(builder.build());
             } catch (IllegalArgumentException | TypeRegistryException failure) {
                 throw new IllegalArgumentException(where + ", objective '" + objectiveId + "': " + failure.getMessage(), failure);

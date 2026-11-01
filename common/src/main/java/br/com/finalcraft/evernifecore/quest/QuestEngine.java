@@ -5,6 +5,8 @@ import br.com.finalcraft.evernifecore.action.ActionContext;
 import br.com.finalcraft.evernifecore.action.ActionSupport;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.event.ActionEvent;
+import br.com.finalcraft.evernifecore.action.provenance.ProvenanceHold;
+import br.com.finalcraft.evernifecore.action.provenance.ProvenanceTracker;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.events.base.ECCancellable;
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
@@ -143,6 +145,9 @@ public final class QuestEngine {
     private CompletableFuture<Void> lastWrite = CompletableFuture.completedFuture(null);
     private final List<ECEventSubscription<?>> subscriptions = new ArrayList<>();
     private volatile boolean playersListened;
+    /** Open while a registered quest has an objective with an origin test: what keeps the owner's tracker recording. */
+    private @Nullable ProvenanceHold provenanceHold;
+    private volatile @Nullable ProvenanceTracker provenance;
     private volatile boolean loaded;
     private volatile boolean closed;
 
@@ -298,6 +303,7 @@ public final class QuestEngine {
         }
         subscriptions.clear();
         QuestIndex.get().forget(this);
+        releaseProvenance();
         activeOwners.clear();
         for (QuestDefinition definition : definitions.values()) {
             unregisterHooks(definition);
@@ -572,8 +578,14 @@ public final class QuestEngine {
             next.put(definition.getId(), definition);
         }
         requireNoCycle(next);
+        for (QuestDefinition definition : added) {
+            if (hasProvenanceTest(definition)) {
+                requireProvenance(definition);
+            }
+        }
         Map<QuestId, QuestDefinition> previous = definitions;
         definitions = Collections.unmodifiableMap(next);
+        holdProvenance();
         for (QuestDefinition definition : added) {
             QuestDefinition before = previous.get(definition.getId());
             if (before != null) {
@@ -609,6 +621,52 @@ public final class QuestEngine {
                     ActionSupport.requireServed(source, true, what); //names the missing pre-outcome event
                 }
             }
+        }
+    }
+
+    private static boolean hasProvenanceTest(QuestDefinition definition) {
+        for (Objective objective : definition.getObjectives()) {
+            if (objective.getProvenance() != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** The tracker the origin tests of {@code definition} read: the owner's on this engine's storage, or the shared one. */
+    private void requireProvenance(QuestDefinition definition) {
+        if (provenance != null) {
+            return;
+        }
+        ProvenanceTracker tracker = storage != null ? ProvenanceTracker.open(owner, storage) : ProvenanceTracker.ofIfPresent(owner);
+        if (tracker == null) {
+            throw new IllegalArgumentException("Quest '" + definition.getId() + "' has an objective with a provenance test, and this engine keeps"
+                    + " everything in memory, so it has no storage to record origins in: open the engine on a storage"
+                    + " (QuestEngine.of(owner, storage, ...)), open the owner's tracker first (ProvenanceTracker.open(owner, storage)),"
+                    + " or turn the shared tracker on (Provenance.shared in the core's settings).");
+        }
+        provenance = tracker;
+    }
+
+    /** Records origins while a registered quest tests them, and stops when none does. */
+    private synchronized void holdProvenance() {
+        boolean needed = false;
+        for (QuestDefinition definition : definitions.values()) {
+            needed |= hasProvenanceTest(definition);
+        }
+        ProvenanceTracker tracker = provenance;
+        if (needed && provenanceHold == null && tracker != null) {
+            provenanceHold = tracker.record();
+        } else if (!needed && provenanceHold != null) {
+            provenanceHold.close();
+            provenanceHold = null;
+        }
+    }
+
+    private synchronized void releaseProvenance() {
+        if (provenanceHold != null) {
+            provenanceHold.close();
+            provenanceHold = null;
         }
     }
 
@@ -652,6 +710,7 @@ public final class QuestEngine {
         QuestDefinition gone = next.remove(id);
         if (gone != null) {
             definitions = Collections.unmodifiableMap(next);
+            holdProvenance();
             unregisterHooks(gone);
             reindexAll();
         }
@@ -1063,6 +1122,11 @@ public final class QuestEngine {
                 return done;
             }
             if (!entry.filter.matches(event)) {
+                return false;
+            }
+            ProvenanceFilter origin = entry.objective.getProvenance();
+            ProvenanceTracker tracker = provenance;
+            if (origin != null && tracker != null && !origin.admits(ProvenanceFilter.originOf(tracker, event.getContext()), player)) {
                 return false;
             }
             for (Condition condition : entry.objective.getConditions()) {

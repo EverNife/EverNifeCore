@@ -15,7 +15,7 @@ public final class ObjectiveTypes {
 
     /** The keys of an objective node that belong to the objective; every other key is its type's parameter. */
     public static final List<String> OBJECTIVE_KEYS = Collections.unmodifiableList(Arrays.asList("id", "goal", "mode", "conditions",
-            "costs", "then", "on-match", "hidden", "description", "platforms"));
+            "costs", "then", "on-match", "hidden", "description", "platforms", "provenance"));
 
     private static final TypeRegistry<ObjectiveFilter> REGISTRY = TypeRegistry.of(ObjectiveFilter.class, "objective")
             .reserveKeys(OBJECTIVE_KEYS.toArray(new String[0]));

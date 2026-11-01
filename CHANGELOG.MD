@@ -39,6 +39,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `reach-location` (a `TRANSIENT` region tagged `evernifecore:quest-target` while the quest is registered); conditions
   `in-region` (with `for-at-least`), `region-flag`, `region-member` and variable `region-time` in `logic.core`.
   Engine: `QuestWorld.region/move`, fixtures `arena-night` and `arena-warmup`.
+- **Objective origin tests**: `provenance: {natural, spawner, own-drop}` on an objective counts a match only when the
+  origin of its block, creature or item answers each written test (`ProvenanceFilter`). The engine keeps the owner's
+  `ProvenanceTracker` (on the engine's storage, or the shared one) recording while a registered quest tests origins; a
+  transient engine without a tracker refuses such a quest. Engine: `QuestWorld.contexts()` / `provenance()`.
 
 - **Screens render on Hytale**: `HyPageRenderer` (`evernifecore:page`, `hytale.screen`) draws any `Screen` as a server
   page (`InteractiveCustomUIPage`) from the core's own layouts in its asset pack (`EverNifeCore/Screen.ui`, `Cell.ui`,
