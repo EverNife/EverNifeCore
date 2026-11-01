@@ -461,6 +461,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **`Effects` no longer audits `EFFECT_APPLIED` after an effect audited its own `EFFECT_FAILED`**: an effect that
+  refuses (`open-screen` without a player, a `money` effect the wallet refused) reads as failed only, not as both.
 - **`FancyFormatter.getText()` returns the text of every piece**, concatenated in order; it returned only the last
   piece's, so a joined `GateResult.explain().getText()` (and every text read that way) lost all but its last failure.
 - **`QuestDefinitions.parse` names the key in every error**: `gate`, `requires`, `fail-when[i]`, `repeat`,

@@ -129,9 +129,12 @@ public final class Effects {
                 running = event.getEffect();
             }
         }
+        boolean plain = !(running instanceof EffectList) && !(running instanceof ModifiedEffect);
+        //an effect that refuses (no player, no wallet) audits EFFECT_FAILED and returns: it was not applied
+        int failedBefore = plain ? ctx.getAudit().getEntries(AuditKind.EFFECT_FAILED).size() : 0;
         try {
             running.apply(ctx);
-            if (!(running instanceof EffectList) && !(running instanceof ModifiedEffect)) {
+            if (plain && ctx.getAudit().getEntries(AuditKind.EFFECT_FAILED).size() == failedBefore) {
                 ctx.getAudit().add(ctx, AuditKind.EFFECT_APPLIED, String.valueOf(running));
             }
         } catch (RuntimeException failure) {

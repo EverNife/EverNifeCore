@@ -81,6 +81,7 @@ class OpenScreenEffectTest {
         List<AuditEntry> failed = ctx.getAudit().getEntries(AuditKind.EFFECT_FAILED);
         assertEquals(1, failed.size(), ctx.getAudit().getEntries().toString());
         assertTrue(failed.get(0).getText().contains("no player to open a screen for"), failed.get(0).getText());
+        assertTrue(ctx.getAudit().getEntries(AuditKind.EFFECT_APPLIED).isEmpty(), "an effect that audited its failure was not applied");
         assertEquals(0, Screens.getOpenCount());
     }
 
