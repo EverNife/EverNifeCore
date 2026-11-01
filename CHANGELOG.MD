@@ -420,6 +420,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **The chest renderer draws a disabled element**: a `Choice` whose gate fails (any element the view paints disabled)
+  shows its name grey, unless it has a colour of its own, and its reason as the last lore lines in red - before, the
+  chest drew it exactly like an enabled one. A `Choice`'s reason holds one failure per line.
 - **An icon read back from `guis/<Layout>.yml` keeps the fallbacks its field declared**: the file holds only the
   primary item, and re-reading it dropped the rest, so from the second boot `CONFIRM`/`DENY` drew a barrier instead of
   the lime/red wool on a server without the mod items. The same for a state's `DisplayItem`. New

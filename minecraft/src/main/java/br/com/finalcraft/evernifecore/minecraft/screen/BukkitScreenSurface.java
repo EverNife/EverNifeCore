@@ -72,18 +72,18 @@ public final class BukkitScreenSurface extends GridSurface {
     public void apply(@Nonnull List<ElementPatch> patch) {
         for (ElementPatch each : patch) {
             if (getGrid().isInside(each.getSlot())) {
-                write(each.getSlot(), each.getIcon(), each.getElementId());
+                write(each.getSlot(), each.getIcon(), each.isEnabled(), each.getReason(), each.getElementId());
             }
         }
     }
 
     @Override
     protected void writeSlot(int slot, @Nullable RenderedIcon icon) {
-        write(slot, icon, "slot#" + slot);
+        write(slot, icon, true, null, "slot#" + slot);
     }
 
-    private void write(int slot, @Nullable RenderedIcon icon, String elementId) {
-        ItemStack stack = ChestItems.materialize(icon, "[" + elementId + "] of [" + view.getScreen().describe() + "]");
+    private void write(int slot, @Nullable RenderedIcon icon, boolean enabled, @Nullable String reason, String elementId) {
+        ItemStack stack = ChestItems.materialize(icon, enabled, reason, "[" + elementId + "] of [" + view.getScreen().describe() + "]");
         inventory.setItem(slot, stack);
         written[slot] = stack == null ? null : stack.clone();
         icons[slot] = icon;

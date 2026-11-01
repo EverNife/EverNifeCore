@@ -14,6 +14,7 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -45,10 +46,13 @@ public final class ChestItems {
     /**
      * The stack {@code icon} shows: the first of its items this server has, its resolved text and amount, its item-data
      * lines applied. {@code null} for an empty icon. An icon none of whose items exists here is drawn as a barrier (a
-     * stone before 1.8), warned once per {@code where}.
+     * stone before 1.8), warned once per {@code where}. A chest has no disabled look, so a disabled element is written
+     * as one: its name grey unless it has a colour of its own, and {@code reason} appended to the lore in red, a line per
+     * line of it.
      */
     @Nullable
-    public static ItemStack materialize(@Nullable RenderedIcon icon, @Nonnull String where) {
+    public static ItemStack materialize(@Nullable RenderedIcon icon, boolean enabled, @Nullable String reason,
+                                        @Nonnull String where) {
         if (icon == null || icon.isEmpty()) {
             return null;
         }
@@ -69,7 +73,7 @@ public final class ChestItems {
         if (!icon.getDataLines().isEmpty()) {
             stack = ItemEngine.get().transform(stack, icon.getDataLines());
         }
-        writeText(stack, primary);
+        writeText(stack, enabled ? primary : disabledText(primary, reason));
         if (primary.getNativeItem() == null || primary.getAmount() > 1) {
             stack.setAmount(Math.max(1, primary.getAmount()));
         }
@@ -139,6 +143,20 @@ public final class ChestItems {
             return null;
         }
         return new ItemStack(material, 1, data);
+    }
+
+    private static ItemSpec disabledText(ItemSpec spec, @Nullable String reason) {
+        String name = spec.getDisplayName();
+        if (name != null && !name.startsWith("§")) {
+            name = "§7" + name;
+        }
+        List<String> lore = new ArrayList<>(spec.getLore());
+        if (reason != null && !reason.isEmpty()) {
+            for (String line : reason.split("\n")) {
+                lore.add("§c" + line);
+            }
+        }
+        return spec.withText(name, lore);
     }
 
     private static void writeText(ItemStack stack, ItemSpec spec) {

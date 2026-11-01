@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.screen;
 
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.logic.Condition;
+import br.com.finalcraft.evernifecore.logic.ConditionResult;
 import br.com.finalcraft.evernifecore.logic.Effect;
 import br.com.finalcraft.evernifecore.logic.Gate;
 import br.com.finalcraft.evernifecore.logic.GateResult;
@@ -61,11 +62,22 @@ public class Choice extends Button {
         return effects;
     }
 
+    /** Every failure, one per line - a renderer draws each on a line of its own. */
+    private static String reasonsOf(GateResult result) {
+        List<String> reasons = new ArrayList<>();
+        for (ConditionResult failure : result.getFailures()) {
+            if (failure.getWhy() != null && !failure.getWhy().getText().isEmpty()) {
+                reasons.add(failure.getWhy().getText());
+            }
+        }
+        return String.join("\n", reasons);
+    }
+
     @Nonnull
     @Override
     Paint decorate(@Nonnull Paint paint, @Nonnull ScreenView view) {
         GateResult result = gate.check(view.newExecutionContext().build());
-        return result.isPassed() ? paint : paint.disabled(ClickRule.missingOf(result));
+        return result.isPassed() ? paint : paint.disabled(reasonsOf(result));
     }
 
 }
