@@ -209,11 +209,12 @@ class GroupTest {
         Group group = region.getGroup("fighters");
         group.setFlag(flag, Tristate.FALSE);
         group.add(alice.getUniqueId());
-        assertEquals(Tristate.FALSE, group.resolve(flag, alice));
-        assertNull(group.resolve(flag, bob));
+        assertEquals(Tristate.FALSE, group.getEffectiveFlag(flag));
+        assertTrue(group.contains(alice));
+        assertFalse(group.contains(bob), "the value is the group's; only its members carry it");
         assertEquals(Tristate.FALSE, group.getFlags().get(flag.getKey()).getValue());
         assertTrue(group.removeFlag(flag));
-        assertNull(group.resolve(flag, alice));
+        assertNull(group.getEffectiveFlag(flag));
     }
 
     @Test

@@ -791,6 +791,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `Notifier.get().notify(player, Notification.of(NotifyKind.INFO).text(...).channels("action-bar").build())` (or
   `"title"`; `priority`, `id` and `duration`/`ticks` keep the old queue's meaning). Plugins still on the old API
   (EveryCommands, FinalHomesAndWarps, FinalRTP) migrate in the template round.
+- **`Group.resolve(flag, player)`**: use `getEffectiveFlag(flag)` (the kind's default included) and
+  `contains(player)`.
 
 ## [3.0.1-alpha.70] - 2026-10-19
 

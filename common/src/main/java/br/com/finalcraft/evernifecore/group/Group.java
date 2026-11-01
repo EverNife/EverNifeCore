@@ -954,12 +954,6 @@ public final class Group implements FlagHolder {
         return own != null ? own : (T) kind.getFlagDefaults().get(flag.getKey());
     }
 
-    /** The group's value of {@code flag} for {@code player}: null when the player does not belong or the group does not define it. */
-    public <T> @Nullable T resolve(Flag<T> flag, FPlayer player) {
-        T value = getFlag(flag);
-        return value != null && contains(player) ? value : null;
-    }
-
     // ---- dissolution ----
 
     /**
