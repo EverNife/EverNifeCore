@@ -3,8 +3,11 @@ package br.com.finalcraft.evernifecore.conformance.minecraft;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
 import br.com.finalcraft.evernifecore.conformance.SuiteRunner;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.quest.QuestEngine;
 import br.com.finalcraft.evernifecore.testing.Commands;
 import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
+import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.Senders;
 import br.com.finalcraft.evernifecore.testing.TestCommandSender;
 import org.junit.jupiter.api.AfterEach;
@@ -33,18 +36,23 @@ class ConformanceCommandTest {
 
     private final List<String> log = new ArrayList<>();
     private FinalCmdTestHarness harness;
+    private ECPluginData quests;
     private FinalCMDPluginCommand command;
     private TestCommandSender console;
 
     @BeforeEach
     void setUp() {
         harness = Commands.harness("Ecc", dataFolder);
-        command = harness.register(new ConformanceCommand(suites(), dataFolder.toFile(), () -> "test-server", log::add, Runnable::run));
+        quests = Plugins.fakePluginData("EccQuests", dataFolder.resolve("quests").toFile());
+        command = harness.register(new ConformanceCommand(suites(), dataFolder.toFile(), () -> "test-server", log::add, Runnable::run,
+                QuestEngine.of(quests)));
         console = Senders.console().grant("evernifecore.conformance");
     }
 
     @AfterEach
     void tearDown() {
+        QuestEngine.closeOwnedBy(quests);
+        Plugins.forget("EccQuests");
         harness.close();
     }
 
@@ -112,6 +120,6 @@ class ConformanceCommandTest {
         List<String> ids = suites().stream().map(ConformanceSuite::getId).collect(Collectors.toList());
 
         assertEquals(Arrays.asList("items", "nbt", "platform", "version", "commands", "screen", "scheduler", "playerdata",
-                "events", "selection-click", "particles", "text-metrics", "hooks", "nms", "regions", "logic", "actions", "deliveries", "hud", "groups", "npcs"), ids);
+                "events", "selection-click", "particles", "text-metrics", "hooks", "nms", "regions", "logic", "actions", "deliveries", "hud", "groups", "npcs", "quests"), ids);
     }
 }
