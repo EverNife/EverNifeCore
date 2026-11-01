@@ -63,6 +63,16 @@ class DialogueYamlTest {
     }
 
     @Test
+    void parseYamlReadsATextAndNamesTheDialogueWhenItIsNotYaml() throws IOException {
+        Dialogue tomas = Dialogue.parseYaml(colonies.getOwner(), "tomas", resource("/dialogue/tomas.yml"));
+        assertEquals(Arrays.asList("start", "thanks", "later"), Arrays.asList(tomas.getNodes().keySet().toArray()));
+
+        DialogueDefinitionException refused = assertThrows(DialogueDefinitionException.class,
+                () -> Dialogue.parseYaml(colonies.getOwner(), "broken", "entry: [start"));
+        assertTrue(refused.getMessage().contains("'broken' of FinalColonies is not valid YAML"), refused.getMessage());
+    }
+
+    @Test
     void theTomasExampleReadsWithItsNodesGateGotoAndBothLanguages() throws IOException {
         Dialogue tomas = DialogueTrees.fromYaml(colonies.getOwner(), "tomas", resource("/dialogue/tomas.yml"));
         Dialogues.of(colonies.getOwner()).register(tomas);

@@ -6,11 +6,14 @@ import br.com.finalcraft.evernifecore.logic.Condition;
 import br.com.finalcraft.evernifecore.logic.CustomVariables;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 import br.com.finalcraft.evernifecore.region.RegionId;
+import br.com.finalcraft.evernifecore.time.Window;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import jakarta.annotation.Nullable;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -39,6 +42,8 @@ public final class Dialogue {
 
     /** How long a session waits for an answer when the dialogue says nothing. */
     public static final Duration DEFAULT_TIMEOUT = Duration.ofMinutes(2);
+
+    private static final YAMLMapper YAML = new YAMLMapper();
     /** The node a session starts on when the dialogue says nothing. */
     public static final String DEFAULT_ENTRY = "start";
 
@@ -75,6 +80,22 @@ public final class Dialogue {
      */
     public static Dialogue parse(ECPluginData owner, String name, JsonNode root, ZoneId zone) {
         return DialogueYaml.read(builder(owner, name), root, zone).build();
+    }
+
+    /**
+     * {@link #parse(ECPluginData, String, JsonNode, ZoneId)} of a YAML text, in the server's zone.
+     *
+     * @throws DialogueDefinitionException naming the dialogue when the text is not YAML, or what {@code parse} refuses
+     */
+    public static Dialogue parseYaml(ECPluginData owner, String name, String yaml) {
+        JsonNode root;
+        try {
+            root = YAML.readTree(yaml);
+        } catch (IOException notYaml) {
+            throw new DialogueDefinitionException("The dialogue '" + name + "' of " + owner.getMetaInfo().getName() + " is not valid YAML: "
+                    + notYaml.getMessage(), notYaml);
+        }
+        return parse(owner, name, root, Window.getServerZone());
     }
 
     public ECPluginData getOwner() {
