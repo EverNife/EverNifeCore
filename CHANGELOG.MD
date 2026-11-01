@@ -64,6 +64,14 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `QuestOfferScreen.Request`: name, description, what the gate still misses on the accept button; accept starts, decline
   closes) are core defaults, restyled in `guis/QuestJournalLayout.yml` / `guis/QuestOfferLayout.yml`.
   `QuestEngine.checkStart(player, quest)` answers the gate without paying it.
+- **Hytale native objectives for quests**: a quest's `hytale-native: {markers, npc-actions, spawns, asset}` (all off by
+  default) bridges it to the server's `Hytale:Objectives` (`HyObjectivesBridge`, one System scanning each world once a
+  second): `markers` puts a native map marker on each active objective with a place, from an objective asset made at
+  runtime; `npc-actions` starts the quest when an NPC role starts the native `asset` and completes the quest objective of
+  each native task set it closes; `spawns` cancels that native objective when the quest ends without completing. A quest
+  with a switch on and an objective the native objectives cannot express (only `break-block`, `place-block`, `kill`,
+  `pickup`, `craft`, `interact`, `reach-location` map) is refused on registration, naming the objective.
+  `QuestEngine.addDefinitionCheck` is the hook; `QuestDefinition.getHytaleNative()` the raw map.
 
 - **Screens render on Hytale**: `HyPageRenderer` (`evernifecore:page`, `hytale.screen`) draws any `Screen` as a server
   page (`InteractiveCustomUIPage`) from the core's own layouts in its asset pack (`EverNifeCore/Screen.ui`, `Cell.ui`,

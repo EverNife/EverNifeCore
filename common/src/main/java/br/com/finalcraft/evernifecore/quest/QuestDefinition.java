@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.logic.Effects;
 import br.com.finalcraft.evernifecore.logic.Gate;
 import br.com.finalcraft.evernifecore.logic.ProgressOwner;
 import br.com.finalcraft.evernifecore.logic.RepeatPolicy;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
@@ -54,6 +55,7 @@ public final class QuestDefinition {
     private final Reward reward;
     private final @Nullable Instant windowStart;
     private final @Nullable Instant windowEnd;
+    private final @Nullable JsonNode hytaleNative;
 
     private QuestDefinition(Builder builder) {
         this.id = builder.id;
@@ -80,6 +82,7 @@ public final class QuestDefinition {
         this.reward = builder.reward;
         this.windowStart = builder.windowStart;
         this.windowEnd = builder.windowEnd;
+        this.hytaleNative = builder.hytaleNative;
     }
 
     public static Builder builder(QuestId id) {
@@ -167,6 +170,11 @@ public final class QuestDefinition {
 
     public boolean isAbandonable() {
         return abandonable;
+    }
+
+    /** The {@code hytale-native} map as written, read by the Hytale platform's objectives bridge; null when absent. */
+    public @Nullable JsonNode getHytaleNative() {
+        return hytaleNative;
     }
 
     /** The declared params; their values are frozen per instance in {@link QuestState#getParams()}. */
@@ -308,6 +316,7 @@ public final class QuestDefinition {
         private Reward reward = Reward.NONE;
         private @Nullable Instant windowStart;
         private @Nullable Instant windowEnd;
+        private @Nullable JsonNode hytaleNative;
 
         private Builder(QuestId id) {
             this.id = Objects.requireNonNull(id, "id");
@@ -382,6 +391,11 @@ public final class QuestDefinition {
 
         public Builder abandonable(boolean abandonable) {
             this.abandonable = abandonable;
+            return this;
+        }
+
+        public Builder hytaleNative(@Nullable JsonNode hytaleNative) {
+            this.hytaleNative = hytaleNative;
             return this;
         }
 

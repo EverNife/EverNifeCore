@@ -136,6 +136,9 @@ public final class QuestDefinitions {
             if (node.has("abandonable")) {
                 builder.abandonable(node.get("abandonable").asBoolean(true));
             }
+            if (node.hasNonNull("hytale-native")) {
+                builder.hytaleNative(node.get("hytale-native"));
+            }
             if (node.has("params")) {
                 for (Iterator<Map.Entry<String, JsonNode>> params = node.get("params").fields(); params.hasNext(); ) {
                     Map.Entry<String, JsonNode> param = params.next();

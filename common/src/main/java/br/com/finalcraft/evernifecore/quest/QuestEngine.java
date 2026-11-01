@@ -86,6 +86,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -123,6 +124,7 @@ public final class QuestEngine {
     private static final int MAX_STAGE_HOPS = 64;
 
     private static final Map<ECPluginData, QuestEngine> ENGINES = new ConcurrentHashMap<>();
+    private static final List<Consumer<QuestDefinition>> DEFINITION_CHECKS = new CopyOnWriteArrayList<>();
 
     private final ECPluginData owner;
     private final @Nullable ECStorage storage;
@@ -610,7 +612,20 @@ public final class QuestEngine {
         ECDebugModule.QUESTS.debug("{} registered {} quest(s); {} in all.", nameOf(owner), added.size(), next.size());
     }
 
+    /**
+     * Adds a check every engine runs on each definition it registers, before it takes any; a check refuses by throwing an
+     * {@link IllegalArgumentException} that teaches. A platform uses it for what only it can tell (what its native
+     * quest system expresses). Closing the handle removes the check. Any thread.
+     */
+    public static AutoCloseable addDefinitionCheck(Consumer<QuestDefinition> check) {
+        DEFINITION_CHECKS.add(check);
+        return () -> DEFINITION_CHECKS.remove(check);
+    }
+
     private void validate(QuestDefinition definition) {
+        for (Consumer<QuestDefinition> check : DEFINITION_CHECKS) {
+            check.accept(definition);
+        }
         Map<String, String> firstValues = new LinkedHashMap<>();
         for (Map.Entry<String, QuestDefinition.Param> param : definition.getParams().entrySet()) {
             firstValues.put(param.getKey(), param.getValue().getValues().get(0));
