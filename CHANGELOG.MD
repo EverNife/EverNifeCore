@@ -502,6 +502,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **Trade texts in the player's language**: every text `Transactions` writes for the player - the refusals (no room, not
+  held, cannot be sold, catalog line, called off, nothing in hand, nobody buys, a price line not paid), the quantity
+  prompt and its errors - and `TransactionResult.describe` ("Bought 3x sword for 30 coins") are core locale messages
+  in `EN_US` and `PT_BR`, read in `ExecutionContext.getLocale()`; they were English only. `SellAllResult`'s
+  constructor is public. Engine: `Menus` loads the trade texts.
 - **`ConfirmScreen<L extends ConfirmLayout>` is extensible**: `protected ConfirmScreen(L layout, ConfirmRequest)`, and
   `ConfirmScreen.of(request)` returns `ConfirmScreen<ConfirmLayout>`. A plugin's own confirmation extends it over a
   layout that extends `ConfirmLayout` and keeps the shift-click of a dangerous request, the paid gate and `{cost}`.

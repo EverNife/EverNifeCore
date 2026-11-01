@@ -10,6 +10,8 @@ import br.com.finalcraft.evernifecore.logic.audit.command.AuditCommandNode;
 import br.com.finalcraft.evernifecore.logic.command.CoreLogicCommands;
 import br.com.finalcraft.evernifecore.logic.delivery.command.CoreDeliveriesCommands;
 import br.com.finalcraft.evernifecore.logic.delivery.command.DeliveriesCommandNode;
+import br.com.finalcraft.evernifecore.menu.TransactionResult;
+import br.com.finalcraft.evernifecore.menu.Transactions;
 import br.com.finalcraft.evernifecore.region.command.CoreRegionCommands;
 import br.com.finalcraft.evernifecore.region.command.RegionCommandNode;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSession;
@@ -75,7 +77,9 @@ public class ConfigManager {
                 DeliveriesScreen.class,
                 QuestCommandNode.class,
                 ArgParserQuest.class,
-                QuestOfferScreen.class
+                QuestOfferScreen.class,
+                Transactions.class,
+                TransactionResult.class
         );
 
         FCLocaleManager.updateEverNifeCoreLocale();

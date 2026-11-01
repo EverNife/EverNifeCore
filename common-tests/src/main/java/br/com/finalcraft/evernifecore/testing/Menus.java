@@ -5,11 +5,14 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.economy.Currencies;
 import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
+import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 import br.com.finalcraft.evernifecore.menu.Goods;
 import br.com.finalcraft.evernifecore.menu.Offer;
 import br.com.finalcraft.evernifecore.menu.OfferCatalog;
 import br.com.finalcraft.evernifecore.menu.Price;
+import br.com.finalcraft.evernifecore.menu.TransactionResult;
+import br.com.finalcraft.evernifecore.menu.Transactions;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.screen.ClickGesture;
 import br.com.finalcraft.evernifecore.screen.ClickKind;
@@ -54,6 +57,8 @@ public final class Menus implements AutoCloseable {
         Currencies.register(shop.getOwner(), gold);
         shop.deliveries(); //boots the player data the limits and the pending deliveries live in
         shop.auditLog();
+        //the trade texts are core locale messages, which only the real boot loads
+        FCLocaleManager.loadLocale(EverNifeCore.getEcPluginData(), true, Transactions.class, TransactionResult.class);
     }
 
     public static Menus in(ScreenWorld screens, LogicWorld shop) {

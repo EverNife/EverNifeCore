@@ -12,7 +12,8 @@ public final class SellAllResult {
 
     private final List<TransactionResult> results;
 
-    SellAllResult(List<TransactionResult> results) {
+    /** {@code results} in the order they were traded - a plugin that sells over its own catalog builds the same summary. */
+    public SellAllResult(List<TransactionResult> results) {
         this.results = Collections.unmodifiableList(new ArrayList<>(results));
     }
 

@@ -6,6 +6,9 @@ import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.economy.EcoResponse;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
+import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.LocaleMessage;
+import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.logic.ConditionResult;
 import br.com.finalcraft.evernifecore.logic.Cost;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
@@ -33,11 +36,83 @@ import java.util.concurrent.CompletableFuture;
  * order: the offer's gate checked (every failure) -> the limit -> room or units held -> {@link TransactionPreEvent} ->
  * the price and the fixed costs taken by one {@link Gate#pay} (refunded in reverse when one does not come out) -> the
  * goods handed over or taken -> the limit counted -> the owner's {@link AuditLog} -> {@link TransactionEvent}. A
- * refusal before the pre-event posts nothing. The texts for the player are the caller's: {@link TransactionResult#describe}.
+ * refusal before the pre-event posts nothing. The texts for the player ({@link TransactionResult#describe}, the quantity
+ * prompt) are the core's locale messages, in {@link ExecutionContext#getLocale()}.
  */
 public final class Transactions {
 
+    @FCLocale(lang = LocaleType.EN_US, text = "There is no room for ${goods}.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "Não há espaço para ${goods}.")
+    private static LocaleMessage NO_ROOM;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "You do not have ${goods}.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "Você não tem ${goods}.")
+    private static LocaleMessage NOT_HELD;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "${goods} cannot be sold.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "${goods} não pode ser vendido.")
+    private static LocaleMessage CANNOT_BE_SOLD;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "This offer is a catalog line: it shows a price and trades nothing.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "Esta oferta é uma linha de catálogo: mostra um preço e não troca nada.")
+    private static LocaleMessage CATALOG_LINE;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "The trade was called off.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "A troca foi cancelada.")
+    private static LocaleMessage CALLED_OFF;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "There is nothing in your hand to sell.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "Não há nada na sua mão para vender.")
+    private static LocaleMessage NOTHING_IN_HAND;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "Nobody here buys ${item}.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "Ninguém aqui compra ${item}.")
+    private static LocaleMessage NOBODY_BUYS;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "${line} could not be paid (${reason}); the goods went back.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "${line} não pôde ser pago (${reason}); os itens voltaram.")
+    private static LocaleMessage NOT_PAID;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "How many? 1 to ${most} (${goods}), or ${cancel}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "Quantos? De 1 a ${most} (${goods}), ou ${cancel}")
+    private static LocaleMessage HOW_MANY;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "'${input}' is not a whole number: type one from 1 to ${most}.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "'${input}' não é um número inteiro: digite um de 1 a ${most}.")
+    private static LocaleMessage NOT_A_NUMBER;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "${units} is out of reach: type one from 1 to ${most}.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "${units} está fora do alcance: digite um de 1 a ${most}.")
+    private static LocaleMessage OUT_OF_REACH;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "No quantity was given.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "Nenhuma quantidade foi informada.")
+    private static LocaleMessage NO_QUANTITY;
+
+    //what a text reads when nothing loaded the core locales above (the boot does, in ConfigManager.initialize)
+    private static final String NOT_LOADED = "[transaction text not loaded]";
+
     private Transactions() {
+    }
+
+    /**
+     * {@code message} in the context's language (the core's own when it has none), each {@code ${key}} of the
+     * {@code key, value} pairs replaced; a visible marker when the core's locales were never loaded.
+     */
+    static FancyText text(@Nullable LocaleMessage message, ExecutionContext ctx, Object... keysAndValues) {
+        if (message == null) {
+            return FancyText.of(NOT_LOADED);
+        }
+        FancyText localized = message.getFancyText(LocaleType.normalize(ctx.getLocale().toString()));
+        String text = (localized != null ? localized : message.getDefaultFancyText()).getText();
+        for (int i = 0; i + 1 < keysAndValues.length; i += 2) {
+            text = text.replace("${" + keysAndValues[i] + "}", String.valueOf(keysAndValues[i + 1]));
+        }
+        return FancyText.of(text);
+    }
+
+    private static String goods(ExecutionContext ctx, Offer offer, int quantity) {
+        return offer.getGoods().describe(ctx, quantity).toLegacyString();
     }
 
     /**
@@ -83,7 +158,7 @@ public final class Transactions {
             int units = quantity.resolve(ctx, offer);
             if (units < 1 && offer.getType() == Offer.Type.BUY && offer.getGoods().roomFor(ctx) < 1) {
                 return CompletableFuture.completedFuture(TransactionResult.failed(TransactionResult.Failure.NO_SPACE, offer, 0, null,
-                        FancyText.of("There is no room for " + offer.getGoods().describe(ctx, 1).toLegacyString() + ".")));
+                        text(NO_ROOM, ctx, "goods", goods(ctx, offer, 1))));
             }
             //nothing fits for another reason: one unit makes the real refusal (funds, limit, items) speak
             return CompletableFuture.completedFuture(run(ctx, offer, Math.max(1, units)));
@@ -97,22 +172,22 @@ public final class Transactions {
             return CompletableFuture.completedFuture(TransactionResult.failed(TransactionResult.Failure.CANCELLED, offer, 0, null, FancyText.of(why)));
         }
         int most = Math.max(1, Quantity.ALL_THAT_FITS.resolve(ctx, offer));
-        String question = "How many? 1 to " + most + " (" + offer.getGoods().describe(ctx, 1).toLegacyString() + "), or cancel";
+        String question = text(HOW_MANY, ctx, "most", most, "goods", goods(ctx, offer, 1), "cancel", "cancel").getText();
         CompletableFuture<TransactionResult> traded = new CompletableFuture<>();
         view.ask(PromptSpec.of(question).parse(input -> {
             int units;
             try {
                 units = Integer.parseInt(input.trim());
             } catch (NumberFormatException notANumber) {
-                throw new IllegalArgumentException("'" + input + "' is not a whole number: type one from 1 to " + most + ".");
+                throw new IllegalArgumentException(text(NOT_A_NUMBER, ctx, "input", input, "most", most).getText());
             }
             if (units < 1 || units > most) {
-                throw new IllegalArgumentException(units + " is out of reach: type one from 1 to " + most + ".");
+                throw new IllegalArgumentException(text(OUT_OF_REACH, ctx, "units", units, "most", most).getText());
             }
             return units;
         }).cancelWord("cancel")).whenComplete((units, unanswered) -> {
             if (unanswered != null) {
-                traded.complete(TransactionResult.failed(TransactionResult.Failure.CANCELLED, offer, 0, null, FancyText.of("No quantity was given.")));
+                traded.complete(TransactionResult.failed(TransactionResult.Failure.CANCELLED, offer, 0, null, text(NO_QUANTITY, ctx)));
             } else {
                 traded.complete(run(ctx, offer, units));
             }
@@ -151,12 +226,12 @@ public final class Transactions {
         FPlayer player = ctx.getPlayer();
         ItemSpec held = player == null ? null : DeliveryDestinations.requireInventory().getHeld(player);
         if (held == null) {
-            return TransactionResult.failed(TransactionResult.Failure.NOT_SELLABLE, null, 0, null, FancyText.of("There is nothing in your hand to sell."));
+            return TransactionResult.failed(TransactionResult.Failure.NOT_SELLABLE, null, 0, null, text(NOTHING_IN_HAND, ctx));
         }
         Offer offer = catalog.sellOfferFor(ctx, held);
         if (offer == null) {
             return TransactionResult.failed(TransactionResult.Failure.NOT_SELLABLE, null, 0, null,
-                    FancyText.of("Nobody here buys " + (held.getDisplayName().isEmpty() ? held.getMaterialId() : held.getDisplayName()) + "."));
+                    text(NOBODY_BUYS, ctx, "item", held.getDisplayName().isEmpty() ? held.getMaterialId() : held.getDisplayName()));
         }
         int units = offer.getGoods().count(ctx);
         if (scope == HandScope.HELD_STACK && offer.getGoods() instanceof ItemGoods) {
@@ -180,8 +255,7 @@ public final class Transactions {
         Quote quote = pre != null ? pre.getQuote() : asked.editable();
         int units = pre != null ? pre.getQuantity() : quantity;
         if (pre != null && pre.isCancelled()) {
-            return TransactionResult.failed(TransactionResult.Failure.CANCELLED, offer, units, quote,
-                    FancyText.of("The trade was called off."));
+            return TransactionResult.failed(TransactionResult.Failure.CANCELLED, offer, units, quote, text(CALLED_OFF, ctx));
         }
         TransactionResult result = offer.getType() == Offer.Type.BUY ? takeAndGive(ctx, offer, units, quote) : takeAndPay(ctx, offer, units, quote);
         if (!result.isSuccess()) {
@@ -199,12 +273,11 @@ public final class Transactions {
     /** The checks that refuse before the pre-event: read-only, the gate, the limit, room or units held. */
     private static @Nullable TransactionResult precheck(ExecutionContext ctx, Offer offer, int quantity, Quote quote, boolean quoting) {
         if (offer.isReadOnly()) {
-            return TransactionResult.failed(TransactionResult.Failure.GATE_DENIED, offer, quantity, quote,
-                    FancyText.of("This offer is a catalog line: it shows a price and trades nothing."));
+            return TransactionResult.failed(TransactionResult.Failure.GATE_DENIED, offer, quantity, quote, text(CATALOG_LINE, ctx));
         }
         if (offer.getType() == Offer.Type.SELL && !offer.getGoods().canBeSold()) {
             return TransactionResult.failed(TransactionResult.Failure.NOT_SELLABLE, offer, quantity, quote,
-                    FancyText.of(offer.getGoods().describe(ctx, quantity).toLegacyString() + " cannot be sold."));
+                    text(CANNOT_BE_SOLD, ctx, "goods", goods(ctx, offer, quantity)));
         }
         GateResult gate = offer.getGate().check(ctx);
         if (!gate.isPassed()) {
@@ -218,11 +291,11 @@ public final class Transactions {
         if (offer.getType() == Offer.Type.BUY) {
             if (offer.getNoSpacePolicy() == NoSpacePolicy.REFUSE && offer.getGoods().roomFor(ctx) < quantity) {
                 return TransactionResult.failed(TransactionResult.Failure.NO_SPACE, offer, quantity, quote,
-                        FancyText.of("There is no room for " + offer.getGoods().describe(ctx, quantity).toLegacyString() + "."));
+                        text(NO_ROOM, ctx, "goods", goods(ctx, offer, quantity)));
             }
         } else if (offer.getGoods().count(ctx) < quantity) {
             return TransactionResult.failed(TransactionResult.Failure.NO_ITEMS, offer, quantity, quote,
-                    FancyText.of("You do not have " + offer.getGoods().describe(ctx, quantity).toLegacyString() + "."));
+                    text(NOT_HELD, ctx, "goods", goods(ctx, offer, quantity)));
         }
         return null;
     }
@@ -265,8 +338,7 @@ public final class Transactions {
                 undoSale(ctx, offer, units, quote, paidLines);
                 refundInReverse(ctx, offer.getGate().getCosts(), "a price line could not be paid");
                 return TransactionResult.failed(TransactionResult.Failure.CANCELLED, offer, units, quote,
-                        FancyText.of(line.describe(ctx, total).toLegacyString() + " could not be paid (" + response.getReason()
-                                + "); the goods went back."));
+                        text(NOT_PAID, ctx, "line", line.describe(ctx, total).toLegacyString(), "reason", response.getReason()));
             }
             paidLines.add(line);
         }

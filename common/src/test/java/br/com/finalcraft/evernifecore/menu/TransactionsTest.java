@@ -12,6 +12,7 @@ import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -166,5 +167,22 @@ class TransactionsTest extends MenuTestWorlds {
         assertEquals(TransactionResult.Failure.NO_SPACE, result.getFailure());
         assertNull(result.getDelivery());
         assertAmount("500", menus.balance(menus.coins(), alex));
+    }
+
+    @Test
+    void theTextsAreInTheLanguageOfTheContext() {
+        TestFPlayerSender alex = menus.player("Alex", 500);
+        Offer swords = menus.sell(Menus.counted("sword", 0), 10).build();
+        ExecutionContext portuguese = shop.context(alex).locale(new Locale("pt", "BR")).build();
+        ExecutionContext english = shop.context(alex).locale(Locale.US).build();
+
+        String refusedInPortuguese = Transactions.sell(portuguese, swords, 1).describe(portuguese).toPlainText();
+        String refusedInEnglish = Transactions.sell(english, swords, 1).describe(english).toPlainText();
+        String boughtInPortuguese = Transactions.buy(portuguese, menus.buy(Menus.counted("shield", 0), 10).build(), 1)
+                .describe(portuguese).toPlainText();
+
+        assertTrue(refusedInPortuguese.startsWith("Você não tem "), refusedInPortuguese);
+        assertTrue(refusedInEnglish.startsWith("You do not have "), refusedInEnglish);
+        assertTrue(boughtInPortuguese.startsWith("Comprou 1x shield por "), boughtInPortuguese);
     }
 }
