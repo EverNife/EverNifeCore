@@ -41,12 +41,15 @@ public final class PendingDestination implements DeliveryDestination {
         return EcoResponse.success(amount, BigDecimal.ZERO);
     }
 
-    /** {@code {type: evernifecore:give-item, item: <id>, amount: <n>[, to: <destination>]}} - what a pending item is kept as. */
+    /** {@code {type: evernifecore:give-item, item: <id>, amount: <n>[, data: <n>][, to: <destination>]}} - what a pending item is kept as. */
     public static JsonNode giveItemNode(ItemSpec item, @Nullable String to) {
         ObjectNode node = JsonNodeFactory.instance.objectNode();
         node.put("type", "evernifecore:give-item");
         node.put("item", item.getMaterialId());
         node.put("amount", item.getAmount());
+        if (item.getData() >= 0) {
+            node.put("data", item.getData());
+        }
         if (to != null) {
             node.put("to", to);
         }

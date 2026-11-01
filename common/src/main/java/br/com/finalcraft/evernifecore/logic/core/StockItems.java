@@ -33,6 +33,9 @@ import java.util.Optional;
  */
 final class StockItems {
 
+    private static final String DATA_TEXT = "The data value - the colour of a pre-1.13 wool (minecraft:wool with 14 is red), a tool's"
+            + " damage; -1 for any.";
+
     private StockItems() {
     }
 
@@ -41,17 +44,27 @@ final class StockItems {
                 .describe("Gives the player an item through to: (the inventory by default); what does not fit waits as a pending delivery.")
                 .param(ParamSpec.required("item", ParamSpec.Kind.ID, "The item's id, e.g. minecraft:iron_ingot."))
                 .param(ParamSpec.optional("amount", ParamSpec.Kind.NUMBER, 1, "How many."))
+                .param(ParamSpec.optional("data", ParamSpec.Kind.NUMBER, -1, DATA_TEXT))
                 .param(ParamSpec.optional("expires", ParamSpec.Kind.DURATION, null, "How long what did not fit waits to be claimed;"
                         + " without it, until claimed."))
-                .factory(params -> new GiveItem(ItemSpec.of(params.getString("item"), wholeAmount(params.getNumber("amount"))),
-                        params.getDuration("expires")))
+                .factory(params -> new GiveItem(ItemSpec.of(params.getString("item"), wholeAmount(params.getNumber("amount")))
+                        .withData(data(params.getNumber("data"))), params.getDuration("expires")))
                 .build());
         Costs.register(core, TypeDescriptor.<Cost>of("evernifecore:item")
                 .describe("Takes matching items from the player's inventory; hands them back when a later cost does not come out.")
                 .param(ParamSpec.required("item", ParamSpec.Kind.ID, "The item's id, e.g. minecraft:diamond; a bare name matches any namespace."))
                 .param(ParamSpec.optional("amount", ParamSpec.Kind.NUMBER, 1, "How many."))
-                .factory(params -> new ItemCost(ItemMatcher.of(params.getString("item")), wholeAmount(params.getNumber("amount"))))
+                .param(ParamSpec.optional("data", ParamSpec.Kind.NUMBER, -1, DATA_TEXT))
+                .factory(params -> new ItemCost(ItemMatcher.of(params.getString("item"), data(params.getNumber("data"))),
+                        wholeAmount(params.getNumber("amount"))))
                 .build());
+    }
+
+    private static int data(BigDecimal data) {
+        if (data.compareTo(BigDecimal.ONE.negate()) < 0 || data.stripTrailingZeros().scale() > 0) {
+            throw new IllegalArgumentException("An item data value is a whole number of 0 or more (-1 for any), not " + data.toPlainString() + ".");
+        }
+        return data.intValueExact();
     }
 
     private static int wholeAmount(BigDecimal amount) {

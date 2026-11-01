@@ -18,6 +18,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **An item's data value**: `ItemSpec.getData()`/`withData(int)` (`-1` = unspecified, the default) and
+  `ItemMatcher.of(id, data)`/`withData(int)`, compared only when both sides specify one - `of("minecraft:wool", 14)` no
+  longer takes white wool. `ItemSpec.equals` includes it. The Bukkit inventory describes every stack with its
+  `getDurability()` (0 for a plain one) and builds what it hands out with the spec's data; the chest draws a spec's data
+  before 1.13 (from 1.13 the colour is in the id). The stock `give-item` effect and `item` cost take an optional `data`,
+  and a pending item keeps it. Hytale items stay `-1`.
 - **`MenuRegistry.unregister(owner, name)`**: takes out one menu of its owner (a reload that drops a menu file, an
   editor that deletes one) and answers whether it was there; `name` is the bare name or `owner:name`. Unregistering a
   menu another plugin registered is refused naming both.

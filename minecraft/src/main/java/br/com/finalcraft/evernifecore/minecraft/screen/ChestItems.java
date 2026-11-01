@@ -99,7 +99,7 @@ public final class ChestItems {
         if (nativeItem != null) {
             return nativeItem.getItemStack() == null ? null : nativeItem.getItemStack().clone();
         }
-        return stackOfId(spec.getMaterialId());
+        return stackOfId(spec.getMaterialId(), spec.getData());
     }
 
     /** A filter over stacks, as the filter over {@link ItemSpec}s an editable area takes - {@code denyPlace(stacks(...))}. */
@@ -109,7 +109,7 @@ public final class ChestItems {
     }
 
     @Nullable
-    private static ItemStack stackOfId(String id) {
+    private static ItemStack stackOfId(String id, int specData) {
         if (id == null || id.isEmpty()) {
             return null;
         }
@@ -141,6 +141,9 @@ public final class ChestItems {
         }
         if (material == null || material == Material.AIR) {
             return null;
+        }
+        if (specData >= 0 && !MCVersion.isHigherEquals(MCVersion.v1_13)) {
+            data = (short) specData; //from 1.13 the colour is in the id, and the data value is only a tool's damage
         }
         return new ItemStack(material, 1, data);
     }

@@ -176,12 +176,14 @@ public final class McInventoryDestination implements InventoryDestination {
         });
     }
 
-    /** The agnostic description of {@code stack} - material, amount, name, lore - or null for an empty slot. */
-    private static @Nullable ItemSpec describe(@Nullable ItemStack stack) {
+    /** The agnostic description of {@code stack} - material, amount, data, name, lore - or null for an empty slot. */
+    @SuppressWarnings("deprecation") //getDurability is the data value on every version from 1.7.10 to today
+    static @Nullable ItemSpec describe(@Nullable ItemStack stack) {
         if (stack == null || stack.getType() == Material.AIR || stack.getAmount() <= 0) {
             return null;
         }
-        ItemSpec spec = ItemSpec.of("minecraft:" + stack.getType().name().toLowerCase(Locale.ROOT), stack.getAmount());
+        ItemSpec spec = ItemSpec.of("minecraft:" + stack.getType().name().toLowerCase(Locale.ROOT), stack.getAmount())
+                .withData(Math.max(0, stack.getDurability()));
         ItemMeta meta = stack.hasItemMeta() ? stack.getItemMeta() : null;
         if (meta == null) {
             return spec;
@@ -191,8 +193,9 @@ public final class McInventoryDestination implements InventoryDestination {
         return name.isEmpty() && lore.isEmpty() ? spec : spec.withText(name, lore);
     }
 
+    @SuppressWarnings("deprecation") //the (material, amount, data) constructor exists on every version
     private static ItemStack build(ItemSpec item, Material material) {
-        ItemStack stack = new ItemStack(material);
+        ItemStack stack = new ItemStack(material, 1, (short) Math.max(0, item.getData()));
         ItemMeta meta = stack.getItemMeta();
         boolean named = item.getDisplayName() != null && !item.getDisplayName().isEmpty();
         if (meta != null && (named || !item.getLore().isEmpty())) {
