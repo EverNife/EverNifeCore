@@ -420,6 +420,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **`DialogueScreen` checks each option's gate once per redraw**: the one check a `Choice` makes decides whether it
+  is hidden (new `Choice.hiddenUntilPassed()`), disabled with its reasons or enabled with its costs - before, a hidden
+  option was checked three times per redraw and a visible one twice, each check posting a `GateCheckEvent`. A
+  `Choice` now dresses the name and lore itself: a name with no colour of its own reads green when it can be picked
+  and grey when not, a pass adds the costs as the last lore line, and a failure leaves the reasons to the renderer
+  (the dialogue no longer bakes them into the lore).
 - **The chest renderer draws a disabled element**: a `Choice` whose gate fails (any element the view paints disabled)
   shows its name grey, unless it has a colour of its own, and its reason as the last lore lines in red - before, the
   chest drew it exactly like an enabled one. A `Choice`'s reason holds one failure per line.

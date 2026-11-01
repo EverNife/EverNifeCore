@@ -3,9 +3,7 @@ package br.com.finalcraft.evernifecore.dialogue;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
-import br.com.finalcraft.evernifecore.logic.ConditionResult;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
-import br.com.finalcraft.evernifecore.logic.GateResult;
 import br.com.finalcraft.evernifecore.screen.Choice;
 import br.com.finalcraft.evernifecore.screen.DefaultIcons;
 import br.com.finalcraft.evernifecore.screen.Icon;
@@ -17,7 +15,6 @@ import br.com.finalcraft.evernifecore.screen.ScreenKey;
 import br.com.finalcraft.evernifecore.screen.ScreenLayout;
 import br.com.finalcraft.evernifecore.screen.Slots;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -62,13 +59,9 @@ public final class DialogueScreen extends Screen<DialogueScreen.DialogueLayout> 
             Choice choice = choice(Slots.of(slots[index++]), placed.getIcon(), FancyText.of(text), option.getGate(), option.getEffects())
                     .pickedBy(click -> session.choose(option.getId()));
             choice.id("option:" + option.getId());
-            choice.render(icon -> {
-                GateResult check = option.getGate().check(session.newExecutionContext().build());
-                icon.displayName((check.isPassed() ? "§a" : "§7") + text).lore(loreOf(check));
-            });
+            choice.render(icon -> icon.displayName(text));
             if (option.isHidden()) {
-                //asked on every redraw; the gate's sources redraw the choice when the answer may have changed
-                choice.visibleWhen(() -> option.getGate().check(session.newExecutionContext().build()).isPassed(), 0L);
+                choice.hiddenUntilPassed();
             }
         }
     }
@@ -80,24 +73,6 @@ public final class DialogueScreen extends Screen<DialogueScreen.DialogueLayout> 
 
     public DialogueSession getSession() {
         return session;
-    }
-
-    //a passing option shows what it costs; a failing one shows every reason, not the first
-    private static List<String> loreOf(GateResult check) {
-        List<String> lore = new ArrayList<>();
-        if (check.isPassed()) {
-            String costs = check.describeCosts();
-            if (!costs.isEmpty()) {
-                lore.add("§7" + costs);
-            }
-            return lore;
-        }
-        for (ConditionResult failure : check.getFailures()) {
-            if (failure.getWhy() != null && !failure.getWhy().getText().isEmpty()) {
-                lore.add("§c" + failure.getWhy().getText());
-            }
-        }
-        return lore;
     }
 
     /** What a dialogue node looks like, and the file the admin restyles it in. */

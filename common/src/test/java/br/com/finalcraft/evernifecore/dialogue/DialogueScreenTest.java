@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.dialogue;
 import br.com.finalcraft.evernifecore.logic.Condition;
 import br.com.finalcraft.evernifecore.logic.Cost;
 import br.com.finalcraft.evernifecore.logic.Gate;
+import br.com.finalcraft.evernifecore.logic.audit.GateCheckEvent;
 import br.com.finalcraft.evernifecore.screen.ClickGesture;
 import br.com.finalcraft.evernifecore.screen.ScreenKey;
 import br.com.finalcraft.evernifecore.testing.DialogueTrees;
@@ -20,7 +21,6 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** The core's default dialogue screen: one choice per visible option, greyed with every reason, clicked into the session. */
@@ -77,10 +77,10 @@ class DialogueScreenTest {
         DrawnChoice buy = DialogueTrees.openDialogueScreen(world.screens, world.alex, shop(twoReasons)).get(0);
 
         assertFalse(buy.isEnabled());
-        assertTrue(buy.getLore().size() >= 2, buy.getLore().toString());
-        assertEquals(Arrays.asList("§cLevel 10 needed", "§cTalk to the guard first"), buy.getLore());
-        assertNotNull(buy.getReason());
-        assertTrue(buy.getReason().contains("Level 10 needed") && buy.getReason().contains("Talk to the guard first"), buy.getReason());
+        assertEquals("§7The sword", buy.getName());
+        assertEquals(Arrays.asList("Level 10 needed", "Talk to the guard first"), Arrays.asList(buy.getReason().split("\n")),
+                "every reason, one per line, in the reason the renderer draws - never baked into the lore twice");
+        assertTrue(buy.getLore().isEmpty(), buy.getLore().toString());
     }
 
     @Test
@@ -95,6 +95,22 @@ class DialogueScreenTest {
         Dialogues.sessionOf(world.alex).refresh();
         world.screens.advanceTicks(1);
         assertEquals(Arrays.asList("buy", "leave", "password"), ids(DialogueTrees.drawn(world.screens, world.alex)));
+    }
+
+    @Test
+    void eachRedrawAsksEachOptionsGateOnceHiddenOrNot() {
+        DialogueFixture.Toggle secret = new DialogueFixture.Toggle(false, "You do not know the password");
+        Dialogue shop = shop(Gate.open(), DialogueOption.builder("password").text("Swordfish").hidden()
+                .gate(Gate.of(Collections.<Condition>singletonList(secret), Collections.<Cost>emptyList())).end());
+        List<GateCheckEvent> checks = world.colonies.recorded(GateCheckEvent.class);
+
+        DialogueTrees.openDialogueScreen(world.screens, world.alex, shop);
+        int opened = checks.size();
+        Dialogues.sessionOf(world.alex).refresh();
+        world.screens.advanceTicks(1);
+
+        assertEquals(3, opened, "three options, three checks - the hidden one too, which the check hides: " + checks);
+        assertEquals(3, checks.size() - opened, "and a redraw asks each of them once again: " + checks);
     }
 
     @Test

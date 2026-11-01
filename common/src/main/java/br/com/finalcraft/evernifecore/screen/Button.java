@@ -310,8 +310,16 @@ public class Button implements Element {
             if (perRender != null) {
                 perRender.accept(icon);
             }
-            writer.paint(decorate(base, view), slots, icon);
+            draw(writer, base, view, icon);
         });
+    }
+
+    /**
+     * Paints this viewer's {@code icon} for one redraw, with {@link #decorate} over {@code base}. A subclass that dresses
+     * the icon per redraw paints a copy - {@code icon} lives as long as the view. Renderer thread.
+     */
+    void draw(@Nonnull SlotWriter writer, @Nonnull Paint base, @Nonnull ScreenView view, @Nonnull Icon icon) {
+        writer.paint(decorate(base, view), slots, icon);
     }
 
     /** The per-kind state a subclass adds to the paint - a progress ratio, a disabled choice. Asked on every render. */

@@ -15,14 +15,17 @@ import java.util.function.Consumer;
 
 /**
  * A dialogue option: a text, the {@link Gate} that decides whether the viewer may pick it, and the effects picking it
- * runs. A failing gate draws it disabled, with the reason; picking it pays the gate and runs the effects - the same
- * {@link ClickRule} any button can carry.
+ * runs. Each redraw checks the gate once: a pass draws it with what it costs as the last lore line, a failure draws it
+ * disabled with every reason (or not at all, {@link #hiddenUntilPassed()}); a name with no colour of its own reads
+ * green or grey to match. Picking it pays the gate and runs the effects - the same {@link ClickRule} any button can
+ * carry.
  */
 public class Choice extends Button {
 
     private final FancyText text;
     private final Gate gate;
     private final List<Effect> effects;
+    private boolean hiddenUntilPassed = false;
 
     public Choice(@Nonnull Screen<?> screen, @Nonnull String id, @Nonnull SlotSet slots, @Nonnull Icon template,
                   @Nonnull FancyText text, @Nonnull Gate gate, @Nonnull List<Effect> effects) {
@@ -45,6 +48,17 @@ public class Choice extends Button {
         clearRules();
         onClick(pick);
         return this;
+    }
+
+    /** Leaves it undrawn while its gate fails - an option the viewer learns of only once they may pick it. */
+    @Nonnull
+    public Choice hiddenUntilPassed() {
+        this.hiddenUntilPassed = true;
+        return this;
+    }
+
+    public boolean isHiddenUntilPassed() {
+        return hiddenUntilPassed;
     }
 
     @Nonnull
@@ -73,11 +87,29 @@ public class Choice extends Button {
         return String.join("\n", reasons);
     }
 
-    @Nonnull
     @Override
-    Paint decorate(@Nonnull Paint paint, @Nonnull ScreenView view) {
+    void draw(@Nonnull SlotWriter writer, @Nonnull Paint base, @Nonnull ScreenView view, @Nonnull Icon icon) {
+        //the one check of this redraw decides all three: undrawn, disabled with its reasons, enabled with its costs
         GateResult result = gate.check(view.newExecutionContext().build());
-        return result.isPassed() ? paint : paint.disabled(reasonsOf(result));
+        if (!result.isPassed() && hiddenUntilPassed) {
+            return;
+        }
+        Icon drawn = icon.copy();
+        String name = drawn.getItem().getDisplayName();
+        if (name != null && !name.isEmpty() && !name.startsWith("§")) {
+            drawn.displayName((result.isPassed() ? "§a" : "§7") + name);
+        }
+        if (!result.isPassed()) {
+            writer.paint(base.disabled(reasonsOf(result)), getSlots(), drawn);
+            return;
+        }
+        String costs = result.describeCosts();
+        if (!costs.isEmpty()) {
+            List<String> lore = new ArrayList<>(drawn.getItem().getLore());
+            lore.add("§7" + costs);
+            drawn.lore(lore);
+        }
+        writer.paint(base, getSlots(), drawn);
     }
 
 }
