@@ -21,6 +21,7 @@ import br.com.finalcraft.evernifecore.waypoint.Waypoints;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.spawn.ISpawnProvider;
 import br.com.finalcraft.evernifecore.group.IGroupGlowProvider;
+import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.spawn.SpawnPoints;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 
@@ -32,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -53,6 +55,12 @@ public final class ECoreTestWorld implements AutoCloseable {
      */
     private static final String PERIODIC_FLUSH_PROPERTY = "evernifecore.playerdata.periodic-flush";
 
+    /**
+     * Comma-separated {@link ECDebugModule} names a world switches on at install, with the core's debug
+     * ({@code ./gradlew test -Dec.debug=LOGIC}, which the build hands to the test JVM).
+     */
+    private static final String DEBUG_PROPERTY = "ec.debug";
+
     private final TestPlatform platform;
     private final IPlatform previousPlatform;
     private final IECPluginExtractor previousExtractor;
@@ -62,6 +70,7 @@ public final class ECoreTestWorld implements AutoCloseable {
     private final ISpawnProvider previousSpawn;
     private final IGroupGlowProvider previousGlow;
     private final ECScheduler.MainThread previousMainThread;
+    private final ECPluginData previousCore;
     private final Set<ECListenerWatch> watchesBefore = Collections.newSetFromMap(new IdentityHashMap<>());
     private final List<String> audiencesBefore = new ArrayList<>();
     private final List<ECPluginData> currencyOwners = new ArrayList<>();
@@ -78,6 +87,7 @@ public final class ECoreTestWorld implements AutoCloseable {
         this.previousSpawn = EverNifeCore.getProviders().getSpawnOrNull();
         this.previousGlow = EverNifeCore.getProviders().getBaseProvider().provideOrNull(IGroupGlowProvider.class);
         this.previousMainThread = ECScheduler.getMainThread();
+        this.previousCore = EverNifeCore.getEcPluginData();
         this.watchesBefore.addAll(ECEventBus.global().getListenerWatches());
         for (ECNativeAudience audience : ECEventBus.global().getNativeAudiences()) {
             this.audiencesBefore.add(audience.name());
@@ -98,7 +108,8 @@ public final class ECoreTestWorld implements AutoCloseable {
         providers.register(IPlatform.class, platform);
         restore(providers, IGroupGlowProvider.class, platform.testGlow, platform.testGlow != null);
         ECScheduler.setMainThread(platform.mainThread());
-        ensureCorePluginData();
+        ensureCorePluginData(platform);
+        enableDebugModules();
         SpawnPoints.resetWarning(); //a new world is a new boot: its first spawn fallback reports again
         if (platform.testInventory != null) {
             //the core already registered owns it; else a core of its own, out of the registry, that no forget reaches
@@ -157,6 +168,16 @@ public final class ECoreTestWorld implements AutoCloseable {
     }
 
     /**
+     * Makes {@code core} the core's own plugin data ({@code EverNifeCore.getEcPluginData()}, the owner of
+     * {@code EverNifeCore.getLog()} and of the core's debug modules) for the lifetime of this world; {@code null}
+     * clears it. {@link #close()} hands back whatever was there at install.
+     */
+    public ECoreTestWorld withCorePluginData(ECPluginData core) {
+        EverNifeCore.instance.onLoaderInstantiate(core);
+        return this;
+    }
+
+    /**
      * Puts the providers back and checks the global event bus.
      *
      * @throws AssertionError naming every listener watch and native audience opened since the install and never closed
@@ -192,6 +213,8 @@ public final class ECoreTestWorld implements AutoCloseable {
         restore(providers, ISpawnProvider.class, previousSpawn, previousSpawn != null);
         restore(providers, IGroupGlowProvider.class, previousGlow, previousGlow != null);
         ECScheduler.setMainThread(previousMainThread);
+        //a plugin data lent to the core outlives its test otherwise, and its debug log asks the next test's platform
+        EverNifeCore.instance.onLoaderInstantiate(previousCore);
         SpawnPoints.resetWarning();
 
         if (!leaked.isEmpty()) {
@@ -204,14 +227,33 @@ public final class ECoreTestWorld implements AutoCloseable {
     /**
      * A move through {@code FCEcoUtil} is attributed to the core, whose plugin data only the real bootstrap sets: a world
      * gives it one when no test did, and takes it out of the plugin registry at once so a later {@code Plugins.fakeCore}
-     * still builds its own.
+     * still builds its own. It is built on a lenient double, so a strict world that configured no logging still gets
+     * one; its log goes to stdout.
      */
-    private static void ensureCorePluginData() {
+    private static void ensureCorePluginData(TestPlatform platform) {
         if (EverNifeCore.getEcPluginData() != null) {
             return;
         }
-        EverNifeCore.instance.onLoaderInstantiate(Plugins.fakeCore(tempFolder("ecore-test-core")));
-        Plugins.forget(Plugins.CORE);
+        ECBaseProvider providers = EverNifeCore.getProviders().getBaseProvider();
+        providers.register(IPlatform.class, Platforms.lenient().build());
+        try {
+            EverNifeCore.instance.onLoaderInstantiate(Plugins.fakeCore(tempFolder("ecore-test-core")));
+            Plugins.forget(Plugins.CORE);
+        } finally {
+            providers.register(IPlatform.class, platform);
+        }
+    }
+
+    /** Switches on the core's debug and the modules {@link #DEBUG_PROPERTY} names; after the core's config was read, which would switch them off again. */
+    private static void enableDebugModules() {
+        String names = System.getProperty(DEBUG_PROPERTY, "").trim();
+        if (names.isEmpty()) {
+            return;
+        }
+        EverNifeCore.getEcPluginData().setDebugEnabled(true);
+        for (String name : names.split(",")) {
+            ECDebugModule.valueOf(name.trim().toUpperCase(Locale.ROOT)).setEnabled(true);
+        }
     }
 
     private static File tempFolder(String prefix) {

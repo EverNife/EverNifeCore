@@ -1,6 +1,5 @@
 package br.com.finalcraft.evernifecore.minecraft.screen.testkit;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
@@ -99,7 +98,7 @@ public final class BukkitScreenWorld implements AutoCloseable {
             //EverNifeCore.getLog() is what a screen reports a refused open or a broken handler through, and only the
             //real bootstrap ever sets it
             this.ecPluginData = ECPluginManager.getOrCreateECorePluginData(new Object());
-            EverNifeCore.instance.onLoaderInstantiate(ecPluginData);
+            platformWorld.withCorePluginData(ecPluginData);
         } else {
             this.platformWorld = null;
             this.ecPluginData = screens.getCore();

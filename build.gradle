@@ -70,6 +70,11 @@ subprojects {
             showCauses = true
             showStackTraces = true
         }
+        // -Dec.debug=LOGIC,QUESTS reaches the test JVM, where every ECoreTestWorld switches those debug modules on
+        def debugModules = providers.systemProperty('ec.debug').orNull
+        if (debugModules) {
+            systemProperty 'ec.debug', debugModules
+        }
     }
 
     repositories {

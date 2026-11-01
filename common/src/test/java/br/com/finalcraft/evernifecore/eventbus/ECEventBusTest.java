@@ -487,10 +487,6 @@ class ECEventBusTest {
                 Plugins.fake(pluginName, tempDir.resolve(pluginName).toFile()));
         createdPlugins.add(pluginName);
         ECPluginData data = ECPluginManager.getOrCreateECorePluginData(new Object());
-        //The default onECPluginShutdownPre() touches FinalCMDManager, whose static block logs through
-        //EverNifeCore.getEcPluginData() - it must be non-null the FIRST time any test in the JVM
-        //references that class, or its <clinit> fails permanently for the run.
-        EverNifeCore.instance.onLoaderInstantiate(data);
         return data;
     }
 

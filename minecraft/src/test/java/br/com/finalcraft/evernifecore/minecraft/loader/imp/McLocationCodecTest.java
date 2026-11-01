@@ -1,8 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.loader.imp;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
@@ -38,8 +36,7 @@ class McLocationCodecTest {
     void setup() {
         world = Platforms.lenient().install().withPluginExtractor(
                 Plugins.fake("McLocationCodec_" + UNIQUE_SUFFIX.incrementAndGet(), tempDir.toFile()));
-        ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePluginData(new Object());
-        EverNifeCore.instance.onLoaderInstantiate(ecPluginData);
+        world.withCorePluginData(ECPluginManager.getOrCreateECorePluginData(new Object()));
         ItemWorld.registerConfigTypes();
     }
 

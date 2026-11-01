@@ -1,9 +1,11 @@
 package br.com.finalcraft.evernifecore.testing;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -15,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -71,5 +74,17 @@ class FinalCmdTestHarnessSmokeTest {
 
         assertNull(GreetCommand.LAST_GREETED.get());
         assertFalse(sender.getMessages().isEmpty(), "a help line should have been sent");
+    }
+
+    @Test
+    void closeHandsBackTheCorePluginDataTheHarnessFound() {
+        ECPluginData before = EverNifeCore.getEcPluginData();
+
+        harness = new FinalCmdTestHarness("SmokeTest", tempDir);
+        assertSame(harness.ecPluginData, EverNifeCore.getEcPluginData(), "the harness lends the core its own plugin data");
+        harness.close();
+        harness = null;
+
+        assertSame(before, EverNifeCore.getEcPluginData());
     }
 }

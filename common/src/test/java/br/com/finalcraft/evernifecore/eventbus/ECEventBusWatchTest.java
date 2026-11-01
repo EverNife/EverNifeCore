@@ -414,7 +414,6 @@ class ECEventBusWatchTest {
                 Plugins.fake(pluginName, tempDir.resolve(pluginName).toFile()));
         createdPlugins.add(pluginName);
         ECPluginData data = ECPluginManager.getOrCreateECorePluginData(new Object());
-        EverNifeCore.instance.onLoaderInstantiate(data);
         return data;
     }
 

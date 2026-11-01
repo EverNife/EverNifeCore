@@ -127,7 +127,7 @@ public final class BukkitEventWorld implements AutoCloseable {
         //when it registers a listener. EverNifeCore.getLog() comes with it, and only the real
         //bootstrap ever sets that.
         this.ecPluginData = ECPluginManager.getOrCreateECorePluginData(plugin);
-        EverNifeCore.instance.onLoaderInstantiate(ecPluginData);
+        platformWorld.withCorePluginData(ecPluginData);
 
         AtomicReference<PluginManager> manager = new AtomicReference<>();
         this.previousServer = Bukkit.getServer();

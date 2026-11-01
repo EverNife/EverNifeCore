@@ -150,10 +150,6 @@ class FCFileLoggerLifecycleTest {
                 Plugins.fake(pluginName, tempDir.resolve(pluginName).toFile()));
         createdPlugins.add(pluginName);
         TestBootstrap plugin = new TestBootstrap();
-        //the default onECPluginShutdownPre() touches FinalCMDManager, whose static block logs through
-        //EverNifeCore.getEcPluginData() - it must be non-null the FIRST time any test in the JVM
-        //references that class, or its <clinit> fails permanently for the run
-        EverNifeCore.instance.onLoaderInstantiate(plugin.getPluginData());
         return plugin;
     }
 

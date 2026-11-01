@@ -147,18 +147,20 @@ public final class QuestWorld implements AutoCloseable {
         return player;
     }
 
-    /** Logs {@code player} in again: loads the quest section and posts the full login. */
+    /** Logs {@code player} in again: attaches the live player, loads the quest section and posts the full login. */
     public void login(FPlayer player) {
         PlayerData data = PlayerController.getOrCreate(player.getUniqueId()).join();
+        data.setPlayer(player); //what the platform's login listener does: PDSection.getPlayer() answers from here
         data.getPDSection(TestQuestSection.class).join();
         ECEventBus.global().post(new ECPlayerFullyLoggedInEvent(data, false));
     }
 
-    /** Announces {@code player}'s quit to whoever listens; the section stays cached, as during the idle grace. */
+    /** Detaches the live player and announces the quit to whoever listens; the section stays cached, as during the idle grace. */
     public void quit(FPlayer player) {
         PlayerData data = PlayerController.getLoaded(player.getUniqueId());
         if (data != null) {
             ECEventBus.global().post(new ECPlayerQuitEvent(data));
+            data.setPlayer(null);
         }
     }
 

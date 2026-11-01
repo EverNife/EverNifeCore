@@ -21,6 +21,7 @@ import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
 import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
+import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.notify.IHudAccess;
@@ -29,7 +30,6 @@ import jakarta.annotation.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -109,9 +109,9 @@ public class MessagePlaceholdersContractTest {
     }
 
     @Test
-    void declaringADelimitedKeyWarnsOncePerKey() {
+    void declaringADelimitedKeyWarnsOncePerKey(ECoreTestWorld world) {
         List<String> warnings = new ArrayList<>();
-        withWarningsCapturedInto(warnings, () -> {
+        withWarningsCapturedInto(world, warnings, () -> {
             String key = "%" + UUID.randomUUID() + "%";   // never warned about by another test
 
             new MessagePlaceholders().declare(key, "", context -> 1);
@@ -125,9 +125,9 @@ public class MessagePlaceholdersContractTest {
     }
 
     @Test
-    void aBareKeyIsNotWarnedAbout() {
+    void aBareKeyIsNotWarnedAbout(ECoreTestWorld world) {
         List<String> warnings = new ArrayList<>();
-        withWarningsCapturedInto(warnings, () -> {
+        withWarningsCapturedInto(world, warnings, () -> {
             new MessagePlaceholders().declare("saldo_" + UUID.randomUUID(), "", context -> 1);
             assertTrue(warnings.isEmpty(), "a properly declared key must say nothing: " + warnings);
         });
@@ -136,7 +136,7 @@ public class MessagePlaceholdersContractTest {
     // The warning goes through EverNifeCore's own logger, so the only way to observe it is to own
     // that bootstrap for the duration of the call - swapping the platform alone would not do it, as
     // an ECPluginData freezes its log adapter when it is built.
-    private void withWarningsCapturedInto(List<String> warnings, Runnable body) {
+    private void withWarningsCapturedInto(ECoreTestWorld world, List<String> warnings, Runnable body) {
         IPlatform originalPlatform = EverNifeCore.getPlatform();
         ECPluginData originalCoreData = EverNifeCore.getEcPluginData();
         String pluginName = "MessagePlaceholdersWarnings_" + UUID.randomUUID();
@@ -146,24 +146,13 @@ public class MessagePlaceholdersContractTest {
         EverNifeCore.getProviders().getBaseProvider().register(IECPluginExtractor.class,
                 Plugins.fake(pluginName, tempDir.resolve(pluginName).toFile()));
         try {
-            EverNifeCore.instance.onLoaderInstantiate(ECPluginManager.getOrCreateECorePluginData(new Object()));
+            world.withCorePluginData(ECPluginManager.getOrCreateECorePluginData(new Object()));
             body.run();
         } finally {
-            setCoreEcPluginData(originalCoreData);
+            //this test's throwaway plugin would otherwise get every later log line of the class
+            world.withCorePluginData(originalCoreData);
             ECPluginManager.removePluginData(pluginName);
             EverNifeCore.getProviders().getBaseProvider().register(IPlatform.class, originalPlatform);
-        }
-    }
-
-    // onLoaderInstantiate cannot put back a core that had none, and leaving this test's throwaway
-    // plugin installed would hand it every later log line in this JVM.
-    private static void setCoreEcPluginData(@Nullable ECPluginData ecPluginData) {
-        try {
-            Field field = EverNifeCore.class.getDeclaredField("ecPluginData");
-            field.setAccessible(true);
-            field.set(EverNifeCore.instance, ecPluginData);
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("could not restore EverNifeCore's plugin data", e);
         }
     }
 

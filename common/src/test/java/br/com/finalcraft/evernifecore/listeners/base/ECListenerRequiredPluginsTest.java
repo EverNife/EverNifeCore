@@ -1,6 +1,5 @@
 package br.com.finalcraft.evernifecore.listeners.base;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
@@ -30,7 +29,6 @@ class ECListenerRequiredPluginsTest {
     void setup() {
         world = Platforms.lenient().pluginsLoaded("Vault").pluginsDisabled("WorldGuard").install();
         data = Plugins.fakePluginData(PLUGIN_NAME, tempDir.toFile());
-        EverNifeCore.instance.onLoaderInstantiate(data);
     }
 
     @AfterEach

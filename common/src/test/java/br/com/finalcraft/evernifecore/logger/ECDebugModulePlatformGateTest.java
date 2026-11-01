@@ -1,6 +1,5 @@
 package br.com.finalcraft.evernifecore.logger;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.PlatformId;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
@@ -162,7 +161,7 @@ class ECDebugModulePlatformGateTest {
                 .withPluginExtractor(Plugins.fake(pluginName, tempDir.resolve(pluginName).toFile()));
         createdPlugins.add(pluginName);
         ECPluginData data = ECPluginManager.getOrCreateECorePluginData(new Object());
-        EverNifeCore.instance.onLoaderInstantiate(data); //also declares ECDebugModule.values()
+        world.withCorePluginData(data); //also declares ECDebugModule.values()
         return data;
     }
 

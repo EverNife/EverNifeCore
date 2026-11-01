@@ -50,7 +50,7 @@ public class FancyTextCodecRoundTripTest {
     @BeforeAll
     static void routeCoreLoggingIntoThisWorld(ECoreTestWorld world) {
         world.withPluginExtractor(Plugins.fake(LOG_OWNER, coreDataFolder.resolve(LOG_OWNER).toFile()));
-        EverNifeCore.instance.onLoaderInstantiate(ECPluginManager.getOrCreateECorePluginData(new Object()));
+        world.withCorePluginData(ECPluginManager.getOrCreateECorePluginData(new Object()));
     }
 
     @AfterAll

@@ -1,6 +1,5 @@
 package br.com.finalcraft.evernifecore.testing;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
@@ -57,7 +56,8 @@ public class FinalCmdTestHarness implements AutoCloseable {
         //The builtin-parser bootstrap (first FinalCMD ever touched in this JVM) logs through
         //EverNifeCore's OWN ecPluginData (EverNifeCore.getLog()), which is otherwise only set by the
         //real bootstrap (onLoaderInstantiate); without it, ArgParserManager.addGlobalParser NPEs.
-        EverNifeCore.instance.onLoaderInstantiate(ecPluginData);
+        //Lent through the world, whose close() hands back what the core had before this harness.
+        world.withCorePluginData(ecPluginData);
 
         //Explicit, because a test may only ever scan a tree: nothing on that path would touch
         //FinalCMDManager, and every default parser lookup would come back null

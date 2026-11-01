@@ -18,6 +18,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **`ECoreTestWorld.withCorePluginData(data)`** lends the core its own plugin data (`EverNifeCore.getLog()`, the core's
+  debug modules) for the life of the world; `EverNifeCore.onLoaderInstantiate(null)` clears it. `-Dec.debug=LOGIC,QUESTS`
+  on a test run switches those debug modules and the core's debug on in every world.
 - **`AuditLog.awaitWrites()` is public** (for tests and shutdown: completes when every write started so far landed),
   and the test kit's `LogicWorld.awaitAudit()` waits on the owner's open log - no more polling a query.
 - **`target: online-players`**: an effect applies to every online player (the members of `ProgressOwner.global()`),
@@ -547,6 +550,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **common-tests: `ECoreTestWorld` and `FinalCmdTestHarness` hand back the core's plugin data on close** (null
+  included) instead of leaving the last one lent for the rest of the JVM; the one a world lends when none is set is built
+  on a lenient double, so a strict world needs no logging for it. **`QuestWorld.login` attaches the `FPlayer`**
+  (`PDSection.getPlayer()` answers it) and `quit` detaches it.
 - **`HeldPlayerState.release` puts back the value of the holder that stays**: when the latest holder of a shared slot
   lets go, the holder now latest writes its own value again - a `scope: held` gamemode released inside a `game-mode`
   region gives back the region's mode, not the effect's. `hold(slot, holder, value, rewrite, persistent, online)` takes

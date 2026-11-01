@@ -228,9 +228,6 @@ class ECListenerRegisterWhileListenedTest {
                 Plugins.fake(pluginName, tempDir.resolve(pluginName).toFile()));
         ECPluginData data = ECPluginManager.getOrCreateECorePluginData(new Object());
         createdPlugins.add(data);
-        //ECListener.register logs through EverNifeCore.getEcPluginData(), which only the real bootstrap
-        //ever sets - a listener registration with none installed would fail on the log line
-        EverNifeCore.instance.onLoaderInstantiate(data);
         return data;
     }
 

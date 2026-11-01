@@ -33,6 +33,7 @@ import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.quest.placeholder.QuestPlaceholders;
 import br.com.finalcraft.evernifecore.region.placeholder.RegionPlaceholders;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
+import jakarta.annotation.Nullable;
 
 
 public class EverNifeCore {
@@ -65,9 +66,12 @@ public class EverNifeCore {
         return instance.getProviders().getEventBus();
     }
 
-    public void onLoaderInstantiate(ECPluginData ecPluginData){
+    /** Makes {@code ecPluginData} the core's own plugin data and declares the core's debug modules on it; {@code null} clears it. */
+    public void onLoaderInstantiate(@Nullable ECPluginData ecPluginData){
         this.ecPluginData = ecPluginData;
-        ecPluginData.defineDebugModules(ECDebugModule.values());
+        if (ecPluginData != null) {
+            ecPluginData.defineDebugModules(ECDebugModule.values());
+        }
     }
 
     public static ECPluginData getEcPluginData() {
