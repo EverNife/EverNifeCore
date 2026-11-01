@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.logic.EffectList;
 import br.com.finalcraft.evernifecore.logic.Effects;
 import br.com.finalcraft.evernifecore.logic.Gate;
 import br.com.finalcraft.evernifecore.logic.RepeatPolicy;
+import br.com.finalcraft.evernifecore.logic.reward.RewardRule;
 import br.com.finalcraft.evernifecore.time.Window;
 import br.com.finalcraft.evernifecore.types.TypeRegistryException;
 import br.com.finalcraft.everylibs.util.FCTimeUtil;
@@ -130,7 +131,7 @@ public final class QuestDefinitions {
                 builder.timeLimit(duration(where, "time-limit", node.get("time-limit")));
             }
             if (node.has("expires-at")) {
-                builder.expiresAt(instant(where, node.get("expires-at"), zone));
+                builder.expiresAt(instant(where, "expires-at", node.get("expires-at"), zone));
             }
             if (node.has("abandonable")) {
                 builder.abandonable(node.get("abandonable").asBoolean(true));
@@ -145,6 +146,29 @@ public final class QuestDefinitions {
                     String pick = param.getValue().path("pick").asText("random");
                     builder.param(param.getKey(), new QuestDefinition.Param(values, !"first".equalsIgnoreCase(pick)));
                 }
+            }
+            List<RewardRule> rules = new ArrayList<>();
+            for (JsonNode rule : list(node.get("rewards"))) {
+                rules.add(RewardRule.parse(owner, rule));
+            }
+            builder.reward(Reward.of(rules));
+            if (node.has("window")) {
+                JsonNode window = node.get("window");
+                ZoneId windowZone = zone;
+                if (window.hasNonNull("zone")) {
+                    try {
+                        windowZone = ZoneId.of(window.get("zone").asText().trim());
+                    } catch (RuntimeException invalid) {
+                        throw new IllegalArgumentException(where + ": window zone '" + window.get("zone").asText() + "' is not a time zone - write"
+                                + " e.g. America/Sao_Paulo or UTC.");
+                    }
+                }
+                if (!window.isObject() || (!window.hasNonNull("from") && !window.hasNonNull("to"))) {
+                    throw new IllegalArgumentException(where + ": window is written as {from: \"2026-11-01 20:00\", to: \"2026-11-01 22:00\","
+                            + " zone: America/Sao_Paulo} - either end may be left out.");
+                }
+                builder.window(window.hasNonNull("from") ? instant(where, "window from", window.get("from"), windowZone) : null,
+                        window.hasNonNull("to") ? instant(where, "window to", window.get("to"), windowZone) : null);
             }
             builder.onStart(effects(owner, node.get("on-start"), zone));
             builder.onComplete(effects(owner, node.get("on-complete"), zone));
@@ -278,7 +302,7 @@ public final class QuestDefinitions {
         }
     }
 
-    private static Instant instant(String where, JsonNode node, ZoneId zone) {
+    private static Instant instant(String where, String key, JsonNode node, ZoneId zone) {
         String text = node.asText().trim();
         try {
             return Instant.parse(text);
@@ -286,7 +310,7 @@ public final class QuestDefinitions {
             try {
                 return LocalDateTime.parse(text, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")).atZone(zone).toInstant();
             } catch (DateTimeParseException invalid) {
-                throw new IllegalArgumentException(where + ": expires-at '" + text + "' is not a date - write \"2026-11-01 20:00\" (server zone)"
+                throw new IllegalArgumentException(where + ": " + key + " '" + text + "' is not a date - write \"2026-11-01 20:00\" (server zone)"
                         + " or an ISO instant like 2026-11-01T23:00:00Z.");
             }
         }
@@ -303,6 +327,67 @@ public final class QuestDefinitions {
             items.add(node);
         }
         return items;
+    }
+
+    /** The keys a pool reads under {@code pools:}. */
+    public static final List<String> POOL_KEYS = Collections.unmodifiableList(Arrays.asList("from-tag", "from", "draw", "window",
+            "no-repeat-last", "reroll", "owner"));
+
+    /**
+     * Opens in {@code engine} every pool of a {@code pools:} map - {@code {daily-mission: {from-tag: daily, draw: 1,
+     * window: "daily at 04:00", no-repeat-last: 3, reroll: {gate: {cost: [...]}, cooldown: 24h}}}} - and returns them.
+     *
+     * @throws IllegalArgumentException naming the pool, the key and what to write instead
+     */
+    public static List<QuestPool> parsePools(QuestEngine engine, JsonNode pools, ZoneId zone) {
+        ECPluginData owner = engine.getOwner();
+        String ownerName = owner.getMetaInfo().getName();
+        List<QuestPool> opened = new ArrayList<>();
+        if (pools == null || !pools.isObject()) {
+            throw new IllegalArgumentException("pools is a map of pool name to pool, e.g. {daily-mission: {from-tag: daily, draw: 1}} - this one"
+                    + " is " + pools + ".");
+        }
+        for (Iterator<Map.Entry<String, JsonNode>> fields = pools.fields(); fields.hasNext(); ) {
+            Map.Entry<String, JsonNode> field = fields.next();
+            String name = field.getKey();
+            JsonNode node = field.getValue();
+            String where = "Pool '" + name + "' of " + ownerName;
+            for (Iterator<String> keys = node.fieldNames(); keys.hasNext(); ) {
+                String key = keys.next();
+                if (!POOL_KEYS.contains(key)) {
+                    throw new IllegalArgumentException(where + " has no key '" + key + "'. A pool reads: " + POOL_KEYS + ".");
+                }
+            }
+            try {
+                Window window = node.hasNonNull("window") ? Window.parse(node.get("window"), zone) : null;
+                Gate gate = Gate.open();
+                Duration cooldown = null;
+                JsonNode reroll = node.get("reroll");
+                if (reroll != null && !reroll.isNull()) {
+                    if (reroll.has("gate")) {
+                        gate = Gate.parse(owner, reroll.get("gate"), zone);
+                    }
+                    if (reroll.hasNonNull("cooldown")) {
+                        cooldown = duration(where, "reroll cooldown", reroll.get("cooldown"));
+                    }
+                }
+                Gate rerollGate = gate;
+                Duration rerollCooldown = cooldown;
+                opened.add(engine.pool(name, pool -> {
+                    if (node.hasNonNull("from-tag")) {
+                        pool.fromTag(node.get("from-tag").asText());
+                    }
+                    for (JsonNode id : list(node.get("from"))) {
+                        pool.from(QuestId.parse(id.asText(), ownerName));
+                    }
+                    pool.draw(node.path("draw").asInt(1)).window(window).noRepeatLast(node.path("no-repeat-last").asInt(0))
+                            .reroll(rerollGate, rerollCooldown);
+                }));
+            } catch (IllegalArgumentException | TypeRegistryException failure) {
+                throw new IllegalArgumentException(where + ": " + failure.getMessage(), failure);
+            }
+        }
+        return opened;
     }
 
     /**

@@ -19,6 +19,7 @@ import br.com.finalcraft.evernifecore.quest.QuestId;
 import br.com.finalcraft.evernifecore.quest.QuestParams;
 import br.com.finalcraft.evernifecore.quest.QuestState;
 import br.com.finalcraft.evernifecore.quest.QuestStatus;
+import br.com.finalcraft.evernifecore.quest.core.CompletedObjectiveEligibility;
 import br.com.finalcraft.evernifecore.quest.core.CoreObjectiveTypes;
 import br.com.finalcraft.evernifecore.quest.ObjectiveType;
 import br.com.finalcraft.evernifecore.types.ParamSpec;
@@ -39,6 +40,7 @@ final class StockQuests {
         for (ObjectiveType<?> type : CoreObjectiveTypes.all()) {
             ObjectiveTypes.register(core, type);
         }
+        CompletedObjectiveEligibility.register(core);
         Conditions.registry().register(core, TypeDescriptor.<Condition>of("evernifecore:quest-status")
                 .describe("Whether the owner stands at a status of a quest: AVAILABLE, ACTIVE, COMPLETED...")
                 .param(questParam())

@@ -51,6 +51,9 @@ public final class QuestDefinition {
     private final EffectList onComplete;
     private final EffectList onFail;
     private final EffectList onAbandon;
+    private final Reward reward;
+    private final @Nullable Instant windowStart;
+    private final @Nullable Instant windowEnd;
 
     private QuestDefinition(Builder builder) {
         this.id = builder.id;
@@ -74,6 +77,9 @@ public final class QuestDefinition {
         this.onComplete = builder.onComplete;
         this.onFail = builder.onFail;
         this.onAbandon = builder.onAbandon;
+        this.reward = builder.reward;
+        this.windowStart = builder.windowStart;
+        this.windowEnd = builder.windowEnd;
     }
 
     public static Builder builder(QuestId id) {
@@ -184,6 +190,24 @@ public final class QuestDefinition {
         return onAbandon;
     }
 
+    /** What completing it pays, rule by rule, through {@code Rewards.pay}; {@link Reward#NONE} for nothing. */
+    public Reward getReward() {
+        return reward;
+    }
+
+    /** From when it can start; null for always. */
+    public @Nullable Instant getWindowStart() {
+        return windowStart;
+    }
+
+    /**
+     * When its window closes: it no longer starts, and an instance still active then pays its {@code on-window-end}
+     * rules and expires. Null for never.
+     */
+    public @Nullable Instant getWindowEnd() {
+        return windowEnd;
+    }
+
     /** Every objective of every stage, in order. */
     public List<Objective> getObjectives() {
         List<Objective> all = new ArrayList<>();
@@ -246,6 +270,9 @@ public final class QuestDefinition {
         private EffectList onComplete = NONE;
         private EffectList onFail = NONE;
         private EffectList onAbandon = NONE;
+        private Reward reward = Reward.NONE;
+        private @Nullable Instant windowStart;
+        private @Nullable Instant windowEnd;
 
         private Builder(QuestId id) {
             this.id = Objects.requireNonNull(id, "id");
@@ -345,6 +372,22 @@ public final class QuestDefinition {
 
         public Builder onAbandon(EffectList effects) {
             this.onAbandon = effects;
+            return this;
+        }
+
+        public Builder reward(Reward reward) {
+            this.reward = Objects.requireNonNull(reward, "reward");
+            return this;
+        }
+
+        /** The window it runs in; either end may be null (open). */
+        public Builder window(@Nullable Instant start, @Nullable Instant end) {
+            if (start != null && end != null && !end.isAfter(start)) {
+                throw new IllegalArgumentException("Quest '" + id + "': its window ends (" + end + ") before it starts (" + start + ")."
+                        + " Write window: {from: ..., to: ...} with 'to' after 'from'.");
+            }
+            this.windowStart = start;
+            this.windowEnd = end;
             return this;
         }
 

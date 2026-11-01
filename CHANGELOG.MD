@@ -29,6 +29,17 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `fail-quest`, `track-quest`; the `quest.event` family; `ECDebugModule.QUESTS`. Engine: `QuestWorld`,
   `QuestDefinitionsFixture`.
 
+- **Quest owners, rewards, pools and region objectives**: a quest of `owner: group` started by a member belongs to
+  their group (every member counts, by contribution), `owner: region` counts the actions inside the region; a dissolved
+  group or a removed region fails its quests with `FailCause.OWNER_GONE`. `rewards:` is a list of `logic.reward`
+  `RewardRule`s paid by `Rewards.pay` with the measured contributions and last actor - on completion, at the end of the
+  quest's `window: {from, to}` (then it expires) and when the owner is gone; new reward piece `completed-objective`.
+  `QuestEngine.pool(...)` / YAML `pools:` draw quests per owner and window (weights, `noRepeatLast`, paid `reroll`).
+  Objective types `enter-region`, `leave-region`, `stay-in-region` (`measure: continuous|accumulated`) and
+  `reach-location` (a `TRANSIENT` region tagged `evernifecore:quest-target` while the quest is registered); conditions
+  `in-region` (with `for-at-least`), `region-flag`, `region-member` and variable `region-time` in `logic.core`.
+  Engine: `QuestWorld.region/move`, fixtures `arena-night` and `arena-warmup`.
+
 - **Screens render on Hytale**: `HyPageRenderer` (`evernifecore:page`, `hytale.screen`) draws any `Screen` as a server
   page (`InteractiveCustomUIPage`) from the core's own layouts in its asset pack (`EverNifeCore/Screen.ui`, `Cell.ui`,
   `Prompt.ui`): a frame sized to the grid, the title, one cell per slot with the item, its amount and the name and lore

@@ -21,6 +21,7 @@ public abstract class QuestSection extends PDSection {
 
     private Map<String, QuestState> states = new LinkedHashMap<>();
     private @Nullable String tracked;
+    private Map<String, PoolDraw> pools = new LinkedHashMap<>();
 
     protected QuestSection() {
         //Jackson no-arg constructor - the framework attaches the PlayerData afterwards
@@ -42,5 +43,14 @@ public abstract class QuestSection extends PDSection {
 
     public void setTracked(@Nullable String tracked) {
         this.tracked = tracked;
+    }
+
+    /** The player's draw of each pool, by pool name; the engine's own map, not a copy. */
+    public Map<String, PoolDraw> getPools() {
+        return pools;
+    }
+
+    public void setPools(Map<String, PoolDraw> pools) {
+        this.pools = pools == null ? new LinkedHashMap<String, PoolDraw>() : pools;
     }
 }

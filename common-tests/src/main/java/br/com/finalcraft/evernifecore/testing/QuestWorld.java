@@ -26,13 +26,24 @@ import br.com.finalcraft.evernifecore.quest.QuestEngine;
 import br.com.finalcraft.evernifecore.quest.QuestId;
 import br.com.finalcraft.evernifecore.quest.QuestIndex;
 import br.com.finalcraft.evernifecore.quest.QuestSection;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
+import br.com.finalcraft.evernifecore.region.CreationResult;
+import br.com.finalcraft.evernifecore.region.Persistence;
+import br.com.finalcraft.evernifecore.region.Region;
+import br.com.finalcraft.evernifecore.region.RegionManager;
+import br.com.finalcraft.evernifecore.region.RegionOptions;
+import br.com.finalcraft.evernifecore.region.session.MoveCause;
+import br.com.finalcraft.evernifecore.region.session.RegionMovementTracker;
+import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -64,6 +75,7 @@ public final class QuestWorld implements AutoCloseable {
 
     private final LogicWorld logic;
     private final QuestEngine engine;
+    private final Map<FPlayer, WorldLocPos> positions = new LinkedHashMap<>();
     private boolean closed;
 
     private QuestWorld(String ownerName, Path dataFolder) {
@@ -184,8 +196,47 @@ public final class QuestWorld implements AutoCloseable {
     }
 
     public DamageContext kill(FPlayer killer, String victimKey) {
-        return new DamageContext(EventSource.KILL, WorldLocPos.of(0, 64, 0, "world"), Actors.player(killer), null,
-                Actors.entity(victimKey, ECEntityType.MONSTER));
+        return kill(killer, victimKey, WorldLocPos.of(0, 64, 0, "world"));
+    }
+
+    public DamageContext kill(FPlayer killer, String victimKey, WorldLocPos at) {
+        return new DamageContext(EventSource.KILL, at, Actors.player(killer), null, Actors.entity(victimKey, ECEntityType.MONSTER));
+    }
+
+    // ------------------------------------------------------------------
+    //  Regions
+    // ------------------------------------------------------------------
+
+    /** The region manager of this world's plugin, without storage: its regions are TRANSIENT and leave at {@link #close()}. */
+    public RegionManager regions() {
+        return RegionManager.of(getOwner());
+    }
+
+    /**
+     * A box of this world's plugin in {@code world}, with {@code tags}.
+     *
+     * @throws AssertionError naming the refusal when the manager refused it
+     */
+    public Region region(String name, String world, int x1, int y1, int z1, int x2, int y2, int z2, String... tags) {
+        CreationResult result = regions().create(name, world, CuboidShape.of(BlockPos.of(x1, y1, z1), BlockPos.of(x2, y2, z2)),
+                RegionOptions.defaults().withPersistence(Persistence.TRANSIENT).withTags(tags));
+        if (!result.isCreated()) {
+            throw new AssertionError("The region [" + name + "] was refused: " + result.getRefusal());
+        }
+        return result.getRegion();
+    }
+
+    /**
+     * Walks {@code player} to {@code to}, as a platform's move listener does: the first call places them (a join), the
+     * next ones move them from where the last left them - posting the region crossings on the way.
+     */
+    public void move(FPlayer player, WorldLocPos to) {
+        WorldLocPos from = positions.put(player, to);
+        if (from == null) {
+            RegionMovementTracker.get().onJoin(player, to);
+        } else {
+            RegionMovementTracker.get().onMove(player, from, to, MoveCause.MOVE, null);
+        }
     }
 
     // ------------------------------------------------------------------
@@ -219,6 +270,17 @@ public final class QuestWorld implements AutoCloseable {
         }
         closed = true;
         QuestEngine.closeOwnedBy(getOwner());
+        for (FPlayer player : positions.keySet()) {
+            RegionMovementTracker.get().onQuit(player);
+        }
+        RegionManager regions = RegionManager.ofIfPresent(getOwner());
+        if (regions != null) {
+            CompletableFuture<Void> closing = regions.close(); //its write goes through the shared scheduler
+            for (int round = 0; !closing.isDone() && round < 100; round++) {
+                runDue();
+            }
+            closing.join();
+        }
         logic.close();
     }
 

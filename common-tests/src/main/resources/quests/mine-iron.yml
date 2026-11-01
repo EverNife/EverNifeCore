@@ -16,4 +16,4 @@ stages:
       - { id: smith, type: interact-npc, npc: "citizens:12", costs: [ { type: item, item: "minecraft:raw_iron", amount: 32 } ] }
     on-complete: [ { type: message, text: "&aDelivered!" } ]
 rewards:
-  - effects: [ { type: money, amount: 500 }, { type: command, as: console, run: "crate give {player} iron 1" } ]
+  - effects: [ { type: money, amount: 500 }, { type: command, as: console, command: "crate give {player} iron 1" } ]

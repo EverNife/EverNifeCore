@@ -14,15 +14,18 @@ import java.util.concurrent.CompletableFuture;
 /**
  * Internal: the quest states of owners that are not players (groups, the server, regions, worlds) in one plugin's
  * {@link ECStorage}, collection {@value #COLLECTION}, one entity per owner and quest keyed
- * {@code <ownerKind>:<ownerId>|<questId>}. The plugin's engine is its only writer.
+ * {@code <ownerKind>:<ownerId>|<questId>}, and their pool draws in {@value #POOL_COLLECTION}, keyed
+ * {@code <ownerKind>:<ownerId>|<pool>}. The plugin's engine is its only writer.
  */
 public final class QuestStorage {
 
     public static final String COLLECTION = "quest_states";
+    public static final String POOL_COLLECTION = "quest_pools";
 
     private static final int SCAN_PAGE = 500;
 
     private final CachingManager<String, Record> manager;
+    private final CachingManager<String, PoolRecord> pools;
 
     QuestStorage(ECStorage storage) {
         EntityDescriptor<String, Record> descriptor = EntityDescriptor.builder(String.class, Record.class)
@@ -31,6 +34,11 @@ public final class QuestStorage {
                 .codec(storage.defaultCodec(Record.class))
                 .build();
         this.manager = storage.manager(descriptor, CachePolicy.always());
+        this.pools = storage.manager(EntityDescriptor.builder(String.class, PoolRecord.class)
+                .collection(POOL_COLLECTION)
+                .keyExtractor(record -> record.key)
+                .codec(storage.defaultCodec(PoolRecord.class))
+                .build(), CachePolicy.always());
     }
 
     static String keyOf(String owner, String questId) {
@@ -39,15 +47,28 @@ public final class QuestStorage {
 
     CompletableFuture<List<ScanRow<Record>>> loadAll() {
         List<ScanRow<Record>> rows = new ArrayList<>();
-        return scanFrom(Cursor.scan(), rows).thenApply(done -> rows);
+        return scanFrom(manager, Cursor.scan(), rows).thenApply(done -> rows);
     }
 
-    private CompletableFuture<Void> scanFrom(Cursor cursor, List<ScanRow<Record>> rows) {
-        return manager.repository().scanAll(cursor, SCAN_PAGE).thenCompose(page -> {
+    CompletableFuture<List<ScanRow<PoolRecord>>> loadPools() {
+        List<ScanRow<PoolRecord>> rows = new ArrayList<>();
+        return scanFrom(pools, Cursor.scan(), rows).thenApply(done -> rows);
+    }
+
+    private static <T> CompletableFuture<Void> scanFrom(CachingManager<String, T> from, Cursor cursor, List<ScanRow<T>> rows) {
+        return from.repository().scanAll(cursor, SCAN_PAGE).thenCompose(page -> {
             rows.addAll(page.content());
             Cursor next = page.hasNext() ? page.nextCursor().orElse(null) : null;
-            return next == null ? CompletableFuture.completedFuture(null) : scanFrom(next, rows);
+            return next == null ? CompletableFuture.completedFuture(null) : scanFrom(from, next, rows);
         });
+    }
+
+    CompletableFuture<Void> savePool(PoolRecord record) {
+        return pools.saveAndCache(record);
+    }
+
+    CompletableFuture<Boolean> deletePool(String key) {
+        return pools.deleteAndEvict(key);
     }
 
     CompletableFuture<Void> save(Record record) {
@@ -56,6 +77,26 @@ public final class QuestStorage {
 
     CompletableFuture<Boolean> delete(String key) {
         return manager.deleteAndEvict(key);
+    }
+
+    /** Internal: one stored pool draw. */
+    public static final class PoolRecord {
+        public String key;
+        /** {@code ProgressOwner.toString()}. */
+        public String owner;
+        public String pool;
+        public PoolDraw draw;
+
+        public PoolRecord() {
+            //Jackson
+        }
+
+        PoolRecord(String owner, String pool, PoolDraw draw) {
+            this.key = keyOf(owner, pool);
+            this.owner = owner;
+            this.pool = pool;
+            this.draw = draw;
+        }
     }
 
     /** Internal: one stored state. */

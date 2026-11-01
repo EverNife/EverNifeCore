@@ -6,7 +6,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-/** The core's stock objective types: one per action source, plus {@code state}, {@code timer} and {@code quest-completed}. */
+/** The core's stock objective types: one per action source, plus {@code state}, {@code timer}, {@code quest-completed} and the region ones ({@code enter-region}, {@code leave-region}, {@code stay-in-region}, {@code reach-location}). */
 public final class CoreObjectiveTypes {
 
     private CoreObjectiveTypes() {
@@ -21,6 +21,7 @@ public final class CoreObjectiveTypes {
                 new FishObjectiveType(), new ConsumeObjectiveType(), new XpObjectiveType(), new EnchantObjectiveType(),
                 new TameObjectiveType(), new BreedObjectiveType(), new ShearObjectiveType(), new CommandObjectiveType(),
                 new InteractNpcObjectiveType(), new ExploreObjectiveType(),
-                new StateObjectiveType(), new TimerObjectiveType(), new QuestCompletedObjectiveType()));
+                new StateObjectiveType(), new TimerObjectiveType(), new QuestCompletedObjectiveType(),
+                new EnterRegionObjectiveType(), new LeaveRegionObjectiveType(), new StayInRegionObjectiveType(), new ReachLocationObjectiveType()));
     }
 }

@@ -1,0 +1,26 @@
+id: arena-night
+version: 2
+on-version-change: keep-by-id
+name: "&cArena night"
+owner: { type: group }
+window: { from: "2026-10-06 08:00", to: "2026-10-06 10:00", zone: America/Sao_Paulo }
+stages:
+  - id: slay
+    objectives: { mode: all, items: [ { id: mobs, type: kill, entity: "minecraft:*", goal: 500, conditions: [ { type: in-region, region: arena } ] } ] }
+fail-when: [ { type: none, conditions: [ { type: in-region, region: arena } ] } ]   # the whole party out of the arena fails it
+rewards:
+  - eligibility: [ { type: online }, { type: contribution-share, at-least: 20% } ]
+    distribution: { type: proportional }
+    absent: forfeit
+    effects: [ { type: money, amount: 10000 } ]            # 10 000 in total, split by contribution
+  - eligibility: [ { type: top, count: 1 } ]
+    distribution: { type: each }
+    effects: [ { type: message, text: "&6Party MVP!" } ]
+  - moment: on-window-end
+    eligibility: [ { type: top, count: 1 } ]
+    distribution: each
+    effects: [ { type: money, amount: 1000 } ]             # the night ended first: the best one still gets paid
+  - moment: on-owner-gone
+    eligibility: [ { type: contribution-at-least, min: 50 } ]
+    distribution: { type: proportional }
+    effects: [ { type: money, amount: 2000 } ]             # the party dissolved mid-event: partial pay

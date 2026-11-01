@@ -1,0 +1,13 @@
+id: arena-warmup
+version: 1
+name: "&eWarm-up"
+stages:
+  - id: go
+    objectives: [ { id: there, type: reach-location, world: world, x: 120, y: 64, z: -40, radius: 3 } ]
+  - id: hold
+    objectives:
+      - { id: inside, type: stay-in-region, region: arena, duration: 60s, measure: continuous }
+      - { id: visit, type: enter-region, tag: checkpoint, goal: 3 }
+    then: COMPLETE
+fail-when: [ { type: in-region, region: lobby, for-at-least: 5m } ]   # idling in the lobby fails it
+rewards: [ { effects: [ { type: message, text: "&aReady!" } ] } ]
