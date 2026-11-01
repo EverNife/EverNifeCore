@@ -2,6 +2,9 @@ package br.com.finalcraft.evernifecore.minecraft.loader;
 
 import br.com.finalcraft.evernifecore.minecraft.screen.BukkitScreenListener;
 import br.com.finalcraft.evernifecore.minecraft.screen.ChestScreenRenderer;
+import br.com.finalcraft.evernifecore.minecraft.screen.prompt.BukkitAnvilPromptChannel;
+import br.com.finalcraft.evernifecore.minecraft.screen.prompt.BukkitChatPromptChannel;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptRegistry;
 import br.com.finalcraft.evernifecore.screen.Screens;
 import br.com.finalcraft.evernifecore.group.IGroupGlowProvider;
 import br.com.finalcraft.evernifecore.minecraft.group.McGroupGlowProvider;
@@ -169,6 +172,8 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
         ECListener.register(ecPluginData, PlayerInteractListener.class);
         ECListener.register(ecPluginData, PluginListener.class);
         Screens.registerRenderer(ecPluginData, new ChestScreenRenderer());
+        PromptRegistry.get().register(ecPluginData, new BukkitAnvilPromptChannel());
+        PromptRegistry.get().register(ecPluginData, new BukkitChatPromptChannel());
         ECListener.register(ecPluginData, BukkitScreenListener.class);
         ECListener.register(ecPluginData, new McWorldListener(platform));
         //after the PluginListener, so the handlers of the protection plugins are asked first

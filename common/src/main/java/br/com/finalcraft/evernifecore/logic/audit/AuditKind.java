@@ -32,5 +32,7 @@ public enum AuditKind {
     /** A delayed effect whose player left was thrown away: only the core's own effects can wait in a delivery. */
     DELIVERY_DISCARDED,
     /** A reward rule paid a member its share (applied, or kept as a pending delivery); the subject is the reward's owner. */
-    REWARD_PAID
+    REWARD_PAID,
+    /** A shop offer was bought or sold; the subject is the first price line's id, the amount its total. */
+    TRANSACTION
 }

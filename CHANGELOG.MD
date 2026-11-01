@@ -73,6 +73,38 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `pickup`, `craft`, `interact`, `reach-location` map) is refused on registration, naming the objective.
   `QuestEngine.addDefinitionCheck` is the hook; `QuestDefinition.getHytaleNative()` the raw map.
 
+- **Dialogue trees** (`br.com.finalcraft.evernifecore.dialogue`): nodes, options gated by a `Gate`, effects, `goto`, one
+  session per player with timeout and fail-when, started by the `start-dialogue` effect, an NPC or a region crossing, and
+  drawn by the default `evernifecore:dialogue` screen that any plugin may override. A `Dialogue` is built in code
+  (`Dialogue.builder`) or read from a plugin's YAML (`Dialogue.parse`) and refused at build when a `goto` or the entry
+  names no node, a `remember` names no custom `String` variable, or a loop has no way out. `Dialogues.of(plugin)` keeps
+  them (texts through the plugin's `LocaleOverlay`, `pt-BR` reading as `PT_BR`), `Dialogues.start` opens a
+  `DialogueSession` that ends once with a `DialogueEndCause` (`END`, `CLOSED`, `TIMEOUT`, `FAIL_WHEN`, `PLAYER_LEFT`,
+  `REPLACED`, `OWNER_DISABLED`, `API`); `DialogueStartedEvent` and `DialogueChoiceEvent` cancel, `DialogueEndedEvent`
+  reports. The effect `end-dialogue` ends the player's session; `@Arg("<dialogue>") Dialogue` parses `owner:name`;
+  `/ecore dialogue <player>` (permission `evernifecore.command.dialogue`) reads the session. `Choice.pickedBy`,
+  `Screen.choice(SlotSet, ...)` and a public `Screens.build` let an engine route a choice and know the screen it showed.
+  The test engine gains `DialogueTrees`.
+
+- **Menus and shops (`menu`)**: a plugin registers a `Menu` (a `Screen` with offer buttons) under `owner:name` and
+  anything opens it by id with positional arguments (`MenuRegistry.open`, the `evernifecore:open-menu` effect - on top
+  of the screen a click came from, so back returns -, the mountable `MenuCommandNode` with `open`, `openfor`, `list`).
+  An offer button trades through one `ClickRule` per gesture of a `ClickMap` (`market()`: left buys one, shift-left a
+  stack, right sells one, shift-right all held, middle asks how many through the prompt channel), asks
+  `ScreenKey.CONFIRM` first for a `confirm()` offer, reads `{price}`/`{sell-price}`/`{quantity}` in its text and tells
+  the player the menu's success or deny text (`{result}`, `{missing}`); `Menu.offers(region, source)` pages a catalog.
+  `MenuContext` reads the menu, offer, gesture, arguments and view off an `ExecutionContext`. A plugin's menus leave
+  with its shutdown. The core reads no menu file.
+- **Shop transactions (`menu`)**: an `Offer` buys or sells `Goods` (`ItemGoods`, an item matched by `ItemMatcher`, or
+  `EffectGoods`, effects run once per unit) for a composite `Price` in any registered currencies (lines read from a
+  `Variable` at every quote; item lines on a BUY), behind a `Gate`, with a `RepeatPolicy` limit per player, group or
+  server, optional confirmation and a delivery destination. `Transactions.quote/buy/sell/trade/sellAll/sellHand` run it
+  in one fixed order - gate, limit, room, cancellable `TransactionPreEvent` (mutable quantity and totals, the original
+  kept), one atomic `Gate.pay` of price and fixed costs, goods, limit, `AuditKind.TRANSACTION` in the owner's
+  `AuditLog`, informative `TransactionEvent` - and answer a typed `TransactionResult`; goods that do not fit go to the
+  pending deliveries unless the offer says `NoSpacePolicy.REFUSE`. `OfferCatalog` finds the SELL offer of an item for
+  `sellHand` (held stack or the same item everywhere) and `sellAll`. Engine: `Menus` (over `ScreenWorld` + `LogicWorld`),
+  `CountedGoods`, `RecordingGoods`, `TestCurrency.refuseTakes`, `TestInventory.hold/addSeparately`.
 - **Screens render on Hytale**: `HyPageRenderer` (`evernifecore:page`, `hytale.screen`) draws any `Screen` as a server
   page (`InteractiveCustomUIPage`) from the core's own layouts in its asset pack (`EverNifeCore/Screen.ui`, `Cell.ui`,
   `Prompt.ui`): a frame sized to the grid, the title, one cell per slot with the item, its amount and the name and lore
@@ -85,6 +117,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `HyPagePrompt`, asks on a page with a field, OK and Cancel; a parser's refusal shows under the field. Registered at
   enable; `ScreenWorld.open(dir, platform, ...)` adjusts the test platform (`Platforms::offWorldThread`). The
   `hytale-0.7.1` conformance flavor gains the `screen` suite (8 cases) and `/ecc screen sample <player>`.
+- `PlayerController.getRemoteSignal(sectionClass)` answers how this server hears another server's write to a section's
+  rows: `RemoteSignal.LIVE` (a cache-sync covers the collection), `CONFLICT_ONLY` (a shared network backend without one:
+  only the next flush conflict tells) or `NONE` (file, H2, memory). A plugin running on several servers decides how
+  careful a debit must be by it.
+- `PlayerController.findSections(sectionClass, uuids)`: the stored rows of a known set of players in ONE backend read by
+  key, never filling the cache (the key needs no `@Indexed`, unlike `querySections`) - a clan page over its members.
 - **NPC references (`br.com.finalcraft.evernifecore.npc`)**: `NpcRef` is `provider:id` (`citizens:12`,
   `fancynpcs:<uuid>`, `znpcsplus:merchant`, `hytale:<uuid>`, lowercased); the `NpcProvider` SPI answers `resolve(entity)`,
   `find(ref)`, `getLocation(ref)`, `getName(ref)` and starts raising clicks only while needed; `Npcs.register(owner,
@@ -382,6 +420,15 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **A plugin that fails before EverNifeCore enables no longer takes the core down**: a section registered by a plugin
+  whose enable failed ahead of the core (its jar already closed) is dropped with a SEVERE line naming the plugin, and the
+  core and every other section boot; before, `PlayerController` died binding it (`IllegalStateException: zip file closed`)
+  and every plugin on the core failed with it.
+- **A group kind's flag default now reaches the flag resolution**: `Group.getFlagValue` answers the kind's
+  `flagDefault` when the group sets nothing, so a kind that defaults `deny-friendly-fire` (or `invincible`,
+  `damage-multiplier`) acts on its members; before, only `getEffectiveFlag` saw the default and the resolution read the
+  flag's own default instead. The group's own value still wins.
+
 - **`LogicWorld` beside another world**: it puts the stock on a core plugin data the test already built (and leaves it
   there when it closes), and adds or takes only its own players on the platform's online list instead of replacing it,
   so a `GroupWorld` (or `RegionWorld`) open next to it keeps its players.
@@ -401,6 +448,31 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **Prompts have one registry and an anvil channel**: `PromptRegistry.get().ask(view, spec)` keeps the one pending
+  question per screen (set aside and given back, timeout on the screen's clock, a second question cancels the first,
+  `QUIT` when the screen is released mid-question, delivery on the screen's thread) for every channel; `PromptKind`
+  (`PAGE`, `ANVIL`, `CHAT`) names them and `PromptSpec.prefer(kind)` steers the choice (default: the richest that serves
+  the player, chat last; none at all ends `CANCELLED` and logs how to register one). A `PromptChannel` is now dumb:
+  `getKind()`, `isSupported(FPlayer)`, `open(PromptSession)`, `dismiss(PromptSession)`; a session's `answer(typed)`
+  returns `PromptReply.accepted()` or `refused(message)`, and a session that ended ignores what its channel reports.
+  Bukkit registers `BukkitAnvilPromptChannel` (over ECNmsUtils' `anvil()`) and `BukkitChatPromptChannel` at enable,
+  Hytale its `HyPagePrompt` as `PAGE`. On the anvil a refused answer keeps it open with the parser's text as the
+  result's name, closing it ends the prompt `CANCELLED`, the screen comes back without an `onClose`, XP cost is zero and
+  no item reaches the inventory; where `NMSUtils.isSupported()` or the anvil's own probe is false the question falls
+  back to chat. `PromptSpec` is the one final class (`Prompt` is gone) and gains `prefer`, `initialText` and
+  `icon(ItemSpec)`; `ScreenRenderer.getPromptChannel()` is gone (the registry picks the channel), and
+  `ScreenScheduler.ticksOf(millis)` converts a timeout to the renderer's ticks. Test engine: `ScreenWorld.prompts()`
+  (`FakePromptChannels`, one fake `CHAT` by default) replaces the recording renderer's channel, and
+  `ScreenWorld.close()` fails while a question is still out (after ending it, `PromptRegistry.abandonAll()`). ECNmsUtils
+  2.2.0.
+- **`ClickContext.open(screen, args...)` and `ClickContext.open(key, request)`**: a screen opened on top can carry its
+  own `{0}..{n}`, and a keyed screen (`ScreenKey.CONFIRM`) opens on top through the four override layers;
+  `ScreenNavigation.open(current, next, args)` underneath.
+- **`ItemMatcher` reads name and lore when asked**: `plainOnly()` refuses an item with a name or lore of its own and
+  `exact(ItemSpec)` wants its very name and lore; `of(id)` still looks at the material only. Both platforms' inventories
+  now match on the whole description.
+- **`InventoryDestination` exposes the inventory**: `getContents(player)` (main inventory, described), `getHeld(player)`
+  and `roomFor(player, item)` join `count`/`take`, implemented on Bukkit, Hytale and `TestInventory`.
 - **The gui framework is the `screen` package of `:common`.** `Gui` is `Screen`, `GuiView` is `ScreenView`, `Icon` carries
   an `ItemSpec` and only looks like something; what a slot does is a `Button` (`screen.icon(l -> l.X)` answers one), a
   `Label`, a `PagedList`, an `InputField`, a `ProgressBar` or a dialogue `Choice`, each with a stable id. A click runs

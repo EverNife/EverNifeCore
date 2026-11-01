@@ -5,6 +5,8 @@ import br.com.finalcraft.evernifecore.quest.QuestDefinition;
 import br.com.finalcraft.evernifecore.quest.command.ArgParserQuest;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.command.ArgParserRegion;
+import br.com.finalcraft.evernifecore.dialogue.Dialogue;
+import br.com.finalcraft.evernifecore.dialogue.command.ArgParserDialogue;
 import br.com.finalcraft.evernifecore.region.command.ArgParserRegionFlag;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
@@ -77,6 +79,7 @@ public class FinalCMDManager {
         ArgParserManager.addBuiltinParser(FPlayer.class, ArgParserFPlayer.class);
         ArgParserManager.addBuiltinParser(Region.class, ArgParserRegion.class);
         ArgParserManager.addBuiltinParser(QuestDefinition.class, ArgParserQuest.class);
+        ArgParserManager.addBuiltinParser(Dialogue.class, ArgParserDialogue.class);
         ArgParserManager.addBuiltinParser(Flag.class, ArgParserRegionFlag.class);
 
         ArgParserManager.addBuiltinContextualParser(FPlayer.class, ArgParserContextualFPlayer.class);

@@ -20,11 +20,11 @@ import br.com.finalcraft.evernifecore.logic.delivery.DeliveryOrigin;
 import br.com.finalcraft.evernifecore.logic.delivery.DeliveryPolicy;
 import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFPlayer;
 import br.com.finalcraft.evernifecore.minecraft.inventory.GenericInventory;
+import br.com.finalcraft.ecnmsutils.NMSUtils;
 import br.com.finalcraft.evernifecore.minecraft.screen.BukkitScreenScheduler;
 import br.com.finalcraft.evernifecore.minecraft.screen.BukkitScreenSurface;
 import br.com.finalcraft.evernifecore.minecraft.screen.ChestKind;
 import br.com.finalcraft.evernifecore.minecraft.screen.ChestScreenRenderer;
-import br.com.finalcraft.evernifecore.minecraft.screen.prompt.BukkitChatPromptChannel;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.ranking.RankedList;
@@ -49,13 +49,17 @@ import br.com.finalcraft.evernifecore.screen.ScreenNavigation;
 import br.com.finalcraft.evernifecore.screen.ScreenView;
 import br.com.finalcraft.evernifecore.screen.Screens;
 import br.com.finalcraft.evernifecore.screen.Slots;
-import br.com.finalcraft.evernifecore.screen.prompt.Prompt;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptKind;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptRegistry;
 import br.com.finalcraft.evernifecore.screen.prompt.PromptResult;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptSpec;
 import br.com.finalcraft.evernifecore.time.Window;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionDefault;
@@ -138,6 +142,12 @@ public final class ScreenSuite implements ConformanceSuite {
             screen.icon(13, Icon.of("minecraft:paper")).onClick(click -> click.ask(question()));
             return screen;
         });
+        screen("prompt-anvil", 27, "", probe -> {
+            Screen<Layout> screen = named(Screen.of(3), "prompt-anvil", probe);
+            screen.icon(13, Icon.of("minecraft:paper")).onClick(click -> click.ask(anvilQuestion(Duration.ofSeconds(60)))
+                    .thenAccept(amount -> Bukkit.getLogger().info("[ECoreConformance] prompt-anvil answered " + amount)));
+            return screen;
+        });
         screen("pager", 27, "", probe -> {
             Screen<Layout> screen = named(Screen.of(3), "pager", probe);
             List<Integer> entries = new ArrayList<>();
@@ -160,11 +170,12 @@ public final class ScreenSuite implements ConformanceSuite {
         screen("confirm", 27, "§8ecc confirm?", probe -> ConfirmScreen.of(ConfirmRequest.of("§8ecc confirm?"))
                 .onClose(close -> probe.closes.add(close.getReason())));
         screen("deliveries", 36, "", probe -> named(DeliveriesScreen.of(), "deliveries", probe));
+        screen("shop", 27, "", probe -> named(ShopSample.build(ECPluginManager.getProvidingPlugin(ScreenSuite.class)), "shop", probe));
         screen("ranking", 36, "", probe -> named(RankingScreen.of(RankingRequest.of(threeRanked())), "ranking", probe));
         screen("input", 27, "", probe -> {
             Screen<InputLayout> screen = named(Screen.of(InputLayout.class), "input", probe);
-            screen.input(l -> l.FIELD).onInput(Prompt.of("§e[ECoreConformance] screen/input - no answer needed, it times out")
-                    .timeout(Duration.ofSeconds(2)), (view, typed) -> probe.answers.add(typed));
+            screen.input(l -> l.FIELD).onInput(PromptSpec.of("§e[ECoreConformance] screen/input - no answer needed, it times out")
+                    .prefer(PromptKind.CHAT).timeout(Duration.ofSeconds(2)), (view, typed) -> probe.answers.add(typed));
             return screen;
         });
         screen("progress", 27, "", probe -> {
@@ -305,14 +316,55 @@ public final class ScreenSuite implements ConformanceSuite {
             }
             case "prompt": {
                 CompletableFuture<String> done = new CompletableFuture<>();
-                CompletableFuture<PromptResult<String>> result = BukkitChatPromptChannel.get().ask(view,
-                        Prompt.of("§e[ECoreConformance] screen/prompt - no answer needed, it times out").timeout(Duration.ofSeconds(2)));
+                CompletableFuture<PromptResult<String>> result = PromptRegistry.get().ask(view,
+                        PromptSpec.of("§e[ECoreConformance] screen/prompt - no answer needed, it times out")
+                                .prefer(PromptKind.CHAT).timeout(Duration.ofSeconds(2)));
                 after(2, done, () -> expect(problems, view.isSuspended(), "the screen was not set aside while asking"));
                 result.whenComplete((asked, threw) -> after(2, done, () -> {
                     expect(problems, asked != null && asked.getKind() == PromptResult.Kind.TIMEOUT, "prompt ended " + asked);
                     expect(problems, Screens.getOpenView(player.getUniqueId()) == view && !view.isSuspended(), "the screen did not come back");
                     done.complete("prompt=" + (asked == null ? null : asked.getKind()));
                 }));
+                return done;
+            }
+            case "prompt-anvil": {
+                //the anvil where the library links on this server; chat where there is no NMS bridge at all
+                boolean bridged = NMSUtils.isSupported();
+                PromptKind expected = bridged ? PromptKind.ANVIL : PromptKind.CHAT;
+                CompletableFuture<String> done = new CompletableFuture<>();
+                int level = player.getLevel();
+                ItemStack[] contents = copyOf(player.getInventory().getContents());
+                CompletableFuture<PromptResult<Integer>> result = PromptRegistry.get().ask(view,
+                        anvilQuestion(bridged ? Duration.ofSeconds(10) : Duration.ofSeconds(2)));
+                after(2, done, () -> {
+                    PromptKind kind = PromptRegistry.get().getPending(view);
+                    String window = openWindowType(player);
+                    String seen = "anvil=" + window + " kind=" + kind;
+                    expect(problems, view.isSuspended(), "the screen was not set aside while asking");
+                    expect(problems, kind == expected, "asked through " + kind + ", expected " + expected);
+                    if (bridged) {
+                        expect(problems, InventoryType.ANVIL.name().equals(window), "the open window is " + window);
+                    }
+                    //a second for the client to draw the anvil and send the rename it sends on opening: a 1.7.10 server
+                    //that gets it after the anvil closed hands an empty payload to the plugin messenger and kicks
+                    after(bridged ? 20 : 0, done, () -> {
+                        if (bridged) {
+                            player.closeInventory(); //the server closes the anvil: the question ends, the screen does not
+                        }
+                        until(done, problems, "the prompt did not end: " + seen, result::isDone, () -> after(2, done, () -> {
+                            PromptResult<Integer> asked = result.getNow(null);
+                            PromptResult.Kind ending = asked == null ? null : asked.getKind();
+                            expect(problems, ending == (bridged ? PromptResult.Kind.CANCELLED : PromptResult.Kind.TIMEOUT),
+                                    "prompt ended " + asked);
+                            expect(problems, Screens.getOpenView(player.getUniqueId()) == view && !view.isSuspended(),
+                                    "the screen did not come back");
+                            expect(problems, player.getLevel() == level, "level " + level + " -> " + player.getLevel());
+                            expect(problems, Arrays.equals(contents, player.getInventory().getContents()),
+                                    "the inventory changed: " + Arrays.toString(player.getInventory().getContents()));
+                            done.complete(seen + " level=" + player.getLevel() + " prompt=" + ending);
+                        }), System.currentTimeMillis() + 12_000L);
+                    });
+                });
                 return done;
             }
             case "storage": {
@@ -339,6 +391,8 @@ public final class ScreenSuite implements ConformanceSuite {
                 return CompletableFuture.completedFuture("");
             case "deliveries":
                 return claimTheSeededDelivery(view, probe, problems);
+            case "shop":
+                return CompletableFuture.completedFuture(ShopSample.exercise(ECPluginManager.getProvidingPlugin(ScreenSuite.class), viewer(player), view, problems));
             case "ranking": {
                 CompletableFuture<String> done = new CompletableFuture<>();
                 until(done, problems, "the three entries never came from the list", () -> isEntry(view, 2, "ranking#2"), () -> {
@@ -421,8 +475,41 @@ public final class ScreenSuite implements ConformanceSuite {
         return screen;
     }
 
-    private static Prompt<String> question() {
-        return Prompt.of("§e[ECoreConformance] type anything, or let it time out").timeout(Duration.ofSeconds(5));
+    /** How many, on the anvil: a refusal teaches the way out, and an answer is logged for whoever typed it by hand. */
+    private static PromptSpec<Integer> anvilQuestion(Duration timeout) {
+        return PromptSpec.of("§e[ECoreConformance] screen/prompt-anvil - how many?").prefer(PromptKind.ANVIL).timeout(timeout)
+                .parse(text -> {
+                    if (!text.matches("[0-9]+")) {
+                        throw new IllegalArgumentException("Not a number: '" + text + "'. Type digits only, like 250.");
+                    }
+                    return Integer.valueOf(text);
+                });
+    }
+
+    /**
+     * The type of the window {@code player} has open, by reflection: {@code InventoryView} is a class before 1.21 and an
+     * interface after it, so a compiled {@code getType()} call links on one side only.
+     */
+    private static String openWindowType(Player player) {
+        Object view = player.getOpenInventory();
+        try {
+            return String.valueOf(InventoryView.class.getMethod("getType").invoke(view));
+        } catch (ReflectiveOperationException unreadable) {
+            return "unreadable: " + unreadable;
+        }
+    }
+
+    private static ItemStack[] copyOf(ItemStack[] contents) {
+        ItemStack[] copy = new ItemStack[contents.length];
+        for (int i = 0; i < contents.length; i++) {
+            copy[i] = contents[i] == null ? null : contents[i].clone();
+        }
+        return copy;
+    }
+
+    private static PromptSpec<String> question() {
+        return PromptSpec.of("§e[ECoreConformance] type anything, or let it time out").prefer(PromptKind.CHAT)
+                .timeout(Duration.ofSeconds(5));
     }
 
     private static RankedList<String> threeRanked() {

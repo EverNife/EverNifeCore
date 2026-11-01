@@ -267,12 +267,12 @@ public class PlayerController {
             //static registry but before the swap) bound to the OLD instance only - sweep it in
             for (PDSectionConfiguration<?> configuration : REGISTERED_SECTIONS.values()){
                 if (!fresh.bindings.containsKey(configuration.getPdSectionClass())){
-                    fresh.bindSection(configuration);
+                    fresh.bindRegistered(configuration);
                 }
             }
             for (AccountSectionConfiguration<?> configuration : REGISTERED_ACCOUNT_SECTIONS.values()){
                 if (fresh.accountEngine.getBindingUnchecked(configuration.getSectionClass()) == null){
-                    fresh.accountEngine.bindUnchecked(configuration);
+                    fresh.bindRegistered(configuration);
                 }
             }
         }
@@ -437,10 +437,10 @@ public class PlayerController {
 
         //bind + hot-load each registered section (one by one, timed - as before)
         for (PDSectionConfiguration<?> configuration : REGISTERED_SECTIONS.values()){
-            bindSection(configuration);
+            bindRegistered(configuration);
         }
         for (AccountSectionConfiguration<?> configuration : REGISTERED_ACCOUNT_SECTIONS.values()){
-            accountEngine.bindUnchecked(configuration);
+            bindRegistered(configuration);
         }
 
         //network-wide server cooldowns: bound unconditionally (the reach is declared at the call site,
@@ -516,15 +516,7 @@ public class PlayerController {
     public static void deliverRemoteChange(Class<?> sectionClass, UUID key, ChangeOp op, long version, String originId){
         PlayerController controller = INSTANCE;
         if (controller == null) throw notBootstrapped();
-        CachingManager<UUID, ?> manager;
-        PDSectionBinding<? extends PDSection> binding = controller.bindings.get(sectionClass);
-        if (binding != null){
-            manager = binding.getManager();
-        }else {
-            AccountSectionBinding<?> accountBinding = controller.accountEngine.getBindingUnchecked(sectionClass);
-            if (accountBinding == null) throw notRegisteredPDSection(sectionClass);
-            manager = accountBinding.getManager();
-        }
+        CachingManager<UUID, ?> manager = controller.managerOf(sectionClass);
         CacheSyncWiring.Handle sync = controller.cacheSync;
         if (sync == null){
             throw new IllegalStateException("No cache-sync is running, so no remote change can reach "
@@ -533,6 +525,28 @@ public class PlayerController {
                     + " (Storages.memory() in a test), or a 'redis:' block.");
         }
         sync.deliver(new ChangeEvent(manager.collection(), key.toString(), op, version, originId));
+    }
+
+    /**
+     * How this server hears about another server's write to the rows of {@code sectionClass} (a PDSection or an
+     * AccountSection): {@link RemoteSignal#LIVE} when the running cache-sync covers its collection,
+     * {@link RemoteSignal#CONFLICT_ONLY} on a shared network backend without one, {@link RemoteSignal#NONE} on a
+     * file, H2 or memory backend. Any thread; throws before bootstrap or for an unregistered class.
+     */
+    public static RemoteSignal getRemoteSignal(Class<?> sectionClass){
+        PlayerController controller = INSTANCE;
+        if (controller == null) throw notBootstrapped();
+        CachingManager<UUID, ?> manager = controller.managerOf(sectionClass);
+        CacheSyncWiring.Handle sync = controller.cacheSync;
+        return RemoteSignal.of(sync != null && sync.covers(manager), manager.storage());
+    }
+
+    private CachingManager<UUID, ?> managerOf(Class<?> sectionClass){
+        PDSectionBinding<? extends PDSection> binding = bindings.get(sectionClass);
+        if (binding != null) return binding.getManager();
+        AccountSectionBinding<?> accountBinding = accountEngine.getBindingUnchecked(sectionClass);
+        if (accountBinding == null) throw notRegisteredPDSection(sectionClass);
+        return accountBinding.getManager();
     }
 
     private void closeCacheSync(){
@@ -1056,6 +1070,39 @@ public class PlayerController {
     }
 
     @SuppressWarnings("unchecked")
+    /**
+     * Binds a section another plugin registered before this bootstrap. One that cannot bind is dropped
+     * with the reason instead of failing the bootstrap: that plugin may already be gone - a plugin whose
+     * enable failed ahead of EverNifeCore leaves its registration behind with its jar closed - and one
+     * broken registration must not take the core, and every plugin on it, down.
+     */
+    private void bindRegistered(PDSectionConfiguration<?> configuration){
+        try {
+            bindSection(configuration);
+        }catch (RuntimeException | LinkageError unbindable){
+            REGISTERED_SECTIONS.remove(configuration.getPdSectionClass());
+            logUnbindable(configuration.getPluginData(), configuration.getPdSectionClass(), unbindable);
+        }
+    }
+
+    /** @see #bindRegistered(PDSectionConfiguration) */
+    private void bindRegistered(AccountSectionConfiguration<?> configuration){
+        try {
+            accountEngine.bindUnchecked(configuration);
+        }catch (RuntimeException | LinkageError unbindable){
+            REGISTERED_ACCOUNT_SECTIONS.remove(configuration.getSectionClass());
+            logUnbindable(configuration.getPluginData(), configuration.getSectionClass(), unbindable);
+        }
+    }
+
+    private static void logUnbindable(ECPluginData owner, Class<?> sectionClass, Throwable unbindable){
+        String pluginName = owner != null ? owner.getMetaInfo().getName() : "UnknownPlugin";
+        EverNifeCore.getLog().severe("The section {{}} of plugin '{}' could not be bound and was dropped: {}."
+                        + " If '{}' failed to enable (look for its own error above), fix that and restart;"
+                        + " otherwise check its entry in storage.yml. EverNifeCore and the other sections keep running.",
+                sectionClass.getName(), pluginName, String.valueOf(unbindable), pluginName);
+    }
+
     void bindSection(PDSectionConfiguration<?> configuration){
         bindSectionTyped((PDSectionConfiguration<PDSection>) configuration, false);
     }
@@ -1997,6 +2044,23 @@ public class PlayerController {
             PDSectionBinding<T> binding = controller.getBinding(cls);
             if (binding == null) return failedFuture(notRegisteredPDSection(cls));
             return binding.getRepository().query(query, options == null ? QueryOptions.none() : options);
+        });
+    }
+
+    /**
+     * The stored rows of these players, in ONE backend read by key, WITHOUT loading them into the cache - what a page
+     * over a known set of players (a clan's members) asks instead of one {@code getPDSection} per player. The key needs
+     * no {@code @Indexed}. A player with no stored row is simply absent; rows come back DETACHED, as from
+     * {@link #querySections}. Waits for the controller to be ready; fails before bootstrap.
+     */
+    public static <T extends PDSection> CompletableFuture<List<T>> findSections(Class<T> cls, Collection<UUID> uuids){
+        PlayerController controller = INSTANCE;
+        if (controller == null) return failedFuture(notBootstrapped());
+        List<UUID> keys = new ArrayList<>(uuids);
+        return controller.ready.thenCompose(v -> {
+            PDSectionBinding<T> binding = controller.getBinding(cls);
+            if (binding == null) return failedFuture(notRegisteredPDSection(cls));
+            return keys.isEmpty() ? CompletableFuture.completedFuture(new ArrayList<>()) : binding.getRepository().findMany(keys);
         });
     }
 

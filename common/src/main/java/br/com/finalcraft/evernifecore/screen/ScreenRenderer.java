@@ -1,7 +1,6 @@
 package br.com.finalcraft.evernifecore.screen;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.screen.prompt.PromptChannel;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
@@ -42,9 +41,5 @@ public interface ScreenRenderer {
     /** Ticks on the thread this renderer draws on. */
     @Nonnull
     ScreenScheduler getScheduler();
-
-    /** How this renderer asks the viewer for a value no button can express, or {@code null} when it cannot. */
-    @Nullable
-    PromptChannel getPromptChannel();
 
 }

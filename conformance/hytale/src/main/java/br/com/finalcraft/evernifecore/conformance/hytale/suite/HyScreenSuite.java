@@ -15,7 +15,7 @@ import br.com.finalcraft.evernifecore.screen.Screen;
 import br.com.finalcraft.evernifecore.screen.ScreenView;
 import br.com.finalcraft.evernifecore.screen.Screens;
 import br.com.finalcraft.evernifecore.screen.Slots;
-import br.com.finalcraft.evernifecore.screen.prompt.Prompt;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptSpec;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.protocol.packets.interface_.CustomPageEvent;
 import com.hypixel.hytale.protocol.packets.interface_.CustomPageEventType;
@@ -168,7 +168,7 @@ public final class HyScreenSuite implements ConformanceSuite {
 
     private CompletableFuture<Verdict> promptAsksOnAPage(Visit visit) {
         return visit.open(Screen.of(1)).thenCompose(view -> {
-            CompletableFuture<Integer> answer = view.ask(Prompt.of("How many?").parse(Integer::parseInt));
+            CompletableFuture<Integer> answer = view.ask(PromptSpec.of("How many?").parse(Integer::parseInt));
             return visit.until(pages -> pages.getCustomPage() != null && !view.isSurface(pages.getCustomPage()))
                     .thenCompose(asked -> visit.onWorld(pages -> visit.send(pages, CustomPageEventType.Data,
                             "{\"Kind\":\"Submit\",\"@Value\":\"42\"}")))

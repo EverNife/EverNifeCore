@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.quest.command.ArgParserQuest;
 import br.com.finalcraft.evernifecore.quest.command.QuestCommandNode;
 import br.com.finalcraft.evernifecore.quest.screen.QuestOfferScreen;
 import br.com.finalcraft.evernifecore.group.command.CoreGroupCommands;
+import br.com.finalcraft.evernifecore.dialogue.command.CoreDialogueCommands;
 import br.com.finalcraft.evernifecore.group.command.GroupCommandNode;
 import br.com.finalcraft.evernifecore.logic.audit.command.AuditCommandNode;
 import br.com.finalcraft.evernifecore.logic.command.CoreLogicCommands;
@@ -64,6 +65,7 @@ public class ConfigManager {
                 CoreRegionCommands.class,
                 GroupCommandNode.class,
                 CoreGroupCommands.class,
+                CoreDialogueCommands.class,
                 CoreLogicCommands.class,
                 AuditCommandNode.class,
                 DeliveriesCommandNode.class,

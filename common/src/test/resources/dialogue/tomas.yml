@@ -1,0 +1,34 @@
+# finalcolonies/dialogues/tomas.yml - the product's file; the core only parses the tree
+speaker: "Tomás"
+entry: start
+timeout: 2m
+fail-when:
+  - { type: near-npc, npc: "citizens:12", radius: 6 }  # walking away ends the talk
+triggers:
+  - npc: "citizens:12"
+nodes:
+  start:
+    text:
+      pt-BR: "Olá! A colônia precisa de madeira. Trouxe as 32 toras?"
+      en-US: "Hello! The colony needs wood. Did you bring the 32 logs?"
+    remember: "finalcolonies:tomas-answer"
+    options:
+      deliver:
+        text: { pt-BR: "Sim, aqui estão.", en-US: "Yes, here they are." }
+        gate:
+          cost:
+            - { type: item, item: "minecraft:oak_log", amount: 32 }
+        effects:
+          - { type: add, variable: "finalcolonies:warehouse-points", amount: 10 }
+          - message: "&aObrigado! A colônia agradece."
+        goto: thanks
+      later:
+        text: { pt-BR: "Ainda não.", en-US: "Not yet." }
+        goto: later
+  thanks:
+    text: "Volte sempre."
+    options: []            # terminal: the session ends with END
+  later:
+    text: "Volte quando tiver as toras."
+    options:
+      - { id: bye, text: "Até logo.", end: true }

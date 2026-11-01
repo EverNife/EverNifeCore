@@ -24,6 +24,7 @@ public final class TestCurrency extends AbstractCurrency {
     private final Map<CurrencyOwner, Balance> wallets = new ConcurrentHashMap<>();
     private final Set<CurrencyOwner.Kind> kinds;
     private final AtomicInteger takes = new AtomicInteger();
+    private volatile String refusingTakes;
 
     TestCurrency(String id, NumericSpec spec, Set<CurrencyOwner.Kind> kinds) {
         super(id, FancyText.of(id.substring(id.indexOf(':') + 1)), spec);
@@ -37,6 +38,15 @@ public final class TestCurrency extends AbstractCurrency {
 
     public TestCurrency balance(CurrencyOwner owner, BigDecimal amount) {
         wallet(owner).set(amount);
+        return this;
+    }
+
+    /**
+     * Makes every take answer a provider error saying {@code why} while the balance still reads as it is - the economy
+     * that fails after the check passed; null takes the refusal back.
+     */
+    public TestCurrency refuseTakes(String why) {
+        this.refusingTakes = why;
         return this;
     }
 
@@ -59,6 +69,9 @@ public final class TestCurrency extends AbstractCurrency {
     @Override
     protected EcoResponse withdraw(CurrencyOwner owner, BigDecimal amount) {
         Balance balance = wallet(owner);
+        if (refusingTakes != null) {
+            return EcoResponse.providerError(amount, balance.get(), refusingTakes);
+        }
         if (!balance.tryTake(amount)) {
             return EcoResponse.insufficientFunds(amount, balance.get());
         }

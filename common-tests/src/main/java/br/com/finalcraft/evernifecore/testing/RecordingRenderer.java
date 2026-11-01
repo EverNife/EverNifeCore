@@ -3,14 +3,10 @@ package br.com.finalcraft.evernifecore.testing;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.screen.RendererCapability;
 import br.com.finalcraft.evernifecore.screen.Screen;
-import br.com.finalcraft.evernifecore.screen.ScreenNavigation;
 import br.com.finalcraft.evernifecore.screen.ScreenRenderer;
 import br.com.finalcraft.evernifecore.screen.ScreenScheduler;
 import br.com.finalcraft.evernifecore.screen.ScreenSurface;
 import br.com.finalcraft.evernifecore.screen.ScreenView;
-import br.com.finalcraft.evernifecore.screen.prompt.PromptChannel;
-import br.com.finalcraft.evernifecore.screen.prompt.PromptResult;
-import br.com.finalcraft.evernifecore.screen.prompt.PromptSpec;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
@@ -19,13 +15,11 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.BiPredicate;
 
 /**
  * A {@link ScreenRenderer} that draws into memory: {@code test:recording}, priority and capabilities configurable, one
- * {@link RecordingSurface} per window it opened, and a prompt channel the test answers ({@link #answer(String)}).
- * It is what {@link ScreenWorld} installs, and it passes {@link RendererConformance}.
+ * {@link RecordingSurface} per window it opened. Questions go through {@link ScreenWorld#prompts()}. It is what {@link ScreenWorld} installs, and it passes {@link RendererConformance}.
  */
 public class RecordingRenderer implements ScreenRenderer {
 
@@ -36,10 +30,8 @@ public class RecordingRenderer implements ScreenRenderer {
     private final Set<RendererCapability> capabilities;
     private final TickScheduler scheduler;
     private final List<RecordingSurface> surfaces = new ArrayList<>();
-    private final Channel channel = new Channel();
     private BiPredicate<FPlayer, Screen<?>> supports = (viewer, screen) -> viewer.isOnline();
     private boolean refuseOpens;
-    private boolean withPrompts = true;
 
     public RecordingRenderer(@Nonnull TickScheduler scheduler, @Nonnull RendererCapability... capabilities) {
         this(ID, 0, scheduler, capabilities);
@@ -68,12 +60,6 @@ public class RecordingRenderer implements ScreenRenderer {
         return this;
     }
 
-    /** Removes the prompt channel: {@link #getPromptChannel()} answers {@code null}. */
-    @Nonnull
-    public RecordingRenderer withoutPrompts() {
-        this.withPrompts = false;
-        return this;
-    }
 
     @Nonnull
     @Override
@@ -120,11 +106,6 @@ public class RecordingRenderer implements ScreenRenderer {
         return scheduler;
     }
 
-    @Nullable
-    @Override
-    public PromptChannel getPromptChannel() {
-        return withPrompts ? channel : null;
-    }
 
     // -----------------------------------------------------------------------------------------------------------------
     //  What a test reads and does
@@ -154,78 +135,6 @@ public class RecordingRenderer implements ScreenRenderer {
             }
         }
         throw new IllegalStateException("The recording renderer never opened a window for " + view + ".");
-    }
-
-    /** Whether a prompt is waiting for an answer. */
-    public boolean isAsking() {
-        return channel.pending != null;
-    }
-
-    /** Answers the waiting prompt as if the viewer had typed {@code text}: parsed, then the screen comes back. */
-    public void answer(@Nonnull String text) {
-        channel.answer(text);
-    }
-
-    /** The question the waiting prompt asked, or {@code null}. */
-    @Nullable
-    public String getAskedQuestion() {
-        return channel.pending == null ? null : channel.pending.spec.getQuestion();
-    }
-
-    private final class Channel implements PromptChannel {
-
-        private Pending<?> pending;
-
-        @Nonnull
-        @Override
-        public <T> CompletableFuture<PromptResult<T>> ask(@Nonnull ScreenView view, @Nonnull PromptSpec<T> spec) {
-            CompletableFuture<PromptResult<T>> answer = new CompletableFuture<>();
-            RecordingSurface surface = surfaceOf(view);
-            if (!ScreenNavigation.suspend(view)) {
-                answer.complete(PromptResult.<T>cancelled());
-                return answer;
-            }
-            surface.dropSilently();
-            pending = new Pending<>(view, spec, answer);
-            return answer;
-        }
-
-        private void answer(String text) {
-            Pending<?> asked = pending;
-            if (asked == null) {
-                throw new IllegalStateException("No prompt is waiting for an answer. Click the field that asks first.");
-            }
-            pending = null;
-            asked.complete(text);
-        }
-
-    }
-
-    private static final class Pending<T> {
-
-        private final ScreenView view;
-        private final PromptSpec<T> spec;
-        private final CompletableFuture<PromptResult<T>> answer;
-
-        private Pending(ScreenView view, PromptSpec<T> spec, CompletableFuture<PromptResult<T>> answer) {
-            this.view = view;
-            this.spec = spec;
-            this.answer = answer;
-        }
-
-        private void complete(String text) {
-            ScreenNavigation.resume(view);
-            if (text.equalsIgnoreCase(spec.getCancelWord())) {
-                answer.complete(PromptResult.<T>cancelled());
-                return;
-            }
-            try {
-                answer.complete(PromptResult.value(spec.getParser().parse(text)));
-            } catch (Exception unreadable) {
-                answer.complete(PromptResult.<T>cancelled());
-            }
-        }
-
     }
 
 }

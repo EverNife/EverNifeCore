@@ -2,7 +2,8 @@ package br.com.finalcraft.evernifecore.screen;
 
 import br.com.finalcraft.evernifecore.quest.screen.QuestJournalScreen;
 import br.com.finalcraft.evernifecore.quest.screen.QuestOfferScreen;
-
+import br.com.finalcraft.evernifecore.dialogue.DialogueScreen;
+import br.com.finalcraft.evernifecore.dialogue.DialogueSession;
 import jakarta.annotation.Nullable;
 
 import java.util.Collections;
@@ -22,6 +23,7 @@ final class CoreScreens {
         defaults.put(ScreenKey.RANKING, ctx -> RankingScreen.of(ctx.getRequest(RankingRequest.class)));
         defaults.put(ScreenKey.QUEST_JOURNAL, ctx -> QuestJournalScreen.of(ctx.getRequest(QuestJournalScreen.Request.class)));
         defaults.put(ScreenKey.QUEST_OFFER, ctx -> QuestOfferScreen.of(ctx.getRequest(QuestOfferScreen.Request.class)));
+        defaults.put(ScreenKey.DIALOGUE, ctx -> DialogueScreen.of(ctx.getRequest(DialogueSession.class)));
         DEFAULTS = Collections.unmodifiableMap(defaults);
     }
 

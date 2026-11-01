@@ -4,7 +4,6 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
-import br.com.finalcraft.evernifecore.screen.prompt.Prompt;
 import br.com.finalcraft.evernifecore.screen.prompt.PromptParser;
 import br.com.finalcraft.evernifecore.screen.prompt.PromptSpec;
 import jakarta.annotation.Nonnull;
@@ -151,6 +150,32 @@ public final class ClickContext {
         return ScreenNavigation.open(view, screen);
     }
 
+    /** {@link #open(Screen)} with {@code args} as what {@code {0}}..{@code {n}} read on {@code screen}, instead of this screen's. */
+    @Nonnull
+    public CompletableFuture<Object> open(@Nonnull Screen<?> screen, @Nonnull Object... args) {
+        return ScreenNavigation.open(view, screen, args);
+    }
+
+    /**
+     * Opens on top of this one whatever answers {@code key} for {@code request} - the four layers of
+     * {@link Screens#open(FPlayer, ScreenKey, ScreenRequest)} - and completes with what it hands back. A key nothing
+     * answers fails the future with the refusal that teaches.
+     */
+    @Nonnull
+    public CompletableFuture<Object> open(@Nonnull ScreenKey key, @Nonnull ScreenRequest request) {
+        FPlayer viewer = getViewer();
+        try {
+            if (viewer == null) {
+                throw new IllegalStateException("The viewer of " + view.getScreen().describe() + " left: there is nobody to open " + key + " for.");
+            }
+            return ScreenNavigation.open(view, Screens.build(viewer, key, request), request.getArguments().toArray());
+        } catch (RuntimeException refused) {
+            CompletableFuture<Object> failed = new CompletableFuture<>();
+            failed.completeExceptionally(refused);
+            return failed;
+        }
+    }
+
     /** {@link #open(Screen)} with the answer typed: a value of another type completes the future exceptionally. */
     @Nonnull
     public <R> CompletableFuture<R> open(@Nonnull Screen<?> screen, @Nonnull Class<R> answer) {
@@ -178,8 +203,9 @@ public final class ClickContext {
     // -----------------------------------------------------------------------------------------------------------------
 
     /**
-     * Asks through the renderer's prompt channel: the screen is set aside and comes back with its state. Completes with
-     * the value, or is cancelled when no value came (the viewer cancelled, it timed out, they left).
+     * Asks through the channel {@code PromptRegistry} picks ({@link PromptSpec#prefer} steers it): the screen is set aside
+     * and comes back with its state. Completes with the value, or is cancelled when no value came (the viewer cancelled,
+     * it timed out, they left). The whole {@code PromptResult} comes from {@code PromptRegistry.get().ask(view, spec)}.
      */
     @Nonnull
     public <T> CompletableFuture<T> ask(@Nonnull PromptSpec<T> spec) {
@@ -189,7 +215,7 @@ public final class ClickContext {
     /** {@link #ask(PromptSpec)} of a plain question, with its answer handed to {@code onAnswer}. */
     @Nonnull
     public <T> CompletableFuture<T> ask(@Nonnull String question, @Nonnull PromptParser<T> parser, @Nonnull Consumer<T> onAnswer) {
-        CompletableFuture<T> answered = ask(Prompt.of(question).parse(parser));
+        CompletableFuture<T> answered = ask(PromptSpec.of(question).parse(parser));
         answered.thenAccept(onAnswer).exceptionally(failure -> {
             //the stage this handler hangs off is thrown away, so a handler that throws would otherwise fail in silence
             EverNifeCore.getLog().severe("The handler of an answer failed for [{}]", view.getViewerName(), failure);

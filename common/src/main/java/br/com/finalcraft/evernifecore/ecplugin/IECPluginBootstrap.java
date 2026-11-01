@@ -1,9 +1,11 @@
 package br.com.finalcraft.evernifecore.ecplugin;
 
+import br.com.finalcraft.evernifecore.dialogue.Dialogues;
 import br.com.finalcraft.evernifecore.booster.BoosterManager;
 import br.com.finalcraft.evernifecore.booster.Boosters;
 import br.com.finalcraft.evernifecore.economy.Currencies;
 import br.com.finalcraft.evernifecore.logic.audit.AuditLog;
+import br.com.finalcraft.evernifecore.menu.MenuRegistry;
 import br.com.finalcraft.evernifecore.logic.delivery.DeliveryDestinations;
 import br.com.finalcraft.evernifecore.logic.value.Contributions;
 import br.com.finalcraft.evernifecore.logic.value.DynamicValues;
@@ -32,6 +34,7 @@ import br.com.finalcraft.evernifecore.group.Groups;
 import br.com.finalcraft.evernifecore.quest.QuestEngine;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.screen.Screens;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptRegistry;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 
 /**
@@ -154,7 +157,10 @@ public interface IECPluginBootstrap {
         Contributions.closeOwnedBy(getPluginData());
         AuditLog.closeOwnedBy(getPluginData());
         RankedLists.closeOwnedBy(getPluginData());
+        Dialogues.closeOwnedBy(getPluginData()); //before its screens: a session ends as OWNER_DISABLED, not CLOSED
         Screens.closeOwnedBy(getPluginData());
+        PromptRegistry.get().unregisterAll(getPluginData());
+        MenuRegistry.get().unregisterAll(getPluginData());
         LocaleOverlay.closeOwnedBy(getPluginData());
         Notifier.get().closeOwnedBy(getPluginData());
         Waypoints.get().hideOwnedBy(getPluginData());

@@ -908,9 +908,19 @@ public final class Group implements FlagHolder {
         return value == null ? null : value.getValue();
     }
 
+    /**
+     * The group's own live value, else its kind's default ({@link GroupKind#getFlagDefaults()}) as a permanent value set
+     * when the group was created; null for neither. What the flag resolution reads, so a kind's default speaks there too.
+     */
     @Override
+    @SuppressWarnings("unchecked")
     public <T> @Nullable FlagValue<T> getFlagValue(Flag<T> flag) {
-        return flags.getValue(flag);
+        FlagValue<T> own = flags.getValue(flag);
+        if (own != null) {
+            return own;
+        }
+        T fallback = (T) kind.getFlagDefaults().get(flag.getKey());
+        return fallback == null ? null : FlagValue.permanent(fallback).withSince(createdAt);
     }
 
     /** @throws IllegalArgumentException when the group cannot carry the flag (a PLACE flag on a group that is not region-local) */

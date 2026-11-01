@@ -7,6 +7,8 @@ import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemProbe;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRuntime;
 import br.com.finalcraft.evernifecore.minecraft.screen.ChestScreenRenderer;
+import br.com.finalcraft.evernifecore.minecraft.screen.prompt.BukkitChatPromptChannel;
+import br.com.finalcraft.evernifecore.screen.prompt.PromptRegistry;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.screen.Screen;
 import br.com.finalcraft.evernifecore.screen.ScreenView;
@@ -103,6 +105,7 @@ public final class BukkitScreenWorld implements AutoCloseable {
             this.ecPluginData = screens.getCore();
             //the recording renderer would serve every viewer: under conformance the chest is the one that draws
             Screens.unregisterRenderers(screens.getOwner());
+            screens.prompts().clear();
             screens.tickingWith(scheduler::advanceTicks).answeringPromptsWith(this::answerPrompt);
         }
 
@@ -112,6 +115,7 @@ public final class BukkitScreenWorld implements AutoCloseable {
         //the platform's own config codecs - item stacks, locations - a layout file is unreadable without
         ItemWorld.registerConfigTypes();
         Screens.registerRenderer(ecPluginData, renderer);
+        PromptRegistry.get().register(ecPluginData, new BukkitChatPromptChannel());
     }
 
     /** A chest over items that carry no metadata - two stacks then compare by type and amount alone. */
@@ -216,32 +220,6 @@ public final class BukkitScreenWorld implements AutoCloseable {
         scheduler.advanceTicks(ticks);
     }
 
-    /**
-     * Runs the clock until {@code pending} answers, for the paths a real background thread sets off - a prompt timing
-     * out on the core's own scheduler - rather than the test.
-     *
-     * @throws AssertionError when nothing answered within {@code timeoutMillis}
-     */
-    public <T> T awaitOnTheClock(CompletableFuture<T> pending, long timeoutMillis) {
-        long deadline = System.currentTimeMillis() + timeoutMillis;
-        while (!pending.isDone()) {
-            if (System.currentTimeMillis() > deadline) {
-                throw new AssertionError("Nothing answered within " + timeoutMillis + "ms of running the clock");
-            }
-            scheduler.advanceTicks(1L);
-            try {
-                Thread.sleep(1L);
-            } catch (InterruptedException interrupted) {
-                Thread.currentThread().interrupt();
-                throw new AssertionError("Interrupted while running the clock", interrupted);
-            }
-        }
-        try {
-            return pending.get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new AssertionError("The work the clock was run for failed", e);
-        }
-    }
 
     // -----------------------------------------------------------------------------------------------------------------
     //  Opening
@@ -334,6 +312,7 @@ public final class BukkitScreenWorld implements AutoCloseable {
         closed = true;
         Screens.closeAll();
         Screens.registry().unregister(ecPluginData, renderer.getId());
+        PromptRegistry.get().unregisterAll(ecPluginData);
         ItemEngine.uninstall();
         setBukkitServer(previousServer);
         if (platformWorld != null) {

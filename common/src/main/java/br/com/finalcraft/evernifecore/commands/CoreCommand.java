@@ -25,6 +25,7 @@ import br.com.finalcraft.evernifecore.quest.command.CoreQuestCommands;
 import br.com.finalcraft.evernifecore.region.command.CoreRegionCommands;
 import br.com.finalcraft.evernifecore.screen.command.CoreScreenCommands;
 import br.com.finalcraft.evernifecore.group.command.CoreGroupCommands;
+import br.com.finalcraft.evernifecore.dialogue.command.CoreDialogueCommands;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.logic.delivery.command.CoreDeliveriesCommands;
 import br.com.finalcraft.evernifecore.types.command.CoreTypesCommands;
@@ -71,6 +72,18 @@ public class CoreCommand {
             return;
         }
         CoreQuestCommands.show(sender, target);
+    }
+
+    @FinalCMD.SubCMD(subcmd = "dialogue", permission = PermissionNodes.EVERNIFECORE_COMMAND_DIALOGUE, locales = {
+            @FCLocale(lang = LocaleType.EN_US, text = "Read the dialogue a player is in: which one, node, since when and who started it"),
+            @FCLocale(lang = LocaleType.PT_BR, text = "Lê o diálogo em que um jogador está: qual, nó, desde quando e quem iniciou")
+    })
+    public void dialogue(FCommandSender sender, @Arg(value = "[player]", fromSender = true) FPlayer target) {
+        if (target == null) {
+            CoreDialogueCommands.NEEDS_A_PLAYER.send(sender);
+            return;
+        }
+        CoreDialogueCommands.show(sender, target);
     }
 
     @FinalCMD.Node(subcmd = "logic", permission = PermissionNodes.EVERNIFECORE_COMMAND_LOGIC, locales = {

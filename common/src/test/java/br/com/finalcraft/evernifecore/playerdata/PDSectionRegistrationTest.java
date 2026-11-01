@@ -4,10 +4,12 @@ import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
 import br.com.finalcraft.evernifecore.testing.Senders;
 import br.com.finalcraft.evernifecore.testing.Storages;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.UUID;
@@ -227,5 +229,43 @@ class PDSectionRegistrationTest {
         assertNotNull(PlayerController.getLoadedSection(online, JobsSection.class),
                 "an online player's cell has to stay canonical");
         assertNull(PlayerController.getLoadedSection(offline, JobsSection.class));
+    }
+
+    // ------------------------------------------------------------------
+    // A registration left behind by a plugin that is already gone
+    // ------------------------------------------------------------------
+
+    public static class DeadPluginSection extends PDSection {
+        @JsonProperty("level")
+        public int level;
+    }
+
+    @Test
+    void aSectionOfAPluginWhoseJarClosedBeforeTheBootstrapIsDroppedAndTheCoreStillStarts() throws Exception {
+        ClosingClassLoader loader = new ClosingClassLoader(DeadPluginSection.class);
+        Class<? extends PDSection> dead = loader.definedClass();
+        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, dead, "dead").build());
+        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, JobsSection.class, "jobs").build());
+        loader.close(); //its enable failed ahead of the core: Bukkit disabled it and closed its jar
+
+        File storageYml = Storages.h2("r_dead_plugin").writeTo(tempDir);
+        PlayerController.initialize(storageYml);
+
+        //dropped, not only skipped: every later pass over the registry would reach the closed jar again
+        assertFalse(PlayerController.getConfiguredPDSections().containsKey(dead),
+                "a registration that could not bind must leave the registry");
+
+        UUID uuid = UUID.randomUUID();
+        PlayerController.handleLogin(uuid, "Alive").join();
+        assertNotNull(PlayerController.getLoaded(uuid).getPDSection(JobsSection.class).join(),
+                "the sections of the plugins still alive must bind");
+        assertUnregistered(() -> PlayerController.getLoaded(uuid).getPDSection(dead).join());
+
+        //a reload swaps the instance and binds the registry again; a later registration walks it too
+        PlayerController.initialize(storageYml);
+        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, OtherSection.class, "other").build());
+        UUID next = UUID.randomUUID();
+        PlayerController.handleLogin(next, "Next").join();
+        assertNotNull(PlayerController.getLoaded(next).getPDSection(JobsSection.class).join());
     }
 }

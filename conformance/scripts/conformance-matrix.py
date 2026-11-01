@@ -53,7 +53,7 @@ HYTALE_SUITES = 9
 # Texts the Hytale regions suite sets as deny-message, read back from what the player received
 ENTRY_MESSAGE = "ECC entry denied"
 BREAK_MESSAGE = "ECC break denied"
-SCREENS = ["basic", "hopper", "dispenser", "workbench", "nav", "storage", "prompt", "pager",
+SCREENS = ["basic", "hopper", "dispenser", "workbench", "nav", "storage", "prompt", "prompt-anvil", "pager",
            "title-long", "layout", "confirm",
            "deliveries", "ranking", "input", "progress", "choice", "reactive"]
 SUITE_ORDER = ["items", "nbt", "platform", "version", "commands", "screen", "scheduler", "playerdata",

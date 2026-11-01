@@ -1,33 +1,33 @@
 package br.com.finalcraft.evernifecore.screen.prompt;
 
-import br.com.finalcraft.evernifecore.screen.ScreenView;
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import jakarta.annotation.Nonnull;
 
-import java.util.concurrent.CompletableFuture;
-
 /**
- * A way of asking a player for a value a button cannot express.
+ * A window a question can be put through - chat, an anvil, a page. Dumb on purpose: {@link PromptRegistry} owns the
+ * question (the screen set aside and given back, the timeout, the second question that calls off the first, leaving),
+ * and the channel only shows it and passes on what the player did through the {@link PromptSession}.
  *
- * <p>Asking is a family, not a method: the chat channel is the one that exists, and another - an
- * anvil, a sign - can join it without changing a line of what a screen writes. What a channel owes,
- * whichever it is:</p>
- *
- * <ul>
- *   <li>the screen is set aside while the question is out, and given back with its state intact once
- *       the answer, the cancel word or the timeout arrives;</li>
- *   <li>the future completes on the main thread, whatever thread the answer came in on;</li>
- *   <li>a second question on the same screen calls the first one off instead of stacking with it.</li>
- * </ul>
+ * <p>One channel per {@link PromptKind}; a platform registers its own with {@link PromptRegistry#register}.</p>
  */
 public interface PromptChannel {
 
-    /**
-     * Asks {@code view}'s player for a value.
-     *
-     * @return how the asking ended, completed on the main thread. It never completes exceptionally:
-     *         no answer is an ending, not a failure.
-     */
     @Nonnull
-    <T> CompletableFuture<PromptResult<T>> ask(@Nonnull ScreenView view, @Nonnull PromptSpec<T> spec);
+    PromptKind getKind();
+
+    /** Whether this channel can put a question to {@code player} right now. Screen thread; never throws. */
+    boolean isSupported(@Nonnull FPlayer player);
+
+    /**
+     * Shows the question. Screen thread, after the registry set the screen aside: the screen's window may still be in
+     * front of the player, and this channel replaces it with its own or takes it away.
+     */
+    void open(@Nonnull PromptSession<?> session);
+
+    /**
+     * Takes the window away because the question ended (answered, timed out, replaced, the screen released). Must not
+     * call back into the session - a call would be ignored anyway. Screen thread.
+     */
+    void dismiss(@Nonnull PromptSession<?> session);
 
 }

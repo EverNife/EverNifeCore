@@ -15,6 +15,11 @@ public interface ScreenScheduler {
     /** Whether the calling thread is the renderer thread - a write from anywhere else is refused. */
     boolean isRenderThread();
 
+    /** {@code millis} as ticks of this clock, at least one - how a prompt's timeout is armed. 20 ticks a second. */
+    default long ticksOf(long millis) {
+        return Math.max(1L, (millis + 49L) / 50L);
+    }
+
     /** Runs {@code task} on the renderer thread: now when already there, on the next tick otherwise. */
     default void run(Runnable task) {
         if (isRenderThread()) {

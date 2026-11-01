@@ -19,6 +19,8 @@ public final class ScreenKey {
     public static final ScreenKey QUEST_JOURNAL = of("evernifecore", "quest-journal");
     /** One quest offered, accept or decline, built from a {@code QuestOfferScreen.Request}. */
     public static final ScreenKey QUEST_OFFER = of("evernifecore", "quest-offer");
+    /** One node of a dialogue, built from the {@code DialogueSession} the request carries as its payload. */
+    public static final ScreenKey DIALOGUE = of("evernifecore", "dialogue");
 
     private final String owner;
     private final String name;

@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.playerdata;
 
 import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import br.com.finalcraft.evernifecore.playerdata.account.Account;
 import br.com.finalcraft.evernifecore.playerdata.account.AccountMember;
 import br.com.finalcraft.evernifecore.playerdata.account.Accounts;
@@ -404,5 +405,39 @@ class AccountSectionTest {
         assertFalse(binding.getRepository().find(memberUuid).join().isPresent(),
                 "the linked member's former-key account row must be removed, not left orphaned");
         assertNull(PlayerController.getLoaded(memberUuid));
+    }
+
+    /** Registered from a class loader that closes before the bootstrap, as a plugin's that failed ahead of the core. */
+    public static class DeadPluginAccountSection extends AccountSection<DeadPluginAccountSection> {
+        @JsonProperty("level")
+        public int level;
+
+        @Override
+        public DeadPluginAccountSection merge(List<DeadPluginAccountSection> others, MergeReason reason) {
+            return this;
+        }
+    }
+
+    @Test
+    void anAccountSectionOfAPluginWhoseJarClosedBeforeTheBootstrapIsDroppedAndTheCoreStillStarts() throws Exception {
+        ClosingClassLoader loader = new ClosingClassLoader(DeadPluginAccountSection.class);
+        Class<DeadPluginAccountSection> dead = (Class<DeadPluginAccountSection>) (Class<?>) loader.definedClass();
+        PlayerController.registerAccountSectionCfg(AccountSectionConfiguration.builder(null, dead, "dead").build());
+        registerAchievements();
+        loader.close();
+
+        File storageYml = writeStorageYml("acs_dead_plugin");
+        PlayerController.initialize(storageYml);
+
+        assertFalse(PlayerController.getConfiguredAccountSections().containsKey(dead),
+                "a registration that could not bind must leave the registry");
+        UUID uuid = UUID.randomUUID();
+        PlayerData playerData = PlayerController.handleLogin(uuid, "Alive").join();
+        assertEquals(uuid, playerData.getAccountSection(AchievementsSection.class).join().getAccountId());
+
+        PlayerController.initialize(storageYml);
+        UUID next = UUID.randomUUID();
+        assertEquals(next, PlayerController.handleLogin(next, "Next").join()
+                .getAccountSection(AchievementsSection.class).join().getAccountId());
     }
 }
