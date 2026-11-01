@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -130,6 +131,38 @@ class MenuRegistryTest extends MenuTestWorlds {
 
             assertNull(MenuRegistry.get().find("fakeshop:vip"), "the shop's menu left with its shutdown");
             assertNotNull(MenuRegistry.get().find("othershop:kits"), "another plugin's menu stays");
+        } finally {
+            MenuRegistry.get().unregisterAll(other);
+            Plugins.forget("OtherShop");
+        }
+    }
+
+    @Test
+    void unregisterTakesOutOneMenuOfTheOwnerAndAnswersWhetherItWasThere() {
+        register("vip", "VIP");
+        register("kits", "Kits");
+
+        assertTrue(MenuRegistry.get().unregister(shop.getOwner(), "vip"));
+
+        assertNull(MenuRegistry.get().find("fakeshop:vip"));
+        assertNotNull(MenuRegistry.get().find("fakeshop:kits"), "only the menu named left");
+        assertFalse(MenuRegistry.get().unregister(shop.getOwner(), "fakeshop:vip"), "nothing is registered under it any more");
+    }
+
+    @Test
+    void unregisteringAnotherPluginsMenuIsRefusedNamingBothOwners() {
+        ECPluginData other = Plugins.fakePluginData("OtherShop", tempDir.resolve("other").toFile());
+        try {
+            MenuRegistry.get().register(other, Menu.of(other, "x")
+                    .offer("kit", 0, Offer.buy(Goods.ofItem(ItemSpec.of("minecraft:chest", 1)), Price.free()).build()).build());
+
+            IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+                    () -> MenuRegistry.get().unregister(shop.getOwner(), "othershop:x"));
+
+            String owner = shop.getOwner().getMetaInfo().getName();
+            assertEquals("[" + owner + "] cannot unregister the menu othershop:x: it was registered by [OtherShop]. Only the owner takes"
+                    + " a menu out.", refused.getMessage());
+            assertNotNull(MenuRegistry.get().find("othershop:x"), "the refusal took nothing out");
         } finally {
             MenuRegistry.get().unregisterAll(other);
             Plugins.forget("OtherShop");

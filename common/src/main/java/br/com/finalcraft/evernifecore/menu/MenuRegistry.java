@@ -53,6 +53,27 @@ public final class MenuRegistry {
         }
     }
 
+    /**
+     * Takes out one menu of {@code owner} - a reload that drops a menu file, an editor that deletes one. {@code name} is
+     * the bare name or the full {@code owner:name}.
+     *
+     * @return whether a menu was registered under it
+     * @throws IllegalArgumentException when the menu under that id was registered by another plugin, or the name breaks
+     *                                  the id rule
+     */
+    public boolean unregister(ECPluginData owner, String name) {
+        MenuId id = MenuId.parse(name, owner.getMetaInfo().getName());
+        Menu held = menus.get(id);
+        if (held == null) {
+            return false;
+        }
+        if (held.getOwner() != owner) {
+            throw new IllegalArgumentException("[" + owner.getMetaInfo().getName() + "] cannot unregister the menu " + id + ": it was registered by ["
+                    + held.getOwner().getMetaInfo().getName() + "]. Only the owner takes a menu out.");
+        }
+        return menus.remove(id, held);
+    }
+
     /** Takes out every menu {@code owner} registered; called by its shutdown. */
     public void unregisterAll(ECPluginData owner) {
         menus.values().removeIf(menu -> menu.getOwner() == owner);

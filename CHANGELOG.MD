@@ -18,6 +18,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **`MenuRegistry.unregister(owner, name)`**: takes out one menu of its owner (a reload that drops a menu file, an
+  editor that deletes one) and answers whether it was there; `name` is the bare name or `owner:name`. Unregistering a
+  menu another plugin registered is refused naming both.
 - **`RendererConformance` checks each element kind**: `label-draws-its-text`, `choice-disabled-carries-reason`,
   `progress-reports-ratio`, `input-asks-through-a-prompt` and `list-pages-with-arrows`, and
   `check(renderer, world, Supplier<FPlayer> viewers)` lets a renderer whose `supports` needs a handshake give its own
