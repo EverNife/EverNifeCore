@@ -39,7 +39,7 @@ class ChestDisabledElementTest {
 
     @BeforeEach
     void setup() {
-        world = BukkitScreenWorld.installWithItemMetadata(tempDir);
+        world = BukkitScreenWorld.install(tempDir);
         player = world.newPlayer("Steve");
     }
 

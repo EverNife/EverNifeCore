@@ -31,7 +31,7 @@ class ChestOutputTest {
 
     @BeforeEach
     void setup() {
-        world = BukkitScreenWorld.installWithItemMetadata(tempDir);
+        world = BukkitScreenWorld.install(tempDir);
     }
 
     @AfterEach

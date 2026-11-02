@@ -56,7 +56,7 @@ class ChestPlatformTest {
 
     @Test
     void aPlaceholderOnAnIconIsResolvedByTheConfiguredParser() {
-        try (BukkitScreenWorld world = BukkitScreenWorld.installWithItemMetadata(tempDir,
+        try (BukkitScreenWorld world = BukkitScreenWorld.install(tempDir,
                 p -> p.parsingWith((viewer, text) -> text.replace("%player_name%", viewer.getName())))) {
             PlayerDouble player = world.newPlayer("Steve");
             Screen<Layout> screen = Screen.of(1);

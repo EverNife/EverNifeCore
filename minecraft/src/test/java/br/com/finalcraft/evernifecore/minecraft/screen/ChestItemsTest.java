@@ -79,7 +79,7 @@ class ChestItemsTest {
     @Test
     void aNativeItemKeepsItsOwnNameAndLore() {
         world.close();
-        world = BukkitScreenWorld.installWithItemMetadata(tempDir);
+        world = BukkitScreenWorld.install(tempDir);
         player = world.newPlayer("Steve");
         ItemStack stack = new ItemStack(Material.DIAMOND_SWORD);
         ItemMeta meta = stack.getItemMeta();

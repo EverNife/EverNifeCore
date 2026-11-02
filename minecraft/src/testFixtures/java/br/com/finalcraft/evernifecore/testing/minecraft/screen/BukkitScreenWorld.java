@@ -156,16 +156,6 @@ public final class BukkitScreenWorld implements AutoCloseable {
         return new BukkitScreenWorld(dataFolder, SPEAKING_ITEMS, platform, null);
     }
 
-    /** The same world as {@link #install(Path)}, whose items now remember their text too. */
-    public static BukkitScreenWorld installWithItemMetadata(Path dataFolder) {
-        return installWithItemMetadata(dataFolder, UnaryOperator.identity());
-    }
-
-    /** {@link #installWithItemMetadata(Path)} over the lenient platform adjusted by {@code platform}. */
-    public static BukkitScreenWorld installWithItemMetadata(Path dataFolder, UnaryOperator<Platforms> platform) {
-        return new BukkitScreenWorld(dataFolder, SPEAKING_ITEMS, platform, null);
-    }
-
     /**
      * The chest laid over {@code screens}: no platform of its own, the recording renderer taken out, the screen world's
      * {@code advanceTicks} moving this server's clock and its {@code answerPrompt} typing in this server's chat. Close

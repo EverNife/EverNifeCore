@@ -35,7 +35,7 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   platform's stack (name and lore included), so a plugin reads it without `getNativeEvent(CraftItemEvent.class)`. The
   stack is copied on the first call only; null for a Bukkit smelt and a Hytale craft, whose events carry no stack. The
   constructor takes the item as a last `@Nullable Supplier<ItemSpec>`. Test kit: `ItemMetaDouble.factory()`.
-- **`BukkitScreenWorld.install(dir, platform)` / `installWithItemMetadata(dir, platform)`** (test kit): the chest over
+- **`BukkitScreenWorld.install(dir, platform)`** (test kit): the chest over
   the lenient platform adjusted by a `UnaryOperator<Platforms>`, the same form as `ScreenWorld.open(dir, platform)` -
   `Platforms::capturingCommands` for a button that runs a command as the player, `p -> p.parsingWith(...)` for a
   placeholder.
@@ -47,7 +47,7 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **`ScriptedStorage.releaseNewestWrite()`, `heldWrites()` and `lastLanded(collection, type)`** (test kit): a held
   backend can let its writes through newest first, one at a time, and a test reads which entity the backend took
   last - for code that must survive writes completing out of order. `releaseWrites()` releases in arrival order.
-- **`evernifecore-minecraft-tests` ships the chest test kit**: `BukkitScreenWorld` (`install`, `installWithItemMetadata`,
+- **`evernifecore-minecraft-tests` ships the chest test kit**: `BukkitScreenWorld` (`install`,
   `over(ScreenWorld)`) and its doubles (`PlayerDouble`, `SurfaceDouble`, `SchedulerDouble`, `ScreenEventBus`,
   `ClickSimulator`) move to the published test fixtures as `testing.minecraft.screen`, so a plugin's test opens the real
   `ChestScreenRenderer` over a described server and reads the names and lore it drew.
@@ -776,8 +776,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   to leave the thread (`ECScheduler.runAsync`), where two such threads could wait for each other forever. Calling back
   for the same owner is unchanged.
 - **`BukkitScreenWorld.install` draws item text** (test kit): its items remember a name, a lore and a flag, so a test reads
-  an icon's name off a plain `install(...)` where it got a null `ItemMeta`. `installWithItemMetadata` is now the same
-  world; only `BukkitScreenWorld.over(...)` stays on items without metadata.
+  an icon's name off a plain `install(...)` where it got a null `ItemMeta`. `installWithItemMetadata` is removed: call
+  `install`. Only `BukkitScreenWorld.over(...)` stays on items without metadata.
 - **`BukkitScreenWorld.newPlayer` is online on the world's platform** (test kit): `EverNifeCore.getPlatform().getPlayer(uuid)`
   finds them without `Platforms.onlinePlayers(...)`. `TestPlatform.addOnlinePlayer(player)` adds one player to who is
   online.

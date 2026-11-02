@@ -26,7 +26,7 @@ class McInventoryDestinationDataTest {
 
     @BeforeEach
     void setup() {
-        world = BukkitScreenWorld.installWithItemMetadata(tempDir);
+        world = BukkitScreenWorld.install(tempDir);
     }
 
     @AfterEach
