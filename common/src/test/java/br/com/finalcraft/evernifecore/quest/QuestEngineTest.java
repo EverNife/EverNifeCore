@@ -28,7 +28,9 @@ import br.com.finalcraft.evernifecore.testing.ScriptedStorage;
 import br.com.finalcraft.evernifecore.quest.event.ObjectiveProgressEvent;
 import br.com.finalcraft.evernifecore.quest.event.ObjectiveProgressPreEvent;
 import br.com.finalcraft.evernifecore.quest.event.QuestCompleteEvent;
+import br.com.finalcraft.evernifecore.quest.event.QuestCompletePreEvent;
 import br.com.finalcraft.evernifecore.quest.event.QuestStartEvent;
+import br.com.finalcraft.evernifecore.quest.event.StageCompleteEvent;
 import br.com.finalcraft.evernifecore.testing.Actors;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
@@ -215,9 +217,61 @@ class QuestEngineTest {
         assertEquals(QuestStatus.COMPLETED, stateOf(alex, "after").getStatus());
     }
 
+    @Test
+    void aCancelledCompletionDoesNotReplayTheStageEffects() {
+        AtomicInteger applied = new AtomicInteger();
+        Effects.registry().register(quests.getOwner(), TypeDescriptor.<Effect>of("fakequests:count-stage")
+                .describe("Counts the stage's completions.")
+                .factory(params -> ctx -> applied.incrementAndGet())
+                .build());
+        engine.register(quests.parse("{id: gift, stages: [{id: s, objectives: [{id: o, type: break-block, goal: 1}],"
+                + " on-complete: [{type: 'fakequests:count-stage'}]}]}"));
+        List<StageCompleteEvent> closed = quests.recorded(StageCompleteEvent.class);
+        start(alex, "gift");
+        ECEventSubscription<QuestCompletePreEvent> veto = ECEventBus.global().subscribe(QuestCompletePreEvent.class,
+                event -> event.setCancelled(true));
+        try {
+            quests.post(quests.breakBlock(alex, "minecraft:stone"));
+            for (int sweep = 0; sweep < 2; sweep++) {
+                quests.advance(Duration.ofMinutes(1));
+                quests.runDue();
+            }
+            assertEquals(1, applied.get(), "the stage's effects ran once, the sweeps retried only the completion");
+            assertEquals(1, closed.size());
+            assertEquals(QuestStatus.ACTIVE, stateOf(alex, "gift").getStatus());
+        } finally {
+            veto.unsubscribe();
+        }
+
+        quests.advance(Duration.ofMinutes(1));
+        quests.runDue();
+
+        assertEquals(QuestStatus.COMPLETED, stateOf(alex, "gift").getStatus());
+        assertEquals(1, applied.get());
+        assertEquals(1, closed.size());
+    }
+
     // ------------------------------------------------------------------
     //  Progress modes and plugin types
     // ------------------------------------------------------------------
+
+    @Test
+    void eachMatchEffectsRunOutsideTheOwnersLock() {
+        List<Boolean> heldLock = new CopyOnWriteArrayList<>();
+        Effects.registry().register(quests.getOwner(), TypeDescriptor.<Effect>of("fakequests:lock-probe")
+                .describe("Records whether the owner's lock is held.")
+                .factory(params -> ctx -> heldLock.add(Thread.holdsLock(engine.lane(ProgressOwner.global()))))
+                .build());
+        engine.register(quests.parse("{id: tally, owner: global, stages: [{id: s, objectives: [{id: o, type: break-block, mode: each-match,"
+                + " on-match: [{type: 'fakequests:lock-probe'}]}]}]}"));
+        assertTrue(await(engine.start(ProgressOwner.global(), quests.id("tally"), QuestParams.NONE)).isSuccess());
+
+        await(engine.progress(ProgressOwner.global(), quests.id("tally"), "o", 2));
+
+        //an on-match effect that takes another owner's lock (a start-quest of a member) must not nest it inside this one
+        assertEquals(Collections.singletonList(false), heldLock);
+        assertEquals(2, engine.getState(ProgressOwner.global(), quests.id("tally")).get().getCount("o"));
+    }
 
     @Test
     void eachMatchAppliesItsEffectsWithTheDeltaAListenerChanged() {
@@ -419,6 +473,64 @@ class QuestEngineTest {
         assertTrue(state.getObjectives().isEmpty());
     }
 
+    private static final String GOAL_V1 = "{id: server-goal, owner: global, version: 1, stages: [{id: s, objectives: [{id: o, type: break-block, goal: 10}]}]}";
+    private static final String GOAL_V2_RESET = "{id: server-goal, owner: global, version: 2, on-version-change: reset,"
+            + " stages: [{id: s, objectives: [{id: o, type: break-block, goal: 10}]}]}";
+
+    /** Starts {@link #GOAL_V1} for the global owner, counts 4 and closes the engine; returns a reopened one, not loaded yet. */
+    private QuestEngine reopenWithGoalV1Active() {
+        engine.register(quests.parse(GOAL_V1));
+        assertTrue(await(engine.start(ProgressOwner.global(), quests.id("server-goal"), QuestParams.NONE)).isSuccess());
+        await(engine.progress(ProgressOwner.global(), quests.id("server-goal"), "o", 4));
+        QuestEngine.closeOwnedBy(quests.getOwner());
+        return QuestEngine.of(quests.getOwner(), quests.getStorage(), QuestWorld.TestQuestSection.class);
+    }
+
+    @Test
+    void aResetPolicyReachesTheStatesReadFromStorage() {
+        QuestEngine reopened = reopenWithGoalV1Active();
+        await(reopened.load());
+
+        reopened.register(quests.parse(GOAL_V2_RESET));
+
+        QuestState state = reopened.getState(ProgressOwner.global(), quests.id("server-goal")).orElseThrow(AssertionError::new);
+        assertEquals(QuestStatus.AVAILABLE, state.getStatus());
+        assertEquals(2, state.getDefinitionVersion());
+        assertTrue(state.getObjectives().isEmpty());
+    }
+
+    @Test
+    void aResetPolicyReachesStatesLoadedAfterTheRegister() {
+        QuestEngine reopened = reopenWithGoalV1Active();
+        reopened.register(quests.parse(GOAL_V2_RESET));
+
+        await(reopened.load());
+
+        QuestState state = reopened.getState(ProgressOwner.global(), quests.id("server-goal")).orElseThrow(AssertionError::new);
+        assertEquals(QuestStatus.AVAILABLE, state.getStatus());
+        assertEquals(2, state.getDefinitionVersion());
+    }
+
+    @Test
+    void aKeepByIdPolicyReachesAPlayerWhoLogsInLater() {
+        engine.register(quests.parse("{id: v, version: 1, stages: [{id: s, objectives: ["
+                + "{id: ore, type: break-block, block: 'minecraft:iron_ore', goal: 5}, {id: wood, type: break-block, block: 'minecraft:oak_log', goal: 5}]}]}"));
+        start(alex, "v");
+        quests.post(quests.breakBlock(alex, "minecraft:iron_ore"));
+        quests.post(quests.breakBlock(alex, "minecraft:oak_log"));
+        quests.quit(alex);
+        quests.logic().rebootPlayers();
+
+        engine.register(quests.parse("{id: v, version: 2, on-version-change: keep-by-id, stages: [{id: s, objectives: ["
+                + "{id: ore, type: break-block, block: 'minecraft:iron_ore', goal: 5}, {id: rock, type: break-block, block: 'minecraft:stone', goal: 5}]}]}"));
+        quests.login(alex);
+
+        QuestState state = stateOf(alex, "v");
+        assertEquals(2, state.getDefinitionVersion());
+        assertEquals(1, state.getCount("ore"), "ore still exists");
+        assertFalse(state.getObjectives().containsKey("wood"), "wood is gone from the definition");
+    }
+
     @Test
     void anOrphanStateSurvivesOtherRegistersAndAReloadAndLeavesOnlyByReset() {
         engine.register(quests.parse(MINER));
@@ -457,6 +569,36 @@ class QuestEngineTest {
         assertEquals(QuestStatus.AVAILABLE, engine.getStatus(alexOwner(), quests.id("daily")));
         start(alex, "daily");
         assertEquals(1, stateOf(alex, "daily").getTimes());
+    }
+
+    @Test
+    void aFailedQuestIsOfferedAndStartedAgainAndReadsAvailable() {
+        engine.register(quests.parse("{id: timed, time-limit: 1m, stages: [{id: s, objectives: [{id: o, type: break-block, goal: 1}]}]}"));
+        start(alex, "timed");
+        quests.advance(Duration.ofMinutes(2));
+        quests.runDue();
+        assertEquals(QuestStatus.FAILED, stateOf(alex, "timed").getStatus(), "the raw state keeps the failure");
+
+        assertEquals(QuestStatus.AVAILABLE, engine.getStatus(alexOwner(), quests.id("timed")));
+        StartResult offered = await(engine.offer(alexOwner(), quests.id("timed")));
+        assertEquals(StartResult.Outcome.OFFERED, offered.getOutcome(), offered.toString());
+        StartResult started = await(engine.start(alexOwner(), quests.id("timed"), QuestParams.NONE));
+        assertEquals(StartResult.Outcome.STARTED, started.getOutcome(), started.toString());
+    }
+
+    @Test
+    void aQuestPastItsExpiryIsNotStarted() {
+        String closedAt = quests.now().minus(Duration.ofMinutes(1)).toString();
+        engine.register(quests.parse("{id: festival, expires-at: '" + closedAt + "', stages: [{id: s, objectives: [{id: o, type: break-block, goal: 1}]}]}"));
+
+        StartResult started = await(engine.start(alexOwner(), quests.id("festival"), QuestParams.NONE));
+        StartResult offered = await(engine.offer(alexOwner(), quests.id("festival")));
+
+        assertFalse(started.isSuccess(), started.toString());
+        assertEquals(StartResult.Reason.WINDOW, started.getReason(), started.toString());
+        assertTrue(started.getWhy().contains(closedAt), started.getWhy());
+        assertFalse(offered.isSuccess(), offered.toString());
+        assertEquals(StartResult.Reason.WINDOW, offered.getReason(), offered.toString());
     }
 
     @Test

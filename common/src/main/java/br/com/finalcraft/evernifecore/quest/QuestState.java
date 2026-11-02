@@ -19,6 +19,7 @@ public final class QuestState {
     private int definitionVersion;
     private @Nullable String stageId;
     private long stageStartedAt;
+    private boolean stageClosed;
     private Map<String, ObjectiveState> objectives = new LinkedHashMap<>();
     private int times;
     private long startedAt;
@@ -78,6 +79,18 @@ public final class QuestState {
 
     public void setStageStartedAt(long stageStartedAt) {
         this.stageStartedAt = stageStartedAt;
+    }
+
+    /**
+     * Whether the current stage already closed - its on-complete effects ran - and only the move after it is pending (a
+     * cancelled completion is retried without closing the stage again).
+     */
+    public boolean isStageClosed() {
+        return stageClosed;
+    }
+
+    public void setStageClosed(boolean stageClosed) {
+        this.stageClosed = stageClosed;
     }
 
     /** By objective id; an objective with no entry has made no progress. */
@@ -181,6 +194,7 @@ public final class QuestState {
         copy.definitionVersion = definitionVersion;
         copy.stageId = stageId;
         copy.stageStartedAt = stageStartedAt;
+        copy.stageClosed = stageClosed;
         for (Map.Entry<String, ObjectiveState> entry : objectives.entrySet()) {
             copy.objectives.put(entry.getKey(), entry.getValue().copy());
         }

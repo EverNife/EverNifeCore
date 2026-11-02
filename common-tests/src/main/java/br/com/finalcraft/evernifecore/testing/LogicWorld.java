@@ -23,6 +23,8 @@ import br.com.finalcraft.evernifecore.logic.delivery.Deliveries;
 import br.com.finalcraft.evernifecore.logic.reward.core.CoreRewardPieces;
 import br.com.finalcraft.evernifecore.logic.value.Contributions;
 import br.com.finalcraft.evernifecore.logic.value.DynamicValues;
+import br.com.finalcraft.evernifecore.playerdata.PDSection;
+import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
 
 import java.io.IOException;
@@ -149,6 +151,23 @@ public final class LogicWorld implements AutoCloseable {
             playerData = PlayerDataWorld.with(Storages.memory()).boot(folder);
         }
         return Deliveries.get();
+    }
+
+    /**
+     * What a restart does to the players who are offline, on the PlayerData layer {@link #deliveries()} booted: every dirty
+     * row is written, then each offline player's sections leave the cache, so their next load reads them back from storage.
+     * The in-memory backend does not survive a real reboot of the layer, hence the release.
+     *
+     * @throws IllegalStateException when no PlayerData layer is booted yet
+     */
+    public void rebootPlayers() {
+        if (playerData == null) {
+            throw new IllegalStateException("No PlayerData layer is booted yet: call deliveries() (a QuestWorld already did) before rebootPlayers().");
+        }
+        playerData.flushAll();
+        for (Class<? extends PDSection> section : new ArrayList<>(PlayerController.getConfiguredPDSections().keySet())) {
+            PlayerController.releasePDSection(section).join();
+        }
     }
 
     /** The owner's audit log, kept in {@link #getStorage()}: {@code AuditLog.of(owner, storage)}. */

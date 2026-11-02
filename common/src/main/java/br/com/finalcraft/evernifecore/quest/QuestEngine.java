@@ -399,6 +399,7 @@ public final class QuestEngine {
             }
             loaded = true;
             for (ProgressOwner progressOwner : memory.keySet()) {
+                migrate(progressOwner); //a definition registered before the load meets its older instances here
                 reindex(progressOwner);
             }
             ECDebugModule.QUESTS.debug("{} loaded {} quest state(s) of owners that are not players.", nameOf(owner), read);
@@ -586,9 +587,9 @@ public final class QuestEngine {
     // ------------------------------------------------------------------
 
     /**
-     * Adds {@code definition}, or replaces the one of the same id; a higher version applies the definition's
-     * {@link DefinitionPolicy} to the open instances. The map is swapped by reference, so a reader never sees it half
-     * filled. Any thread.
+     * Adds {@code definition}, or replaces the one of the same id. An instance that follows an older version is brought up to
+     * it by the definition's {@link DefinitionPolicy}: the loaded ones here, the others when {@link #load()} reads them and
+     * when their player logs in. The map is swapped by reference, so a reader never sees it half filled. Any thread.
      *
      * @throws IllegalArgumentException when the quest belongs to another plugin, its {@code requires} close a cycle, or an
      *                                  objective needs an action source this platform never raises
@@ -624,9 +625,7 @@ public final class QuestEngine {
                 unregisterHooks(before);
             }
             registerHooks(definition);
-            if (before != null && definition.getVersion() > before.getVersion()) {
-                applyPolicy(definition);
-            }
+            migrate(definition); //an instance of an older version may be loaded whatever the previous registration was
         }
         reindexAll();
         ECDebugModule.QUESTS.debug("{} registered {} quest(s); {} in all.", nameOf(owner), added.size(), next.size());
@@ -798,40 +797,70 @@ public final class QuestEngine {
         return definitions.values();
     }
 
-    private void applyPolicy(QuestDefinition definition) {
+    /** {@link #migrate(ProgressOwner, QuestState, QuestDefinition)} of every loaded owner's instance of {@code definition}. */
+    private void migrate(QuestDefinition definition) {
         String key = definition.getId().toString();
         for (ProgressOwner progressOwner : knownOwners()) {
             synchronized (lane(progressOwner)) {
                 Map<String, QuestState> states = states(progressOwner);
                 QuestState state = states == null ? null : states.get(key);
-                if (state == null || state.getDefinitionVersion() >= definition.getVersion()) {
-                    continue;
-                }
-                state.setDefinitionVersion(definition.getVersion());
-                if (state.getStatus().isOpen() || state.getStatus() == QuestStatus.ACTIVE) {
-                    if (definition.getPolicy() == DefinitionPolicy.RESET) {
-                        state.setStatus(QuestStatus.AVAILABLE);
-                        state.setStageId(null);
-                        state.getObjectives().clear();
-                    } else {
-                        Set<String> ids = new HashSet<>();
-                        for (Objective objective : definition.getObjectives()) {
-                            ids.add(objective.getId());
-                        }
-                        state.getObjectives().keySet().retainAll(ids);
-                        if (state.getStageId() != null && definition.getStage(state.getStageId()) == null) {
-                            owner.getLog().warning("Quest {} of {}: stage '{}' is gone in version {}; the instance restarts at stage '{}'.",
-                                    key, progressOwner, state.getStageId(), definition.getVersion(), definition.getStages().get(0).getId());
-                            state.setStageId(definition.getStages().get(0).getId());
-                            state.setStageStartedAt(ECClock.now().toEpochMilli());
-                        }
-                    }
-                }
-                markDirty(progressOwner, key);
-                if (state.getStatus() == QuestStatus.ACTIVE) {
-                    evaluateStage(progressOwner, definition, state, null, 0);
+                if (state != null) {
+                    migrate(progressOwner, state, definition);
                 }
             }
+        }
+    }
+
+    /** {@link #migrate(ProgressOwner, QuestState, QuestDefinition)} of every instance of {@code progressOwner} whose quest is registered. */
+    private void migrate(ProgressOwner progressOwner) {
+        synchronized (lane(progressOwner)) {
+            Map<String, QuestState> states = states(progressOwner);
+            if (states == null) {
+                return;
+            }
+            for (QuestState state : new ArrayList<>(states.values())) {
+                QuestDefinition definition = definitions.get(QuestId.parse(state.getQuestId(), nameOf(owner)));
+                if (definition != null) {
+                    migrate(progressOwner, state, definition);
+                }
+            }
+        }
+    }
+
+    /**
+     * Brings an instance that follows an older version up to {@code definition}, applying its {@link DefinitionPolicy} to an
+     * open one; nothing for an instance already at that version. Under the owner's lock.
+     */
+    private void migrate(ProgressOwner progressOwner, QuestState state, QuestDefinition definition) {
+        if (state.getDefinitionVersion() >= definition.getVersion()) {
+            return;
+        }
+        String key = definition.getId().toString();
+        state.setDefinitionVersion(definition.getVersion());
+        if (state.getStatus().isOpen()) {
+            if (definition.getPolicy() == DefinitionPolicy.RESET) {
+                state.setStatus(QuestStatus.AVAILABLE);
+                state.setStageId(null);
+                state.setStageClosed(false);
+                state.getObjectives().clear();
+            } else {
+                Set<String> ids = new HashSet<>();
+                for (Objective objective : definition.getObjectives()) {
+                    ids.add(objective.getId());
+                }
+                state.getObjectives().keySet().retainAll(ids);
+                if (state.getStageId() != null && definition.getStage(state.getStageId()) == null) {
+                    owner.getLog().warning("Quest {} of {}: stage '{}' is gone in version {}; the instance restarts at stage '{}'.",
+                            key, progressOwner, state.getStageId(), definition.getVersion(), definition.getStages().get(0).getId());
+                    state.setStageId(definition.getStages().get(0).getId());
+                    state.setStageStartedAt(ECClock.now().toEpochMilli());
+                    state.setStageClosed(false);
+                }
+            }
+        }
+        markDirty(progressOwner, key);
+        if (state.getStatus() == QuestStatus.ACTIVE) {
+            evaluateStage(progressOwner, definition, state, null, 0);
         }
     }
 
@@ -839,11 +868,22 @@ public final class QuestEngine {
     //  Transitions
     // ------------------------------------------------------------------
 
-    /** AVAILABLE (or LOCKED) -> OFFERED: a dialogue, a NPC or a command offers the quest. Any thread. */
-    public CompletableFuture<StartResult> offer(ProgressOwner progressOwner, QuestId id) {
+    /**
+     * AVAILABLE (or LOCKED, or ended without finishing) -> OFFERED: a dialogue, a NPC or a command offers the quest. A group
+     * quest offered to a player is offered to that player's group, as {@link #start} does. Any thread.
+     */
+    public CompletableFuture<StartResult> offer(ProgressOwner requested, QuestId id) {
         QuestDefinition definition = definitions.get(id);
         if (definition == null) {
             return done(StartResult.refused(StartResult.Reason.UNKNOWN_QUEST, unknown(id)));
+        }
+        ProgressOwner progressOwner = resolveOwner(requested, definition);
+        if (progressOwner == null) {
+            return done(StartResult.noGroup(definition, requested));
+        }
+        StartResult expired = refuseExpired(definition, ECClock.now());
+        if (expired != null) {
+            return done(expired);
         }
         synchronized (lane(progressOwner)) {
             Map<String, QuestState> states = states(progressOwner);
@@ -852,10 +892,15 @@ public final class QuestEngine {
             }
             QuestState state = states.get(id.toString());
             QuestStatus status = effectiveStatus(state);
-            if (status != null && status != QuestStatus.AVAILABLE) {
-                return done(StartResult.refused(StartResult.Reason.STATUS, "Quest '" + id + "' is " + status + " for " + progressOwner + ": only an available quest is offered."));
+            if (!canBeginAgain(status) || status == QuestStatus.OFFERED) {
+                return done(StartResult.refused(StartResult.Reason.STATUS, "Quest '" + id + "' is " + status + " for " + progressOwner + ": it is already"
+                        + " offered, active, done or cooling down, so it cannot be offered now."));
             }
-            QuestState offered = state != null ? state : new QuestState(id);
+            QuestState offered = new QuestState(id);
+            if (state != null) {
+                offered.setTimes(state.getTimes());
+                offered.setLastCompletedAt(state.getLastCompletedAt());
+            }
             Caller caller = caller(definition, null, null);
             if (cancelled(new QuestOfferPreEvent(this, id, progressOwner, caller, offered.copy()))) {
                 return done(StartResult.refused(StartResult.Reason.CANCELLED, "A listener cancelled the offer of quest '" + id + "'."));
@@ -880,21 +925,20 @@ public final class QuestEngine {
         if (definition == null) {
             return done(StartResult.refused(StartResult.Reason.UNKNOWN_QUEST, unknown(id)));
         }
-        ProgressOwner resolved = requested;
-        if (definition.getOwnerKind().equals(ProgressOwner.GROUP) && requested.isKind(ProgressOwner.PLAYER)) {
-            GroupId group = groupOf(UUID.fromString(requested.getId()), definition.getOwnerProvider());
-            if (group == null) {
-                return done(StartResult.noGroup(definition, requested));
-            }
-            resolved = ProgressOwner.group(group);
+        ProgressOwner progressOwner = resolveOwner(requested, definition);
+        if (progressOwner == null) {
+            return done(StartResult.noGroup(definition, requested));
         }
-        final ProgressOwner progressOwner = resolved;
         Instant at = ECClock.now();
         if (definition.getWindowStart() != null && at.isBefore(definition.getWindowStart())) {
             return done(StartResult.refused(StartResult.Reason.WINDOW, "Quest '" + id + "' opens at " + definition.getWindowStart() + "; it cannot start before that."));
         }
         if (definition.getWindowEnd() != null && !at.isBefore(definition.getWindowEnd())) {
             return done(StartResult.refused(StartResult.Reason.WINDOW, "Quest '" + id + "' closed at " + definition.getWindowEnd() + "; it cannot start any more."));
+        }
+        StartResult expired = refuseExpired(definition, at);
+        if (expired != null) {
+            return done(expired);
         }
         if (!definition.getOwnerKind().equals(progressOwner.getKind())) {
             return done(StartResult.refused(StartResult.Reason.OWNER_KIND, "Quest '" + id + "' is owned by a " + definition.getOwnerKind() + ", not by a " + progressOwner.getKind()
@@ -911,7 +955,7 @@ public final class QuestEngine {
             }
             QuestState previous = states.get(id.toString());
             QuestStatus status = effectiveStatus(previous);
-            if (status == QuestStatus.ACTIVE || status == QuestStatus.COMPLETED || status == QuestStatus.COOLDOWN) {
+            if (!canBeginAgain(status)) {
                 return done(StartResult.refused(StartResult.Reason.STATUS, "Quest '" + id + "' is " + status + " for " + progressOwner + ": it cannot start again now."));
             }
             List<QuestId> missing = missingRequires(progressOwner, definition);
@@ -1050,6 +1094,7 @@ public final class QuestEngine {
         if (definition == null) {
             return failed(unknown(id));
         }
+        List<Runnable> afterLane = new ArrayList<>();
         synchronized (lane(progressOwner)) {
             QuestState state = activeState(progressOwner, id);
             if (state == null) {
@@ -1061,10 +1106,11 @@ public final class QuestEngine {
                 return failed("Quest '" + id + "' has no objective '" + objectiveId + "' in its current stage '" + state.getStageId() + "'.");
             }
             advance(progressOwner, definition, state, objective, delta, null,
-                    context(progressOwner, definition, state, playerOf(progressOwner), null, stage, objective));
+                    context(progressOwner, definition, state, playerOf(progressOwner), null, stage, objective), afterLane);
             reindex(progressOwner);
-            return CompletableFuture.completedFuture(null);
         }
+        afterLane.forEach(Runnable::run);
+        return CompletableFuture.completedFuture(null);
     }
 
     /**
@@ -1246,6 +1292,8 @@ public final class QuestEngine {
             return false;
         }
         ProgressOwner progressOwner = entry.owner;
+        List<Runnable> afterLane = new ArrayList<>();
+        boolean done;
         synchronized (lane(progressOwner)) {
             QuestState state = activeState(progressOwner, entry.questId);
             QuestDefinition definition = definitions.get(entry.questId);
@@ -1259,9 +1307,9 @@ public final class QuestEngine {
             FPlayer player = event.getPlayer();
             ExecutionContext ctx = context(progressOwner, definition, state, player, event.getContext(), stage, entry.objective);
             if (entry.state) {
-                boolean done = checkState(progressOwner, definition, state, entry.objective, ctx);
+                boolean met = checkState(progressOwner, definition, state, entry.objective, ctx);
                 reindex(progressOwner);
-                return done;
+                return met;
             }
             if (!entry.filter.matches(event)) {
                 return false;
@@ -1276,18 +1324,24 @@ public final class QuestEngine {
                     return false;
                 }
             }
-            boolean done = advance(progressOwner, definition, state, entry.objective, entry.filter.countOf(event),
-                    player == null ? null : player.getUniqueId(), ctx);
+            done = advance(progressOwner, definition, state, entry.objective, entry.filter.countOf(event),
+                    player == null ? null : player.getUniqueId(), ctx, afterLane);
             if (done) {
                 reindex(progressOwner);
             }
-            return done;
         }
+        afterLane.forEach(Runnable::run);
+        return done;
     }
 
-    /** Adds {@code delta} to the objective under the owner's lock, once the pre event let it count and its costs came out; true when that completed it. */
+    /**
+     * Adds {@code delta} to the objective under the owner's lock, once the pre event let it count and its costs came out; true
+     * when that completed it. The on-match effects go to {@code afterLane}, which the caller runs once it left the lock: an
+     * effect may take another owner's lock (a start-quest of a member's quest), and taking it inside this one would let two
+     * owners wait for each other.
+     */
     private boolean advance(ProgressOwner progressOwner, QuestDefinition definition, QuestState state, Objective objective, long delta,
-                            @Nullable UUID actor, ExecutionContext ctx) {
+                            @Nullable UUID actor, ExecutionContext ctx, List<Runnable> afterLane) {
         ObjectiveState objectiveState = state.objective(objective.getId());
         if (objectiveState.isDone() || delta <= 0) {
             return false;
@@ -1325,7 +1379,8 @@ public final class QuestEngine {
             post(ObjectiveProgressEvent.class,
                     () -> new ObjectiveProgressEvent(this, id, progressOwner, caller, state.copy(),
                             objective.getId(), finalCounted, actor));
-            apply(objective.getOnMatch(), ctx.derive().variable("delta", String.valueOf(counted)).build());
+            ExecutionContext matched = ctx.derive().variable("delta", String.valueOf(counted)).build();
+            afterLane.add(() -> apply(objective.getOnMatch(), matched));
             return false;
         }
         objectiveState.setCount(Math.min(objective.getGoal(), objectiveState.getCount() + counted));
@@ -1389,6 +1444,7 @@ public final class QuestEngine {
             return;
         }
         if (!stage.getObjectives().isClosedBy(objective -> isDone(state, objective))) {
+            state.setStageClosed(false); //a version change took back what closed it
             checkStates(progressOwner, definition, state, stage, hops);
             return;
         }
@@ -1397,12 +1453,17 @@ public final class QuestEngine {
                     + " at once never ends.", definition.getId(), progressOwner, hops, stage.getId());
             return;
         }
-        Caller caller = caller(definition, stage.getId(), null);
-        post(StageCompleteEvent.class,
-                () -> new StageCompleteEvent(this, definition.getId(), progressOwner, caller, state.copy(),
-                        stage.getId()));
-        apply(stage.getOnComplete(), context(progressOwner, definition, state, playerOf(progressOwner), null, stage, null));
-        present(progressOwner, (viewer, shown) -> shown.onStageComplete(viewer, this, definition, state.copy(), stage));
+        if (!state.isStageClosed()) {
+            //the stage's own moment happens once; a cancelled completion leaves it closed and only the move below is retried
+            state.setStageClosed(true);
+            markDirty(progressOwner, definition.getId().toString());
+            Caller caller = caller(definition, stage.getId(), null);
+            post(StageCompleteEvent.class,
+                    () -> new StageCompleteEvent(this, definition.getId(), progressOwner, caller, state.copy(),
+                            stage.getId()));
+            apply(stage.getOnComplete(), context(progressOwner, definition, state, playerOf(progressOwner), null, stage, null));
+            present(progressOwner, (viewer, shown) -> shown.onStageComplete(viewer, this, definition, state.copy(), stage));
+        }
         Next next = stage.getObjectives().getMode() == ObjectiveGroup.Mode.ANY && closer != null && closer.getThen() != null
                 ? closer.getThen() : stage.getThen();
         int index = definition.getStages().indexOf(stage);
@@ -1428,6 +1489,7 @@ public final class QuestEngine {
     private void enterStage(ProgressOwner progressOwner, QuestDefinition definition, QuestState state, Stage stage, int hops) {
         state.setStageId(stage.getId());
         state.setStageStartedAt(ECClock.now().toEpochMilli());
+        state.setStageClosed(false);
         for (Objective objective : stage.getObjectives().getObjectives()) {
             state.getObjectives().remove(objective.getId());
         }
@@ -1721,6 +1783,8 @@ public final class QuestEngine {
             return false;
         }
         ProgressOwner progressOwner = entry.owner;
+        List<Runnable> afterLane = new ArrayList<>();
+        boolean finished;
         synchronized (lane(progressOwner)) {
             QuestState state = activeState(progressOwner, entry.questId);
             QuestDefinition definition = definitions.get(entry.questId);
@@ -1734,13 +1798,13 @@ public final class QuestEngine {
             RegionObjectiveType<Object> type = (RegionObjectiveType<Object>) entry.filter.getType();
             FPlayer player = event.getPlayer();
             if (type.isTimed()) {
-                boolean finished = type.accrue(player.getUniqueId(), entry.filter.getFilter(), state.objective(entry.objective.getId()), ECClock.now());
+                boolean accrued = type.accrue(player.getUniqueId(), entry.filter.getFilter(), state.objective(entry.objective.getId()), ECClock.now());
                 markDirty(progressOwner, definition.getId().toString());
-                if (finished) {
+                if (accrued) {
                     closeObjective(progressOwner, definition, state, entry.objective, player.getUniqueId());
                     reindex(progressOwner);
                 }
-                return finished;
+                return accrued;
             }
             long count = type.countOf(event, entry.filter.getFilter());
             if (count <= 0) {
@@ -1752,12 +1816,13 @@ public final class QuestEngine {
                     return false;
                 }
             }
-            boolean finished = advance(progressOwner, definition, state, entry.objective, count, player.getUniqueId(), ctx);
+            finished = advance(progressOwner, definition, state, entry.objective, count, player.getUniqueId(), ctx, afterLane);
             if (finished) {
                 reindex(progressOwner);
             }
-            return finished;
         }
+        afterLane.forEach(Runnable::run);
+        return finished;
     }
 
     /**
@@ -1895,8 +1960,11 @@ public final class QuestEngine {
     }
 
     private void listenToPlayers() {
-        subscriptions.add(ECEventBus.global().subscribe(ECPlayerFullyLoggedInEvent.class,
-                event -> reindex(ProgressOwner.player(event.getPlayerData().getUniqueId()))));
+        subscriptions.add(ECEventBus.global().subscribe(ECPlayerFullyLoggedInEvent.class, event -> {
+            ProgressOwner progressOwner = ProgressOwner.player(event.getPlayerData().getUniqueId());
+            migrate(progressOwner); //the section was read from storage after the definitions were registered
+            reindex(progressOwner);
+        }));
         subscriptions.add(ECEventBus.global().subscribe(ECPlayerQuitEvent.class, event -> {
             ProgressOwner progressOwner = ProgressOwner.player(event.getPlayerData().getUniqueId());
             activeOwners.remove(progressOwner);
@@ -1951,19 +2019,27 @@ public final class QuestEngine {
         return state != null && state.getStatus() == QuestStatus.ACTIVE ? state : null;
     }
 
-    /** The status a state stands at now: a cooldown that ended reads AVAILABLE. Null for no state. */
+    /**
+     * The status a state stands at now: a cooldown that ended reads AVAILABLE, and so does an instance that ended without
+     * finishing (failed, abandoned, expired) while the quest still takes new ones. Null for no state; an orphan reads its own.
+     */
     private @Nullable QuestStatus effectiveStatus(@Nullable QuestState state) {
         if (state == null) {
             return null;
         }
-        if (state.getStatus() != QuestStatus.COOLDOWN) {
-            return state.getStatus();
+        QuestStatus status = state.getStatus();
+        boolean endedUnfinished = status == QuestStatus.FAILED || status == QuestStatus.ABANDONED || status == QuestStatus.EXPIRED;
+        if (status != QuestStatus.COOLDOWN && !endedUnfinished) {
+            return status;
         }
         QuestDefinition definition = definitions.get(QuestId.parse(state.getQuestId(), nameOf(owner)));
         if (definition == null) {
-            return state.getStatus();
+            return status;
         }
         Instant now = ECClock.now();
+        if (endedUnfinished) {
+            return closedAt(definition, now) == null ? QuestStatus.AVAILABLE : status;
+        }
         RepeatPolicy repeat = definition.getRepeat();
         Duration cooldown = repeat.getCooldown();
         Window window = repeat.getWindow();
@@ -1974,6 +2050,42 @@ public final class QuestEngine {
             turned = start != null && start.toEpochMilli() > state.getLastCompletedAt();
         }
         return cooled && turned ? QuestStatus.AVAILABLE : QuestStatus.COOLDOWN;
+    }
+
+    /** Whether a new instance may begin over this (effective) status: nothing, or a state that is not open, done nor cooling down. */
+    private static boolean canBeginAgain(@Nullable QuestStatus status) {
+        return status == null || status == QuestStatus.AVAILABLE || status == QuestStatus.OFFERED
+                || status == QuestStatus.FAILED || status == QuestStatus.ABANDONED || status == QuestStatus.EXPIRED;
+    }
+
+    /** When the quest stopped taking new instances - its window's end or its expires-at, once passed; null while it takes them. */
+    private static @Nullable Instant closedAt(QuestDefinition definition, Instant now) {
+        if (definition.getWindowEnd() != null && !now.isBefore(definition.getWindowEnd())) {
+            return definition.getWindowEnd();
+        }
+        if (definition.getExpiresAt() != null && !now.isBefore(definition.getExpiresAt())) {
+            return definition.getExpiresAt();
+        }
+        return null;
+    }
+
+    /** The WINDOW refusal of a quest past its expires-at; null before it. */
+    private static @Nullable StartResult refuseExpired(QuestDefinition definition, Instant now) {
+        Instant expiresAt = definition.getExpiresAt();
+        if (expiresAt == null || now.isBefore(expiresAt)) {
+            return null;
+        }
+        return StartResult.refused(StartResult.Reason.WINDOW, "Quest '" + definition.getId() + "' closed at " + expiresAt
+                + " (its expires-at); it cannot be offered or started any more.");
+    }
+
+    /** Who holds {@code requested}'s instance of a quest: a group quest asked for a player is its group's; null when the player is in no such group. */
+    private static @Nullable ProgressOwner resolveOwner(ProgressOwner requested, QuestDefinition definition) {
+        if (!definition.getOwnerKind().equals(ProgressOwner.GROUP) || !requested.isKind(ProgressOwner.PLAYER)) {
+            return requested;
+        }
+        GroupId group = groupOf(UUID.fromString(requested.getId()), definition.getOwnerProvider());
+        return group == null ? null : ProgressOwner.group(group);
     }
 
     private List<QuestId> missingRequires(ProgressOwner progressOwner, QuestDefinition definition) {

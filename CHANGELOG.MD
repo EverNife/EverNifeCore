@@ -18,6 +18,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **`LogicWorld.rebootPlayers()`** (test kit) writes every dirty PlayerData row and drops the offline players' sections
+  from the cache, so their next load reads them back from storage.
 - **A left click on an NPC raises `interact-npc` too**: `EntityContext.getClickType()` (`ClickType.LEFT`/`RIGHT`) says
   which. The Bukkit providers hear both clicks (Citizens' `NPCLeftClickEvent` beside `NPCRightClickEvent`, the left
   click of FancyNpcs and ZNPCsPlus), and the test kit's `FakeNpcProvider.leftClick(player, ref)` punches. An
@@ -476,6 +478,17 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **A cancelled QuestCompletePreEvent no longer replays the stage**: the stage's on-complete effects, StageCompleteEvent and
+  presenter run once (`QuestState.isStageClosed()` remembers it across a restart); only the move after them is retried by
+  the sweep.
+- **on-version-change applies everywhere an older instance appears**: to states read from the storage (`load()`), to a
+  player's section at login and to a definition registered after a restart - not only to a hot re-register.
+- **A failed, abandoned or expired quest can be offered again** (offer and start agree), `getStatus` reads it AVAILABLE
+  while the quest takes new instances (the raw status stays on `QuestState`), and a quest past its expires-at refuses
+  start and offer with `Reason.WINDOW`. An offer starts from a fresh state that keeps only the completion count.
+- **QuestEngine.offer resolves a group quest asked for a player** to the player's group, as start does.
+- **An objective's on-match effects run once the owner's lock is released**: an effect that takes another owner's lock
+  (a start-quest of a member's quest) no longer nests it inside the first.
 - **Two quest engines can no longer deadlock each other**: the owner's lock is one monitor per owner shared by every
   engine, so a `requires`, `quest-completed` or `quest-status` read of another plugin's quest re-enters the lock already
   held instead of waiting on an engine that waits back.

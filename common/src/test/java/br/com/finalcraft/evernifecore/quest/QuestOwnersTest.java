@@ -144,6 +144,17 @@ class QuestOwnersTest {
     }
 
     @Test
+    void aGroupQuestOfferedToAMemberIsOfferedToTheGroup() {
+        engine.register(quests.parse("{id: raid, owner: {type: group}, stages: [{id: s, objectives: [{id: z, type: kill, goal: 3}]}]}"));
+
+        StartResult result = await(engine.offer(quests.owner(steve), quests.id("raid")));
+
+        assertEquals(StartResult.Outcome.OFFERED, result.getOutcome(), result.toString());
+        assertEquals(QuestStatus.OFFERED, engine.getState(party(), quests.id("raid")).orElseThrow(AssertionError::new).getStatus());
+        assertFalse(engine.getState(quests.owner(steve), quests.id("raid")).isPresent(), "nothing was offered to Steve alone");
+    }
+
+    @Test
     void aGroupQuestIsRefusedToAPlayerInNoGroup() {
         engine.register(quests.parse("{id: raid, owner: {type: group}, stages: [{id: s, objectives: [{id: z, type: kill, goal: 3}]}]}"));
         TestFPlayerSender loner = quests.player("Loner");

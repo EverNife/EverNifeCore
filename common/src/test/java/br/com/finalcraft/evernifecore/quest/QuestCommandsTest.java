@@ -112,7 +112,8 @@ class QuestCommandsTest {
         fq(alex, "quest track off");
         assertNull(engine.getTracked(alex));
         fq(alex, "quest abandon talk");
-        assertEquals(QuestStatus.ABANDONED, status("talk"));
+        assertEquals(QuestStatus.ABANDONED, engine.getState(quests.owner(alex), quests.id("talk")).get().getStatus());
+        assertEquals(QuestStatus.AVAILABLE, status("talk"), "an abandoned quest can begin again");
     }
 
     @Test
