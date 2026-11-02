@@ -24,22 +24,26 @@ public class ECoreTestExtension implements BeforeAllCallback, AfterAllCallback, 
 
     @Override
     public void beforeAll(ExtensionContext context) {
-        context.getStore(NAMESPACE).put(ECoreTestWorld.class, worldFor(context));
         //strict by default, like the platform doubles: a subscriber that breaks on the global bus fails
         //the test at the post that drove it, instead of a SEVERE nobody reads
         context.getStore(NAMESPACE).put(ECEventExceptionHandler.class,
                 EventBuses.installExceptionHandler(ECEventBus.global(), new FailingExceptionHandler()));
+        //after the handler, so the world's refusal watch sits in front of it and is taken out first
+        context.getStore(NAMESPACE).put(ECoreTestWorld.class, worldFor(context));
     }
 
     @Override
     public void afterAll(ExtensionContext context) {
-        ECEventExceptionHandler previous = context.getStore(NAMESPACE).remove(ECEventExceptionHandler.class, ECEventExceptionHandler.class);
-        if (previous != null) {
-            EventBuses.installExceptionHandler(ECEventBus.global(), previous);
-        }
         ECoreTestWorld world = context.getStore(NAMESPACE).remove(ECoreTestWorld.class, ECoreTestWorld.class);
-        if (world != null) {
-            world.close();
+        ECEventExceptionHandler previous = context.getStore(NAMESPACE).remove(ECEventExceptionHandler.class, ECEventExceptionHandler.class);
+        try {
+            if (world != null) {
+                world.close();
+            }
+        } finally {
+            if (previous != null) {
+                EventBuses.installExceptionHandler(ECEventBus.global(), previous);
+            }
         }
     }
 

@@ -43,8 +43,8 @@ public abstract class AbstractTestPlatform implements IPlatform {
      *               when the double answers for another core seam
      * @param hint   the builder call that teaches this double how to answer
      */
-    protected UnsupportedOperationException notConfigured(String method, String hint) {
-        return new UnsupportedOperationException(
+    protected PlatformNotConfiguredException notConfigured(String method, String hint) {
+        return new PlatformNotConfiguredException(
                 (method.contains(".") ? method : "IPlatform#" + method) + " not configured on this test platform - use " + hint
                         + " (or Platforms.lenient() for the old no-op defaults)");
     }

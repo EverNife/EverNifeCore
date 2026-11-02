@@ -82,7 +82,8 @@ class ECEventBusExceptionHandlerTest {
 
     @Test
     void underECoreTestABrokenSubscriberOnTheGlobalBusFailsTheTest() {
-        assertTrue(ECEventBus.global().getExceptionHandler() instanceof FailingExceptionHandler,
+        //the world's refusal watch stands in front of it and hands every failure on
+        assertTrue(String.valueOf(ECEventBus.global().getExceptionHandler()).contains("FailingExceptionHandler"),
                 "@ECoreTest makes the global bus strict for the length of the class: " + ECEventBus.global().getExceptionHandler());
 
         IllegalStateException broken = new IllegalStateException("broken on purpose, on the global bus");

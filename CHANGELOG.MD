@@ -18,6 +18,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **A strict double's refusal that the core only reported fails the world** (test kit): `notConfigured` throws
+  `PlatformNotConfiguredException` (still an `UnsupportedOperationException`), and `ECoreTestWorld` watches the global
+  bus's exception handler for it: `close()` fails with the refusal's message, which names the builder call. A product
+  test that hit an unconfigured `Platforms.strict()` call inside a subscriber used to stay green with a log line.
 - **`PlayerDouble.getTitles()` / `getActionBars()`** (test kit): the titles (`PlayerDouble.Title`, `Title.CLEARED` for a
   cleared one) and action bars a chest test's player was shown through the Bukkit API.
 - **`BukkitScreenWorld.withEconomy(economy)`** (test kit): the chest test's economy, the same form as

@@ -13,7 +13,11 @@ import br.com.finalcraft.evernifecore.logic.delivery.DeliveryDestinations;
 import br.com.finalcraft.evernifecore.logic.delivery.InventoryDestination;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
+import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.eventbus.ECEventExceptionHandler;
+import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
+import br.com.finalcraft.evernifecore.eventbus.EventBuses;
 import br.com.finalcraft.evernifecore.eventbus.ECListenerWatch;
 import br.com.finalcraft.evernifecore.eventbus.ECNativeAudience;
 import br.com.finalcraft.evernifecore.notify.Notifier;
@@ -35,6 +39,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * A platform installed in the global provider registry, plus the way to undo it.
@@ -45,7 +50,9 @@ import java.util.Set;
  * before - including "nothing at all".</p>
  *
  * <p>The global event bus is held to the same rule, strictly: a listener watch or a native audience
- * that was not on it at install and is still on it at {@link #close()} fails the close, by name.</p>
+ * that was not on it at install and is still on it at {@link #close()} fails the close, by name. So does a
+ * {@link PlatformNotConfiguredException} that reached the bus's exception handler: core code that only reports a failure
+ * (a subscriber, a login claim) would otherwise turn a missing builder call into a log line and a green test.</p>
  */
 public final class ECoreTestWorld implements AutoCloseable {
 
@@ -74,6 +81,9 @@ public final class ECoreTestWorld implements AutoCloseable {
     private final Set<ECListenerWatch> watchesBefore = Collections.newSetFromMap(new IdentityHashMap<>());
     private final List<String> audiencesBefore = new ArrayList<>();
     private final List<ECPluginData> currencyOwners = new ArrayList<>();
+    private final List<String> reportedRefusals = new CopyOnWriteArrayList<>();
+    private final RefusalWatch refusalWatch = new RefusalWatch();
+    private ECEventExceptionHandler busHandlerBefore;
     private boolean closed = false;
     private ECPluginData inventoryOwner;
 
@@ -106,6 +116,7 @@ public final class ECoreTestWorld implements AutoCloseable {
         );
 
         providers.register(IPlatform.class, platform);
+        world.busHandlerBefore = EventBuses.installExceptionHandler(ECEventBus.global(), world.refusalWatch);
         restore(providers, IGroupGlowProvider.class, platform.testGlow, platform.testGlow != null);
         ECScheduler.setMainThread(platform.mainThread());
         ensureCorePluginData(platform);
@@ -216,11 +227,51 @@ public final class ECoreTestWorld implements AutoCloseable {
         //a plugin data lent to the core outlives its test otherwise, and its debug log asks the next test's platform
         EverNifeCore.instance.onLoaderInstantiate(previousCore);
         SpawnPoints.resetWarning();
+        if (ECEventBus.global().getExceptionHandler() == refusalWatch) {
+            EventBuses.installExceptionHandler(ECEventBus.global(), busHandlerBefore);
+        }
 
         if (!leaked.isEmpty()) {
             throw new AssertionError("The test left " + leaked + " on the global event bus. Whoever opened it closes it"
                     + " before the world closes: ECListenerWatch.stop() for a watch, ECEventBus.removeNativeAudience(name)"
                     + " for an audience - otherwise the next test class inherits it and its gate counts change.");
+        }
+        if (!reportedRefusals.isEmpty()) {
+            throw new AssertionError("The platform double refused a call this test never configured, and the core only"
+                    + " reported it (nothing failed where it happened): " + reportedRefusals);
+        }
+    }
+
+    /**
+     * The global bus's handler for the life of this world: notes every {@link PlatformNotConfiguredException} a failure
+     * carries, then hands the failure on unchanged to the handler that was there before.
+     */
+    private final class RefusalWatch implements ECEventExceptionHandler {
+
+        @Override
+        public void onSubscriberFailure(ECEventSubscription<?> subscription, IECEvent event, Throwable failure) {
+            note(failure);
+            busHandlerBefore.onSubscriberFailure(subscription, event, failure);
+        }
+
+        @Override
+        public void onWatchFailure(ECListenerWatch watch, boolean onFirstListener, Throwable failure) {
+            note(failure);
+            busHandlerBefore.onWatchFailure(watch, onFirstListener, failure);
+        }
+
+        private void note(Throwable failure) {
+            for (Throwable cause = failure; cause != null; cause = cause.getCause() == cause ? null : cause.getCause()) {
+                if (cause instanceof PlatformNotConfiguredException) {
+                    reportedRefusals.add(cause.getMessage());
+                    return;
+                }
+            }
+        }
+
+        @Override
+        public String toString() {
+            return "ECoreTestWorld refusal watch over " + busHandlerBefore;
         }
     }
 
