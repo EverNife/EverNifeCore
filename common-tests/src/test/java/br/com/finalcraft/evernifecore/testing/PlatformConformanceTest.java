@@ -2,10 +2,15 @@ package br.com.finalcraft.evernifecore.testing;
 
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.notify.IHudAccess;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -104,5 +109,48 @@ class PlatformConformanceTest {
     @Test
     void theUnsupportedHudConforms() {
         assertTrue(PlatformConformance.check(Platforms.lenient().hudAccess(IHudAccess.UNSUPPORTED).build()).isEmpty());
+    }
+
+    @Test
+    void aWorldThreadHopWhoseFutureNeverCompletesIsAViolation() {
+        IPlatform stuck = overriding(Platforms.lenient().build(), "runOnWorldThread", args -> new CompletableFuture<Void>());
+
+        List<String> failures = PlatformConformance.check(stuck);
+
+        assertEquals(1, failures.size(), failures.toString());
+        assertTrue(failures.get(0).startsWith("runOnWorldThread") && failures.get(0).contains("did not complete"), failures.get(0));
+    }
+
+    @Test
+    void aWorldThreadHopOffTheWorldThreadIsAViolation() {
+        //the task runs in place, yet isWorldThread answers false inside it: it ran on a thread that does not own the world
+        List<String> failures = PlatformConformance.check(Platforms.lenient().offWorldThread().build());
+
+        assertTrue(failures.stream().anyMatch(line -> line.startsWith("runOnWorldThread") && line.contains("not the world's")),
+                failures.toString());
+    }
+
+    @Test
+    void aNullWorldListenerAcceptedIsAViolation() {
+        IPlatform keepsAnything = overriding(Platforms.lenient().build(), "onWorldLoaded", args -> null);
+
+        List<String> failures = PlatformConformance.check(keepsAnything);
+
+        assertEquals(1, failures.size(), failures.toString());
+        assertTrue(failures.get(0).startsWith("onWorldLoaded") && failures.get(0).contains("null listener"), failures.get(0));
+    }
+
+    /** {@code platform}, except that {@code method} answers {@code answer} instead. */
+    private static IPlatform overriding(IPlatform platform, String method, Function<Object[], Object> answer) {
+        return (IPlatform) Proxy.newProxyInstance(IPlatform.class.getClassLoader(), new Class<?>[]{IPlatform.class}, (proxy, called, args) -> {
+            if (called.getName().equals(method)) {
+                return answer.apply(args);
+            }
+            try {
+                return called.invoke(platform, args);
+            } catch (InvocationTargetException thrown) {
+                throw thrown.getCause();
+            }
+        });
     }
 }

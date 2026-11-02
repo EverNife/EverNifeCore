@@ -14,7 +14,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * What every {@link IPlatform} has to hold, whoever implements it - the doubles in this library,
@@ -108,14 +111,19 @@ public final class PlatformConformance {
 
         call(platform, "runOnWorldThread", failures, new Call<Object>() {
             @Override
-            public Object run(IPlatform target) {
-                //a missing world may complete exceptionally; throwing or handing back no future may not
-                if (target.runOnWorldThread("world", new Runnable() {
+            public Object run(IPlatform target) throws Exception {
+                //a missing world may complete exceptionally; throwing, handing back no future, a future nobody completes
+                //or a task run off the world's thread may not
+                final boolean[] onWorldThread = new boolean[1];
+                CompletableFuture<Void> future = target.runOnWorldThread("world", new Runnable() {
                     @Override
                     public void run() {
+                        onWorldThread[0] = target.isWorldThread("world");
                     }
-                }) == null) {
-                    throw new IllegalStateException("returned null instead of a future");
+                });
+                if (completedNormally(future, true) && !onWorldThread[0]) {
+                    throw new IllegalStateException("ran the task on a thread that is not the world's"
+                            + " (isWorldThread answered false inside it)");
                 }
                 return null;
             }
@@ -123,31 +131,38 @@ public final class PlatformConformance {
 
         call(platform, "runOnWorldThreadNextTick", failures, new Call<Object>() {
             @Override
-            public Object run(IPlatform target) {
-                if (target.runOnWorldThreadNextTick("world", new Runnable() {
+            public Object run(IPlatform target) throws Exception {
+                //the world's own thread would wait on the tick it has to give itself, so only another thread waits here;
+                //"never in the current tick" is proved on a live server, where ticks exist
+                boolean mayWait = !target.isWorldThread("world");
+                final boolean[] onWorldThread = new boolean[1];
+                CompletableFuture<Void> future = target.runOnWorldThreadNextTick("world", new Runnable() {
                     @Override
                     public void run() {
+                        onWorldThread[0] = target.isWorldThread("world");
                     }
-                }) == null) {
-                    throw new IllegalStateException("returned null instead of a future");
+                });
+                if (completedNormally(future, mayWait) && !onWorldThread[0]) {
+                    throw new IllegalStateException("ran the task on a thread that is not the world's"
+                            + " (isWorldThread answered false inside it)");
                 }
                 return null;
             }
         });
 
+        //a listener is kept for the life of the process, so the check registers none: it only asks for the refusal of null
         call(platform, "onWorldLoaded", failures, new Call<Object>() {
             @Override
             public Object run(IPlatform target) {
-                target.onWorldLoaded(new Consumer<String>() {
-                    @Override
-                    public void accept(String world) {
-                    }
-                });
-                target.onWorldUnloaded(new Consumer<String>() {
-                    @Override
-                    public void accept(String world) {
-                    }
-                });
+                refusesNull(() -> target.onWorldLoaded(null));
+                return null;
+            }
+        });
+
+        call(platform, "onWorldUnloaded", failures, new Call<Object>() {
+            @Override
+            public Object run(IPlatform target) {
+                refusesNull(() -> target.onWorldUnloaded(null));
                 return null;
             }
         });
@@ -306,8 +321,43 @@ public final class PlatformConformance {
         return summary.toString();
     }
 
+    private static final long HOP_TIMEOUT_SECONDS = 5;
+
+    /**
+     * Whether a world-thread hop answered normally. Exceptionally is the answer of a platform without that world (false);
+     * no future, or none within five seconds while {@code mayWait}, is a violation. A future still pending when the caller
+     * may not wait is not observed (false).
+     */
+    private static boolean completedNormally(CompletableFuture<Void> future, boolean mayWait) throws Exception {
+        if (future == null) {
+            throw new IllegalStateException("returned null instead of a future");
+        }
+        if (!mayWait && !future.isDone()) {
+            return false;
+        }
+        try {
+            future.get(HOP_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            return true;
+        } catch (ExecutionException noSuchWorld) {
+            return false;
+        } catch (TimeoutException stuck) {
+            throw new IllegalStateException("the future did not complete in " + HOP_TIMEOUT_SECONDS
+                    + " s - a task nobody runs, or a tick that never comes");
+        }
+    }
+
+    private static void refusesNull(Runnable register) {
+        try {
+            register.run();
+        } catch (NullPointerException | IllegalArgumentException refused) {
+            return;
+        }
+        throw new IllegalStateException("accepted a null listener - a listener kept for the life of the process must be"
+                + " refused before it is kept");
+    }
+
     private interface Call<T> {
-        T run(IPlatform target);
+        T run(IPlatform target) throws Exception;
     }
 
     private static <T> T call(IPlatform platform, String method, List<String> failures, Call<T> call) {

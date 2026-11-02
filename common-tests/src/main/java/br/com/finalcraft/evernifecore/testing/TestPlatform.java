@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -513,7 +514,7 @@ public class TestPlatform extends AbstractTestPlatform {
             super.onWorldLoaded(listener);
             return;
         }
-        worldLoadedListeners.add(listener);
+        worldLoadedListeners.add(Objects.requireNonNull(listener, "'listener' cannot be null when following world loads!"));
     }
 
     @Override
@@ -522,7 +523,7 @@ public class TestPlatform extends AbstractTestPlatform {
             super.onWorldUnloaded(listener);
             return;
         }
-        worldUnloadedListeners.add(listener);
+        worldUnloadedListeners.add(Objects.requireNonNull(listener, "'listener' cannot be null when following world unloads!"));
     }
 
     @Override
