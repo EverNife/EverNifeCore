@@ -97,7 +97,8 @@ public class Choice extends Button {
         Icon drawn = icon.copy();
         String name = drawn.getItem().getDisplayName();
         if (name != null && !name.isEmpty() && !name.startsWith("§")) {
-            drawn.displayName((result.isPassed() ? "§a" : "§7") + name);
+            //the item's own text, not displayName(): that would drop a language block and colour the name again
+            drawn.setItem(drawn.getItem().withText((result.isPassed() ? "§a" : "§7") + name, drawn.getItem().getLore()));
         }
         if (!result.isPassed()) {
             writer.paint(base.disabled(reasonsOf(result)), getSlots(), drawn);
@@ -107,7 +108,7 @@ public class Choice extends Button {
         if (!costs.isEmpty()) {
             List<String> lore = new ArrayList<>(drawn.getItem().getLore());
             lore.add("§7" + costs);
-            drawn.lore(lore);
+            drawn.setItem(drawn.getItem().withText(drawn.getItem().getDisplayName(), lore));
         }
         writer.paint(base, getSlots(), drawn);
     }

@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
+import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
@@ -214,12 +215,18 @@ public class Icon {
         return this;
     }
 
+    /**
+     * The name every viewer reads, {@code &} codes coloured ({@code &#RRGGBB} included); a placeholder's value put in
+     * at render is never coloured. It replaces the icon's language block: the explicit text is the intent.
+     */
     @Nonnull
     public Icon displayName(@Nonnull String displayName) {
-        setItem(look.item.withText(displayName, look.item.getLore()));
+        setItem(look.item.withText(FCColorUtil.colorfy(displayName), look.item.getLore()));
+        locale = null;
         return this;
     }
 
+    /** The lore every viewer reads - coloured, and replacing the language block, as {@link #displayName(String)}. */
     @Nonnull
     public Icon lore(@Nonnull String... lore) {
         return lore(Arrays.asList(lore));
@@ -227,7 +234,8 @@ public class Icon {
 
     @Nonnull
     public Icon lore(@Nonnull List<String> lore) {
-        setItem(look.item.withText(look.item.getDisplayName(), lore));
+        setItem(look.item.withText(look.item.getDisplayName(), FCColorUtil.colorfy(lore)));
+        locale = null;
         return this;
     }
 

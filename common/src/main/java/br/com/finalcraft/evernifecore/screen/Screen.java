@@ -9,6 +9,7 @@ import br.com.finalcraft.evernifecore.logic.Gate;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
@@ -151,18 +152,22 @@ public class Screen<L extends Layout> {
         return this;
     }
 
+    /**
+     * The title every viewer reads, {@code &} codes coloured ({@code &#RRGGBB} included); an argument or placeholder
+     * value put in later is never coloured.
+     */
     @Nonnull
     public Screen<L> title(@Nonnull String title) {
         return title(() -> title);
     }
 
     /**
-     * A title read again on every pass, so it can carry a page number or a filter. Only a renderer with
-     * {@link RendererCapability#TITLE_CHANGE} shows a change; the chest pays one frame of flicker for it.
+     * A title read again on every pass, so it can carry a page number or a filter, coloured as {@link #title(String)}.
+     * Only a renderer with {@link RendererCapability#TITLE_CHANGE} shows a change; the chest pays one frame of flicker.
      */
     @Nonnull
     public Screen<L> title(@Nonnull Supplier<String> title) {
-        this.title = title;
+        this.title = () -> FCColorUtil.colorfy(title.get());
         this.titleOverridden = true;
         return this;
     }

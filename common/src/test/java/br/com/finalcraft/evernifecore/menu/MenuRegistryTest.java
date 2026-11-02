@@ -70,6 +70,18 @@ class MenuRegistryTest extends MenuTestWorlds {
     }
 
     @Test
+    void aMenuTitleColoursItsOwnCodesAndLeavesAnArgumentAsItCame() {
+        TestFPlayerSender alex = menus.player("Alex", 0);
+        register("vip", "&6Shop of {0}");
+
+        ScreenView view = MenuRegistry.get().open(alex, "FakeShop:VIP", Collections.singletonList("&cBia")).join();
+        screens.advanceTicks(1);
+
+        assertEquals("§6Shop of &cBia", view.getCurrentTitle());
+        close(view);
+    }
+
+    @Test
     void theOpenMenuEffectOpensOnTopWithItsArgumentsAndBackReturns() throws Exception {
         TestFPlayerSender alex = menus.player("Alex", 0);
         register("vip", "VIP of {0}");

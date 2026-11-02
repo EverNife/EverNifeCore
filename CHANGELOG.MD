@@ -702,6 +702,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **Text written in code reads `&` as colour, as text in a file does**: `Screen.title` (both forms, and so
+  `ConfirmRequest.of`, `RankingRequest.title` and `Menu.Builder.title`), `Icon.displayName` and `Icon.lore` colour
+  `&` codes and `&#RRGGBB`. A value put in later - an opener's `{0}`, a replacer, a placeholder - is never coloured.
+- **`Icon.displayName`/`lore` replace the icon's language block**, so `DefaultIcons.info().displayName("x")` draws
+  "x" and is accepted in a layout field without `@FCLocale`; a field with `@FCLocale` and a `.displayName()` is still
+  refused ("names the same icon in two places").
 - **`PlatformConformance.check` observes the thread hops**: `runOnWorldThread` must complete within five seconds and,
   when it completes normally, must have run the task on the world's thread (`isWorldThread` true inside it);
   `runOnWorldThreadNextTick` is held to the same when the caller is not the world's thread (the world's own thread
