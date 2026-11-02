@@ -199,6 +199,44 @@ class OfferButtonTest extends MenuTestWorlds {
         close(view);
     }
 
+    private String question() {
+        ScreenView top = Screens.getOpenView(alex);
+        assertTrue(top.getScreen() instanceof ConfirmScreen, "the confirmation is on top, not " + top.getScreen());
+        return ((ConfirmScreen) top.getScreen()).getRequest().getQuestion();
+    }
+
+    @Test
+    void aConfirmedSellOfEverythingHeldConfirmsTheWholeLot() {
+        CountedGoods diamonds = Menus.counted("diamond", 30);
+        ScreenView view = open(shop(menus.sell(diamonds, 10).confirm().build()));
+
+        menus.clickOffer(view, "sword", ClickGesture.SHIFT_SECONDARY);
+        String question = question();
+        assertTrue(question.contains("30x diamond") && question.contains("300"), question);
+        menus.confirm(alex, true);
+
+        assertEquals(0, diamonds.getHeld());
+        assertAmount("1300", menus.balance(menus.coins(), alex));
+        close(Screens.getOpenView(alex));
+    }
+
+    @Test
+    void aConfirmedAskAsksTheNumberFirstThenConfirmsIt() {
+        ScreenView view = open(shop(menus.buy(swords, 10).confirm().build()));
+
+        menus.clickOffer(view, "sword", ClickGesture.MIDDLE);
+        assertEquals(1, PromptRegistry.get().getPendingCount(), "the number is asked before anything is confirmed");
+        menus.answerPrompt("5");
+        String question = question();
+        assertTrue(question.contains("5x sword") && question.contains("50"), question);
+        assertEquals(5, swords.getHeld(), "nothing traded before the answer");
+        menus.confirm(alex, true);
+
+        assertEquals(10, swords.getHeld());
+        assertAmount("950", menus.balance(menus.coins(), alex));
+        close(Screens.getOpenView(alex));
+    }
+
     @Test
     void aDenialResolvesMissingAndChargesNothing() {
         Menu menu = Menu.of(shop.getOwner(), "shop").denyText("§cYou still need: {missing}")

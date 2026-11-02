@@ -163,18 +163,34 @@ public final class Transactions {
             //nothing fits for another reason: one unit makes the real refusal (funds, limit, items) speak
             return CompletableFuture.completedFuture(run(ctx, offer, Math.max(1, units)));
         }
-        FPlayer player = ctx.getPlayer();
-        ScreenView view = ctx.getAttribute(ScreenView.class.getName(), ScreenView.class);
-        if (player == null || view == null) {
-            String why = "Quantity.ASK needs a player to ask: this context has " + (player == null ? "none" : "no screen to ask through")
-                    + " (caller " + ctx.getCaller() + "). Pass Quantity.of(n) from code, or trade from a click.";
-            ctx.getAudit().add(ctx, AuditKind.EFFECT_FAILED, why);
-            return CompletableFuture.completedFuture(TransactionResult.failed(TransactionResult.Failure.CANCELLED, offer, 0, null, FancyText.of(why)));
+        TransactionResult cannotAsk = cannotAsk(ctx, offer);
+        if (cannotAsk != null) {
+            return CompletableFuture.completedFuture(cannotAsk);
         }
+        return askQuantity(ctx, offer).handle((units, unanswered) -> unanswered != null ? noQuantity(ctx, offer) : run(ctx, offer, units));
+    }
+
+    /** {@code CANCELLED} (audited) when {@code ctx} has no player or no screen to ask a quantity through; null when it can ask. */
+    static @Nullable TransactionResult cannotAsk(ExecutionContext ctx, Offer offer) {
+        FPlayer player = ctx.getPlayer();
+        if (player != null && ctx.getAttribute(ScreenView.class.getName(), ScreenView.class) != null) {
+            return null;
+        }
+        String why = "Quantity.ASK needs a player to ask: this context has " + (player == null ? "none" : "no screen to ask through")
+                + " (caller " + ctx.getCaller() + "). Pass Quantity.of(n) from code, or trade from a click.";
+        ctx.getAudit().add(ctx, AuditKind.EFFECT_FAILED, why);
+        return TransactionResult.failed(TransactionResult.Failure.CANCELLED, offer, 0, null, FancyText.of(why));
+    }
+
+    /**
+     * Asks the player, through the context's screen, how many units of {@code offer} to trade - 1 to all that fits; fails
+     * when the prompt goes unanswered. Only for a context {@link #cannotAsk} accepts.
+     */
+    static CompletableFuture<Integer> askQuantity(ExecutionContext ctx, Offer offer) {
+        ScreenView view = ctx.getAttribute(ScreenView.class.getName(), ScreenView.class);
         int most = Math.max(1, Quantity.ALL_THAT_FITS.resolve(ctx, offer));
         String question = text(HOW_MANY, ctx, "most", most, "goods", goods(ctx, offer, 1), "cancel", "cancel").getText();
-        CompletableFuture<TransactionResult> traded = new CompletableFuture<>();
-        view.ask(PromptSpec.of(question).parse(input -> {
+        return view.ask(PromptSpec.of(question).parse(input -> {
             int units;
             try {
                 units = Integer.parseInt(input.trim());
@@ -185,14 +201,12 @@ public final class Transactions {
                 throw new IllegalArgumentException(text(OUT_OF_REACH, ctx, "units", units, "most", most).getText());
             }
             return units;
-        }).cancelWord("cancel")).whenComplete((units, unanswered) -> {
-            if (unanswered != null) {
-                traded.complete(TransactionResult.failed(TransactionResult.Failure.CANCELLED, offer, 0, null, text(NO_QUANTITY, ctx)));
-            } else {
-                traded.complete(run(ctx, offer, units));
-            }
-        });
-        return traded;
+        }).cancelWord("cancel"));
+    }
+
+    /** What a quantity prompt that went unanswered answers. */
+    static TransactionResult noQuantity(ExecutionContext ctx, Offer offer) {
+        return TransactionResult.failed(TransactionResult.Failure.CANCELLED, offer, 0, null, text(NO_QUANTITY, ctx));
     }
 
     /**

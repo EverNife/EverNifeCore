@@ -476,6 +476,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **A confirmed offer confirms the trade it makes**: the question names the resolved quantity and its total
+  (`Sell 30x Diamond for 300 coins?`) and a yes trades exactly that quantity, and `Quantity.ASK` asks the number before
+  the confirmation. An offer where nothing fits skips the question and answers the trade's own refusal.
 - **A menu's open gate is paid after its screen opened**: an open the platform refuses (the player is asleep, another
   plugin cancelled it) no longer charges; the gate is still checked first, so a player who cannot pay reads why and
   nothing opens. `ScreenNavigation.open(current, next, args, admit)` is the hook: `admit` runs once `next` holds the

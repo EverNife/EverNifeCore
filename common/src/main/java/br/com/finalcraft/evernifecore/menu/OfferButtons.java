@@ -27,9 +27,9 @@ import java.util.function.Supplier;
 
 /**
  * The link between an offer and its button. Every trade of a click goes the one path the screen has: a
- * {@link ClickRule} per gesture of the menu's {@link ClickMap}, whose success effect asks the confirmation when the
- * offer wants one, resolves the quantity (the prompt for {@link Quantity#ASK}) and runs {@link Transactions#trade},
- * then tells the player the menu's success or deny text. The button's text reads {@code {price}}, {@code {sell-price}}
+ * {@link ClickRule} per gesture of the menu's {@link ClickMap}, whose success effect resolves the quantity (the prompt
+ * for {@link Quantity#ASK}), asks the confirmation naming that quantity and its total when the offer wants one, runs
+ * {@link Transactions#trade} with it, then tells the player the menu's success or deny text. The button's text reads {@code {price}}, {@code {sell-price}}
  * and {@code {quantity}}.
  */
 final class OfferButtons {
@@ -99,7 +99,7 @@ final class OfferButtons {
         return null;
     }
 
-    /** The success effect of an offer rule: confirm, ask, trade, tell. */
+    /** The success effect of an offer rule: ask, confirm, trade, tell. */
     static final class Trade implements Effect {
         private final Menu menu;
         private final String offerId;
@@ -123,25 +123,53 @@ final class OfferButtons {
             }
             ExecutionContext trading = MenuContext.of(click, menu, offerId, offer);
             if (!offer.isConfirmed()) {
-                trade(click, trading);
+                trade(click, trading, quantity);
                 return;
             }
-            int shown = quantity.isAsk() || quantity == Quantity.ALL_THAT_FITS ? 1 : quantity.resolve(trading, offer);
-            String question = (offer.getType() == Offer.Type.BUY ? "Buy " : "Sell ") + offer.getGoods().describe(trading, shown).toLegacyString()
-                    + " for " + offer.getPrice().quote(trading, shown).describe(trading).toLegacyString() + "?";
+            if (quantity.isAsk()) {
+                TransactionResult cannotAsk = Transactions.cannotAsk(trading, offer);
+                if (cannotAsk != null) {
+                    finish(click, trading, cannotAsk);
+                    return;
+                }
+                //the number comes first, so the question names the trade it makes
+                Transactions.askQuantity(trading, offer).whenComplete((units, unanswered) -> {
+                    if (unanswered != null) {
+                        finish(click, trading, Transactions.noQuantity(trading, offer));
+                    } else {
+                        confirm(click, trading, units);
+                    }
+                });
+                return;
+            }
+            int units = quantity.resolve(trading, offer);
+            if (units < 1) {
+                //nothing fits: there is no trade to confirm, and the trade's own refusal says why
+                trade(click, trading, quantity);
+                return;
+            }
+            confirm(click, trading, units);
+        }
+
+        /** Asks "Buy 32x Diamond for 320 coins?" and, on yes, trades exactly those units - not the quantity re-read later. */
+        private void confirm(ClickContext click, ExecutionContext trading, int units) {
+            String question = (offer.getType() == Offer.Type.BUY ? "Buy " : "Sell ") + offer.getGoods().describe(trading, units).toLegacyString()
+                    + " for " + offer.getPrice().quote(trading, units).describe(trading).toLegacyString() + "?";
             ConfirmRequest request = ConfirmRequest.of(question).owner(menu.getOwner()).display(offer.getGoods().getIcon());
             click.open(ScreenKey.CONFIRM, ScreenRequest.of(menu.getOwner()).payload(request)).whenComplete((answer, failed) -> {
                 if (failed == null && Boolean.TRUE.equals(answer)) {
-                    trade(click, trading);
+                    trade(click, trading, Quantity.of(units));
                 }
             });
         }
 
-        private void trade(ClickContext click, ExecutionContext trading) {
-            Transactions.trade(trading, offer, quantity).thenAccept(result -> {
-                tell(trading, result);
-                click.refresh();
-            });
+        private void trade(ClickContext click, ExecutionContext trading, Quantity traded) {
+            Transactions.trade(trading, offer, traded).thenAccept(result -> finish(click, trading, result));
+        }
+
+        private void finish(ClickContext click, ExecutionContext trading, TransactionResult result) {
+            tell(trading, result);
+            click.refresh();
         }
 
         private void tell(ExecutionContext trading, TransactionResult result) {
