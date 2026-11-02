@@ -12,8 +12,10 @@ import java.util.function.Function;
  * state taken under the row's monitor, so the backend ends with what memory holds whatever order writes complete in.
  * A change made while its key is being written only marks the key: at most one more write follows, however many
  * changes came. Nothing here holds a row's monitor while the backend writes.
+ * <p>
+ * Internal: the write path of the core's own row collections (contributions, dynamic values, custom variables).
  */
-final class RowWriter<R> {
+public final class RowWriter<R> {
 
     private final Function<R, R> copy;
     private final Function<R, CompletableFuture<?>> save;
@@ -35,14 +37,14 @@ final class RowWriter<R> {
      * @param save      starts the write of a snapshot
      * @param onFailure told of a write that failed; the next change of that key writes again
      */
-    RowWriter(Function<R, R> copy, Function<R, CompletableFuture<?>> save, Consumer<Throwable> onFailure) {
+    public RowWriter(Function<R, R> copy, Function<R, CompletableFuture<?>> save, Consumer<Throwable> onFailure) {
         this.copy = copy;
         this.save = save;
         this.onFailure = onFailure;
     }
 
     /** Writes {@code row}'s current state under {@code key}, now or once the write of that key on its way lands. */
-    void write(String key, R row) {
+    public void write(String key, R row) {
         AtomicReference<Lane> started = new AtomicReference<>();
         lanes.compute(key, (k, lane) -> {
             if (lane != null) {
@@ -96,7 +98,7 @@ final class RowWriter<R> {
     }
 
     /** Completes once every key written so far has landed (or failed). */
-    CompletableFuture<Void> drained() {
+    public CompletableFuture<Void> drained() {
         return CompletableFuture.allOf(lanes.values().stream().map(lane -> lane.drained).toArray(CompletableFuture[]::new));
     }
 }

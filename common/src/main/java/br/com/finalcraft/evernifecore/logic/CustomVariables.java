@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.logic;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.logic.value.RowWriter;
 import br.com.finalcraft.evernifecore.region.RegionId;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
 import br.com.finalcraft.evernifecore.time.ECClock;
@@ -21,7 +22,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -42,7 +42,7 @@ public final class CustomVariables {
     private final @Nullable ECStorage storage;
     private final @Nullable CachingManager<String, Row> manager;
     private final Map<String, Row> rows = new ConcurrentHashMap<>();
-    private final Set<CompletableFuture<?>> pendingWrites = ConcurrentHashMap.newKeySet();
+    private final RowWriter<Row> writer = new RowWriter<>(Row::copy, this::save, this::writeFailed);
 
     private CustomVariables(ECPluginData plugin, @Nullable ECStorage storage) {
         this.plugin = plugin;
@@ -73,7 +73,7 @@ public final class CustomVariables {
         CustomVariables closed = OWNED.remove(owner.getMetaInfo().getName());
         if (closed != null) {
             DEFINED.values().removeIf(variable -> variable.owner() == closed);
-            CompletableFuture.allOf(closed.pendingWrites.toArray(new CompletableFuture[0])).exceptionally(error -> null).join();
+            closed.writer.drained().join();
         }
     }
 
@@ -124,14 +124,15 @@ public final class CustomVariables {
         if (manager == null) {
             return;
         }
-        CompletableFuture<?> write = manager.saveAndCache(row);
-        pendingWrites.add(write);
-        write.whenComplete((ok, error) -> {
-            pendingWrites.remove(write);
-            if (error != null) {
-                EverNifeCore.getLog().warning("A variable of " + plugin.getMetaInfo().getName() + " was not written: " + error);
-            }
-        });
+        writer.write(row.key, row);
+    }
+
+    private CompletableFuture<?> save(Row snapshot) {
+        return manager.saveAndCache(snapshot);
+    }
+
+    private void writeFailed(Throwable error) {
+        EverNifeCore.getLog().warning("A variable of " + plugin.getMetaInfo().getName() + " was not written: " + error);
     }
 
     /** One variable of a plugin: one value per owner, optionally reset at each start of a {@link Window}. */
@@ -250,6 +251,13 @@ public final class CustomVariables {
 
         Row(String key) {
             this.key = key;
+        }
+
+        Row copy() {
+            Row copy = new Row(key);
+            copy.value = value;
+            copy.windowStart = windowStart;
+            return copy;
         }
     }
 }

@@ -516,6 +516,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **`AuditLog.of(owner, storage)` closed and reopened the log on every call**: `AuditRetention` compared by identity and
   the two-argument form builds a new `days(30)` each time. Retentions are now equal by value (`equals`/`hashCode`), so
   opening the log again with an equal retention returns the one already open.
+- **`CustomVariables` handed the live row to the backend**: a `set` racing an earlier write could store a half-changed
+  row, and two writes landing newest first left the older value. It now writes like contributions and dynamic values -
+  a copy taken under the row's monitor, one write per key at a time (`logic.value.RowWriter`, now public).
 - **A `Choice` over an icon with a language block shows its state colour**: the `§a` (enabled) / `§7` (disabled) of a
   name with no colour of its own is put on the text the viewer reads - `Icon` applies it after the block and the
   placeholders - where the block used to replace the name without it.

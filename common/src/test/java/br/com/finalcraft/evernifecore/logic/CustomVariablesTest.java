@@ -3,6 +3,8 @@ package br.com.finalcraft.evernifecore.logic;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.LogicWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
+import br.com.finalcraft.evernifecore.testing.ScriptedStorage;
+import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,6 +20,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -43,6 +46,36 @@ class CustomVariablesTest {
     void close() {
         shop.close();
         world.close();
+    }
+
+    @Test
+    void theRowHandedToTheStorageIsASnapshot() {
+        CustomVariables.CustomVariable<BigDecimal> score = shop.customVariables().define("score", BigDecimal.class, BigDecimal.ZERO);
+        TestFPlayerSender alex = shop.player("Alex");
+        score.set(shop.context(alex).build(), BigDecimal.ONE);
+        CustomVariables.Row saved = shop.getBackend().lastSaved(CustomVariables.COLLECTION, CustomVariables.Row.class).get();
+
+        score.set(shop.context(alex).build(), BigDecimal.TEN);
+
+        assertEquals("1", saved.value);
+    }
+
+    @Test
+    void twoWritesOfOneValueLandingNewestFirstLeaveTheLastValueInTheBackend() {
+        CustomVariables.CustomVariable<BigDecimal> score = shop.customVariables().define("score", BigDecimal.class, BigDecimal.ZERO);
+        TestFPlayerSender alex = shop.player("Alex");
+        ScriptedStorage backend = shop.getBackend();
+        backend.holdWrites();
+        score.set(shop.context(alex).build(), BigDecimal.ONE);
+        score.set(shop.context(alex).build(), BigDecimal.TEN);
+
+        while (backend.heldWrites() > 0) {
+            backend.releaseNewestWrite();
+        }
+        backend.releaseWrites();
+        CustomVariables.closeOwnedBy(shop.getOwner());
+
+        assertEquals("10", backend.lastLanded(CustomVariables.COLLECTION, CustomVariables.Row.class).get().value);
     }
 
     @Test
