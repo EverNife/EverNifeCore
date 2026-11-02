@@ -521,6 +521,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   a copy taken under the row's monitor, one write per key at a time (`logic.value.RowWriter`, now public).
 - **An object-node argument with a double quote left open** (`a="b c`) was read as if closed at the end. It is now
   refused, and the message says to close the quote after the value or to write a JSON object.
+- **A `BukkitScreenWorld` closing removed a core it had not registered** (test kit): a core already registered when
+  it was installed is now left registered on `close()`; one it registered itself is removed as before.
 - **A `Choice` over an icon with a language block shows its state colour**: the `§a` (enabled) / `§7` (disabled) of a
   name with no colour of its own is put on the text the viewer reads - `Icon` applies it after the block and the
   placeholders - where the block used to replace the name without it.

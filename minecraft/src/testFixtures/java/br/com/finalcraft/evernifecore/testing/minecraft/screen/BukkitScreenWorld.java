@@ -95,6 +95,8 @@ public final class BukkitScreenWorld implements AutoCloseable {
     private final ECoreTestWorld platformWorld;
     private final String pluginName;
     private final ECPluginData ecPluginData;
+    /** True when this world registered the core itself; a core someone registered before stays theirs on close. */
+    private final boolean registeredCore;
     private final ItemRuntime runtime;
     private final SchedulerDouble scheduler = new SchedulerDouble();
     private final ScreenEventBus events = new ScreenEventBus();
@@ -117,10 +119,12 @@ public final class BukkitScreenWorld implements AutoCloseable {
                     .withPluginExtractor(Plugins.fake(pluginName, dataFolder.toFile()));
             //EverNifeCore.getLog() is what a screen reports a refused open or a broken handler through, and only the
             //real bootstrap ever sets it
+            this.registeredCore = !ECPluginManager.getECPluginsMap().containsKey(pluginName);
             this.ecPluginData = ECPluginManager.getOrCreateECorePluginData(new Object());
             platformWorld.withCorePluginData(ecPluginData);
         } else {
             this.platformWorld = null;
+            this.registeredCore = false;
             this.ecPluginData = screens.getCore();
             //the recording renderer would serve every viewer: under conformance the chest is the one that draws
             Screens.unregisterRenderers(screens.getOwner());
@@ -360,7 +364,9 @@ public final class BukkitScreenWorld implements AutoCloseable {
         ItemEngine.uninstall();
         setBukkitServer(previousServer);
         if (platformWorld != null) {
-            ECPluginManager.removePluginData(pluginName);
+            if (registeredCore) {
+                ECPluginManager.removePluginData(pluginName);
+            }
             platformWorld.close();
         }
     }
