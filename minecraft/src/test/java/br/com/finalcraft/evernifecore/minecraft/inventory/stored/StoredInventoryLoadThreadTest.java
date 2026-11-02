@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.minecraft.inventory.stored;
 
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.config.factory.ConfigFactoryCodec;
-import br.com.finalcraft.evernifecore.minecraft.screen.testkit.BukkitScreenWorld;
+import br.com.finalcraft.evernifecore.testing.minecraft.screen.BukkitScreenWorld;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import br.com.finalcraft.everyconfig.config.Config;
 import org.bukkit.Material;

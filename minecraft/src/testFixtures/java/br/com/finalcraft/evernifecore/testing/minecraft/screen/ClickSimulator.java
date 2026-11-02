@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.minecraft.screen.testkit;
+package br.com.finalcraft.evernifecore.testing.minecraft.screen;
 
 import org.bukkit.Material;
 import org.bukkit.event.inventory.ClickType;

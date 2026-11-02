@@ -1,5 +1,7 @@
-package br.com.finalcraft.evernifecore.minecraft.screen.testkit;
+package br.com.finalcraft.evernifecore.minecraft.testkit;
 
+import br.com.finalcraft.evernifecore.testing.minecraft.screen.PlayerDouble;
+import br.com.finalcraft.evernifecore.testing.minecraft.screen.SurfaceDouble;
 import org.bukkit.Material;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;

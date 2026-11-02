@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.testkit;
 
-import br.com.finalcraft.evernifecore.minecraft.screen.testkit.BukkitScreenWorld;
+import br.com.finalcraft.evernifecore.testing.minecraft.screen.BukkitScreenWorld;
 import br.com.finalcraft.evernifecore.minecraft.inventory.stored.StoredInventory;
 import br.com.finalcraft.evernifecore.testing.minecraft.ItemWorld;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;

@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.inventory.stored;
 
-import br.com.finalcraft.evernifecore.minecraft.screen.testkit.BukkitScreenWorld;
-import br.com.finalcraft.evernifecore.minecraft.screen.testkit.Items;
+import br.com.finalcraft.evernifecore.testing.minecraft.screen.BukkitScreenWorld;
+import br.com.finalcraft.evernifecore.minecraft.testkit.Items;
 import br.com.finalcraft.evernifecore.minecraft.inventory.ItemStore;
 import br.com.finalcraft.evernifecore.minecraft.inventory.UpdateCause;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;

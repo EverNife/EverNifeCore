@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.minecraft.screen.testkit;
+package br.com.finalcraft.evernifecore.testing.minecraft.screen;
 
 import br.com.finalcraft.evernifecore.minecraft.chat.ChatExpectationListener;
 import br.com.finalcraft.evernifecore.minecraft.screen.BukkitScreenListener;

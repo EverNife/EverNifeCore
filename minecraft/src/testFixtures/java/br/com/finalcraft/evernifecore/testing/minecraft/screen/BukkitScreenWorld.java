@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.minecraft.screen.testkit;
+package br.com.finalcraft.evernifecore.testing.minecraft.screen;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
@@ -62,6 +62,23 @@ import java.util.logging.Logger;
  * the platform is only what the core reaches for on the way past. {@link #over(ScreenWorld)} lays the same server over
  * a {@link ScreenWorld} instead - the form {@code RendererConformance} runs on - and the screen world's clock and
  * prompt answers then move this server's.</p>
+ *
+ * <p>Published in {@code evernifecore-minecraft-tests}, so a plugin's test opens its own screens on the real chest.
+ * {@link #installWithItemMetadata} is the form for a test that reads the names and lore the chest drew:</p>
+ *
+ * <pre>{@code
+ * try (BukkitScreenWorld world = BukkitScreenWorld.installWithItemMetadata(dir)) {
+ *     PlayerDouble player = world.newPlayer("Steve");
+ *     Screen<Layout> screen = Screen.of(1);
+ *     screen.icon(0, Icon.of("minecraft:paper").displayName("§eHello"));
+ *     world.open(screen, player);
+ *     world.advanceTicks(1);
+ *     assertEquals("§eHello", world.getSurface().getItem(0).getItemMeta().getDisplayName());
+ * }
+ * }</pre>
+ *
+ * <p>It replaces the Bukkit server and the item engine for its life: one at a time, in a try-with-resources, never
+ * beside an open {@link ItemWorld}.</p>
  */
 public final class BukkitScreenWorld implements AutoCloseable {
 

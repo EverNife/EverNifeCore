@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.minecraft.delivery;
 
 import br.com.finalcraft.evernifecore.item.ItemMatcher;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
-import br.com.finalcraft.evernifecore.minecraft.screen.testkit.BukkitScreenWorld;
+import br.com.finalcraft.evernifecore.testing.minecraft.screen.BukkitScreenWorld;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;

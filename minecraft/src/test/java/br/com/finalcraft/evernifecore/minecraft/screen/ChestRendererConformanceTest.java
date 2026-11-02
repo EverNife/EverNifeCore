@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.screen;
 
-import br.com.finalcraft.evernifecore.minecraft.screen.testkit.BukkitScreenWorld;
+import br.com.finalcraft.evernifecore.testing.minecraft.screen.BukkitScreenWorld;
 import br.com.finalcraft.evernifecore.testing.RendererConformance;
 import br.com.finalcraft.evernifecore.testing.ScreenWorld;
 import org.junit.jupiter.api.Test;

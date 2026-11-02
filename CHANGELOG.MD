@@ -18,6 +18,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **`evernifecore-minecraft-tests` ships the chest test kit**: `BukkitScreenWorld` (`install`, `installWithItemMetadata`,
+  `over(ScreenWorld)`) and its doubles (`PlayerDouble`, `SurfaceDouble`, `SchedulerDouble`, `ScreenEventBus`,
+  `ClickSimulator`) move to the published test fixtures as `testing.minecraft.screen`, so a plugin's test opens the real
+  `ChestScreenRenderer` over a described server and reads the names and lore it drew.
 - **`Plugins.fakeOther(name, dir)`** (test kit): the `ECPluginData` of a second fake plugin (the owner of a currency
   or a flag) without replacing the extractor the test world installed; `fakeCore` is now `fakeOther("EverNifeCore", dir)`.
 - **`LogicWorld.rebootPlayers()`** (test kit) writes every dirty PlayerData row and drops the offline players' sections
