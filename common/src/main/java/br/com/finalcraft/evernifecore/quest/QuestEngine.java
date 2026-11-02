@@ -118,7 +118,9 @@ import java.util.function.Supplier;
  * owner lose nothing, and an engine reading another engine's quest of the same owner never deadlocks with it.
  * A player's progress counts only while the player's section is loaded - nothing loads it from storage during an
  * action. Storage I/O never runs inside an owner's lock: changes of non-player owners are written a moment later, in
- * the background. Events go out on the thread of whatever made the change; effects go through {@link Effects#apply}.</p>
+ * the background. Events go out on the thread of whatever made the change, inside the owner's lock; effects go through
+ * {@link Effects#apply}. A subscriber may call the engine back for the same owner, and for another owner only off its
+ * thread (the engine refuses, rather than risk two owners waiting for each other).</p>
  */
 public final class QuestEngine {
 
@@ -2035,13 +2037,23 @@ public final class QuestEngine {
         return LANES.computeIfAbsent(progressOwner, key -> new ReentrantLock());
     }
 
-    /** Takes the owner's lane until {@link LaneHold#close}; the outermost close runs what {@link #afterLanes} queued. */
+    /**
+     * Takes the owner's lane until {@link LaneHold#close}; the outermost close runs what {@link #afterLanes} queued.
+     *
+     * @throws IllegalStateException when this thread already holds the lane of another owner
+     */
     LaneHold hold(ProgressOwner progressOwner) {
         ReentrantLock lane = lane(progressOwner);
-        lane.lock();
         HeldLanes held = HELD.get();
+        if (held != null && !lane.isHeldByCurrentThread()) {
+            //two threads taking two owners in opposite orders wait for each other forever: refuse before waiting
+            throw new IllegalStateException("The quest engine was asked about " + progressOwner + " while this thread"
+                    + " is still changing " + held.owner + " - a subscriber of a quest event runs inside that change."
+                    + " Call the engine for another owner off this thread: ECScheduler.runAsync(() -> engine...).");
+        }
+        lane.lock();
         if (held == null) {
-            held = new HeldLanes();
+            held = new HeldLanes(progressOwner);
             HELD.set(held);
         }
         held.depth++;
@@ -2076,8 +2088,14 @@ public final class QuestEngine {
     }
 
     private static final class HeldLanes {
+        /** The owner whose lane this thread took first. */
+        final ProgressOwner owner;
         int depth;
         final List<Runnable> after = new ArrayList<>();
+
+        HeldLanes(ProgressOwner owner) {
+            this.owner = owner;
+        }
     }
 
     private boolean isPlayerSectionOwner(ProgressOwner progressOwner) {

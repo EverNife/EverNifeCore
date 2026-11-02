@@ -30,6 +30,7 @@ import br.com.finalcraft.evernifecore.quest.event.ObjectiveProgressPreEvent;
 import br.com.finalcraft.evernifecore.quest.event.QuestCompleteEvent;
 import br.com.finalcraft.evernifecore.quest.event.QuestCompletePreEvent;
 import br.com.finalcraft.evernifecore.quest.event.QuestStartEvent;
+import br.com.finalcraft.evernifecore.quest.event.QuestStartPreEvent;
 import br.com.finalcraft.evernifecore.quest.event.StageCompleteEvent;
 import br.com.finalcraft.evernifecore.testing.Actors;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
@@ -65,10 +66,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static br.com.finalcraft.evernifecore.testing.QuestWorld.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -283,6 +286,34 @@ class QuestEngineTest {
 
         assertEquals(QuestStatus.COMPLETED, stateOf(alex, "grow").getStatus());
         assertEquals(2, applied.get());
+    }
+
+    @Test
+    void aSubscriberAskingTheEngineAboutAnotherOwnerIsRefusedAndToldToLeaveTheThread() {
+        engine.register(quests.parse(MINER));
+        ProgressOwner steve = quests.owner(quests.player("Steve"));
+        AtomicReference<RuntimeException> refused = new AtomicReference<>();
+        AtomicBoolean sameOwnerAnswered = new AtomicBoolean();
+        ECEventSubscription<QuestStartPreEvent> listener = ECEventBus.global().subscribe(QuestStartPreEvent.class, event -> {
+            engine.getState(alexOwner(), quests.id("miner"));
+            sameOwnerAnswered.set(true);
+            try {
+                engine.getState(steve, quests.id("miner"));
+            } catch (IllegalStateException refusal) {
+                refused.set(refusal);
+            }
+        });
+        try {
+            start(alex, "miner");
+        } finally {
+            listener.unsubscribe();
+        }
+
+        assertTrue(sameOwnerAnswered.get(), "the owner being changed is still the subscriber's to read");
+        assertNotNull(refused.get(), "two owners nested on one thread can wait on another thread doing the reverse forever");
+        assertTrue(refused.get().getMessage().contains("ECScheduler.runAsync"), refused.get().getMessage());
+        assertTrue(refused.get().getMessage().contains(steve.toString()), refused.get().getMessage());
+        assertFalse(engine.getState(steve, quests.id("miner")).isPresent(), "and off the lane the engine answers again");
     }
 
     // ------------------------------------------------------------------

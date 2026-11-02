@@ -769,6 +769,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **The quest engine refuses another owner's lane inside one it holds** (`QuestEngine`): a subscriber of a quest event runs
+  inside the owner's change, and one that calls the engine for another owner gets an `IllegalStateException` telling it
+  to leave the thread (`ECScheduler.runAsync`), where two such threads could wait for each other forever. Calling back
+  for the same owner is unchanged.
 - **`BukkitScreenWorld.install` draws item text** (test kit): its items remember a name, a lore and a flag, so a test reads
   an icon's name off a plain `install(...)` where it got a null `ItemMeta`. `installWithItemMetadata` is now the same
   world; only `BukkitScreenWorld.over(...)` stays on items without metadata.
