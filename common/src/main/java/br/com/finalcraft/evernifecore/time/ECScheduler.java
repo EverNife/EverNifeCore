@@ -10,13 +10,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 /**
- * The one place core code leaves the caller's thread: a shared executor for parallel work, the delayed path
- * ({@link #scheduleAsync}) that a test can take over through {@link #set(Backend)}, and the hop onto the platform's
+ * The one place core code leaves the caller's thread: a shared executor for parallel work, the delayed and repeated paths
+ * ({@link #scheduleAsync}, {@link #repeatAsync}) that a test can take over through {@link #set(Backend)}, and the hop onto the platform's
  * main thread ({@link #onMainThread}, {@link #onMainThreadLater}). Any thread.
  */
 public final class ECScheduler {
 
-    /** Replaces only the delayed path ({@link #scheduleAsync}); a test runs that agenda when it says so. */
+    /** Replaces only the delayed path ({@link #scheduleAsync}, and {@link #repeatAsync} over it); a test runs that agenda when it says so. */
     public interface Backend {
         void scheduleAsync(Runnable task, long delayMillis);
     }
@@ -79,6 +79,53 @@ public final class ECScheduler {
     /** Runs the task after the delay, through the installed {@link Backend} (the executor unless a test set one). */
     public static void scheduleAsync(Runnable runnable, long delayMillis){
         backend.scheduleAsync(runnable, delayMillis);
+    }
+
+    /**
+     * Runs the task after {@code delayMillis}, then again {@code periodMillis} after each run ends, until the returned
+     * handle is cancelled. A run that throws is printed and the next one still comes. Each run goes through the installed
+     * {@link Backend}, so a test clock drives it like any {@link #scheduleAsync}. Any thread.
+     */
+    public static RepeatingTask repeatAsync(Runnable runnable, long delayMillis, long periodMillis) {
+        if (periodMillis <= 0) {
+            throw new IllegalArgumentException("A repeating task needs a period above zero, not " + periodMillis
+                    + " ms: for a single run use scheduleAsync.");
+        }
+        RepeatingTask handle = new RepeatingTask();
+        Runnable[] run = new Runnable[1];
+        run[0] = () -> {
+            if (handle.isCancelled()) {
+                return;
+            }
+            try {
+                runnable.run();
+            } catch (Throwable throwable) {
+                throwable.printStackTrace();
+            }
+            if (!handle.isCancelled()) {
+                backend.scheduleAsync(run[0], periodMillis);
+            }
+        };
+        backend.scheduleAsync(run[0], delayMillis);
+        return handle;
+    }
+
+    /** The handle of a {@link #repeatAsync} task. */
+    public static final class RepeatingTask {
+
+        private volatile boolean cancelled;
+
+        private RepeatingTask() {
+        }
+
+        /** Stops the task: no run starts after this call; one already running finishes. Idempotent. */
+        public void cancel() {
+            cancelled = true;
+        }
+
+        public boolean isCancelled() {
+            return cancelled;
+        }
     }
 
     /** Replaces the backend of {@link #scheduleAsync}; {@code null} goes back to the executor. Tests only. */

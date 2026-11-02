@@ -18,6 +18,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **`ECScheduler.repeatAsync(task, delayMillis, periodMillis)`**: a repeated async task with a `RepeatingTask` handle that
+  cancels it; a run that throws is printed and the next one still comes. It runs through the same `Backend` as
+  `scheduleAsync`, so `TestClock` drives it.
 - **`ItemContext.getItem()`**: the item of a pickup, drop, craft, consume, enchant or catch as an `ItemSpec` carrying the
   platform's stack (name and lore included), so a plugin reads it without `getNativeEvent(CraftItemEvent.class)`. The
   stack is copied on the first call only; null for a Bukkit smelt and a Hytale craft, whose events carry no stack. The
