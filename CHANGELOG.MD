@@ -513,6 +513,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **`Plugins.forget(Plugins.CORE)` after a `Plugins.fakeCore` that found a core already registered** (test kit; a
+  `BukkitScreenWorld`'s, another world's) removed that core from `ECPluginManager`. `fakeCore` still hands out the
+  registered one, and `forget(CORE)` now leaves it with whoever registered it; a core `fakeCore` built itself is
+  forgotten as before.
 - **A title or an action bar sent with no core plugin running** (a test server) tried the Adventure bridge first,
   which cannot be built without the plugin, and an action bar ended dropped with a SEVERE. Both now go straight to the
   Bukkit API there (`player.sendTitle`/`resetTitle`, `player.spigot().sendMessage(ACTION_BAR, ...)`), as chat already

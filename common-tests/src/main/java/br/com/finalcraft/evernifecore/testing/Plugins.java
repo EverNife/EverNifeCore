@@ -11,7 +11,10 @@ import br.com.finalcraft.everyconfig.config.Config;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Set;
 
 /**
  * A plugin that exists only for the test: a name, a data folder, and enough metadata for
@@ -23,6 +26,11 @@ public final class Plugins {
 
     /** The name a fake EverNifeCore answers to - the owner the core flags' keys name, once lowercased. */
     public static final String CORE = "EverNifeCore";
+
+    /** Cores {@link #fakeCore} built itself - the only ones {@code forget(CORE)} removes. */
+    private static final Set<ECPluginData> MADE_CORES = Collections.synchronizedSet(Collections.newSetFromMap(new IdentityHashMap<>()));
+    /** Cores {@link #fakeCore} found registered by someone else and handed out as they were. */
+    private static final Set<ECPluginData> BORROWED_CORES = Collections.synchronizedSet(Collections.newSetFromMap(new IdentityHashMap<>()));
 
     private Plugins() {
     }
@@ -76,13 +84,32 @@ public final class Plugins {
         return other;
     }
 
-    /** A fake EverNifeCore ({@link #CORE}), the owner the core flags register under; see {@link #fakeOther}. */
+    /**
+     * A fake EverNifeCore ({@link #CORE}), the owner the core flags register under; see {@link #fakeOther}. When a core is
+     * already registered (a {@code BukkitScreenWorld}'s, another world's) that one is handed out, and
+     * {@code forget(CORE)} then leaves it registered: whoever registered it removes it.
+     */
     public static ECPluginData fakeCore(File dataFolder) {
-        return fakeOther(CORE, dataFolder);
+        ECPluginData before = ECPluginManager.getECPluginsMap().get(CORE);
+        ECPluginData core = fakeOther(CORE, dataFolder);
+        if (before == null) {
+            MADE_CORES.add(core);
+        } else if (!MADE_CORES.contains(before)) {
+            BORROWED_CORES.add(before);
+        }
+        return core;
     }
 
-    /** Removes the plugin data {@link #fakePluginData(String, File)} built under {@code pluginName}. */
+    /**
+     * Removes the plugin data {@link #fakePluginData(String, File)} built under {@code pluginName} - except a core
+     * {@link #fakeCore} only borrowed, which stays with whoever registered it.
+     */
     public static void forget(String pluginName) {
+        ECPluginData current = ECPluginManager.getECPluginsMap().get(pluginName);
+        if (current != null && BORROWED_CORES.contains(current)) {
+            return;
+        }
+        MADE_CORES.remove(current);
         ECPluginManager.removePluginData(pluginName);
     }
 
