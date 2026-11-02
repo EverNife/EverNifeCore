@@ -80,10 +80,12 @@ import com.hypixel.hytale.server.core.modules.entity.damage.Damage;
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageCause;
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageEventSystem;
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageModule;
+import com.hypixel.hytale.server.core.modules.entity.teleport.PendingTeleport;
 import com.hypixel.hytale.server.core.modules.entity.teleport.Teleport;
 import com.hypixel.hytale.server.core.modules.interaction.event.InteractionChainStartEvent;
 import com.hypixel.hytale.server.core.plugin.PluginBase;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.npc.entities.NPCEntity;
 import jakarta.annotation.Nullable;
@@ -864,7 +866,8 @@ public final class HyActionSystems {
 
     /**
      * The end of a respawn - the server removes the {@link DeathComponent} once its own respawn teleport is on the player:
-     * a spawn-point {@link RespawnSystem} held for him replaces that teleport.
+     * a spawn-point {@link RespawnSystem} held for him goes on once that teleport has left him
+     * ({@link #teleportWhenFree}).
      */
     private static final class RespawnedSystem extends DeathSystems.OnDeathSystem {
 
@@ -881,12 +884,42 @@ public final class HyActionSystems {
         public void onComponentRemoved(Ref<EntityStore> ref, DeathComponent death, Store<EntityStore> store, CommandBuffer<EntityStore> buffer) {
             PlayerRef player = store.getComponent(ref, PlayerRef.getComponentType());
             WorldLocPos point = player == null ? null : RESPAWN_POINTS.remove(player.getUuid());
-            TransformComponent transform = point == null ? null : store.getComponent(ref, TransformComponent.getComponentType());
-            if (transform != null) {
-                buffer.putComponent(ref, Teleport.getComponentType(),
-                        HyRegionMoveSystem.teleport(point, store.getExternalData().getWorld(), transform.getRotation()));
+            if (point != null) {
+                teleportWhenFree(store.getExternalData().getWorld(), ref, point, SPAWN_POINT_WAIT_TICKS);
             }
         }
+    }
+
+    /** How long a spawn-point waits for the server's respawn teleport to leave the player: two seconds at 30 TPS. */
+    static final int SPAWN_POINT_WAIT_TICKS = 60;
+
+    /**
+     * Puts the spawn-point teleport on the first tick the player carries no {@link Teleport} nor {@link PendingTeleport}.
+     * The server's respawn teleport is removed by its teleport system's own buffer, and a Teleport set while it is still
+     * there is a replacement that system ignores. Stops when the player leaves; past the wait it gives up with a warning.
+     */
+    private static void teleportWhenFree(World world, Ref<EntityStore> ref, WorldLocPos point, int ticksLeft) {
+        EverNifeCore.getPlatform().runOnWorldThreadNextTick(world.getName(), () -> {
+            if (!ref.isValid()) {
+                return;
+            }
+            Store<EntityStore> store = ref.getStore();
+            if (store.getComponent(ref, Teleport.getComponentType()) != null
+                    || store.getComponent(ref, PendingTeleport.getComponentType()) != null) {
+                if (ticksLeft > 0) {
+                    teleportWhenFree(world, ref, point, ticksLeft - 1);
+                } else {
+                    EverNifeCore.getLog().warning("The spawn-point " + point + " was not applied: the player still carried a teleport "
+                            + SPAWN_POINT_WAIT_TICKS + " ticks after his respawn, and the region's point never overrides one"
+                            + " in flight. If something teleports players on respawn, that teleport is where they land.");
+                }
+                return;
+            }
+            TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
+            if (transform != null) {
+                store.addComponent(ref, Teleport.getComponentType(), HyRegionMoveSystem.teleport(point, world, transform.getRotation()));
+            }
+        });
     }
 
     /** {@link #environmentBreak} for every block the world breaks by itself; the event comes at the whole store. */

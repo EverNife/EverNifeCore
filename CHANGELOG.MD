@@ -487,6 +487,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **Hytale: a hammer, bucket, hoe or light used inside `deny-interact` is now denied.** The interaction-start System
   judges the block the client aimed at (or the entity), read from the chain's packet data; the context's target meta
   it used to read is only filled by the server after the event, so the System never saw a target.
+- **Hytale: `spawn-point` after a real death.** The flag's teleport is put once the server's own teleport has left the
+  player (checked tick by tick, up to two seconds), instead of replacing it in the same buffer, where the server's
+  teleport system ignored the replacement. Past the wait it is dropped with a warning.
 - **A plugin that leaves releases everything, by either exit path**: the shutdown hook (`onECPluginShutdownPre`) and
   the plugin-disable path (`ECPluginManager.removePluginData`) now run one list of releases - boosters, audit log, flags,
   currencies, destinations, parsers, commands, listeners, screens, prompts, menus, cooldowns, variables, values,
