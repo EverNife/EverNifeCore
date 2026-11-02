@@ -25,6 +25,7 @@ import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.storage.SectionLifecycle;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
 import br.com.finalcraft.evernifecore.testing.ScriptedStorage;
+import br.com.finalcraft.evernifecore.quest.event.ObjectiveProgressEvent;
 import br.com.finalcraft.evernifecore.quest.event.ObjectiveProgressPreEvent;
 import br.com.finalcraft.evernifecore.quest.event.QuestCompleteEvent;
 import br.com.finalcraft.evernifecore.quest.event.QuestStartEvent;
@@ -267,6 +268,36 @@ class QuestEngineTest {
     @Test
     void aCancelledProgressPreEventTakesNoCost() {
         AtomicInteger iron = new AtomicInteger(1);
+        startSmithPayingIron(iron);
+        ECEventSubscription<ObjectiveProgressPreEvent> listener = ECEventBus.global().subscribe(ObjectiveProgressPreEvent.class,
+                event -> event.setCancelled(true));
+        try {
+            quests.post(quests.breakBlock(alex, "minecraft:stone"));
+        } finally {
+            listener.unsubscribe();
+        }
+        assertEquals(0, stateOf(alex, "smith").getCount("o"));
+        assertEquals(1, iron.get(), "a match that does not count costs nothing");
+
+        quests.post(quests.breakBlock(alex, "minecraft:stone"));
+        assertEquals(0, iron.get(), "a match that counts pays the cost");
+        assertEquals(QuestStatus.COMPLETED, stateOf(alex, "smith").getStatus());
+    }
+
+    @Test
+    void aMatchWhoseCostCannotBePaidDoesNotCount() {
+        startSmithPayingIron(new AtomicInteger(0));
+        List<ObjectiveProgressEvent> progressed = quests.recorded(ObjectiveProgressEvent.class);
+
+        quests.post(quests.breakBlock(alex, "minecraft:stone"));
+
+        assertEquals(0, stateOf(alex, "smith").getCount("o"));
+        assertEquals(QuestStatus.ACTIVE, stateOf(alex, "smith").getStatus());
+        assertTrue(progressed.isEmpty(), "an unpaid match posts no progress");
+    }
+
+    /** Quest {@code smith}: one break-block objective, goal 1, that costs one {@code iron} per match; started for Alex. */
+    private void startSmithPayingIron(AtomicInteger iron) {
         Costs.register(quests.getOwner(), TypeDescriptor.<Cost>of("fakequests:iron")
                 .describe("Iron of the test's pocket.")
                 .factory(params -> new Cost() {
@@ -294,19 +325,6 @@ class QuestEngineTest {
         engine.register(quests.parse("{id: smith, stages: [{id: s, objectives: [{id: o, type: break-block, goal: 1,"
                 + " costs: [{type: 'fakequests:iron'}]}]}]}"));
         start(alex, "smith");
-        ECEventSubscription<ObjectiveProgressPreEvent> listener = ECEventBus.global().subscribe(ObjectiveProgressPreEvent.class,
-                event -> event.setCancelled(true));
-        try {
-            quests.post(quests.breakBlock(alex, "minecraft:stone"));
-        } finally {
-            listener.unsubscribe();
-        }
-        assertEquals(0, stateOf(alex, "smith").getCount("o"));
-        assertEquals(1, iron.get(), "a match that does not count costs nothing");
-
-        quests.post(quests.breakBlock(alex, "minecraft:stone"));
-        assertEquals(0, iron.get(), "a match that counts pays the cost");
-        assertEquals(QuestStatus.COMPLETED, stateOf(alex, "smith").getStatus());
     }
 
     @Test
