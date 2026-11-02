@@ -55,7 +55,6 @@ import com.hypixel.hytale.math.util.ChunkUtil;
 import com.hypixel.hytale.math.vector.Rotation3f;
 import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.protocol.BlockPosition;
-import com.hypixel.hytale.protocol.InteractionState;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
 import com.hypixel.hytale.server.core.entity.ExplosionConfig;
 import com.hypixel.hytale.server.core.entity.ExplosionUtils;
@@ -78,6 +77,7 @@ import com.hypixel.hytale.server.core.modules.entity.damage.Damage;
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageCause;
 import com.hypixel.hytale.server.core.modules.entity.damage.DeathComponent;
 import com.hypixel.hytale.server.core.modules.interaction.InteractionModule;
+import com.hypixel.hytale.server.core.modules.interaction.event.InteractionChainStartEvent;
 import com.hypixel.hytale.server.core.modules.interaction.interaction.config.Interaction;
 import com.hypixel.hytale.server.core.modules.interaction.interaction.config.RootInteraction;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -482,9 +482,10 @@ public final class HyRegionsSuite implements ConformanceSuite {
     }
 
     /**
-     * The player starts a {@code Secondary} chain with a hoe at a dirt block, through the server's interaction manager
-     * with the block in the chain's data, where a client's click puts it: inside {@code deny-interact} the chain fails
-     * at its start and no interaction is posted, outside it runs and the core posts one. The blocks are put back.
+     * The player starts a {@code Secondary} chain with a hoe at a dirt block - the hoe's own root interaction, the block
+     * in the chain's data where a client's click puts it - and its start event goes to every System: inside
+     * {@code deny-interact} it is cancelled and no interaction is posted, outside it goes through and the core posts one.
+     * The blocks are put back.
      */
     private CompletableFuture<Verdict> toolUseInsideDenyInteract(FPlayer fplayer) {
         PlayerRef player = HyWorld.player(fplayer);
@@ -503,17 +504,17 @@ public final class HyRegionsSuite implements ConformanceSuite {
                     region -> {
                         ECEventSubscription<InteractActionEvent.Post> heard = ECEventBus.global().subscribe(InteractActionEvent.Post.class, posts::add);
                         int[] postedInside = new int[1];
-                        return HyWorld.on(world, () -> startHoeChain(player.getReference(), inside))
+                        return HyWorld.on(world, () -> hoeChainCancelled(player.getReference(), inside))
                                 .thenCompose(in -> HyWorld.ticks(world, 10).thenCompose(w -> HyWorld.on(world, () -> {
                                     postedInside[0] = posts.size();
-                                    return new InteractionState[]{in, startHoeChain(player.getReference(), outside)};
-                                }))).thenCompose(states -> HyWorld.ticks(world, 10).thenCompose(w -> HyWorld.on(world, () -> {
+                                    return new boolean[]{in, hoeChainCancelled(player.getReference(), outside)};
+                                }))).thenCompose(cancelled -> HyWorld.ticks(world, 10).thenCompose(w -> HyWorld.on(world, () -> {
                                     String insideNow = typeAt(world, inside).getId();
                                     String outsideNow = typeAt(world, outside).getId();
-                                    boolean denied = states[0] == InteractionState.Failed && postedInside[0] == 0 && DIRT.equals(insideNow);
-                                    boolean ran = states[1] != InteractionState.Failed && posts.size() > postedInside[0];
-                                    return Verdict.of(denied && ran, "inside{state=" + states[0] + " posted=" + postedInside[0] + " block=" + insideNow
-                                            + "} outside{state=" + states[1] + " posted=" + (posts.size() - postedInside[0]) + " block=" + outsideNow + "}");
+                                    boolean denied = cancelled[0] && postedInside[0] == 0 && DIRT.equals(insideNow);
+                                    boolean ran = !cancelled[1] && posts.size() > postedInside[0];
+                                    return Verdict.of(denied && ran, "inside{cancelled=" + cancelled[0] + " posted=" + postedInside[0] + " block=" + insideNow
+                                            + "} outside{cancelled=" + cancelled[1] + " posted=" + (posts.size() - postedInside[0]) + " block=" + outsideNow + "}");
                                 }))).whenComplete((verdict, failed) -> heard.unsubscribe());
                     }).thenCompose(verdict -> HyWorld.on(world, () -> {
                 HyWorld.setBlock(world, inside.x, inside.y, inside.z, before[0]);
@@ -527,23 +528,29 @@ public final class HyRegionsSuite implements ConformanceSuite {
     private static final String HOE = "Tool_Hoe_Crude";
 
     /**
-     * Starts the hoe's {@code Secondary} chain on {@code at} as the server does for a client's packet: the block in the
-     * chain data, the target meta the tool itself reads already set. Answers the chain's state right after its start
-     * event - {@code Failed} when a System cancelled it. On the world's thread.
+     * Builds the hoe's {@code Secondary} chain on {@code at} as the server does for a client's packet - the block in the
+     * chain data, the item's root interaction - and raises its {@link InteractionChainStartEvent} at the player the way
+     * the interaction manager does (an entity event through the store). Whether a System cancelled it; on the world's thread.
      */
-    private static InteractionState startHoeChain(Ref<EntityStore> ref, Vector3i at) {
+    private static boolean hoeChainCancelled(Ref<EntityStore> ref, Vector3i at) {
         Store<EntityStore> store = ref.getStore();
         ComponentType<EntityStore, InteractionManager> managers = InteractionModule.get().getInteractionManagerComponent();
         InteractionManager manager = store.getComponent(ref, managers);
         InteractionContext context = InteractionContext.forInteraction(manager, ref, InteractionType.Secondary, store);
-        context.setHeldItem(new ItemStack(HOE));
+        ItemStack hoe = new ItemStack(HOE);
+        context.setHeldItem(hoe);
         BlockPosition block = new BlockPosition(at.x, at.y, at.z);
         context.getMetaStore().putMetaObject(Interaction.TARGET_BLOCK, block);
         context.getMetaStore().putMetaObject(Interaction.TARGET_BLOCK_RAW, block);
-        RootInteraction root = RootInteraction.getRootInteractionOrUnknown(context.getRootInteractionId(InteractionType.Secondary));
+        //the item's own root, resolved as the server's tryRunHeldInteraction does: Item.getInteractions -> RootInteraction asset
+        String rootId = hoe.getItem().getInteractions().get(InteractionType.Secondary);
+        RootInteraction root = rootId == null ? null : RootInteraction.getAssetMap().getAsset(rootId);
+        if (root == null) {
+            throw new IllegalStateException(HOE + " has no Secondary root interaction on this server (id " + rootId + ") - name a"
+                    + " tool whose Item asset declares one in the case's HOE constant");
+        }
         InteractionChain chain = manager.initChain(InteractionType.Secondary, context, root, -1, block, false);
-        store.forEachChunk(ref, managers, (chunk, buffer) -> manager.executeChain(ref, buffer, chain));
-        return chain.getServerState();
+        return firedCancelled(ref, new InteractionChainStartEvent(chain));
     }
 
     /** A hollow 3x3x3 rock cube saved as a prefab, cleared, and put back ten blocks a tick from the prefab file. */
