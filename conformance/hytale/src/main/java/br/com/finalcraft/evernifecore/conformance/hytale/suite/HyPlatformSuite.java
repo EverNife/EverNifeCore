@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.conformance.ConformanceCase;
 import br.com.finalcraft.evernifecore.conformance.ConformanceContext;
 import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
 import br.com.finalcraft.evernifecore.conformance.Verdict;
+import br.com.finalcraft.evernifecore.conformance.hytale.HyWorld;
 import br.com.finalcraft.evernifecore.economy.Currencies;
 import br.com.finalcraft.evernifecore.economy.Currency;
 import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
@@ -23,6 +24,7 @@ import br.com.finalcraft.evernifecore.logic.Caller;
 import br.com.finalcraft.evernifecore.notify.IHudAccess;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
+import br.com.finalcraft.evernifecore.testing.PlatformConformance;
 import br.com.finalcraft.evernifecore.version.FCPlatformType;
 import com.hypixel.hytale.server.core.command.system.AbstractCommand;
 import com.hypixel.hytale.server.core.command.system.CommandManager;
@@ -30,6 +32,7 @@ import com.hypixel.hytale.server.core.console.ConsoleSender;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.plugin.PluginBase;
+import com.hypixel.hytale.server.core.universe.world.World;
 import org.bson.BsonDocument;
 
 import java.math.BigDecimal;
@@ -42,6 +45,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -72,6 +76,13 @@ public final class HyPlatformSuite implements ConformanceSuite {
     @Override
     public List<ConformanceCase> getCases(ConformanceContext ctx) {
         return Arrays.asList(
+                //what the headless suite holds a double to, held against this server's HyPlatform
+                ConformanceCase.of("platform", () -> {
+                    List<String> violations = PlatformConformance.check(EverNifeCore.getPlatform());
+                    return Verdict.of(violations.isEmpty(), violations.isEmpty() ? "platform conformance: OK"
+                            : violations.size() + " violation(s): " + String.join(" | ", violations));
+                }),
+                ConformanceCase.later("world-thread-next-tick", HyPlatformSuite::worldThreadNextTick),
                 ConformanceCase.of("platform-is-hytale", () -> {
                     String platform = EverNifeCore.getPlatform().getClass().getSimpleName();
                     return Verdict.of(FCPlatformType.isHytale() && "HyPlatform".equals(platform),
@@ -153,6 +164,32 @@ public final class HyPlatformSuite implements ConformanceSuite {
                     EcoResponse take = money.take(unknown, BigDecimal.ONE, Caller.of(EverNifeCore.getEcPluginData(), "conformance/economy"));
                     return Verdict.of(take.getReason() == EcoResponse.Reason.UNAVAILABLE, "no economy: take=" + take);
                 }));
+    }
+
+    /**
+     * From the default world's own thread, {@code runOnWorldThreadNextTick} must run its task on that thread in a later
+     * tick - the world thread is where a same-tick run would be possible at all.
+     */
+    private static CompletableFuture<Verdict> worldThreadNextTick() {
+        World world = HyWorld.getDefault();
+        return HyWorld.on(world, () -> {
+            long before = world.getTick();
+            CompletableFuture<Verdict> answer = new CompletableFuture<>();
+            EverNifeCore.getPlatform().runOnWorldThreadNextTick(world.getName(), () -> {
+                long after = world.getTick();
+                boolean onWorldThread = world.isInThread();
+                answer.complete(Verdict.of(after > before && onWorldThread,
+                        "world=" + world.getName() + " before=" + before + " after=" + after + " onWorldThread=" + onWorldThread));
+            }).whenComplete((done, failed) -> {
+                if (failed != null) {
+                    answer.complete(Verdict.fail(Verdict.describe(failed)));
+                }
+            });
+            return answer;
+        }).thenCompose(answer -> answer)
+                .orTimeout(10, TimeUnit.SECONDS)
+                .exceptionally(failed -> Verdict.fail(Verdict.describe(failed instanceof CompletionException && failed.getCause() != null
+                        ? failed.getCause() : failed)));
     }
 
     /** Runs {@code /ecc whoami} as {@code player} while subscribed to {@code CommandActionEvent.Post}: the post names /ecc. */

@@ -701,7 +701,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   when it completes normally, must have run the task on the world's thread (`isWorldThread` true inside it);
   `runOnWorldThreadNextTick` is held to the same when the caller is not the world's thread (the world's own thread
   would wait on the tick it has to give). `onWorldLoaded`/`onWorldUnloaded` must refuse a null listener, and the check
-  no longer leaves a listener of its own behind; the test double refuses null too.
+  no longer leaves a listener of its own behind; the test double refuses null too. The Hytale conformance plugin now
+  runs the same check against `HyPlatform` (`platform` case), and both platforms prove `runOnWorldThreadNextTick`
+  lands in a later tick (`world-thread-next-tick`).
 - **On Hytale the main-thread hop runs on one dedicated thread**: `ECScheduler.onMainThread` / `onMainThreadLater` run
   their tasks one at a time, in the order asked, on the core's own thread (`evernifecore-main`), and `onMainThread` runs
   in place when the caller already is that thread - as on Bukkit. Before, every task ran on a fresh background thread,

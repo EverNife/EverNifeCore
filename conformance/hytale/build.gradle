@@ -18,8 +18,16 @@ repositories {
     }
 }
 
+configurations {
+    // common-tests is a JUnit library as a whole; only its JUnit-free PlatformConformance rides into the plugin, picked
+    // by name in shadowJar below - on the runtime classpath it would drag JUnit into the jar.
+    conformanceChecks { transitive = false }
+}
+
 dependencies {
     implementation project(':conformance:common')
+    compileOnly project(':common-tests')
+    conformanceChecks project(':common-tests')
 
     // The server provides the core and the game: compiled against, never embedded.
     compileOnly libs.hytale.server
@@ -42,6 +50,10 @@ shadowJar {
     configurations = [project.configurations.runtimeClasspath]
     dependencies {
         include(project(':conformance:common'))
+    }
+    dependsOn project.configurations.conformanceChecks
+    from({ zipTree(project.configurations.conformanceChecks.singleFile) }) {
+        include 'br/com/finalcraft/evernifecore/testing/PlatformConformance*.class'
     }
     // compiled against Jackson's own names; the deployed core carries them relocated
     rootProject.jacksonRelocations.each { from, to -> relocate from, to }
