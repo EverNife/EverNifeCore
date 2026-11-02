@@ -251,6 +251,40 @@ class QuestEngineTest {
         assertEquals(1, closed.size());
     }
 
+    @Test
+    void aStageReopenedByAVersionChangeRunsItsEffectsAgainWhenItClosesAgain() {
+        AtomicInteger applied = new AtomicInteger();
+        Effects.registry().register(quests.getOwner(), TypeDescriptor.<Effect>of("fakequests:count-stage")
+                .describe("Counts the stage's completions.")
+                .factory(params -> ctx -> applied.incrementAndGet())
+                .build());
+        engine.register(quests.parse("{id: grow, version: 1, stages: [{id: s, objectives: ["
+                + "{id: stone, type: break-block, block: 'minecraft:stone', goal: 1}], on-complete: [{type: 'fakequests:count-stage'}]}]}"));
+        start(alex, "grow");
+        //a cancelled completion keeps the instance active on its closed stage
+        ECEventSubscription<QuestCompletePreEvent> veto = ECEventBus.global().subscribe(QuestCompletePreEvent.class,
+                event -> event.setCancelled(true));
+        try {
+            quests.post(quests.breakBlock(alex, "minecraft:stone"));
+            assertEquals(1, applied.get());
+
+            engine.register(quests.parse("{id: grow, version: 2, on-version-change: keep-by-id, stages: [{id: s, objectives: ["
+                    + "{id: stone, type: break-block, block: 'minecraft:stone', goal: 1},"
+                    + " {id: dirt, type: break-block, block: 'minecraft:dirt', goal: 1}], on-complete: [{type: 'fakequests:count-stage'}]}]}"));
+            assertEquals(1, applied.get(), "the new objective reopened the stage; nothing closed it yet");
+
+            quests.post(quests.breakBlock(alex, "minecraft:dirt"));
+            assertEquals(2, applied.get(), "the reopened stage closing again is a new closing: its effects run again");
+        } finally {
+            veto.unsubscribe();
+        }
+        quests.advance(Duration.ofMinutes(1));
+        quests.runDue();
+
+        assertEquals(QuestStatus.COMPLETED, stateOf(alex, "grow").getStatus());
+        assertEquals(2, applied.get());
+    }
+
     // ------------------------------------------------------------------
     //  Progress modes and plugin types
     // ------------------------------------------------------------------
