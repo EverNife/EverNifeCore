@@ -102,6 +102,20 @@ class ChestDisabledElementTest {
     }
 
     @Test
+    void theStateColourOfAChoiceSurvivesTheLanguageBlockOfItsIcon() {
+        Screen<Layout> screen = Screen.of(3);
+        screen.choice(Slots.of(13), Icon.of("minecraft:emerald").addLocale("EN_US", "Pay"), FancyText.of("Pay"), Gate.open(),
+                Collections.emptyList());
+        screen.choice(Slots.of(14), Icon.of("minecraft:emerald").addLocale("EN_US", "Wait"), FancyText.of("Wait"),
+                failing("Not yet"), Collections.emptyList());
+
+        world.open(screen, player);
+
+        assertEquals("§aPay", world.getSurface().getItem(13).getItemMeta().getDisplayName());
+        assertEquals("§7Wait", world.getSurface().getItem(14).getItemMeta().getDisplayName());
+    }
+
+    @Test
     void theCostLineOfAChoiceSurvivesTheLanguageBlockOfItsIcon() {
         Cost coins = new Cost() {
             @Override

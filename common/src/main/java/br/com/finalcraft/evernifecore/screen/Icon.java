@@ -52,6 +52,7 @@ public class Icon {
     private boolean integrateToPAPI = false;
     //lines the drawing element adds under whatever text the viewer reads - a choice's cost survives the language block
     private List<String> trailingLore = Collections.emptyList();
+    private String uncolouredNameColour;
     //the icon a copy was taken from, so the copy a screen drew still answers to the one the plugin declared
     private Icon origin;
 
@@ -530,6 +531,12 @@ public class Icon {
         if (replacer != null) {
             item = item.withText(replacer.apply(item.getDisplayName()), replacer.apply(new ArrayList<>(item.getLore())));
         }
+        if (uncolouredNameColour != null) {
+            String name = item.getDisplayName();
+            if (name != null && !name.isEmpty() && !name.startsWith("§")) {
+                item = item.withText(uncolouredNameColour + name, item.getLore());
+            }
+        }
         if (!trailingLore.isEmpty()) {
             List<String> lore = new ArrayList<>(item.getLore());
             lore.addAll(trailingLore);
@@ -634,6 +641,7 @@ public class Icon {
         copy.localeOwner = this.localeOwner;
         copy.integrateToPAPI = this.integrateToPAPI;
         copy.trailingLore = this.trailingLore;
+        copy.uncolouredNameColour = this.uncolouredNameColour;
         copy.origin = getOrigin();
         return copy;
     }
@@ -643,6 +651,14 @@ public class Icon {
         List<String> lore = new ArrayList<>(trailingLore);
         lore.add(line);
         trailingLore = Collections.unmodifiableList(lore);
+    }
+
+    /**
+     * Puts {@code colour} in front of the name the viewer reads, language block and placeholders already applied, when
+     * that name is not empty and carries no colour of its own.
+     */
+    void colourUncolouredName(@Nonnull String colour) {
+        this.uncolouredNameColour = colour;
     }
 
     /** The declared icon this one was copied from - itself when it is no copy. */

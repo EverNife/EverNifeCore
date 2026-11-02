@@ -513,6 +513,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **A `Choice` over an icon with a language block shows its state colour**: the `§a` (enabled) / `§7` (disabled) of a
+  name with no colour of its own is put on the text the viewer reads - `Icon` applies it after the block and the
+  placeholders - where the block used to replace the name without it.
 - **`Plugins.forget(Plugins.CORE)` after a `Plugins.fakeCore` that found a core already registered** (test kit; a
   `BukkitScreenWorld`'s, another world's) removed that core from `ECPluginManager`. `fakeCore` still hands out the
   registered one, and `forget(CORE)` now leaves it with whoever registered it; a core `fakeCore` built itself is
