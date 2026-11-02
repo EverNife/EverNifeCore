@@ -753,6 +753,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **An effect the platform refuses** (`UnsupportedOperationException`) is still audited `EFFECT_FAILED`, but goes to the
+  global bus's exception handler (SEVERE with the stack, by default) instead of the caller's warning, so a strict test
+  double's refusal fails the `ECoreTestWorld`. `ECEventExceptionHandler.onSubscriberFailure` takes a null subscription
+  for such a report.
 - **A login claim the platform refuses** (`UnsupportedOperationException`: a call the platform does not offer) goes to
   the global bus's exception handler (SEVERE with the stack, by default) instead of a "not claimed on login" warning:
   every login would hit it again. A storage failure keeps the warning and waits for the next login.

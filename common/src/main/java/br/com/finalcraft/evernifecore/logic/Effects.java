@@ -111,7 +111,8 @@ public final class Effects {
     /**
      * Applies {@code effect} for {@code ctx} on the target's thread: in place when the caller already is on the
      * player's world thread (on the main thread without a player), else queued there - the world's executor on Hytale,
-     * the main thread on Bukkit. A failure is audited as {@code EFFECT_FAILED} and logged, never thrown. Any thread.
+     * the main thread on Bukkit. A failure is audited as {@code EFFECT_FAILED} and logged, never thrown; a platform
+     * refusal ({@link UnsupportedOperationException}) is logged through the global bus's exception handler. Any thread.
      */
     public static void apply(ExecutionContext ctx, Effect effect) {
         FPlayer player = ctx.getPlayer();
@@ -155,7 +156,13 @@ public final class Effects {
         } catch (RuntimeException failure) {
             String text = running + " failed: " + failure.getMessage();
             ctx.getAudit().add(ctx, AuditKind.EFFECT_FAILED, text, null, failure);
-            ctx.getCaller().getPlugin().getLog().warning("[" + ctx.getCaller() + "] " + text);
+            if (failure instanceof UnsupportedOperationException) {
+                //the platform refused a call it does not offer: every run of this effect hits it again, so it goes where
+                //a broken subscriber goes instead of one more warning
+                ECEventBus.global().getExceptionHandler().onSubscriberFailure(null, new EffectApplyEvent(ctx, running), failure);
+            } else {
+                ctx.getCaller().getPlugin().getLog().warning("[" + ctx.getCaller() + "] " + text);
+            }
         }
     }
 

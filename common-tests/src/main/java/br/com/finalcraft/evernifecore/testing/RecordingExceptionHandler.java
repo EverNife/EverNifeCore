@@ -67,7 +67,7 @@ public final class RecordingExceptionHandler implements ECEventExceptionHandler 
 
         @Override
         public String toString() {
-            return subscription != null
+            return event != null
                     ? "subscriber " + subscription + " on " + event.getClass().getSimpleName() + ": " + throwable
                     : "watch " + watch + " on " + (onFirstListener ? "first listener" : "last listener gone") + ": " + throwable;
         }

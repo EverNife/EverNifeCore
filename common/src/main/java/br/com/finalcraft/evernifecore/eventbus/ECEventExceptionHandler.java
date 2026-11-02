@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.eventbus;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
+import jakarta.annotation.Nullable;
 
 /**
  * What an {@link ECEventBus} does with a failure in the code it calls on behalf of somebody else - a
@@ -16,9 +17,10 @@ public interface ECEventExceptionHandler {
 
     /**
      * {@code subscription} threw {@code failure} while handling {@code event}. The bus already moved on
-     * to the next subscriber.
+     * to the next subscriber. {@code subscription} is null when core code reports a failure of its own work
+     * on {@code event} (an effect the platform refused) that no subscriber ran.
      */
-    void onSubscriberFailure(ECEventSubscription<?> subscription, IECEvent event, Throwable failure);
+    void onSubscriberFailure(@Nullable ECEventSubscription<?> subscription, IECEvent event, Throwable failure);
 
     /**
      * A callback of {@code watch} threw - {@code onFirstListener} says which side - and the watch keeps
@@ -35,7 +37,11 @@ public interface ECEventExceptionHandler {
     ECEventExceptionHandler LOGGING = new ECEventExceptionHandler() {
 
         @Override
-        public void onSubscriberFailure(ECEventSubscription<?> subscription, IECEvent event, Throwable failure) {
+        public void onSubscriberFailure(@Nullable ECEventSubscription<?> subscription, IECEvent event, Throwable failure) {
+            if (subscription == null) {
+                EverNifeCore.getLog().severe("[ECEventBus] {} failed.", event.getClass().getName(), failure);
+                return;
+            }
             EverNifeCore.getLog().severe("[ECEventBus] Subscriber {} failed on {}; the remaining subscribers still run.",
                     subscription, event.getClass().getName(), failure);
         }
