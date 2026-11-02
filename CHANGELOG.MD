@@ -16,6 +16,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ## [Unreleased]
 
+### Fixed
+
+#### Plugin lifecycle
+
+- **`IECPluginBootstrap.runECPluginShutdown()` runs every step when one throws**: a failing Pre, main or Post hook no longer skips the hooks after it, `closeOpenFileLoggers()` or the unpublish of the instance; the failure is rethrown once they ran.
+
 ## [3.0.1-alpha.71] - 2026-11-02
 
 ### Added

@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -129,6 +130,17 @@ class IECPluginBootstrapTest {
     }
 
     @Test
+    void aThrowingMainTeardownStillRunsPostAndRethrows() {
+        RecordingBootstrap boot = new RecordingBootstrap(pluginData("BootShutdownThrows"));
+        boot.failInShutdown = true;
+
+        IllegalStateException thrown = assertThrows(IllegalStateException.class, boot::runECPluginShutdown);
+
+        assertEquals("teardown failed", thrown.getMessage());
+        assertEquals(Arrays.asList("shutdownPre", "shutdown", "shutdownPost"), boot.order);
+    }
+
+    @Test
     void defaultShutdownPreUnregistersListenersBeforeTheMainTeardown() {
         ECPluginData data = pluginData("BootUnregister");
         RecordingBootstrap boot = new RecordingBootstrap(data);
@@ -209,6 +221,7 @@ class IECPluginBootstrapTest {
         final List<ECListener> toRegister = new ArrayList<>();
         Runnable firstTick;
         int registeredCountAtMainShutdown = -1;
+        boolean failInShutdown;
 
         RecordingBootstrap(ECPluginData data) {
             this.data = data;
@@ -248,6 +261,7 @@ class IECPluginBootstrapTest {
             order.add("shutdown");
             //snapshot taken in the main teardown: proves the pre-shutdown already unregistered them
             registeredCountAtMainShutdown = ECListener.getRegistered(data).size();
+            if (failInShutdown) throw new IllegalStateException("teardown failed");
         }
 
         @Override

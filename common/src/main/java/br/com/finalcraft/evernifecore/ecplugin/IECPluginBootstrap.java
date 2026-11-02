@@ -191,18 +191,27 @@ public interface IECPluginBootstrap {
      * The shutdown entry point invoked by the platform bridge: Pre -&gt; main -&gt; Post teardown
      * (the Pre default unregisters this plugin's listeners before the main teardown closes resources),
      * then the file loggers this plugin opened and left open, and finally this instance itself - which
-     * is why a plugin's own teardown can still reach it.
+     * is why a plugin's own teardown can still reach it. A step that throws does not skip the steps
+     * after it; the failure is rethrown once they ran.
      */
     public default void runECPluginShutdown(){
-        onECPluginShutdownPre();
-        onECPluginShutdown();
-        onECPluginShutdownPost();
+        try {
+            try {
+                try {
+                    onECPluginShutdownPre();
+                } finally {
+                    onECPluginShutdown();
+                }
+            } finally {
+                onECPluginShutdownPost();
+            }
+        } finally {
+            //after the last hook: a plugin writes its closing lines during its own teardown
+            getPluginData().closeOpenFileLoggers();
 
-        //after the last hook: a plugin writes its closing lines during its own teardown
-        getPluginData().closeOpenFileLoggers();
-
-        //last of all, so the plugin's own teardown can still reach itself through its accessor
-        ECBootstrap.unpublish(this);
+            //last of all, so the plugin's own teardown can still reach itself through its accessor
+            ECBootstrap.unpublish(this);
+        }
     }
 
 }
