@@ -76,11 +76,11 @@ public class FCMinecraftAdventureUtil {
     public static void sendMessage(CommandSender sender, Component component) {
         if (sender instanceof Player && hasBaseComponentChat()) {
             sendViaSpigot((Player) sender, component);
-        } else if (sender instanceof Player) {
+        } else if (sender instanceof Player && EverNifeCoreBukkitPlugin.instance != null) {
             getAdventure().sender(sender).sendMessage(component);
         } else {
-            // Console and other non-player senders: section-coloured text (the server turns it into
-            // ANSI), never the component's raw JSON.
+            // Console, other non-player senders, and a player while no core plugin is running to
+            // build the bridge from (a test server): section-coloured text, never raw JSON.
             sender.sendMessage(FCColorUtil.componentToString(component));
         }
     }

@@ -492,6 +492,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **A message to a player arrives when no core plugin is running** (a test server, `BukkitScreenWorld`): without the
+  Spigot chat API and without `EverNifeCoreBukkitPlugin.instance` it goes out as legacy text through
+  `Player.sendMessage(String)`, where building the Adventure bridge threw a `NullPointerException`.
 - **A player's item keeps its own name and lore in a chest screen.** `ChestItems.specOf(stack)` carries the stack's
   name and lore as the spec's text; it carried none, and drawing the stack wrote an empty name over the player's.
 - **Hytale: a hammer, bucket, hoe or light used inside `deny-interact` is now denied.** The interaction-start System
