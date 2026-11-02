@@ -476,6 +476,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **Two quest engines can no longer deadlock each other**: the owner's lock is one monitor per owner shared by every
+  engine, so a `requires`, `quest-completed` or `quest-status` read of another plugin's quest re-enters the lock already
+  held instead of waiting on an engine that waits back.
+- **An objective's costs are taken only when the match counts**: a cancelled `ObjectiveProgressPreEvent` (or a delta
+  set to 0), or an objective already done, charges nothing; the costs are paid after the pre event, in one place for
+  actions, crossings and `QuestEngine.progress` - which now pays them too.
 - **A sale never takes worn armor or the off-hand**: `McInventoryDestination.count` and `take` read the main
   inventory (36 slots) like `getContents` and `roomFor` already did; on 1.9+ `getContents()` carries armor and the
   off-hand after them, and a `sellHand`/`sellAll`/`ALL_HELD` by matcher could count and take a worn chestplate. An item

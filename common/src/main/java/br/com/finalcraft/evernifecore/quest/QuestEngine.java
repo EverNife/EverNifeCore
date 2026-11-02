@@ -112,7 +112,8 @@ import java.util.function.Supplier;
  * }</pre>
  *
  * <p><b>Threads:</b> every method may be called from any thread. Each owner's state is changed under that owner's own
- * lock, so actions of two owners never wait for each other and two threads progressing the same owner lose nothing.
+ * lock, shared by every engine, so actions of two owners never wait for each other, two threads progressing the same
+ * owner lose nothing, and an engine reading another engine's quest of the same owner never deadlocks with it.
  * A player's progress counts only while the player's section is loaded - nothing loads it from storage during an
  * action. Storage I/O never runs inside an owner's lock: changes of non-player owners are written a moment later, in
  * the background. Events go out on the thread of whatever made the change; effects go through {@link Effects#apply}.</p>
@@ -126,13 +127,14 @@ public final class QuestEngine {
 
     private static final Map<ECPluginData, QuestEngine> ENGINES = new ConcurrentHashMap<>();
     private static final List<Consumer<QuestDefinition>> DEFINITION_CHECKS = new CopyOnWriteArrayList<>();
+    /** One monitor per owner for every engine: a read of another engine's state of the same owner re-enters it. */
+    private static final Map<ProgressOwner, Object> LANES = new ConcurrentHashMap<>();
 
     private final ECPluginData owner;
     private final @Nullable ECStorage storage;
     private final @Nullable QuestStorage questStorage;
     private final @Nullable Class<? extends QuestSection> sectionClass;
     private volatile Map<QuestId, QuestDefinition> definitions = Collections.emptyMap();
-    private final Map<ProgressOwner, Object> lanes = new ConcurrentHashMap<>();
     /** States of non-player owners, and of players in a transient engine. */
     private final Map<ProgressOwner, Map<String, QuestState>> memory = new ConcurrentHashMap<>();
     /** Owners with at least one active instance: what the sweep visits. */
@@ -1039,7 +1041,10 @@ public final class QuestEngine {
         }
     }
 
-    /** Progress through the API (a product's own trigger): adds {@code delta} to the objective, if its stage is the current one. Any thread. */
+    /**
+     * Progress through the API (a product's own trigger): adds {@code delta} to the objective, if its stage is the current one,
+     * paying the objective's costs like a match does. Any thread.
+     */
     public CompletableFuture<Void> progress(ProgressOwner progressOwner, QuestId id, String objectiveId, long delta) {
         QuestDefinition definition = definitions.get(id);
         if (definition == null) {
@@ -1271,10 +1276,6 @@ public final class QuestEngine {
                     return false;
                 }
             }
-            if (!entry.objective.getCosts().isEmpty()
-                    && !Gate.of(Collections.<Condition>emptyList(), entry.objective.getCosts()).pay(ctx).isPassed()) {
-                return false;
-            }
             boolean done = advance(progressOwner, definition, state, entry.objective, entry.filter.countOf(event),
                     player == null ? null : player.getUniqueId(), ctx);
             if (done) {
@@ -1284,7 +1285,7 @@ public final class QuestEngine {
         }
     }
 
-    /** Adds {@code delta} to the objective under the owner's lock; true when that completed it. */
+    /** Adds {@code delta} to the objective under the owner's lock, once the pre event let it count and its costs came out; true when that completed it. */
     private boolean advance(ProgressOwner progressOwner, QuestDefinition definition, QuestState state, Objective objective, long delta,
                             @Nullable UUID actor, ExecutionContext ctx) {
         ObjectiveState objectiveState = state.objective(objective.getId());
@@ -1303,6 +1304,11 @@ public final class QuestEngine {
                 return false;
             }
             counted = pre.getDelta();
+        }
+        //the match counts: only now does it cost what the objective asks
+        if (!objective.getCosts().isEmpty()
+                && !Gate.of(Collections.<Condition>emptyList(), objective.getCosts()).pay(ctx).isPassed()) {
+            return false;
         }
         long finalCounted = counted;
         if (actor != null && !progressOwner.isKind(ProgressOwner.PLAYER)) {
@@ -1746,10 +1752,6 @@ public final class QuestEngine {
                     return false;
                 }
             }
-            if (!entry.objective.getCosts().isEmpty()
-                    && !Gate.of(Collections.<Condition>emptyList(), entry.objective.getCosts()).pay(ctx).isPassed()) {
-                return false;
-            }
             boolean finished = advance(progressOwner, definition, state, entry.objective, count, player.getUniqueId(), ctx);
             if (finished) {
                 reindex(progressOwner);
@@ -1907,7 +1909,7 @@ public final class QuestEngine {
     // ------------------------------------------------------------------
 
     Object lane(ProgressOwner progressOwner) {
-        return lanes.computeIfAbsent(progressOwner, key -> new Object());
+        return LANES.computeIfAbsent(progressOwner, key -> new Object());
     }
 
     private boolean isPlayerSectionOwner(ProgressOwner progressOwner) {

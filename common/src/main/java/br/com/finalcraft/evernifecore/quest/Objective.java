@@ -141,7 +141,10 @@ public final class Objective {
         return conditions;
     }
 
-    /** Taken for every match that passed the conditions; a cost that does not come out makes the match not count. */
+    /**
+     * Taken for every match that passed the conditions and the {@code ObjectiveProgressPreEvent} ({@code QuestEngine.progress}
+     * included); a cost that does not come out makes the match not count.
+     */
     public List<Cost> getCosts() {
         return costs;
     }

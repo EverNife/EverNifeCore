@@ -13,6 +13,8 @@ import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.logic.Condition;
 import br.com.finalcraft.evernifecore.logic.ConditionResult;
 import br.com.finalcraft.evernifecore.logic.Conditions;
+import br.com.finalcraft.evernifecore.logic.Cost;
+import br.com.finalcraft.evernifecore.logic.Costs;
 import br.com.finalcraft.evernifecore.logic.Effect;
 import br.com.finalcraft.evernifecore.logic.Effects;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
@@ -59,6 +61,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static br.com.finalcraft.evernifecore.testing.QuestWorld.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -259,6 +262,51 @@ class QuestEngineTest {
             listener.unsubscribe();
         }
         assertEquals(0, stateOf(alex, "miner").getCount("ore"));
+    }
+
+    @Test
+    void aCancelledProgressPreEventTakesNoCost() {
+        AtomicInteger iron = new AtomicInteger(1);
+        Costs.register(quests.getOwner(), TypeDescriptor.<Cost>of("fakequests:iron")
+                .describe("Iron of the test's pocket.")
+                .factory(params -> new Cost() {
+                    @Override
+                    public ConditionResult test(ExecutionContext ctx) {
+                        return ConditionResult.of(iron.get() >= 1, FancyText.of("Needs 1 iron."));
+                    }
+
+                    @Override
+                    public boolean take(ExecutionContext ctx) {
+                        return iron.decrementAndGet() >= 0;
+                    }
+
+                    @Override
+                    public void refund(ExecutionContext ctx) {
+                        iron.incrementAndGet();
+                    }
+
+                    @Override
+                    public FancyText describe(ExecutionContext ctx) {
+                        return FancyText.of("1 iron");
+                    }
+                })
+                .build());
+        engine.register(quests.parse("{id: smith, stages: [{id: s, objectives: [{id: o, type: break-block, goal: 1,"
+                + " costs: [{type: 'fakequests:iron'}]}]}]}"));
+        start(alex, "smith");
+        ECEventSubscription<ObjectiveProgressPreEvent> listener = ECEventBus.global().subscribe(ObjectiveProgressPreEvent.class,
+                event -> event.setCancelled(true));
+        try {
+            quests.post(quests.breakBlock(alex, "minecraft:stone"));
+        } finally {
+            listener.unsubscribe();
+        }
+        assertEquals(0, stateOf(alex, "smith").getCount("o"));
+        assertEquals(1, iron.get(), "a match that does not count costs nothing");
+
+        quests.post(quests.breakBlock(alex, "minecraft:stone"));
+        assertEquals(0, iron.get(), "a match that counts pays the cost");
+        assertEquals(QuestStatus.COMPLETED, stateOf(alex, "smith").getStatus());
     }
 
     @Test
@@ -593,6 +641,51 @@ class QuestEngineTest {
             pool.shutdownNow();
         }
         assertEquals(1000, stateOf(alex, "grind").getCount("o"));
+    }
+
+    @Test
+    void twoEnginesRequiringEachOthersQuestsNeverDeadlock() throws Exception {
+        ECPluginData other = Plugins.fakePluginData("OtherQuests", tempDir.resolve("other").toFile());
+        //daemon threads: a regression leaves them parked on a monitor, and that must fail the test, not hang the JVM
+        ExecutorService pool = Executors.newFixedThreadPool(2, task -> {
+            Thread thread = new Thread(task, "two-engines");
+            thread.setDaemon(true);
+            return thread;
+        });
+        try {
+            QuestEngine otherEngine = QuestEngine.of(other);
+            otherEngine.register(QuestDefinitions.parseYaml(other, "{id: b, stages: [{id: s, objectives: [{id: o, type: break-block, goal: 1}]}]}"));
+            engine.register(quests.parse("{id: a, requires: ['otherquests:b'], stages: [{id: s, objectives: [{id: o, type: kill}]}]}"));
+            QuestId b = QuestId.of("otherquests", "b");
+            assertTrue(await(otherEngine.start(alexOwner(), b, QuestParams.NONE)).isSuccess());
+            CountDownLatch completing = new CountDownLatch(1);
+            //B completes b under Alex's lock, then rechecks A: the reader below takes A's side meanwhile
+            ECEventSubscription<QuestCompleteEvent> listener = ECEventBus.global().subscribe(QuestCompleteEvent.class, event -> {
+                if (event.getEngine() == otherEngine) {
+                    completing.countDown();
+                    try {
+                        Thread.sleep(200);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            });
+            try {
+                Future<?> completes = pool.submit(() -> otherEngine.progress(alexOwner(), b, "o", 1).join());
+                Future<QuestStatus> reads = pool.submit(() -> {
+                    assertTrue(completing.await(2, TimeUnit.SECONDS), "b never completed");
+                    return engine.getStatus(alexOwner(), quests.id("a"));
+                });
+                completes.get(5, TimeUnit.SECONDS);
+                assertEquals(QuestStatus.AVAILABLE, reads.get(5, TimeUnit.SECONDS));
+            } finally {
+                listener.unsubscribe();
+            }
+        } finally {
+            pool.shutdownNow();
+            QuestEngine.closeOwnedBy(other);
+            Plugins.forget("OtherQuests");
+        }
     }
 
     // ------------------------------------------------------------------
