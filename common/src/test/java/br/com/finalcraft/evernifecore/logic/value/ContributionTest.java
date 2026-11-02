@@ -1,11 +1,16 @@
 package br.com.finalcraft.evernifecore.logic.value;
 
 import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
+import br.com.finalcraft.evernifecore.logic.audit.AuditEntry;
+import br.com.finalcraft.evernifecore.logic.audit.AuditKind;
+import br.com.finalcraft.evernifecore.logic.audit.AuditLog;
+import br.com.finalcraft.evernifecore.logic.audit.AuditQuery;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 import br.com.finalcraft.evernifecore.logic.ProgressOwner;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Economies;
 import br.com.finalcraft.evernifecore.testing.LogicWorld;
+import br.com.finalcraft.evernifecore.testing.Logs;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.ScriptedStorage;
 import br.com.finalcraft.evernifecore.testing.TestCurrency;
@@ -244,5 +249,54 @@ class ContributionTest {
             Contributions.closeOwnedBy(clans.getOwner());
             elsewhere.close().join();
         }
+    }
+
+    @Test
+    void twoWritesOfOneRowLandingNewestFirstLeaveTheLastStateInTheBackend() {
+        Contribution<?> vault = clans.contributions().define("vault-upgrade", CLAN, CurrencyRequirement.of(gold, new BigDecimal("500")));
+        ScriptedStorage backend = clans.getBackend();
+        backend.holdWrites();
+        vault.deposit(clans.context(alex).build());
+        vault.deposit(clans.context(bruno).build());
+
+        while (backend.heldWrites() > 0) {
+            backend.releaseNewestWrite();
+        }
+        backend.releaseWrites();
+        Contributions.closeOwnedBy(clans.getOwner());
+
+        Contributions.Row landed = backend.lastLanded(Contributions.COLLECTION, Contributions.Row.class).get();
+        assertAmount("160", new BigDecimal(landed.total));
+        assertTrue(landed.members.containsKey(bruno.getUniqueId().toString()));
+    }
+
+    @Test
+    void aGiveBackThatThrowsIsAuditedRefundFailedAndLoggedAndWhatFitStillCounts() {
+        AuditLog log = clans.auditLog();
+        Probe overTaking = new Probe() {
+            @Override
+            public BigDecimal take(ExecutionContext ctx, BigDecimal upTo) {
+                return upTo.add(new BigDecimal("5")); //a whole stack where only part was missing
+            }
+
+            @Override
+            public void giveBack(ExecutionContext ctx, BigDecimal amount) {
+                throw new IllegalStateException("inventory full");
+            }
+        };
+        Contribution<?> goal = clans.contributions().define("vault-upgrade", CLAN, overTaking);
+        DepositResult[] result = new DepositResult[1];
+
+        List<String> logged = Logs.capture(() -> result[0] = goal.deposit(clans.context(alex).build()));
+
+        assertAmount("10", result[0].getCounted());
+        assertTrue(result[0].isCompleted());
+        assertAmount("10", goal.getTotal());
+        assertTrue(logged.stream().anyMatch(line -> line.contains("giving it back failed") && line.contains("inventory full")), logged.toString());
+        clans.awaitAudit();
+        List<AuditEntry> failed = log.query(new AuditQuery().kind(AuditKind.REFUND_FAILED)).join();
+        assertEquals(1, failed.size(), failed.toString());
+        assertAmount("5", failed.get(0).getAmount());
+        assertEquals(alex.getUniqueId(), failed.get(0).getPlayer());
     }
 }

@@ -78,7 +78,7 @@ public final class Contribution<T> {
         BigDecimal counted;
         BigDecimal total;
         boolean completedNow = false;
-        Contributions.Row snapshot = null;
+        boolean changed = false;
         synchronized (row) {
             total = new BigDecimal(row.total);
             BigDecimal room = requirement.getTarget().subtract(total).max(BigDecimal.ZERO);
@@ -90,16 +90,16 @@ public final class Contribution<T> {
                 row.members.put(member, given.add(counted).toPlainString());
                 completedNow = total.compareTo(requirement.getTarget()) >= 0;
                 row.complete = completedNow;
-                snapshot = row.copy();
+                changed = true;
             }
         }
         if (requirement.isConsuming() && reachedOut.compareTo(counted) > 0) {
             giveBack(ctx, player, reachedOut.subtract(counted));
         }
-        if (snapshot == null) {
+        if (!changed) {
             return new DepositResult(BigDecimal.ZERO, total, false);
         }
-        contributions.write(snapshot);
+        contributions.write(row);
         BigDecimal deposited = counted;
         BigDecimal reached = total;
         ECEventBus.global().postIfListened(ContributionDepositEvent.class, () -> new ContributionDepositEvent(this, ctx, deposited, reached));

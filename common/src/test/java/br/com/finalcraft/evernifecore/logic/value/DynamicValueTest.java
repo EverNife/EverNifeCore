@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.logic.ProgressOwner;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.LogicWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
+import br.com.finalcraft.evernifecore.testing.ScriptedStorage;
 import br.com.finalcraft.everyconfig.config.Config;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -124,5 +125,22 @@ class DynamicValueTest {
         config.setValue("diamond", diamondPrice());
         config.save();
         assertEquals(diamondPrice(), ConfigFactory.open(tempDir.resolve("prices.yml")).getValue("diamond", DynamicValueSpec.class));
+    }
+
+    @Test
+    void twoWritesOfOneRowLandingNewestFirstLeaveTheLastStateInTheBackend() {
+        DynamicValue price = shop.dynamicValues().define("diamond-price", diamondPrice());
+        ScriptedStorage backend = shop.getBackend();
+        backend.holdWrites();
+        price.bump(SERVER);
+        price.bump(SERVER);
+
+        while (backend.heldWrites() > 0) {
+            backend.releaseNewestWrite();
+        }
+        backend.releaseWrites();
+        DynamicValues.closeOwnedBy(shop.getOwner());
+
+        assertValue("110", new BigDecimal(backend.lastLanded(DynamicValues.COLLECTION, DynamicValues.Row.class).get().value));
     }
 }

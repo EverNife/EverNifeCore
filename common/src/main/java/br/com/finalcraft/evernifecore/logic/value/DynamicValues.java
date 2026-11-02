@@ -17,7 +17,6 @@ import jakarta.annotation.Nullable;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -37,7 +36,7 @@ public final class DynamicValues {
     private final @Nullable CachingManager<String, Row> manager;
     final Map<String, Row> rows = new ConcurrentHashMap<>();
     private final Map<String, DynamicValue> defined = new ConcurrentHashMap<>();
-    private final Set<CompletableFuture<?>> pendingWrites = ConcurrentHashMap.newKeySet();
+    private final RowWriter<Row> writer = new RowWriter<>(Row::copy, this::save, this::writeFailed);
 
     private DynamicValues(ECPluginData plugin, @Nullable ECStorage storage) {
         this.plugin = plugin;
@@ -85,7 +84,7 @@ public final class DynamicValues {
     }
 
     private void awaitWrites() {
-        CompletableFuture.allOf(pendingWrites.toArray(new CompletableFuture[0])).exceptionally(error -> null).join();
+        writer.drained().join();
     }
 
     /** Awaits the writes still on their way and forgets {@code owner}'s values; called on its shutdown. */
@@ -136,19 +135,20 @@ public final class DynamicValues {
         return plugin;
     }
 
-    /** Stores {@code snapshot}, a {@link Row#copy()} the caller no longer touches: the backend serializes it on its own thread. */
-    void write(Row snapshot) {
+    /** Stores {@code row} as it is now, once the write of its key on its way lands; call it after the change, outside its monitor. */
+    void write(Row row) {
         if (manager == null) {
             return;
         }
-        CompletableFuture<?> write = manager.saveAndCache(snapshot);
-        pendingWrites.add(write);
-        write.whenComplete((ok, error) -> {
-            pendingWrites.remove(write);
-            if (error != null) {
-                EverNifeCore.getLog().warning("A dynamic value of " + plugin.getMetaInfo().getName() + " was not written: " + error);
-            }
-        });
+        writer.write(row.key, row);
+    }
+
+    private CompletableFuture<?> save(Row snapshot) {
+        return manager.saveAndCache(snapshot);
+    }
+
+    private void writeFailed(Throwable error) {
+        EverNifeCore.getLog().warning("A dynamic value of " + plugin.getMetaInfo().getName() + " was not written: " + error);
     }
 
     /** Internal: one owner's state of one value - the value and the instant the decay counts from. */
