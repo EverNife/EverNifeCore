@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.EventSourceUsage;
 import br.com.finalcraft.evernifecore.action.event.BreakActionEvent;
+import br.com.finalcraft.evernifecore.action.event.InteractActionEvent;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.conformance.ConformanceCase;
 import br.com.finalcraft.evernifecore.conformance.ConformanceContext;
@@ -43,6 +44,7 @@ import br.com.finalcraft.evernifecore.region.terrain.RegionTerrain;
 import br.com.finalcraft.evernifecore.region.terrain.TerrainContent;
 import br.com.finalcraft.evernifecore.region.visual.VisualStyle;
 import com.hypixel.hytale.builtin.buildertools.BuilderToolsPlugin;
+import com.hypixel.hytale.component.ComponentType;
 import com.hypixel.hytale.component.Holder;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.RemoveReason;
@@ -52,10 +54,14 @@ import com.hypixel.hytale.component.system.ICancellableEcsEvent;
 import com.hypixel.hytale.math.util.ChunkUtil;
 import com.hypixel.hytale.math.vector.Rotation3f;
 import com.hypixel.hytale.protocol.InteractionType;
+import com.hypixel.hytale.protocol.BlockPosition;
+import com.hypixel.hytale.protocol.InteractionState;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
 import com.hypixel.hytale.server.core.entity.ExplosionConfig;
 import com.hypixel.hytale.server.core.entity.ExplosionUtils;
 import com.hypixel.hytale.server.core.entity.InteractionContext;
+import com.hypixel.hytale.server.core.entity.InteractionChain;
+import com.hypixel.hytale.server.core.entity.InteractionManager;
 import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent;
 import com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.DamageBlockEvent;
@@ -69,7 +75,11 @@ import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.inventory.container.ItemContainer;
 import com.hypixel.hytale.server.core.modules.block.components.ItemContainerBlock;
 import com.hypixel.hytale.server.core.modules.entity.damage.Damage;
+import com.hypixel.hytale.server.core.modules.entity.damage.DamageCause;
+import com.hypixel.hytale.server.core.modules.entity.damage.DeathComponent;
+import com.hypixel.hytale.server.core.modules.interaction.InteractionModule;
 import com.hypixel.hytale.server.core.modules.interaction.interaction.config.Interaction;
+import com.hypixel.hytale.server.core.modules.interaction.interaction.config.RootInteraction;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.chunk.section.BlockComponentSection;
@@ -146,7 +156,9 @@ public final class HyRegionsSuite implements ConformanceSuite {
                 withPlayer("terrain-snapshot-polygon-box", ctx, this::terrainSnapshotPolygonBox),
                 withPlayer("terrain-cost-grid", ctx, GRID_TIMEOUT_SECONDS, this::terrainCostGrid),
                 withPlayer("environment-break-journaled", ctx, this::environmentBreakJournaled),
-                withPlayer("respawn-at-spawn-point", ctx, this::respawnAtSpawnPoint));
+                withPlayer("respawn-at-spawn-point", ctx, this::respawnAtSpawnPoint),
+                withPlayer("death-respawn-at-spawn-point", ctx, this::deathRespawnAtSpawnPoint),
+                withPlayer("tool-use-inside-deny-interact", ctx, this::toolUseInsideDenyInteract));
     }
 
     /** A case that needs the run's player; skipped without one, failed past {@link #TIMEOUT_SECONDS}. */
@@ -422,6 +434,116 @@ public final class HyRegionsSuite implements ConformanceSuite {
                 return verdict;
             })).thenCompose(verdict -> HyWorld.ticks(world, 10).thenApply(back -> verdict));
         });
+    }
+
+    /**
+     * The player dies inside a region with a {@code spawn-point} and respawns as the client's button asks: once the
+     * server's own respawn teleport has left him he stands at the flag's point, alive. Put back where the case found him.
+     */
+    private CompletableFuture<Verdict> deathRespawnAtSpawnPoint(FPlayer fplayer) {
+        PlayerRef player = HyWorld.player(fplayer);
+        World world = HyWorld.worldOf(player);
+        return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(start -> {
+            Vector3i here = block(start, 0, 0, 0);
+            Vector3d point = new Vector3d(here.x + 10.5, start.y, here.z + 0.5);
+            return inRegion(regions, "ecc-death-spawn-point", world.getName(), pos(here).add(-2, -3, -2), pos(here).add(2, 4, 2),
+                    region -> region.setFlag(CoreFlags.SPAWN_POINT, WorldLocPos.of(point.x, point.y, point.z, world.getName())),
+                    region -> HyWorld.on(world, () -> {
+                        Ref<EntityStore> ref = player.getReference();
+                        DeathComponent.tryAddComponent(ref.getStore(), ref, new Damage(new Damage.EnvironmentSource("ecc"), DamageCause.COMMAND, 1000F));
+                        return isDead(player);
+                    }).thenCompose(dead -> !dead
+                            ? CompletableFuture.completedFuture(Verdict.skipped("the player took no DeathComponent from"
+                                    + " DeathComponent.tryAddComponent, so there is no death to respawn from"))
+                            : HyWorld.ticks(world, 5)
+                                    .thenCompose(w -> HyWorld.on(world, () -> DeathComponent.respawn(player.getReference().getStore(), player.getReference())))
+                                    .thenCompose(respawning -> respawning)
+                                    .thenCompose(respawned -> HyWorld.ticks(world, RESPAWN_SETTLE_TICKS))
+                                    .thenCompose(w -> HyWorld.on(world, () -> {
+                                        Vector3d now = HyWorld.position(player);
+                                        boolean atPoint = Math.abs(now.x - point.x) < 1 && Math.abs(now.z - point.z) < 1;
+                                        boolean alive = !isDead(player);
+                                        boolean pending = HyWorld.isTeleportPending(player);
+                                        return Verdict.of(atPoint && alive && !pending, "start=" + fmt(start) + " point=" + fmt(point)
+                                                + " standsAt=" + fmt(now) + " alive=" + alive + " pendingAfter=" + pending);
+                                    })))).thenCompose(verdict -> HyWorld.on(world, () -> {
+                HyWorld.teleport(player, world, start);
+                return verdict;
+            })).thenCompose(verdict -> HyWorld.ticks(world, 10).thenApply(back -> verdict));
+        });
+    }
+
+    /** The spawn-point waits up to 60 ticks for the server's teleport to leave; past that, the client's acknowledgement. */
+    private static final int RESPAWN_SETTLE_TICKS = 90;
+
+    private static boolean isDead(PlayerRef player) {
+        Ref<EntityStore> ref = player.getReference();
+        return ref.getStore().getComponent(ref, DeathComponent.getComponentType()) != null;
+    }
+
+    /**
+     * The player starts a {@code Secondary} chain with a hoe at a dirt block, through the server's interaction manager
+     * with the block in the chain's data, where a client's click puts it: inside {@code deny-interact} the chain fails
+     * at its start and no interaction is posted, outside it runs and the core posts one. The blocks are put back.
+     */
+    private CompletableFuture<Verdict> toolUseInsideDenyInteract(FPlayer fplayer) {
+        PlayerRef player = HyWorld.player(fplayer);
+        World world = HyWorld.worldOf(player);
+        List<InteractActionEvent.Post> posts = new CopyOnWriteArrayList<>();
+        return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(at -> {
+            Vector3i inside = block(at, 2, -1, 0);
+            Vector3i outside = block(at, -3, -1, 0);
+            return HyWorld.on(world, () -> {
+                String[] before = {typeAt(world, inside).getId(), typeAt(world, outside).getId()};
+                HyWorld.setBlock(world, inside.x, inside.y, inside.z, DIRT);
+                HyWorld.setBlock(world, outside.x, outside.y, outside.z, DIRT);
+                return before;
+            }).thenCompose(before -> inRegion(regions, "ecc-tool-use", world.getName(), pos(inside).add(-1, -1, -1), pos(inside).add(1, 1, 1),
+                    region -> region.setFlag(CoreFlags.DENY_INTERACT, Tristate.TRUE),
+                    region -> {
+                        ECEventSubscription<InteractActionEvent.Post> heard = ECEventBus.global().subscribe(InteractActionEvent.Post.class, posts::add);
+                        int[] postedInside = new int[1];
+                        return HyWorld.on(world, () -> startHoeChain(player.getReference(), inside))
+                                .thenCompose(in -> HyWorld.ticks(world, 10).thenCompose(w -> HyWorld.on(world, () -> {
+                                    postedInside[0] = posts.size();
+                                    return new InteractionState[]{in, startHoeChain(player.getReference(), outside)};
+                                }))).thenCompose(states -> HyWorld.ticks(world, 10).thenCompose(w -> HyWorld.on(world, () -> {
+                                    String insideNow = typeAt(world, inside).getId();
+                                    String outsideNow = typeAt(world, outside).getId();
+                                    boolean denied = states[0] == InteractionState.Failed && postedInside[0] == 0 && DIRT.equals(insideNow);
+                                    boolean ran = states[1] != InteractionState.Failed && posts.size() > postedInside[0];
+                                    return Verdict.of(denied && ran, "inside{state=" + states[0] + " posted=" + postedInside[0] + " block=" + insideNow
+                                            + "} outside{state=" + states[1] + " posted=" + (posts.size() - postedInside[0]) + " block=" + outsideNow + "}");
+                                }))).whenComplete((verdict, failed) -> heard.unsubscribe());
+                    }).thenCompose(verdict -> HyWorld.on(world, () -> {
+                HyWorld.setBlock(world, inside.x, inside.y, inside.z, before[0]);
+                HyWorld.setBlock(world, outside.x, outside.y, outside.z, before[1]);
+                return verdict;
+            })));
+        });
+    }
+
+    private static final String DIRT = "Soil_Dirt";
+    private static final String HOE = "Tool_Hoe_Crude";
+
+    /**
+     * Starts the hoe's {@code Secondary} chain on {@code at} as the server does for a client's packet: the block in the
+     * chain data, the target meta the tool itself reads already set. Answers the chain's state right after its start
+     * event - {@code Failed} when a System cancelled it. On the world's thread.
+     */
+    private static InteractionState startHoeChain(Ref<EntityStore> ref, Vector3i at) {
+        Store<EntityStore> store = ref.getStore();
+        ComponentType<EntityStore, InteractionManager> managers = InteractionModule.get().getInteractionManagerComponent();
+        InteractionManager manager = store.getComponent(ref, managers);
+        InteractionContext context = InteractionContext.forInteraction(manager, ref, InteractionType.Secondary, store);
+        context.setHeldItem(new ItemStack(HOE));
+        BlockPosition block = new BlockPosition(at.x, at.y, at.z);
+        context.getMetaStore().putMetaObject(Interaction.TARGET_BLOCK, block);
+        context.getMetaStore().putMetaObject(Interaction.TARGET_BLOCK_RAW, block);
+        RootInteraction root = RootInteraction.getRootInteractionOrUnknown(context.getRootInteractionId(InteractionType.Secondary));
+        InteractionChain chain = manager.initChain(InteractionType.Secondary, context, root, -1, block, false);
+        store.forEachChunk(ref, managers, (chunk, buffer) -> manager.executeChain(ref, buffer, chain));
+        return chain.getServerState();
     }
 
     /** A hollow 3x3x3 rock cube saved as a prefab, cleared, and put back ten blocks a tick from the prefab file. */
