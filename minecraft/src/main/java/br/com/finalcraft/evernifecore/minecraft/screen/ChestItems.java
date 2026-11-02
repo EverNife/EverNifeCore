@@ -80,13 +80,23 @@ public final class ChestItems {
         return stack;
     }
 
-    /** {@code stack} as an {@link ItemSpec} that carries it - {@code null} for an empty slot. */
+    /**
+     * {@code stack} as an {@link ItemSpec} that carries it, with its own name and lore as the spec's text - so drawing
+     * it writes back what it already says. {@code null} for an empty slot.
+     */
     @Nullable
     public static ItemSpec specOf(@Nullable ItemStack stack) {
         if (ItemStore.isEmpty(stack)) {
             return null;
         }
-        return ItemSpec.of(idOf(stack.getType()), stack.getAmount()).withNativeItem(new NativeItem(stack.clone()));
+        ItemSpec spec = ItemSpec.of(idOf(stack.getType()), stack.getAmount()).withNativeItem(new NativeItem(stack.clone()));
+        ItemMeta meta = stack.hasItemMeta() ? stack.getItemMeta() : null;
+        if (meta == null) {
+            return spec;
+        }
+        String name = meta.hasDisplayName() ? meta.getDisplayName() : spec.getDisplayName();
+        List<String> lore = meta.hasLore() && meta.getLore() != null ? meta.getLore() : spec.getLore();
+        return spec.withText(name, lore);
     }
 
     /** The stack an {@link ItemSpec} carries, or the one its id names on this server; {@code null} when neither. */

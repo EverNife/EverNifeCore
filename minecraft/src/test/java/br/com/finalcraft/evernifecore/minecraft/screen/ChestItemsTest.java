@@ -12,11 +12,13 @@ import br.com.finalcraft.evernifecore.screen.Screen;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -72,6 +74,26 @@ class ChestItemsTest {
         ItemStack shown = world.getSurface().getItem(13);
         assertTrue(stack.isSimilar(shown), "the stack the plugin handed over, not one rebuilt from its id: " + shown);
         assertEquals(5, shown.getAmount());
+    }
+
+    @Test
+    void aNativeItemKeepsItsOwnNameAndLore() {
+        world.close();
+        world = BukkitScreenWorld.installWithItemMetadata(tempDir);
+        player = world.newPlayer("Steve");
+        ItemStack stack = new ItemStack(Material.DIAMOND_SWORD);
+        ItemMeta meta = stack.getItemMeta();
+        meta.setDisplayName("§bExcalibur");
+        meta.setLore(Arrays.asList("§7Forged by Steve", "§7Sharp"));
+        stack.setItemMeta(meta);
+        Screen<Layout> screen = Screen.of(3);
+        screen.icon(13, Icon.of(ChestItems.specOf(stack)));
+
+        world.open(screen, player);
+
+        ItemMeta shown = world.getSurface().getItem(13).getItemMeta();
+        assertEquals("§bExcalibur", shown.getDisplayName(), "the player's own name, not one wiped on the way");
+        assertEquals(Arrays.asList("§7Forged by Steve", "§7Sharp"), shown.getLore());
     }
 
     @Test

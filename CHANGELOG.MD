@@ -492,6 +492,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **A player's item keeps its own name and lore in a chest screen.** `ChestItems.specOf(stack)` carries the stack's
+  name and lore as the spec's text; it carried none, and drawing the stack wrote an empty name over the player's.
 - **Hytale: a hammer, bucket, hoe or light used inside `deny-interact` is now denied.** The interaction-start System
   judges the block the client aimed at (or the entity), read from the chain's packet data; the context's target meta
   it used to read is only filled by the server after the event, so the System never saw a target.
