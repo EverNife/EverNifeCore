@@ -1380,6 +1380,7 @@ public final class QuestEngine {
                     () -> new ObjectiveProgressEvent(this, id, progressOwner, caller, state.copy(),
                             objective.getId(), finalCounted, actor));
             ExecutionContext matched = ctx.derive().variable("delta", String.valueOf(counted)).build();
+            //queued until this thread lets go of every lane: a start-quest for a member takes the member's lane only then
             apply(objective.getOnMatch(), matched);
             return false;
         }
