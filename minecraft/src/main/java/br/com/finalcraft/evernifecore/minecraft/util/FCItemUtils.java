@@ -111,16 +111,35 @@ public class FCItemUtils {
      * The stack a {@link #getMinecraftIdentifier(ItemStack) minecraft identifier} describes:
      * {@code <registry name> [amount] [meta] [{snbt}]}, as in {@code minecraft:stone 1 0 {display:{Name:"x"}}}.
      *
+     * <p>Without an NMS bridge (an unsupported server, a unit test) a vanilla id without snbt resolves through the
+     * Bukkit {@link Material} of the same name.</p>
+     *
      * @throws IllegalArgumentException when the amount or meta is not a number, or no item has that registry name
      */
     public static ItemStack fromMinecraftIdentifier(String minecraftIdentifier){
         MinecraftIdentifier identifier = MinecraftIdentifier.parse(minecraftIdentifier);
+        if (!NMSUtils.isSupported()){
+            return fromMaterialName(identifier, minecraftIdentifier);
+        }
         ItemStack itemStack = NMSUtils.get().items().fromRegistryName(identifier.registryName, identifier.amount, identifier.meta);
         if (identifier.snbt == null){
             return itemStack;
         }
         ReadWriteNBT tag = FCNBTUtil.parse(identifier.snbt);
         return FCNBTUtil.modifyItem(itemStack, nbt -> nbt.mergeCompound(tag));
+    }
+
+    private static ItemStack fromMaterialName(MinecraftIdentifier identifier, String minecraftIdentifier){
+        String[] namespaced = identifier.registryName.split(":", 2);
+        boolean vanilla = namespaced.length == 1 || namespaced[0].equalsIgnoreCase("minecraft");
+        Material material = vanilla && identifier.snbt == null ? Material.matchMaterial(namespaced[namespaced.length - 1]) : null;
+        if (material == null || material == Material.AIR){
+            throw new IllegalArgumentException("The minecraft identifier '" + minecraftIdentifier + "' needs the server's NMS"
+                    + " bridge, which this runtime does not have (a unit test, an unsupported server): only a vanilla id"
+                    + " without snbt resolves here, through the Bukkit material of the same name. Name the Bukkit material"
+                    + " instead (DIAMOND_SWORD, FCItemFactory.from(Material.DIAMOND_SWORD)).");
+        }
+        return new ItemStack(material, identifier.amount, (short) identifier.meta);
     }
 
     /** The parts of a minecraft identifier, split but not resolved. */

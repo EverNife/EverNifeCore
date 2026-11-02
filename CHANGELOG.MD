@@ -513,6 +513,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **`FCItemFactory.from("minecraft:<id>")` builds without an NMS bridge** (a unit test, an unsupported server): a vanilla
+  id without snbt resolves through the Bukkit `Material` of the same name; any other id is refused with an
+  `IllegalArgumentException` that names the Bukkit material to write instead, where the build threw
+  `UnsupportedOperationException`.
 - **A flag that cannot act in full logs its line once**: `FlagRegistry` remembers the line each flag last logged and stays
   quiet on a re-check that does not change it. Hytale declares its sources (`ActionSupport.declare`) and then its missing
   player-state capabilities, and each of those used to repeat every flag's line (`force-fly`, `track-changes`, both
