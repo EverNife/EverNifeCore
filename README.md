@@ -1,42 +1,230 @@
-[![Discord](https://img.shields.io/discord/899151012290498620.svg?label=discord&logo=discord)](https://discord.petrus.dev/)
-[![Spigot](https://img.shields.io/spiget/downloads/97739?label=Spigot%20Downloads&logo=data%3Aimage%2Fpng%3Bbase64%2CiVBORw0KGgoAAAANSUhEUgAAABAAAAAQBAMAAADt3eJSAAAABGdBTUEAALGPC%2FxhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAElBMVEUAAAAAAAD%2F0ADi6D86Ruj%2F%2F%2F%2BilASZAAAAAXRSTlMAQObYZgAAAAFiS0dEBfhv6ccAAAAHdElNRQfmBRoTHQ%2BKPgYQAAAAAW9yTlQBz6J3mgAAAFBJREFUCNdljdERgDAIQ8OdAxicgHQCZQH3n0raWn98P7y7QADAYkfHiInFK4yZwLWkTaHy7IPeMupOUkvVFiu5XL3hyLAhRsK%2FzvVlu%2F%2FyAL5yBqQb5SdrAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDIyLTA1LTI2VDE5OjI5OjEzKzAwOjAw2Eq4fQAAACV0RVh0ZGF0ZTptb2RpZnkAMjAyMi0wNS0yNlQxOToyOToxMyswMDowMKkXAMEAAAAASUVORK5CYII%3D)](https://www.spigotmc.org/resources/97739/)
-
 <p align="center">
-  <img src="icon/evernifecore.png" alt="EverNifeCore Logo" />
-  <br>
-  <img src="https://bstats.org/signatures/bukkit/EverNifeCore.svg" alt="bStats" />
+  <img src="icon/evernifecore.png" alt="EverNifeCore" width="220" />
 </p>
 
-# EverNifeCore
+<h1 align="center">EverNifeCore</h1>
 
-> A core, platform-agnostic framework for making Bukkit plugins and Hytale mods.
+<p align="center">
+  <strong>One codebase. Minecraft and Hytale.</strong><br>
+  The framework that lets you write a plugin once and ship it from Minecraft 1.7.10 to the newest releases, and to Hytale.
+</p>
 
-Write commands, configs, messages and player data once, against an API that has no idea which server
-it is running on. The same command class compiles and runs on Bukkit/Spigot/Paper and on Hytale; the
-same player data can live in flat files, MySQL, PostgreSQL, H2 or MongoDB, chosen by the server owner
-in a config file rather than by you in code.
+<p align="center">
+  <a href="https://github.com/EverNife/EverNifeCore/releases"><img src="https://img.shields.io/github/v/release/EverNife/EverNifeCore?include_prereleases&label=release&color=2ea44f" alt="Release" /></a>
+  <a href="https://github.com/EverNife/EverNifeCore/actions/workflows/build.yml"><img src="https://github.com/EverNife/EverNifeCore/actions/workflows/build.yml/badge.svg" alt="Build" /></a>
+  <img src="https://img.shields.io/badge/Minecraft-1.7.10%20%E2%86%92%2026.x-62b47a?logo=minecraft&logoColor=white" alt="Minecraft 1.7.10 to 26.x" />
+  <img src="https://img.shields.io/badge/Hytale-supported-f39c12" alt="Hytale" />
+  <img src="https://img.shields.io/badge/Java-8%2B-007396?logo=openjdk&logoColor=white" alt="Java 8+" />
+  <br>
+  <a href="https://discord.petrus.dev/"><img src="https://img.shields.io/discord/899151012290498620.svg?label=discord&logo=discord&logoColor=white&color=5865F2" alt="Discord" /></a>
+  <a href="https://www.spigotmc.org/resources/97739/"><img src="https://img.shields.io/spiget/downloads/97739?label=Spigot%20Downloads&logo=data%3Aimage%2Fpng%3Bbase64%2CiVBORw0KGgoAAAANSUhEUgAAABAAAAAQBAMAAADt3eJSAAAABGdBTUEAALGPC%2FxhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAElBMVEUAAAAAAAD%2F0ADi6D86Ruj%2F%2F%2F%2BilASZAAAAAXRSTlMAQObYZgAAAAFiS0dEBfhv6ccAAAAHdElNRQfmBRoTHQ%2BKPgYQAAAAAW9yTlQBz6J3mgAAAFBJREFUCNdljdERgDAIQ8OdAxicgHQCZQH3n0raWn98P7y7QADAYkfHiInFK4yZwLWkTaHy7IPeMupOUkvVFiu5XL3hyLAhRsK%2FzvVlu%2F%2FyAL5yBqQb5SdrAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDIyLTA1LTI2VDE5OjI5OjEzKzAwOjAw2Eq4fQAAACV0RVh0ZGF0ZTptb2RpZnkAMjAyMi0wNS0yNlQxOToyOToxMyswMDowMKkXAMEAAAAASUVORK5CYII%3D" alt="Spigot downloads" /></a>
+</p>
 
-## 📖 The documentation is the wiki
+<p align="center">
+  <a href="https://github.com/EverNife/EverNifeCore/wiki"><b>📖 Wiki</b></a> &nbsp;•&nbsp;
+  <a href="https://github.com/EverNife/EverNifeCore/wiki/Quick-Start"><b>🚀 Quick Start</b></a> &nbsp;•&nbsp;
+  <a href="https://github.com/EverNife/EverNifeCore/releases"><b>⬇️ Download</b></a> &nbsp;•&nbsp;
+  <a href="CHANGELOG.MD"><b>📝 Changelog</b></a> &nbsp;•&nbsp;
+  <a href="https://discord.petrus.dev/"><b>💬 Discord</b></a>
+</p>
 
-**This page is a tour.** The full developer guide - every API, every contract, every trap - is the
-**[EverNifeCore Wiki](https://github.com/EverNife/EverNifeCore/wiki)**.
+<p align="center">
+  <img src="https://bstats.org/signatures/bukkit/EverNifeCore.svg" alt="EverNifeCore usage on bStats" />
+</p>
 
-| Start here | |
-|---|---|
-| [Installation](https://github.com/EverNife/EverNifeCore/wiki/Installation) | the repository and the one `compileOnly` dependency |
-| [Quick Start](https://github.com/EverNife/EverNifeCore/wiki/Quick-Start) | a complete minimal plugin: command, config, localized message |
-| [Architecture Overview](https://github.com/EverNife/EverNifeCore/wiki/Architecture-Overview) | `common` with zero Bukkit imports, the two platforms, the startup sequence |
-| [Gotchas & Pitfalls](https://github.com/EverNife/EverNifeCore/wiki/Gotchas-and-Pitfalls) | the behavioral traps, before you hit them |
+---
 
-## 🚀 Install
+## ✨ Why EverNifeCore
 
-### Server owners
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <h3>🌍 Write once, run anywhere</h3>
+      Your commands, configs, messages, screens and player data are written against an API that doesn't know which server it is on. The same class runs on Bukkit, Spigot, Paper, Forge hybrids and Hytale.
+    </td>
+    <td width="33%" valign="top">
+      <h3>🕰️ A decade of versions in one jar</h3>
+      One jar covers <b>Minecraft 1.7.10 through the year-based 26.x releases</b>, including Forge hybrids like Crucible, Mohist and Arclight. Your server owners never ask "which build do I need?".
+    </td>
+    <td width="33%" valign="top">
+      <h3>🧪 Proven on real servers</h3>
+      Thousands of unit tests, plus an in-server check-up that boots real Crucible, Mohist, Arclight, Paper and Hytale servers to check what only a live server can answer.
+    </td>
+  </tr>
+  <tr>
+    <td width="33%" valign="top">
+      <h3>🗄️ Storage the admin chooses</h3>
+      Flat files, MySQL/MariaDB, PostgreSQL, H2 or MongoDB, picked in a config file and moved live with one command. No recompiling, no migration scripts. Powered by <a href="https://github.com/EverNife/EveryDatabase"><b>EveryDatabase</b></a> for storage and <a href="https://github.com/EverNife/EveryConfig"><b>EveryConfig</b></a> for commented YAML configs.
+    </td>
+    <td width="33%" valign="top">
+      <h3>🧩 Batteries included</h3>
+      Regions and flags, quests, dialogues, shops, chest screens, economy, boosters, rankings, groups, cooldowns and more. These are the parts every server ends up rebuilding.
+    </td>
+    <td width="33%" valign="top">
+      <h3>🛠️ Built for developers</h3>
+      Annotated commands with typed arguments and tab-completion, configs that write their own comments, async player data, and a published test kit so you can test without a server.
+    </td>
+  </tr>
+</table>
 
-1. Download the latest JAR from [Releases](https://github.com/EverNife/EverNifeCore/releases)
-2. Drop it in `plugins/`
-3. Start the server (do not reload it)
+---
 
-### Developers
+## 🎮 Platforms
+
+<table align="center">
+  <tr>
+    <th></th>
+    <th>Platform</th>
+    <th>Versions</th>
+    <th>Artifact</th>
+  </tr>
+  <tr>
+    <td align="center">⛏️</td>
+    <td><b>Bukkit · Spigot · Paper</b></td>
+    <td>1.7.10 → 26.x</td>
+    <td><code>EverNifeCore-&lt;version&gt;.jar</code></td>
+  </tr>
+  <tr>
+    <td align="center">🔥</td>
+    <td><b>Forge hybrids</b><br><sub>Crucible · Mohist · Arclight</sub></td>
+    <td>1.7.10 · 1.12.2 · 1.16.5 · 1.21.1</td>
+    <td><code>EverNifeCore-&lt;version&gt;.jar</code></td>
+  </tr>
+  <tr>
+    <td align="center">🟧</td>
+    <td><b>Hytale</b></td>
+    <td>latest server</td>
+    <td><code>EverNifeCore-&lt;version&gt;-Hytale.jar</code></td>
+  </tr>
+</table>
+
+<p align="center"><sub>The Hytale port tracks the newest Hytale server and is under active development. Regions are already proven on a live server.<br>See <a href="https://github.com/EverNife/EverNifeCore/wiki/Hytale-Platform">Hytale Platform</a> and <a href="https://github.com/EverNife/EverNifeCore/wiki/Version-Compatibility">Version Compatibility</a>.</sub></p>
+
+---
+
+## 👀 A taste
+
+<details open>
+<summary><b>⌨️ A command</b>: parsed, permission-checked, tab-completed, with help generated for you</summary>
+
+```java
+@FinalCMD(aliases = {"greet", "hi"}, permission = "myplugin.greet")
+public class GreetCommand {
+
+    @FinalCMD.SubCMD(subcmd = "bonus", permission = "myplugin.greet.bonus")
+    public void bonus(FCommandSender sender,
+                      @Arg("<player>") FPlayer target,
+                      @Arg("<amount>") Integer amount,
+                      @Arg.Flag(value = "--silent", aliases = "-s") Boolean silent) {
+        // runs the same on Minecraft and Hytale
+    }
+}
+```
+</details>
+
+<details>
+<summary><b>🖼️ A screen</b>: a chest GUI on Minecraft, a native page on Hytale</summary>
+
+```java
+Screen<Layout> shop = Screen.of(3).title("§8Shop");
+shop.icon(13, Icon.of("minecraft:diamond").displayName("§bBuy a diamond"))
+    .onClick(click -> click.getViewer().sendMessage("§aBought!"));
+shop.open(player);
+```
+</details>
+
+<details>
+<summary><b>🛡️ A protected region</b>: flags that only cost something where a region uses them</summary>
+
+```java
+arena.setFlag(CoreFlags.DENY_BLOCK_BREAK, Tristate.TRUE);
+arena.setFlag(CoreFlags.GREETING, "§aWelcome to the arena");
+arena.setFlag(CoreFlags.DENY_PVP, Tristate.FALSE, Duration.ofMinutes(5));   // a 5-minute PvP window
+```
+</details>
+
+<details>
+<summary><b>📦 Player data</b>: a plain class, saved wherever the admin points it</summary>
+
+```java
+public class JobsSection extends PDSection {
+    public int level;
+
+    public void levelUp() {
+        level++;
+        markDirty();   // persisted on the next flush, on any backend
+    }
+}
+
+PlayerController.getPDSection(uuid, JobsSection.class).thenAccept(JobsSection::levelUp);
+```
+</details>
+
+<details>
+<summary><b>🌐 A message in every language</b>: server owners reword it without touching your jar</summary>
+
+```java
+@FCLocale(lang = LocaleType.EN_US, text = "&aWelcome, ${player}&a!")
+@FCLocale(lang = LocaleType.PT_BR, text = "&aBem-vindo, ${player}&a!")
+public static LocaleMessage WELCOME;
+
+WELCOME.addPlaceholder("player", player.getName()).send(player);
+```
+</details>
+
+---
+
+## 🧰 What's inside
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+
+**Foundations**
+- ⌨️ [Commands](https://github.com/EverNife/EverNifeCore/wiki/Command-Framework) and [typed arguments](https://github.com/EverNife/EverNifeCore/wiki/Argument-Parsing)
+- ⚙️ [Configuration](https://github.com/EverNife/EverNifeCore/wiki/Configuration) with generated comments
+- 🌐 [Localization](https://github.com/EverNife/EverNifeCore/wiki/Localization) and [FancyText](https://github.com/EverNife/EverNifeCore/wiki/FancyText)
+- 👤 [Player data](https://github.com/EverNife/EverNifeCore/wiki/PlayerData-and-PDSections) and [linked accounts](https://github.com/EverNife/EverNifeCore/wiki/Accounts)
+- 🗄️ [Storage backends](https://github.com/EverNife/EverNifeCore/wiki/Storage-Backends)
+- ⏱️ [Scheduler](https://github.com/EverNife/EverNifeCore/wiki/Scheduler-and-Threading) and [cooldowns](https://github.com/EverNife/EverNifeCore/wiki/Cooldowns)
+- 📣 [Events](https://github.com/EverNife/EverNifeCore/wiki/Events) on one bus, on both platforms
+
+</td>
+    <td width="50%" valign="top">
+
+**Gameplay building blocks**
+- 🛡️ [Regions](https://github.com/EverNife/EverNifeCore/wiki/Regions) with 60+ ready-made [flags](https://github.com/EverNife/EverNifeCore/wiki/Flags)
+- 📜 [Quests](https://github.com/EverNife/EverNifeCore/wiki/Quests), [dialogues](https://github.com/EverNife/EverNifeCore/wiki/Dialogues) and [NPCs](https://github.com/EverNife/EverNifeCore/wiki/Npcs)
+- 🖼️ [Screens](https://github.com/EverNife/EverNifeCore/wiki/Screens) and [shops](https://github.com/EverNife/EverNifeCore/wiki/Menus)
+- 💰 [Economy](https://github.com/EverNife/EverNifeCore/wiki/Economy), [boosters](https://github.com/EverNife/EverNifeCore/wiki/Boosters) and [deliveries](https://github.com/EverNife/EverNifeCore/wiki/Deliveries)
+- 🏆 [Rankings](https://github.com/EverNife/EverNifeCore/wiki/Ranking) and [groups](https://github.com/EverNife/EverNifeCore/wiki/Groups)
+- 🔔 [Notifications and HUD](https://github.com/EverNife/EverNifeCore/wiki/Notifications)
+- 🧠 [Logic](https://github.com/EverNife/EverNifeCore/wiki/Logic): conditions and effects as config
+
+</td>
+  </tr>
+</table>
+
+---
+
+## 🚀 Get started
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+
+### 🖥️ Server owners
+
+1. Download the jar for your platform from **[Releases](https://github.com/EverNife/EverNifeCore/releases)**
+2. Drop it in `plugins/` (or `mods/` on Hytale)
+3. Start the server
+
+That's it. Plugins built on EverNifeCore find it on their own.
+
+</td>
+    <td width="50%" valign="top">
+
+### 👩‍💻 Developers
 
 ```groovy
 repositories {
@@ -44,270 +232,62 @@ repositories {
 }
 
 dependencies {
-    // Bukkit/Spigot/Paper - the fat jar already carries the common API.
     compileOnly 'br.com.finalcraft:evernifecore-minecraft:3.0.1'
 }
 ```
 
-Hytale, the thin common artifact and the relocated view are on
-[Installation](https://github.com/EverNife/EverNifeCore/wiki/Installation).
+Then follow the **[Quick Start](https://github.com/EverNife/EverNifeCore/wiki/Quick-Start)**.
+Hytale and the shared `common` artifact are on **[Installation](https://github.com/EverNife/EverNifeCore/wiki/Installation)**.
+
+</td>
+  </tr>
+</table>
 
 ---
 
-# What it looks like
+## 🔌 Plays well with others
 
-## Commands
+Every integration is optional and stays quiet when its plugin is missing.
 
-A command is a plain class. Parameters are injected and parsed: `<arg>` is required, `[arg]` is
-optional, and `@Arg.Flag` binds a `--name value` flag that may appear anywhere on the line.
+<p align="center">
+  <img src="https://img.shields.io/badge/Vault%20%2F%20VaultUnlocked-economy-555" alt="Vault" />
+  <img src="https://img.shields.io/badge/PlaceholderAPI-placeholders-555" alt="PlaceholderAPI" />
+  <img src="https://img.shields.io/badge/LuckPerms-meta-555" alt="LuckPerms" />
+  <img src="https://img.shields.io/badge/WorldEdit-schematics-555" alt="WorldEdit" />
+  <img src="https://img.shields.io/badge/WorldGuard%20%C2%B7%20GriefDefender%20%C2%B7%20GriefPreventionPlus-protection-555" alt="Protection plugins" />
+</p>
 
-```java
-@FinalCMD(
-  aliases = {"greet", "hi"}, 
-  permission = "myplugin.greet"
-)
-public class GreetCommand {
-
-    @FinalCMD.SubCMD(
-      subcmd = "bonus", 
-      permission = "myplugin.greet.bonus"
-    )
-    public void setBonus(FCommandSender sender,
-                         @Arg("<player>") FPlayer target,
-                         @Arg("<amount>") Integer amount,
-                         @Arg.Flag(value = "--silent", aliases = "-s", def = "false") Boolean silent) {
-        // parsed, permission-checked, tab-completed and help-generated for you
-    }
-}
-
-FinalCMDManager.registerCommand(ecPluginData, GreetCommand.class);
-```
-
-Registration builds a command **tree**: nodes are walked and dispatched in ordered phases, permission
-and validation are evaluated over the whole path, and tab-completion is answered from the tree.
-
-📖 [Command Framework](https://github.com/EverNife/EverNifeCore/wiki/Command-Framework) ·
-[Argument Parsing](https://github.com/EverNife/EverNifeCore/wiki/Argument-Parsing) ·
-[Flags](https://github.com/EverNife/EverNifeCore/wiki/Flags)
-
-## Configuration
-
-YAML (or TOML/JSON) with inline comments generated from your code - you never ship a bundled default
-file. `getOrSetValueIfAbsent` reads the key, or seeds it with its comment the first time.
-
-```java
-Config config = ConfigFactory.open(ecPluginData, "config.yml");
-
-int joinBonus = config.getOrSetValueIfAbsent(
-  "settings.join-bonus",
-  100,
-  "Bonus shown to a player when they run /greet me."
-);
-```
-
-Teaching the config a new type is one registration, and it then works everywhere - solo value, POJO
-field, map value, list element:
-
-```java
-ConfigFactory.register(MyData.class).asMap(MyData::toMap, MyData::fromMap);   // object-shaped
-ConfigFactory.register(MyId.class).asString(MyId::toString, MyId::parse);     // scalar, usable as a key
-```
-
-If your type is already an POJO there is no need to even register it at all. Use normal Jackson Annotations
-to ignore some fields and that's it.
-
-📖 [Configuration](https://github.com/EverNife/EverNifeCore/wiki/Configuration)
-
-## Player data
-
-A `PDSection` is a plain Jackson POJO. Mutate the fields, call `markDirty()`, and the flush pipeline
-persists it. That is the whole persistence API.
-
-```java
-public class JobsSection extends PDSection {
-    public int level;
-    public String job = "none";
-
-    public void levelUp() {
-        level++;
-        markDirty();
-    }
-}
-
-// once, at enable - the id is the stable storage identity, so the class can be renamed freely
-PlayerController.registerPDSectionCfg(ecPluginData, JobsSection.class, "jobs");
-
-// reads are 100% async; on a cached online player the future is already completed
-PlayerController.getPDSection(uuid, JobsSection.class).thenAccept(JobsSection::levelUp);
-```
-
-📖 [PlayerData & PDSections](https://github.com/EverNife/EverNifeCore/wiki/PlayerData-and-PDSections) ·
-[Accounts](https://github.com/EverNife/EverNifeCore/wiki/Accounts) ·
-[Cooldowns](https://github.com/EverNife/EverNifeCore/wiki/Cooldowns)
-
-## Storage
-
-Where that data physically lives is the **admin's** decision, in `storage.yml`. The developer advises
-a default; nobody has to recompile anything to move a collection to MySQL.
-
-```yaml
-storage-backends:
-  playerdata:                  # what belongs to ONE player on THIS server
-    enabled: true
-    type: groupedfile
-    path: plugins/EverNifeCore/StorageData/PlayerData
-  networkdata:                 # what the whole network must agree on
-    enabled: true
-    type: groupedfile
-    path: plugins/EverNifeCore/StorageData/NetworkData
-  mysql:
-    enabled: false
-    type: sql
-    url: "jdbc:mysql://localhost:3306/minecraft"
-```
-
-Backends are named by **role**, not by technology: a single server is a network of one, and when a
-second server joins you point `networkdata` at a shared database and nothing else changes. Backends
-supported: grouped files, local files, MySQL/MariaDB, PostgreSQL, H2, MongoDB, in-memory. Moving live
-data between them is a runtime command (`/ecstorage transfer`), not a migration script.
-
-📖 [Storage Backends](https://github.com/EverNife/EverNifeCore/wiki/Storage-Backends) ·
-[Inline Backends for Plugins](https://github.com/EverNife/EverNifeCore/wiki/Inline-Stroage-Backends-for-Plugins) ·
-[Legacy Data Migration](https://github.com/EverNife/EverNifeCore/wiki/Legacy-Data-Migration)
-
-## Messages, localization and rich text
-
-Every message declares its translations inline and is synced to an editable language file per plugin,
-so a server owner rewords it without touching your jar. `${key}` placeholders are declared bare and
-cited with their delimiters.
-
-```java
-@FCLocale(lang = LocaleType.EN_US, text = "&aWelcome, ${player}&a! Your bonus is &6${bonus}&a.")
-@FCLocale(lang = LocaleType.PT_BR, text = "&aBem-vindo, ${player}&a! Seu bônus é &6${bonus}&a.")
-public static LocaleMessage WELCOME;
-
-WELCOME.addPlaceholder("player", player.getName())
-       .addPlaceholder("bonus", joinBonus)
-       .send(player);
-```
-
-`FancyText` is the rich-text interface: `FancySegment` is one styled piece, `FancyFormatter` an
-ordered chain of pieces.
-
-```java
-FancyText.of("&aClick here to teleport!")
-        .setHover("&7Teleports you to spawn")
-        .setClickCommand("/spawn")
-        .send(player);
-
-FancyText.of("&6Legendary Sword")
-        .setHoverItem("minecraft:diamond_sword")
-        .send(player);
-```
-
-📖 [Localization](https://github.com/EverNife/EverNifeCore/wiki/Localization) ·
-[FancyText](https://github.com/EverNife/EverNifeCore/wiki/FancyText) ·
-[Placeholders](https://github.com/EverNife/EverNifeCore/wiki/Placeholders)
-
-## Items and GUIs
-
-```java
-ItemStack reward = FCItemFactory.from(Material.DIAMOND_SWORD)
-  .displayName("&bExcalibur") // color codes translated for you
-  .lore("&7A legendary blade", "&7+10 damage")
-  .addEnchant(Enchantment.DAMAGE_ALL, 5)
-  .setGlow()
-  .setUnbreakable()
-  .build();
-
-builder.asGuiItem();          // straight into the GUI layer
-builder.asLayout();           // a LayoutIcon for the config-driven layout system
-```
-
-The builder clones its source, so the original stack is never mutated, and it falls back to raw NBT on
-legacy versions where the modern API does not exist.
-
-📖 [Items & NBT](https://github.com/EverNife/EverNifeCore/wiki/Items-and-NBT) ·
-[GUI Framework](https://github.com/EverNife/EverNifeCore/wiki/GUI-Framework)
-
-## Multi-platform
-
-`common` has **zero** Bukkit imports. Platform behaviour reaches it two ways: runtime providers
-registered by the platform entry point, and compile-time stubs that each platform replaces with a real
-class of the same fully-qualified name. Your code takes `FPlayer` and `FCommandSender` and never asks
-which server it is on.
-
-| Platform | Module | Deployable artifact |
-|---|---|---|
-| Bukkit / Spigot / Paper (1.7.10 - 1.21) | `minecraft` | `minecraft:shadowJar` |
-| Hytale | `hytale` | `hytale:shadowJar` (classifier `Hytale`) |
-
-One JDK 25 toolchain compiles everything; the Bukkit side emits Java 8 bytecode against a Java 8 API
-floor, so one jar covers 1.7.10 through 1.21.
-
-📖 [Platform Abstraction](https://github.com/EverNife/EverNifeCore/wiki/Platform-Abstraction) ·
-[Hytale Platform](https://github.com/EverNife/EverNifeCore/wiki/Hytale-Platform) ·
-[Version Compatibility](https://github.com/EverNife/EverNifeCore/wiki/Version-Compatibility) ·
-[Java Versions & Toolchains](https://github.com/EverNife/EverNifeCore/wiki/Java-Versions-and-Toolchains)
-
-## And the rest
-
-Sync and async scheduling on virtual threads where the runtime has them, per-server and per-player
-cooldowns that can be network-wide, accounts that link a player's data across alt logins, paginated
-chat views, and a headless test engine published as `evernifecore-common-tests` so a plugin can test
-against platform doubles instead of a running server.
-
-📖 [Scheduler & Threading](https://github.com/EverNife/EverNifeCore/wiki/Scheduler-and-Threading) ·
-[Cooldowns](https://github.com/EverNife/EverNifeCore/wiki/Cooldowns) ·
-[Accounts](https://github.com/EverNife/EverNifeCore/wiki/Accounts) ·
-[full wiki index](https://github.com/EverNife/EverNifeCore/wiki)
+<p align="center"><sub>Details on <a href="https://github.com/EverNife/EverNifeCore/wiki/Integrations">Integrations</a>.</sub></p>
 
 ---
-
-## 🔌 Integrations
-
-Each one is optional and degrades quietly when its plugin is absent.
-
-| Integration | What you get |
-|---|---|
-| **Vault / VaultUnlocked** | one economy API over whatever the server runs - [Economy](https://github.com/EverNife/EverNifeCore/wiki/Economy) |
-| **PlaceholderAPI** | resolve placeholders and register your own namespace |
-| **LuckPerms** | read a player's meta values |
-| **WorldEdit** | schematic pasting |
-| **WorldGuard / GriefDefender / GriefPreventionPlus** | one `canBuild`/`canBreak`/`canInteract` answer over every installed protection plugin |
-
-📖 [Integrations](https://github.com/EverNife/EverNifeCore/wiki/Integrations)
 
 ## 🧱 Built on
 
-- **[EveryDatabase](https://github.com/EverNife/EveryDatabase)** - the storage engine: entities,
-  codecs, caching, references, backend drivers.
-- **[EveryConfig](https://github.com/EverNife/EveryConfig)** - the Jackson-first YAML layer: typed
-  reads/writes, inline comments, async saves.
-- **[EveryLibs](https://github.com/EverNife/EveryLibs)** - reflection, executor and collection helpers.
+| | |
+|---|---|
+| **[EveryDatabase](https://github.com/EverNife/EveryDatabase)** | the storage engine: entities, codecs, caching, backend drivers |
+| **[EveryConfig](https://github.com/EverNife/EveryConfig)** | the Jackson-first YAML layer: typed reads, inline comments, async saves |
+| **[EveryLibs](https://github.com/EverNife/EveryLibs)** | reflection, executor and collection helpers |
 
-All three are `api` dependencies of `common`, so their types are part of its public API.
-
-## 🤝 Building
-
-Building the whole project needs a few jars that cannot be fetched from a
-public repository (paid or unobtainable plugins used by the integration modules); `common`,
-`api-contracts` and `libby` build without them.
-
-📖 [Building from Source](https://github.com/EverNife/EverNifeCore/wiki/Building-from-Source) ·
-[Project Layout](https://github.com/EverNife/EverNifeCore/wiki/Project-Layout) ·
-[CHANGELOG](CHANGELOG.MD)
-
-## 📞 Support
-
-- **Discord**: [Join our community](https://discord.petrus.dev/)
-- **SpigotMC**: [Plugin page](https://www.spigotmc.org/resources/97739/)
-- **Issues**: [GitHub Issues](https://github.com/EverNife/EverNifeCore/issues)
+Building from source is just `git clone` and `./gradlew build`. Every dependency comes from a public repository.
+See [Building from Source](https://github.com/EverNife/EverNifeCore/wiki/Building-from-Source).
 
 ---
 
+## 💬 Community
+
 <p align="center">
-  <strong>Developed with ❤️ by <a href="https://github.com/EverNife">EverNife</a></strong>
+  <a href="https://discord.petrus.dev/"><b>Discord</b></a> &nbsp;•&nbsp;
+  <a href="https://www.spigotmc.org/resources/97739/"><b>SpigotMC</b></a> &nbsp;•&nbsp;
+  <a href="https://github.com/EverNife/EverNifeCore/issues"><b>Issues</b></a> &nbsp;•&nbsp;
+  <a href="https://github.com/EverNife/EverNifeCore/wiki"><b>Wiki</b></a>
+</p>
+
+<br>
+
+<p align="center">
+  <strong>Developed with ❤️ by <a href="https://github.com/EverNife">EverNife</a></strong><br>
+  <sub>Empowering Minecraft plugin development since 2016, and now Hytale too.</sub><br>
   <br>
-  <em>Empowering Minecraft plugin development since 2016</em>
+  <a href="https://petrus.dev"><b>🌐 petrus.dev</b></a>
 </p>
