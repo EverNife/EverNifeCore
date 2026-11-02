@@ -478,6 +478,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **Colour codes written with `&` in a layout file are translated again**: `name:`, `lore:`, the `Locale` blocks
+  and `settings.title` of a `guis/*.yml` read `&a` as `§a`, as every layout did before the screen layer took over
+  reading them. A `§` written in the file is kept, and a seeded file now writes its colours with `&`.
 - **`FCColorUtil.colorfy` translates only an `&` that starts a colour code**: `Tom & Jerry` stays text instead of
   becoming `Tom § Jerry`.
 - **A cancelled QuestCompletePreEvent no longer replays the stage**: the stage's on-complete effects, StageCompleteEvent and

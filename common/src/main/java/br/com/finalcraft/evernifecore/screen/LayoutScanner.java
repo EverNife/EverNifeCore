@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.config.SettingsScanner;
+import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.everyconfig.config.Config;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -237,12 +238,12 @@ public final class LayoutScanner {
      * needs {@code rows}. Which of the two the other type ignores is what the header explains.
      */
     private static void seedSettings(Config config, ScreenLayout declaration) {
-        config.setValueIfAbsent(SETTINGS + ".title", declaration.title());
+        config.setValueIfAbsent(SETTINGS + ".title", FCColorUtil.decolorfy(declaration.title()));
         config.setValueIfAbsent(SETTINGS + ".rows", declaration.rows());
         config.setValueIfAbsent(SETTINGS + ".integrateToPAPI", declaration.integrateToPAPI());
         for (FCLocale locale : declaration.locale()) {
             config.setValueIfAbsent(SETTINGS + ".Locale." + LocaleType.normalize(locale.lang()) + ".title",
-                    locale.text());
+                    FCColorUtil.decolorfy(locale.text()));
         }
     }
 
@@ -252,7 +253,7 @@ public final class LayoutScanner {
         instance.applySettings(plugin, type.getSimpleName(), language,
                 rowsOf(plugin, type, declaration, source),
                 source.getBoolean(SETTINGS + ".integrateToPAPI", declaration.integrateToPAPI()),
-                title == null ? declaration.title() : title);
+                title == null ? declaration.title() : FCColorUtil.colorfy(title));
 
         Set<String> languages = new LinkedHashSet<>();
         for (FCLocale locale : declaration.locale()) {
@@ -262,7 +263,7 @@ public final class LayoutScanner {
         for (String lang : languages) {
             String localizedTitle = source.getString(SETTINGS + ".Locale." + lang + ".title");
             if (localizedTitle != null) {
-                instance.putTitle(lang, localizedTitle);
+                instance.putTitle(lang, FCColorUtil.colorfy(localizedTitle));
             }
         }
     }
@@ -332,7 +333,11 @@ public final class LayoutScanner {
             return;
         }
         for (String lang : locale.getLanguages()) {
-            config.setValueIfAbsent(path + ".Locale." + lang, locale.get(lang));
+            List<String> lines = new ArrayList<>();
+            for (String line : locale.get(lang)) {
+                lines.add(FCColorUtil.decolorfy(line));
+            }
+            config.setValueIfAbsent(path + ".Locale." + lang, lines);
         }
     }
 

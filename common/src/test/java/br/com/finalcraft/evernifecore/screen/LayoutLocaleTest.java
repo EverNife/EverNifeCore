@@ -583,7 +583,7 @@ class LayoutLocaleTest {
         RecordingSurface brazilian = open(screen, viewerSpeaking("Alberto", LocaleType.PT_BR));
 
         assertEquals(nameAt(english, 0), nameAt(brazilian, 0));
-        assertEquals("&7Just this", nameAt(english, 0), "and the text it does have still arrives");
+        assertEquals("§7Just this", nameAt(english, 0), "and the text it does have still arrives, read from the file");
     }
 
     @Test

@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.screen;
 
 import br.com.finalcraft.evernifecore.item.ItemSpec;
+import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
@@ -106,19 +107,22 @@ public final class ItemDataLines {
         return raw;
     }
 
-    /** {@code item} with the name and lore {@code lines} give: a name line replaces the name, lore lines replace the lore. */
+    /**
+     * {@code item} with the name and lore {@code lines} give: a name line replaces the name, lore lines replace the lore.
+     * Both read {@code &} colour codes as {@code §}; a {@code §} already written is kept.
+     */
     @Nonnull
     public static ItemSpec applyText(@Nonnull ItemSpec item, @Nonnull List<String> lines) {
         String name = null;
         List<String> lore = null;
         for (String line : lines) {
             if (is(NAME_KEYS, line)) {
-                name = argumentOf(line);
+                name = FCColorUtil.colorfy(argumentOf(line));
             } else if (is(LORE_KEYS, line)) {
                 if (lore == null) {
                     lore = new ArrayList<>();
                 }
-                lore.add(argumentOf(line));
+                lore.add(FCColorUtil.colorfy(argumentOf(line)));
             }
         }
         if (name == null && lore == null) {
@@ -127,7 +131,10 @@ public final class ItemDataLines {
         return item.withText(name == null ? item.getDisplayName() : name, lore == null ? item.getLore() : lore);
     }
 
-    /** The {@code DisplayItem} lines of an item: material, amount, then text unless it lives elsewhere, then the raw lines. */
+    /**
+     * The {@code DisplayItem} lines of an item: material, amount, then text unless it lives elsewhere, then the raw lines.
+     * The text is written with {@code &} colour codes, the form an admin reads and edits.
+     */
     @Nonnull
     public static List<String> write(@Nonnull ItemSpec item, @Nonnull List<String> dataLines, boolean omitText) {
         List<String> lines = new ArrayList<>();
@@ -137,10 +144,10 @@ public final class ItemDataLines {
         }
         if (!omitText) {
             if (!item.getDisplayName().isEmpty()) {
-                lines.add(NAME + ":" + item.getDisplayName());
+                lines.add(NAME + ":" + FCColorUtil.decolorfy(item.getDisplayName()));
             }
             for (String loreLine : item.getLore()) {
-                lines.add(LORE + ":" + loreLine);
+                lines.add(LORE + ":" + FCColorUtil.decolorfy(loreLine));
             }
         }
         lines.addAll(dataLines);

@@ -3,7 +3,9 @@ package br.com.finalcraft.evernifecore.screen;
 import br.com.finalcraft.evernifecore.config.SettingsScanner;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
+import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.testing.Logs;
+import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.ScreenWorld;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.junit.jupiter.api.AfterEach;
@@ -267,6 +269,87 @@ class LayoutScannerTest {
                 "the field is not part of any instance, so no file was ever written for it");
         assertTrue(logged("StallLayout.NEVER_DRAWN"), logs());
         assertTrue(logged("Make it an instance field"), "the message names the way out: " + logs());
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Colour codes the admin types
+    // -----------------------------------------------------------------------------------------------------------------
+
+    @ScreenLayout(title = "§8Shop", rows = 3)
+    public static class ShopLayout extends Layout {
+
+        @IconData(slot = {13})
+        public Icon BUY = icon("minecraft:emerald").displayName("§aBuy").lore("§7one");
+    }
+
+    @Test
+    void ampersandCodesInTheFileAreTranslatedWhenRead() throws IOException {
+        writeShop(
+                "Settings:",
+                "  title: '&8&lShop'",
+                "  Locale:",
+                "    PT_BR:",
+                "      title: '&8Loja'",
+                "Layout:",
+                "  BUY:",
+                "    Slot: \"[13]\"",
+                "    DisplayItem:",
+                "    - material:minecraft:emerald",
+                "    - name:&aTom & Jerry",
+                "    - lore:&7one",
+                "    - lore:&7two",
+                "    Locale:",
+                "      PT_BR:",
+                "      - name:&aComprar"
+        );
+
+        ShopLayout layout = LayoutScanner.load(plugin, ShopLayout.class, null);
+
+        assertEquals("§8§lShop", layout.getTitle());
+        ItemSpec item = layout.getIcon("BUY").getItem();
+        assertEquals("§aTom & Jerry", item.getDisplayName(), "an & that starts no colour code is left as text");
+        assertEquals(Arrays.asList("§7one", "§7two"), item.getLore());
+
+        Plugins.setLanguage(plugin, LocaleType.PT_BR);
+        assertEquals("§8Loja", layout.getTitle());
+        assertEquals("§aComprar", layout.getIcon("BUY").renderFor(null, null).getItem().getDisplayName());
+    }
+
+    @Test
+    void sectionSignsWrittenInTheFileStayAsTheyAre() throws IOException {
+        writeShop(
+                "Layout:",
+                "  BUY:",
+                "    Slot: \"[13]\"",
+                "    DisplayItem:",
+                "    - material:minecraft:emerald",
+                "    - name:§aBuy",
+                "    - lore:§7one"
+        );
+
+        Icon buy = LayoutScanner.load(plugin, ShopLayout.class, null).getIcon("BUY");
+
+        assertEquals("§aBuy", buy.getItem().getDisplayName());
+        assertEquals(Arrays.asList("§7one"), buy.getItem().getLore());
+    }
+
+    @Test
+    void theSeededFileWritesColourCodesWithAmpersands() throws IOException {
+        LayoutScanner.load(plugin, ShopLayout.class, null);
+        String seeded = new String(Files.readAllBytes(tempDir.resolve("guis/ShopLayout.yml")), StandardCharsets.UTF_8);
+
+        assertTrue(seeded.contains("&8Shop"), "the form the admin reads and edits: " + seeded);
+        assertTrue(seeded.contains("name:&aBuy"), seeded);
+        assertTrue(seeded.contains("lore:&7one"), seeded);
+        assertFalse(seeded.contains("§"), seeded);
+        assertEquals("§aBuy", LayoutScanner.load(plugin, ShopLayout.class, null).getIcon("BUY").getItem().getDisplayName(),
+                "and it reads back as the plugin declared it");
+    }
+
+    private void writeShop(String... lines) throws IOException {
+        Path file = tempDir.resolve("guis/ShopLayout.yml");
+        Files.createDirectories(file.getParent());
+        Files.write(file, Arrays.asList(lines), StandardCharsets.UTF_8);
     }
 
     // -----------------------------------------------------------------------------------------------------------------
