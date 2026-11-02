@@ -19,15 +19,27 @@ import jakarta.annotation.Nullable;
 
 public class HyPAPIIntegration {
 
-    private static Boolean isPresent = null;
+    // The Name in PlaceholderAPI-Hytale's manifest.json
+    static final String PAPI_PLUGIN_NAME = "PlaceholderAPI";
 
+    private static Boolean isApiOnClasspath = null;
+
+    /**
+     * Whether PlaceholderAPI is installed AND enabled. Its classes alone are not enough: a plugin that failed to
+     * start, or was shut down, leaves them loadable. Asked anew every time, so an answer given before
+     * PlaceholderAPI started does not stick.
+     */
     public static boolean isPresent(){
-        if (isPresent == null){
-            // Probe the API class 'parse' actually calls. isClassLoaded initializes the class,
-            // and a plugin main class may only initialize against a live server.
-            isPresent = FCReflectionUtil.getClasses().isClassLoaded("at.helpch.placeholderapi.PlaceholderAPI");
+        return isApiOnClasspath() && EverNifeCore.getPlatform().isPluginEnabled(PAPI_PLUGIN_NAME);
+    }
+
+    /** Whether the API class {@code parse} calls is on the classpath; initializing it needs no live server. */
+    static boolean isApiOnClasspath(){
+        if (isApiOnClasspath == null){
+            // isClassLoaded initializes the class, and a plugin main class may only initialize against a live server.
+            isApiOnClasspath = FCReflectionUtil.getClasses().isClassLoaded("at.helpch.placeholderapi.PlaceholderAPI");
         }
-        return isPresent;
+        return isApiOnClasspath;
     }
 
     public static <P extends IPlayerData> RegexReplacer<P> createPlaceholderIntegration(@Nonnull ECPluginData plugin, @Nonnull String pluginBaseID, @Nonnull Class<P> playerDataType){

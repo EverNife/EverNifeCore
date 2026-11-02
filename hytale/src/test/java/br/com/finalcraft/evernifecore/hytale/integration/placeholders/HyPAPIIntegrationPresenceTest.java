@@ -1,7 +1,10 @@
 package br.com.finalcraft.evernifecore.hytale.integration.placeholders;
 
+import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
+import br.com.finalcraft.evernifecore.testing.Platforms;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -15,6 +18,17 @@ class HyPAPIIntegrationPresenceTest {
 
     @Test
     void theProbeFindsTheHytalePlaceholderAPI() {
-        assertTrue(HyPAPIIntegration.isPresent());
+        assertTrue(HyPAPIIntegration.isApiOnClasspath());
+    }
+
+    @Test
+    void theAnswerFollowsWhetherThePluginIsEnabled() {
+        try (ECoreTestWorld ignored = Platforms.strict().pluginsLoaded(HyPAPIIntegration.PAPI_PLUGIN_NAME).install()) {
+            assertTrue(HyPAPIIntegration.isPresent());
+        }
+        try (ECoreTestWorld ignored = Platforms.strict().pluginsLoaded()
+                .pluginsDisabled(HyPAPIIntegration.PAPI_PLUGIN_NAME).install()) {
+            assertFalse(HyPAPIIntegration.isPresent(), "a disabled PlaceholderAPI must not keep the first answer");
+        }
     }
 }

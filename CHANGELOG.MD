@@ -513,6 +513,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **Hytale: `HyPAPIIntegration.isPresent()` asks whether PlaceholderAPI is enabled, every time**, like the Bukkit side: only
+  the classpath probe is cached (`isApiOnClasspath`), and the answer comes from `IPlatform.isPluginEnabled("PlaceholderAPI")`.
+  An answer given before PlaceholderAPI started, or after it shut down, no longer sticks.
 - **`AuditLog.of(owner, storage)` closed and reopened the log on every call**: `AuditRetention` compared by identity and
   the two-argument form builds a new `days(30)` each time. Retentions are now equal by value (`equals`/`hashCode`), so
   opening the log again with an equal retention returns the one already open.
