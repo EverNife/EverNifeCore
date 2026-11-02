@@ -490,6 +490,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **Hytale: `spawn-point` after a real death.** The flag's teleport is put once the server's own teleport has left the
   player (checked tick by tick, up to two seconds), instead of replacing it in the same buffer, where the server's
   teleport system ignored the replacement. Past the wait it is dropped with a warning.
+- **A currency announces the balance before at its own scale**: `AbstractCurrency.take`/`give`/`transfer` round the
+  amount by the currency's `NumericSpec` before the wallet moves, so a `take(0.015)` on a scale-2 currency at `100.00`
+  posts a `BalanceChangeEvent` with `before = 100.00` (not `99.995`) and the response carries the `0.02` that moved.
+  An amount that rounds to zero is a successful no-op, like zero.
 - **A `GroupProvider` that throws no longer breaks the group lookup**: `GroupLookup` asks every provider a plugin
   registered inside its own guard, so one that throws counts as one that does not answer - `getGroupsOf`, `exists`,
   `getMembers`, `getLeader` and `getHoldersOf` go on with the others, and the damage, rewards and quests that ask a

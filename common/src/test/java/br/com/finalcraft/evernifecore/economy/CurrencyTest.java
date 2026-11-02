@@ -114,6 +114,41 @@ class CurrencyTest {
     }
 
     @Test
+    void aTakeFinerThanTheScaleAnnouncesTheBalanceBeforeAtTheCurrencysScale() {
+        List<BalanceChangeEvent> events = shop.recorded(BalanceChangeEvent.class);
+
+        gold.take(ALEX, new BigDecimal("0.015"), caller);
+
+        assertEquals(1, events.size());
+        assertEquals(0, events.get(0).getBefore().compareTo(new BigDecimal("100.00")), String.valueOf(events.get(0).getBefore()));
+        assertEquals(0, events.get(0).getAfter().compareTo(gold.getBalance(ALEX)));
+    }
+
+    @Test
+    void aGiveFinerThanTheScaleAnnouncesTheBalanceBeforeAtTheCurrencysScale() {
+        List<BalanceChangeEvent> events = shop.recorded(BalanceChangeEvent.class);
+
+        gold.give(ALEX, new BigDecimal("0.015"), caller);
+
+        assertEquals(1, events.size());
+        assertEquals(0, events.get(0).getBefore().compareTo(new BigDecimal("100.00")), String.valueOf(events.get(0).getBefore()));
+        assertEquals(0, events.get(0).getAfter().compareTo(gold.getBalance(ALEX)));
+    }
+
+    @Test
+    void aTransferFinerThanTheScaleAnnouncesBothBalancesBeforeAtTheCurrencysScale() {
+        List<BalanceChangeEvent> changes = shop.recorded(BalanceChangeEvent.class);
+
+        gold.transfer(ALEX, BRUNO, new BigDecimal("0.015"), caller);
+
+        assertEquals(2, changes.size());
+        assertEquals(0, changes.get(0).getBefore().compareTo(new BigDecimal("100.00")), String.valueOf(changes.get(0).getBefore()));
+        assertEquals(0, changes.get(0).getAfter().compareTo(gold.getBalance(ALEX)));
+        assertEquals(0, changes.get(1).getBefore().signum(), String.valueOf(changes.get(1).getBefore()));
+        assertEquals(0, changes.get(1).getAfter().compareTo(gold.getBalance(BRUNO)));
+    }
+
+    @Test
     void aFailedSecondLegGivesTheFirstBackAndAnswersWithTheGivesReason() {
         RefusingCurrency vault = new RefusingCurrency();
         vault.set(ALEX, new BigDecimal("100"), caller);

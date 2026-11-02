@@ -15,7 +15,8 @@ import java.util.Objects;
  * The one base every {@link Currency} extends. The public verbs are final and own the rules, in this order: a
  * negative amount is {@link EcoResponse.Reason#INVALID_AMOUNT}; an owner kind the currency does not
  * {@link #supports support} is {@link EcoResponse.Reason#UNSUPPORTED_OWNER}; an unavailable currency is
- * {@link EcoResponse.Reason#UNAVAILABLE}; zero is a successful no-op. Only past those does the implementation run,
+ * {@link EcoResponse.Reason#UNAVAILABLE}; a take, give or transfer amount is rounded to the {@link #getSpec() spec}'s
+ * scale, and what rounds to zero is a successful no-op. Only past those does the implementation run,
  * and every change it reports posts exactly one {@link BalanceChangeEvent}.
  *
  * <p>An implementation writes {@link #withdraw}, {@link #deposit}, {@link #overwrite}, {@link #getBalance} and
@@ -91,6 +92,7 @@ public abstract class AbstractCurrency implements Currency {
         if (refused != null) {
             return refused;
         }
+        amount = spec.round(amount); //what the wallet moves, so the announced balance before is one a reader saw
         if (amount.signum() == 0) {
             return EcoResponse.success(amount, getBalance(owner)).withCurrency(this);
         }
@@ -107,6 +109,7 @@ public abstract class AbstractCurrency implements Currency {
         if (refused != null) {
             return refused;
         }
+        amount = spec.round(amount);
         if (amount.signum() == 0) {
             return EcoResponse.success(amount, getBalance(owner)).withCurrency(this);
         }
@@ -146,6 +149,7 @@ public abstract class AbstractCurrency implements Currency {
         if (refused != null) {
             return refused;
         }
+        amount = spec.round(amount);
         if (amount.signum() == 0) {
             return EcoResponse.success(amount, getBalance(from)).withCurrency(this);
         }
