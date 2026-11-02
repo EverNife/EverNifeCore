@@ -513,6 +513,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **`FCTimeFrame` formats before the core locale loads** (a test world, a plugin's static init): its words fall back to
+  English where the formatting threw a `NullPointerException`, so a screen with a time in its text no longer needs
+  `FCLocaleScanner.scanForLocale(FCTimeFrame.class)` first.
 - **`FCItemFactory.from("minecraft:<id>")` builds without an NMS bridge** (a unit test, an unsupported server): a vanilla
   id without snbt resolves through the Bukkit `Material` of the same name; any other id is refused with an
   `IllegalArgumentException` that names the Bukkit material to write instead, where the build threw

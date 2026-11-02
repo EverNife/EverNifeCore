@@ -125,20 +125,20 @@ public class FCTimeFrame {
         final String minuto;
         final String segundo;
         if (shortVersion){
-            dia = String.valueOf(DAY.getDefaultFancyText().getText().charAt(0));
-            hora = String.valueOf(HOURS.getDefaultFancyText().getText().charAt(0));
-            minuto = String.valueOf(MINUTES.getDefaultFancyText().getText().charAt(0));
-            segundo = String.valueOf(SECONDS.getDefaultFancyText().getText().charAt(0));
+            dia = String.valueOf(text(DAY, "day").charAt(0));
+            hora = String.valueOf(text(HOURS, "hours").charAt(0));
+            minuto = String.valueOf(text(MINUTES, "minutes").charAt(0));
+            segundo = String.valueOf(text(SECONDS, "seconds").charAt(0));
         }else {
-            dia = this.getDays() >= 2 ? DAYS.getDefaultFancyText().getText() : DAY.getDefaultFancyText().getText();
-            hora = this.getHours() >= 2 ? HOURS.getDefaultFancyText().getText() : HOUR.getDefaultFancyText().getText();
-            minuto = this.getMinutes() >= 2 ? MINUTES.getDefaultFancyText().getText() : MINUTE.getDefaultFancyText().getText();
-            segundo = this.getSeconds() >= 2 || ((includeMillis || this.getSeconds() == 0) && (this.millis % 1000) >= 2)  ? SECONDS.getDefaultFancyText().getText() : SECOND.getDefaultFancyText().getText();
+            dia = this.getDays() >= 2 ? text(DAYS, "days") : text(DAY, "day");
+            hora = this.getHours() >= 2 ? text(HOURS, "hours") : text(HOUR, "hour");
+            minuto = this.getMinutes() >= 2 ? text(MINUTES, "minutes") : text(MINUTE, "minute");
+            segundo = this.getSeconds() >= 2 || ((includeMillis || this.getSeconds() == 0) && (this.millis % 1000) >= 2)  ? text(SECONDS, "seconds") : text(SECOND, "second");
         }
 
         final String SPACE = shortVersion ? "" : " ";
         final String COMMA = shortVersion ? " " : ", ";
-        final String E = shortVersion ? "" : AND.getDefaultFancyText().getText();
+        final String E = shortVersion ? "" : text(AND, "and");
 
         if (this.getDays() > 0){
             return numberColor + this.getDays() + SPACE + textColor + dia + COMMA + numberColor + this.getHours() + SPACE + textColor + hora + COMMA + numberColor + this.getMinutes() + SPACE + textColor + minuto + SPACE + E + " " + numberColor + this.getSeconds() + SPACE + textColor + segundo;
@@ -159,6 +159,11 @@ public class FCTimeFrame {
     @Override
     public String toString() {
         return this.getFormattedDiscursive();
+    }
+
+    //the words are loaded with the core's locale; a time formatted before that (a unit test, a plugin's static init) reads English
+    private static String text(LocaleMessage word, String english) {
+        return word == null ? english : word.getDefaultFancyText().getText();
     }
 
     // ----------------------------------------------------------------------------------------------------------------//
