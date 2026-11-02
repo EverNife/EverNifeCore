@@ -54,27 +54,41 @@ public final class Contributions {
         }
     }
 
-    /** {@code owner}'s contributions kept in {@code storage}; reopening with the same storage returns the same instance. */
+    /**
+     * {@code owner}'s contributions kept in {@code storage}; reopening with the same storage returns the same instance,
+     * and with another one waits for the writes of the instance it replaces before loading.
+     */
     public static Contributions of(ECPluginData owner, ECStorage storage) {
         return open(owner, storage);
     }
 
-    /** {@code owner}'s contributions kept in memory only. */
+    /** {@code owner}'s open contributions, or ones kept in memory only when none are open. */
     public static Contributions of(ECPluginData owner) {
         Contributions existing = OWNED.get(owner.getMetaInfo().getName());
         return existing != null ? existing : open(owner, null);
     }
 
     private static Contributions open(ECPluginData owner, @Nullable ECStorage storage) {
-        return OWNED.compute(owner.getMetaInfo().getName(), (name, existing) ->
-                existing != null && existing.storage == storage ? existing : new Contributions(owner, storage));
+        return OWNED.compute(owner.getMetaInfo().getName(), (name, existing) -> {
+            if (existing != null && existing.storage == storage) {
+                return existing;
+            }
+            if (existing != null) {
+                existing.awaitWrites(); //the new instance may load what the old one is still writing
+            }
+            return new Contributions(owner, storage);
+        });
+    }
+
+    private void awaitWrites() {
+        CompletableFuture.allOf(pendingWrites.toArray(new CompletableFuture[0])).exceptionally(error -> null).join();
     }
 
     /** Awaits the writes still on their way and forgets {@code owner}'s contributions; called on its shutdown. */
     public static void closeOwnedBy(ECPluginData owner) {
         Contributions closed = OWNED.remove(owner.getMetaInfo().getName());
         if (closed != null) {
-            CompletableFuture.allOf(closed.pendingWrites.toArray(new CompletableFuture[0])).exceptionally(error -> null).join();
+            closed.awaitWrites();
         }
     }
 
@@ -93,11 +107,12 @@ public final class Contributions {
         return plugin;
     }
 
-    void write(Row row) {
+    /** Stores {@code snapshot}, a {@link Row#copy()} the caller no longer touches: the backend serializes it on its own thread. */
+    void write(Row snapshot) {
         if (manager == null) {
             return;
         }
-        CompletableFuture<?> write = manager.saveAndCache(row);
+        CompletableFuture<?> write = manager.saveAndCache(snapshot);
         pendingWrites.add(write);
         write.whenComplete((ok, error) -> {
             pendingWrites.remove(write);
@@ -122,6 +137,14 @@ public final class Contributions {
 
         Row(String key) {
             this.key = key;
+        }
+
+        Row copy() {
+            Row copy = new Row(key);
+            copy.total = total;
+            copy.members = new LinkedHashMap<>(members);
+            copy.complete = complete;
+            return copy;
         }
     }
 }

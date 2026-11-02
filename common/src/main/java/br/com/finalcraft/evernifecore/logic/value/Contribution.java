@@ -21,8 +21,13 @@ import java.util.UUID;
 
 /**
  * A goal several players fill together toward a {@link #getTarget() target owner}: each {@link #deposit} adds what the
- * depositor gave (or holds, for a checking requirement) up to what is still missing, by member; reaching the target
- * applies the completion effects once. Any thread; deposits to one contribution are serialized.
+ * depositor gave (or holds, for a checking requirement) up to what is still missing, by member; the total never passes
+ * the target, and reaching it applies the completion effects once.
+ *
+ * <p>Any thread. The requirement runs while the contribution is not locked, so a reader on the player's thread never
+ * waits behind a deposit that is itself waiting for that thread; deposits racing for the last of the target are
+ * counted one at a time, and what one took past the target is given back through
+ * {@link ContributionRequirement#giveBack}.
  */
 public final class Contribution<T> {
 
@@ -51,7 +56,9 @@ public final class Contribution<T> {
      * Takes from the context's player up to what is missing (consuming) or counts what they hold beyond what they
      * already counted (checking), posts a {@link ContributionDepositEvent} when something counted, and applies the
      * completion effects once, posting a {@link ContributionCompletedEvent}, when the target is reached. What counted is
-     * recorded as a {@code DEPOSIT} in the {@link AuditLog} of the contributions' plugin, when it has one.
+     * recorded as a {@code DEPOSIT} in the {@link AuditLog} of the contributions' plugin, when it has one. What a racing
+     * deposit left no room for is given back; a give-back that fails is audited {@code REFUND_FAILED} and logged severe,
+     * never thrown.
      *
      * @throws IllegalStateException when the context has no player - a deposit is always somebody's
      */
@@ -59,28 +66,40 @@ public final class Contribution<T> {
         FPlayer player = depositor(ctx);
         String member = player.getUniqueId().toString();
         Contributions.Row row = contributions.rows.computeIfAbsent(key, Contributions.Row::new);
+        BigDecimal missing;
+        synchronized (row) {
+            if (row.complete) {
+                return new DepositResult(BigDecimal.ZERO, new BigDecimal(row.total), false);
+            }
+            missing = requirement.getTarget().subtract(new BigDecimal(row.total));
+        }
+        //a wallet or an inventory may wait for the player's thread, which may be reading this row: never under its monitor
+        BigDecimal reachedOut = requirement.isConsuming() ? requirement.take(ctx, missing) : requirement.countHeld(ctx);
         BigDecimal counted;
         BigDecimal total;
-        boolean completedNow;
+        boolean completedNow = false;
+        Contributions.Row snapshot = null;
         synchronized (row) {
             total = new BigDecimal(row.total);
-            if (row.complete) {
-                return new DepositResult(BigDecimal.ZERO, total, false);
-            }
-            BigDecimal missing = requirement.getTarget().subtract(total);
+            BigDecimal room = requirement.getTarget().subtract(total).max(BigDecimal.ZERO);
             BigDecimal given = new BigDecimal(row.members.getOrDefault(member, "0"));
-            counted = requirement.isConsuming() ? requirement.take(ctx, missing)
-                    : requirement.countHeld(ctx).subtract(given).max(BigDecimal.ZERO).min(missing);
-            if (counted.signum() <= 0) {
-                return new DepositResult(BigDecimal.ZERO, total, false);
+            counted = (requirement.isConsuming() ? reachedOut : reachedOut.subtract(given)).max(BigDecimal.ZERO).min(room);
+            if (counted.signum() > 0) {
+                total = total.add(counted);
+                row.total = total.toPlainString();
+                row.members.put(member, given.add(counted).toPlainString());
+                completedNow = total.compareTo(requirement.getTarget()) >= 0;
+                row.complete = completedNow;
+                snapshot = row.copy();
             }
-            total = total.add(counted);
-            row.total = total.toPlainString();
-            row.members.put(member, given.add(counted).toPlainString());
-            completedNow = total.compareTo(requirement.getTarget()) >= 0;
-            row.complete = completedNow;
         }
-        contributions.write(row);
+        if (requirement.isConsuming() && reachedOut.compareTo(counted) > 0) {
+            giveBack(ctx, player, reachedOut.subtract(counted));
+        }
+        if (snapshot == null) {
+            return new DepositResult(BigDecimal.ZERO, total, false);
+        }
+        contributions.write(snapshot);
         BigDecimal deposited = counted;
         BigDecimal reached = total;
         ECEventBus.global().postIfListened(ContributionDepositEvent.class, () -> new ContributionDepositEvent(this, ctx, deposited, reached));
@@ -98,6 +117,23 @@ public final class Contribution<T> {
             }
         }
         return new DepositResult(counted, total, completedNow);
+    }
+
+    private void giveBack(ExecutionContext ctx, FPlayer player, BigDecimal surplus) {
+        try {
+            requirement.giveBack(ctx, surplus);
+        } catch (RuntimeException failure) {
+            String text = surplus.toPlainString() + " of " + requirement + " taken from " + player.getName() + " (uuid " + player.getUniqueId()
+                    + ") toward " + target + " found the target already filled, and giving it back failed (" + failure + ") - give it back by hand.";
+            AuditLog.ofIfPresent(contributions.getPlugin()).ifPresent(log -> log.record(AuditEntry.builder(AuditKind.REFUND_FAILED, ctx.getCaller())
+                    .owner(target)
+                    .player(player.getUniqueId())
+                    .subject(id)
+                    .amount(surplus)
+                    .text(text)
+                    .build()));
+            contributions.getPlugin().getLog().severe("[" + ctx.getCaller() + "] " + text);
+        }
     }
 
     static FPlayer depositor(ExecutionContext ctx) {

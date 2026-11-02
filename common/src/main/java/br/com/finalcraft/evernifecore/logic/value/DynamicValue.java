@@ -69,6 +69,7 @@ public final class DynamicValue implements MutableVariable<BigDecimal> {
     private BigDecimal write(ProgressOwner scope, BigDecimal amount, boolean add) {
         DynamicValues.Row row = values.rows.computeIfAbsent(key(scope), DynamicValues.Row::new);
         BigDecimal written;
+        DynamicValues.Row snapshot;
         synchronized (row) {
             long now = ECClock.now().toEpochMilli();
             BigDecimal[] state = current(row, now);
@@ -76,8 +77,9 @@ public final class DynamicValue implements MutableVariable<BigDecimal> {
             row.value = written.toPlainString();
             //an unchanged value keeps the decay's partial step; a new one starts counting now
             row.at = add && written.compareTo(state[0]) == 0 ? state[1].longValueExact() : now;
+            snapshot = row.copy();
         }
-        values.write(row);
+        values.write(snapshot);
         return written;
     }
 

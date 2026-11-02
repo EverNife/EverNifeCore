@@ -476,6 +476,14 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **A `Contribution` deposit no longer locks the contribution while it reaches the wallet or the inventory**, so a reader
+  on the player's thread (a menu, a placeholder reading `getTotal()`) never waits behind a deposit that is waiting for
+  that thread. What a racing deposit took past the target is given back through the new
+  `ContributionRequirement.giveBack(ctx, amount)` (a currency back to the wallet, items to the inventory and the rest
+  as a delivery; a failure is audited `REFUND_FAILED` and logged severe). The row a `Contribution` or a `DynamicValue`
+  hands the storage is a snapshot, and reopening `Contributions`, `DynamicValues` or a `BoosterManager` on another
+  storage waits for the writes of the one it replaces. The test kit's `ScriptedStorage` captures the last `save` per
+  collection (`lastSaved`) and can hold the writes (`holdWrites`/`releaseWrites`/`pendingSaves`).
 - **A chest screen that goes away closes its window on Bukkit.** A `back()` out of a root screen (CONFIRM/DENY of the
   confirmation included), `Screens.closeAll()`/`closeOwnedBy()` and a failed open released the view first and then
   looked the player up through it, so `closeInventory` never ran: the chest stayed up unguarded, its icons could be

@@ -79,7 +79,10 @@ public final class BoosterManager implements BoosterSource {
         }
     }
 
-    /** {@code owner}'s boosters kept in {@code storage}; one per plugin, added as a source while open. */
+    /**
+     * {@code owner}'s boosters kept in {@code storage}; one per plugin, added as a source while open. Reopening with
+     * another storage waits for the writes of the manager it replaces before loading.
+     */
     public static BoosterManager of(ECPluginData owner, ECStorage storage) {
         BoosterManager opened = open(owner, storage);
         int generation = GENERATIONS.incrementAndGet();
@@ -89,7 +92,7 @@ public final class BoosterManager implements BoosterSource {
         return opened;
     }
 
-    /** {@code owner}'s boosters kept in memory only: they end with the server. */
+    /** {@code owner}'s open boosters, or ones kept in memory only (they end with the server) when none are open. */
     public static BoosterManager of(ECPluginData owner) {
         BoosterManager existing = OWNED.get(owner.getMetaInfo().getName());
         return existing != null ? existing : open(owner, null);
@@ -106,6 +109,9 @@ public final class BoosterManager implements BoosterSource {
                 return existing;
             }
             replaced[0] = existing;
+            if (existing != null) {
+                existing.awaitWrites(); //the new manager may load what the old one is still writing
+            }
             BoosterManager created = new BoosterManager(owner, storage);
             Boosters.addSource(owner, created);
             return created;
@@ -121,11 +127,15 @@ public final class BoosterManager implements BoosterSource {
         BoosterManager closed = OWNED.remove(owner.getMetaInfo().getName());
         if (closed != null) {
             Boosters.removeSource(closed);
-            CompletableFuture.allOf(closed.pendingWrites.toArray(new CompletableFuture[0])).exceptionally(error -> null).join();
+            closed.awaitWrites();
         }
         if (OWNED.values().stream().noneMatch(boosters -> boosters.manager != null)) {
             SWEEP.set(0);
         }
+    }
+
+    private void awaitWrites() {
+        CompletableFuture.allOf(pendingWrites.toArray(new CompletableFuture[0])).exceptionally(error -> null).join();
     }
 
     /**

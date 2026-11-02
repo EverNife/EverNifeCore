@@ -15,6 +15,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -49,6 +50,9 @@ public final class ScriptedStorage implements Storage {
     private final AtomicReference<Throwable> nextSaveAllFailure = new AtomicReference<Throwable>();
     private final AtomicReference<Throwable> nextAllFailure = new AtomicReference<Throwable>();
     private final AtomicReference<Throwable> everyAllFailure = new AtomicReference<Throwable>();
+    private final Map<String, Object> lastSaved = new ConcurrentHashMap<String, Object>();
+    private final AtomicReference<CompletableFuture<Void>> writeGate = new AtomicReference<CompletableFuture<Void>>(CompletableFuture.<Void>completedFuture(null));
+    private final AtomicInteger pendingSaves = new AtomicInteger();
 
     private ScriptedStorage(Storage delegate) {
         this.delegate = delegate;
@@ -109,6 +113,34 @@ public final class ScriptedStorage implements Storage {
         return counter != null ? counter.get() : 0;
     }
 
+    /**
+     * The entity the last {@code save} of {@code collection} was handed - the very object, not a copy, so a test can
+     * tell a snapshot from a live instance the caller keeps mutating. Empty when that collection saw no {@code save}.
+     */
+    public <V> Optional<V> lastSaved(String collection, Class<V> type) {
+        return Optional.ofNullable(lastSaved.get(collection)).map(type::cast);
+    }
+
+    /**
+     * Holds every {@code save} and {@code saveAll} from now on: each is counted by {@link #pendingSaves()} and reaches
+     * the backend only after {@link #releaseWrites()} - a slow backend, for code that must wait for its writes.
+     */
+    public ScriptedStorage holdWrites() {
+        writeGate.updateAndGet(gate -> gate.isDone() ? new CompletableFuture<Void>() : gate);
+        return this;
+    }
+
+    /** Lets the writes held by {@link #holdWrites()} through, on the calling thread, and stops holding new ones. */
+    public ScriptedStorage releaseWrites() {
+        writeGate.getAndSet(CompletableFuture.<Void>completedFuture(null)).complete(null);
+        return this;
+    }
+
+    /** How many {@code save}/{@code saveAll} calls have not completed yet. */
+    public int pendingSaves() {
+        return pendingSaves.get();
+    }
+
     /** Forgets every count, so an assertion can talk about what happened after this point only. */
     public ScriptedStorage resetCalls() {
         calls.clear();
@@ -139,7 +171,7 @@ public final class ScriptedStorage implements Storage {
     public <K, V> Repository<K, V> repository(EntityDescriptor<K, V> descriptor) {
         Repository<K, V> real = delegate.repository(descriptor);
         return (Repository<K, V>) Proxy.newProxyInstance(Repository.class.getClassLoader(),
-                new Class<?>[]{Repository.class}, new CountingCalls(real));
+                new Class<?>[]{Repository.class}, new CountingCalls(real, descriptor.collection()));
     }
 
     @Override
@@ -188,12 +220,15 @@ public final class ScriptedStorage implements Storage {
     private final class CountingCalls implements InvocationHandler {
 
         private final Repository<?, ?> real;
+        private final String collection;
 
-        CountingCalls(Repository<?, ?> real) {
+        CountingCalls(Repository<?, ?> real, String collection) {
             this.real = real;
+            this.collection = collection;
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
             String name = method.getName();
             AtomicInteger counter = calls.get(name);
@@ -211,6 +246,37 @@ public final class ScriptedStorage implements Storage {
                 failed.completeExceptionally(scripted);
                 return failed;
             }
+            if ("save".equals(name) && args != null && args.length == 1) {
+                lastSaved.put(collection, args[0]);
+            }
+            if (!"save".equals(name) && !"saveAll".equals(name)) {
+                return call(method, args);
+            }
+            CompletableFuture<Void> gate = writeGate.get();
+            pendingSaves.incrementAndGet();
+            CompletableFuture<Object> written;
+            if (gate.isDone()) {
+                try {
+                    written = (CompletableFuture<Object>) call(method, args);
+                } catch (Throwable thrown) {
+                    pendingSaves.decrementAndGet();
+                    throw thrown;
+                }
+            } else {
+                written = gate.thenCompose(open -> {
+                    try {
+                        return (CompletableFuture<Object>) call(method, args);
+                    } catch (Throwable failure) {
+                        CompletableFuture<Object> failed = new CompletableFuture<Object>();
+                        failed.completeExceptionally(failure);
+                        return failed;
+                    }
+                });
+            }
+            return written.whenComplete((ok, error) -> pendingSaves.decrementAndGet());
+        }
+
+        private Object call(Method method, Object[] args) throws Throwable {
             try {
                 return method.invoke(real, args);
             } catch (InvocationTargetException thrownByTheBackend) {

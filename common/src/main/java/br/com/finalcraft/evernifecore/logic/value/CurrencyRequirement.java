@@ -66,6 +66,14 @@ public final class CurrencyRequirement implements ContributionRequirement<Curren
         return taken.isSuccess() ? amount : BigDecimal.ZERO;
     }
 
+    @Override
+    public void giveBack(ExecutionContext ctx, BigDecimal amount) {
+        EcoResponse given = currency.give(wallet(ctx), amount, ctx.getCaller());
+        if (!given.isSuccess()) {
+            throw new IllegalStateException("Giving " + amount.toPlainString() + " " + currency.getId() + " back failed: " + given);
+        }
+    }
+
     private static CurrencyOwner wallet(ExecutionContext ctx) {
         FPlayer player = Contribution.depositor(ctx);
         return CurrencyOwner.player(player.getUniqueId());
