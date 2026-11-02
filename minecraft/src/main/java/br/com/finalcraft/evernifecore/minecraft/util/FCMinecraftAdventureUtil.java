@@ -76,7 +76,7 @@ public class FCMinecraftAdventureUtil {
     public static void sendMessage(CommandSender sender, Component component) {
         if (sender instanceof Player && hasBaseComponentChat()) {
             sendViaSpigot((Player) sender, component);
-        } else if (sender instanceof Player && EverNifeCoreBukkitPlugin.instance != null) {
+        } else if (sender instanceof Player && isAdventureAvailable()) {
             getAdventure().sender(sender).sendMessage(component);
         } else {
             // Console, other non-player senders, and a player while no core plugin is running to
@@ -109,25 +109,35 @@ public class FCMinecraftAdventureUtil {
      * Sends an action bar to a player without ever building a version-qualified {@code CraftPlayer}
      * class name (the reflection that breaks on Paper 1.20.5+ and on version-misdetecting forks).
      * <p>
-     * Tries the adventure-platform bridge first, then the public {@code player.spigot().sendMessage(
-     * ChatMessageType.ACTION_BAR, ...)} API (present since ~1.9 and backported by mods such as
-     * NecroTempus), and finally logs once and drops the message - action bars have no plain-text
-     * equivalent, so we never spill one into chat. Both transports are Netty packet writes and are
-     * safe to call off the main thread.
+     * Tries the adventure-platform bridge first (while a core plugin runs to build it from), then the
+     * public {@code player.spigot().sendMessage(ChatMessageType.ACTION_BAR, ...)} API (present since
+     * ~1.9 and backported by mods such as NecroTempus), and finally logs once and drops the message -
+     * action bars have no plain-text equivalent, so we never spill one into chat. Both transports are
+     * Netty packet writes and are safe to call off the main thread.
      */
     public static void sendActionBar(Player player, Component component) {
-        try {
-            getAdventure().player(player).sendActionBar(component);
-            return;
-        } catch (Throwable adventureFailure) {
+        if (isAdventureAvailable()) {
             try {
-                BaseComponent[] baseComponents = FCComponentUtil.toBaseComponents(component);
-                player.spigot().sendMessage(ChatMessageType.ACTION_BAR, baseComponents);
+                getAdventure().player(player).sendActionBar(component);
                 return;
-            } catch (Throwable spigotFailure) {
-                EverNifeCore.getLog().severe("Failed to deliver action bar via adventure and player.spigot(); dropping");
+            } catch (Throwable adventureFailure) {
+                //the Bukkit API below is the next transport
             }
         }
+        try {
+            BaseComponent[] baseComponents = FCComponentUtil.toBaseComponents(component);
+            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, baseComponents);
+        } catch (Throwable spigotFailure) {
+            EverNifeCore.getLog().severe("Failed to deliver action bar via adventure and player.spigot(); dropping");
+        }
+    }
+
+    /**
+     * Whether {@link #getAdventure()} can build its bridge: only while the core plugin runs. Without one (a test
+     * server) every Adventure path takes the Bukkit API instead.
+     */
+    public static boolean isAdventureAvailable() {
+        return EverNifeCoreBukkitPlugin.instance != null;
     }
 
     public static synchronized BukkitAudiences getAdventure() {

@@ -509,13 +509,17 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **A title or an action bar sent with no core plugin running** (a test server) tried the Adventure bridge first,
+  which cannot be built without the plugin, and an action bar ended dropped with a SEVERE. Both now go straight to the
+  Bukkit API there (`player.sendTitle`/`resetTitle`, `player.spigot().sendMessage(ACTION_BAR, ...)`), as chat already
+  did; `FCMinecraftAdventureUtil.isAdventureAvailable()` tells the two cases apart.
+- **`ComparableItemComplex` on a server with no NMS bridge** (`NMSUtils.isSupported()` false, a unit test) threw from
+  NBT-API on construction; it now reads no tag there (`getNbtCompound()` is null) and compares by what Bukkit answers
+  (`ItemStack.isSimilar`), so `FCInventoryUtil.getAmount`/`contains`/`removeFrom` work with it.
 - **`FCItemUtils.getLocalizedName` answers without an NMS bridge** (an unsupported server, a unit test): it reads a name
   off the material (`DIAMOND_SWORD` -> "Diamond Sword") where it threw `UnsupportedOperationException`.
 - **A disabled native item with no name keeps its vanilla name in a chest**: the grey `§7` it was given as a name, and
   the empty name an unnamed item was written with, are no longer written.
-- **`ComparableItemComplex` on a server with no NMS bridge** (`NMSUtils.isSupported()` false, a unit test) threw from
-  NBT-API on construction; it now reads no tag there (`getNbtCompound()` is null) and compares by what Bukkit answers
-  (`ItemStack.isSimilar`), so `FCInventoryUtil.getAmount`/`contains`/`removeFrom` work with it.
 - **A layout title the file does not carry is coloured**: the `@ScreenLayout` title a per-language read falls back to
   translates `&` codes like the file's.
 - **A `Choice` over an icon with a language block shows its cost line**: the line goes under the text the viewer reads

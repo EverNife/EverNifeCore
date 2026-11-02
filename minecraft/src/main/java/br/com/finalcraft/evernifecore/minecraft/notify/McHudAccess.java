@@ -125,16 +125,20 @@ public final class McHudAccess implements IHudAccess {
     public void sendTitle(FPlayer player, FancyText title, FancyText subtitle, int fadeIn, int stay, int fadeOut) {
         require(Capability.TITLE);
         Player bukkit = bukkit(player);
-        try {
-            FCMinecraftAdventureUtil.getAdventure().player(bukkit).showTitle(Title.title(title.toComponent(), subtitle.toComponent(),
-                    Title.Times.times(ticks(fadeIn), ticks(stay), ticks(fadeOut))));
-        } catch (Throwable adventureFailure) {
-            if (version.isLower(MCDetailedVersion.v1_11_R1)) {
-                //the timed form only arrived in 1.11; before that the server takes the pair alone
-                bukkit.sendTitle(title.getText(), subtitle.getText());
-            } else {
-                TimedTitle.send(bukkit, title.getText(), subtitle.getText(), fadeIn, stay, fadeOut);
+        if (FCMinecraftAdventureUtil.isAdventureAvailable()) {
+            try {
+                FCMinecraftAdventureUtil.getAdventure().player(bukkit).showTitle(Title.title(title.toComponent(), subtitle.toComponent(),
+                        Title.Times.times(ticks(fadeIn), ticks(stay), ticks(fadeOut))));
+                return;
+            } catch (Throwable adventureFailure) {
+                //the Bukkit API below is the next transport
             }
+        }
+        if (version.isLower(MCDetailedVersion.v1_11_R1)) {
+            //the timed form only arrived in 1.11; before that the server takes the pair alone
+            bukkit.sendTitle(title.getText(), subtitle.getText());
+        } else {
+            TimedTitle.send(bukkit, title.getText(), subtitle.getText(), fadeIn, stay, fadeOut);
         }
     }
 
@@ -153,11 +157,15 @@ public final class McHudAccess implements IHudAccess {
     public void clearTitle(FPlayer player) {
         require(Capability.TITLE);
         Player bukkit = bukkit(player);
-        try {
-            FCMinecraftAdventureUtil.getAdventure().player(bukkit).clearTitle();
-        } catch (Throwable adventureFailure) {
-            bukkit.resetTitle();
+        if (FCMinecraftAdventureUtil.isAdventureAvailable()) {
+            try {
+                FCMinecraftAdventureUtil.getAdventure().player(bukkit).clearTitle();
+                return;
+            } catch (Throwable adventureFailure) {
+                //the Bukkit API below is the next transport
+            }
         }
+        bukkit.resetTitle();
     }
 
     // ---- BOSS_BAR ----
