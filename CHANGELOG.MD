@@ -18,6 +18,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **`Plugins.fakeOther(name, dir)`** (test kit): the `ECPluginData` of a second fake plugin (the owner of a currency
+  or a flag) without replacing the extractor the test world installed; `fakeCore` is now `fakeOther("EverNifeCore", dir)`.
 - **`LogicWorld.rebootPlayers()`** (test kit) writes every dirty PlayerData row and drops the offline players' sections
   from the cache, so their next load reads them back from storage.
 - **A left click on an NPC raises `interact-npc` too**: `EntityContext.getClickType()` (`ClickType.LEFT`/`RIGHT`) says

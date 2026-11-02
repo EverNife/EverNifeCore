@@ -62,17 +62,23 @@ public final class Plugins {
     }
 
     /**
-     * A fake EverNifeCore ({@link #CORE}), the owner the core flags register under. Unlike
-     * {@link #fakePluginData(String, File)} it leaves the extractor already installed answering for classes, so it can
-     * be built at any point of a setup. {@code forget(Plugins.CORE)} removes it again.
+     * The {@link ECPluginData} of a second fake plugin - the owner of a currency, a flag or a group kind the test
+     * registers. Unlike {@link #fakePluginData(String, File)} it leaves the extractor already installed answering for
+     * classes, so the world's own plugin stays the one every other lookup names and it can be built at any point of a
+     * setup. {@code forget(pluginName)} removes it again.
      */
-    public static ECPluginData fakeCore(File dataFolder) {
+    public static ECPluginData fakeOther(String pluginName, File dataFolder) {
         IECPluginExtractor previous = EverNifeCore.getProviders().getBaseProvider().provideOrNull(IECPluginExtractor.class);
-        ECPluginData core = fakePluginData(CORE, dataFolder);
+        ECPluginData other = fakePluginData(pluginName, dataFolder);
         if (previous != null) {
             EverNifeCore.getProviders().getBaseProvider().register(IECPluginExtractor.class, previous);
         }
-        return core;
+        return other;
+    }
+
+    /** A fake EverNifeCore ({@link #CORE}), the owner the core flags register under; see {@link #fakeOther}. */
+    public static ECPluginData fakeCore(File dataFolder) {
+        return fakeOther(CORE, dataFolder);
     }
 
     /** Removes the plugin data {@link #fakePluginData(String, File)} built under {@code pluginName}. */
