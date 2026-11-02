@@ -45,6 +45,13 @@ class ArgParserObjectNodeTest {
     }
 
     @Test
+    void aQuoteLeftOpenIsRefusedSayingToCloseIt() {
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> ArgParserObjectNode.parse("a=\"b c"));
+
+        assertTrue(refused.getMessage().contains("never closes") && refused.getMessage().contains("key=\"two words\""), refused.getMessage());
+    }
+
+    @Test
     void blankTextIsAnEmptyObject() {
         assertEquals(0, ArgParserObjectNode.parse("").size());
         assertEquals(0, ArgParserObjectNode.parse("   ").size());

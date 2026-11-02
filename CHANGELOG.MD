@@ -519,6 +519,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **`CustomVariables` handed the live row to the backend**: a `set` racing an earlier write could store a half-changed
   row, and two writes landing newest first left the older value. It now writes like contributions and dynamic values -
   a copy taken under the row's monitor, one write per key at a time (`logic.value.RowWriter`, now public).
+- **An object-node argument with a double quote left open** (`a="b c`) was read as if closed at the end. It is now
+  refused, and the message says to close the quote after the value or to write a JSON object.
 - **A `Choice` over an icon with a language block shows its state colour**: the `§a` (enabled) / `§7` (disabled) of a
   name with no colour of its own is put on the text the viewer reads - `Icon` applies it after the block and the
   placeholders - where the block used to replace the name without it.

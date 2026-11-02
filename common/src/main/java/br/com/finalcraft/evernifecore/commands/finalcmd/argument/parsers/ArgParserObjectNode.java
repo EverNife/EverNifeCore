@@ -48,7 +48,7 @@ public class ArgParserObjectNode extends ArgParser<ObjectNode> {
      * The object {@code text} spells; blank text is an empty object.
      *
      * @throws IllegalArgumentException naming both grammars when the text is malformed JSON, JSON that is not an
-     * object, or a token without {@code =}
+     * object, a token without {@code =}, or a double quote left open
      */
     public static ObjectNode parse(String text) throws IllegalArgumentException {
         String trimmed = text.trim();
@@ -78,7 +78,11 @@ public class ArgParserObjectNode extends ArgParser<ObjectNode> {
         return object;
     }
 
-    /** Splits on whitespace outside double quotes, dropping the quotes: {@code a=1 b="x y"} gives {@code a=1}, {@code b=x y}. */
+    /**
+     * Splits on whitespace outside double quotes, dropping the quotes: {@code a=1 b="x y"} gives {@code a=1}, {@code b=x y}.
+     *
+     * @throws IllegalArgumentException when a double quote is never closed
+     */
     private static List<String> splitPairs(String text) {
         List<String> pairs = new ArrayList<>();
         StringBuilder current = new StringBuilder();
@@ -94,6 +98,10 @@ public class ArgParserObjectNode extends ArgParser<ObjectNode> {
             } else {
                 current.append(c);
             }
+        }
+        if (quoted) {
+            throw new IllegalArgumentException("'" + text + "' opens a double quote it never closes - close it after the value (key=\"two words\"),"
+                    + " or write the whole thing as a JSON object {\"key\":\"value\"}.");
         }
         if (current.length() > 0) {
             pairs.add(current.toString());
