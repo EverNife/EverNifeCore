@@ -32,6 +32,7 @@ public class RecordingRenderer implements ScreenRenderer {
     private final List<RecordingSurface> surfaces = new ArrayList<>();
     private BiPredicate<FPlayer, Screen<?>> supports = (viewer, screen) -> viewer.isOnline();
     private boolean refuseOpens;
+    private boolean refuseNextOpen;
 
     public RecordingRenderer(@Nonnull TickScheduler scheduler, @Nonnull RendererCapability... capabilities) {
         this(ID, 0, scheduler, capabilities);
@@ -57,6 +58,16 @@ public class RecordingRenderer implements ScreenRenderer {
     @Nonnull
     public RecordingRenderer refuseOpens(boolean refuse) {
         this.refuseOpens = refuse;
+        return this;
+    }
+
+    /**
+     * Makes only the next open answer no window and the ones after it open again - a screen refused on top, whose
+     * way back to the screen below must still open.
+     */
+    @Nonnull
+    public RecordingRenderer refuseNextOpen() {
+        this.refuseNextOpen = true;
         return this;
     }
 
@@ -87,6 +98,10 @@ public class RecordingRenderer implements ScreenRenderer {
     @Override
     public ScreenSurface open(@Nonnull ScreenView view) {
         if (refuseOpens) {
+            return null;
+        }
+        if (refuseNextOpen) {
+            refuseNextOpen = false;
             return null;
         }
         RecordingSurface surface = newSurface(view);

@@ -238,14 +238,16 @@ class MenuRegistryTest extends MenuTestWorlds {
         Screen<?> hub = Screen.of(3).title("Hub");
         hub.icon(0, Icon.of(ItemSpec.of("minecraft:chest", 1))).id("to-vip").rule(ClickRule.on(ClickGesture.PRIMARY).onSuccess(openVip));
         ScreenView hubView = screens.open(hub, alex);
-        screens.getRenderer().refuseOpens(true);
+        screens.getRenderer().refuseNextOpen();
 
         screens.click(hubView, "to-vip", ClickGesture.PRIMARY);
         screens.advanceTicks(2);
 
         assertEquals(0, new BigDecimal(1000).compareTo(menus.balance(menus.coins(), alex)));
-        screens.getRenderer().refuseOpens(false);
-        close(hubView);
+        ScreenView back = Screens.getOpenView(alex);
+        assertNotNull(back, "the way back to the hub was not refused, so the hub is open again");
+        assertSame(hub, back.getScreen());
+        close(back);
     }
 
     @Test

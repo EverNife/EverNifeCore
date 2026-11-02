@@ -18,6 +18,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **`RecordingRenderer.refuseNextOpen()`** (test kit) refuses exactly the next open and opens the ones after it, so a
+  test tells "the screen on top was refused" from "the way back was refused"; `refuseOpens(true)` still refuses every
+  open.
 - **`ScriptedStorage.releaseNewestWrite()`, `heldWrites()` and `lastLanded(collection, type)`** (test kit): a held
   backend can let its writes through newest first, one at a time, and a test reads which entity the backend took
   last - for code that must survive writes completing out of order. `releaseWrites()` releases in arrival order.
