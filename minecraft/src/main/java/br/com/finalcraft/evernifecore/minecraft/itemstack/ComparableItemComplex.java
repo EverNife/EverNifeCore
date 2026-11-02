@@ -1,20 +1,30 @@
 package br.com.finalcraft.evernifecore.minecraft.itemstack;
 
+import br.com.finalcraft.ecnmsutils.NMSUtils;
 import br.com.finalcraft.evernifecore.minecraft.util.FCNBTUtil;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
+import jakarta.annotation.Nullable;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.Objects;
 
+/**
+ * A {@link ComparableItem} that also compares the item's NBT tag. On a server with no NMS bridge
+ * ({@code NMSUtils.isSupported()} false) no tag can be read: {@link #getNbtCompound()} is then {@code null} and the
+ * tag comparison falls back to what Bukkit answers ({@link ItemStack#isSimilar} - type, durability, meta).
+ */
 public class ComparableItemComplex extends ComparableItem {
 
-    protected final ReadWriteNBT nbtCompound;
+    protected final @Nullable ReadWriteNBT nbtCompound;
 
-    protected ReadWriteNBT extractCompound(ItemStack itemStack){
+    protected @Nullable ReadWriteNBT extractCompound(ItemStack itemStack){
+        if (!NMSUtils.isSupported()){
+            return null;
+        }
         try {
             ItemStack safeClone = FCItemFactory.from(itemStack).build();
             return FCNBTUtil.parse(FCNBTUtil.readItem(safeClone).toString());
@@ -23,7 +33,7 @@ public class ComparableItemComplex extends ComparableItem {
         return FCNBTUtil.createEmpty();
     }
 
-    protected ReadWriteNBT extractCompound(ComparableItem comparableItem){
+    protected @Nullable ReadWriteNBT extractCompound(ComparableItem comparableItem){
         if (comparableItem instanceof ComparableItemComplex){
             return ((ComparableItemComplex) comparableItem).getNbtCompound();
         }
@@ -60,13 +70,22 @@ public class ComparableItemComplex extends ComparableItem {
         this.nbtCompound = nbtCompound;
     }
 
-    public ReadWriteNBT getNbtCompound() {
+    public @Nullable ReadWriteNBT getNbtCompound() {
         return nbtCompound;
     }
 
     @Override
     public boolean match(ItemStack itemStack) {
-        return super.match(itemStack) && this.nbtCompound.equals(extractCompound(itemStack));
+        return super.match(itemStack) && sameTag(extractCompound(itemStack), getItemStack(), itemStack);
+    }
+
+    private boolean sameTag(@Nullable ReadWriteNBT other, ItemStack ours, ItemStack theirs) {
+        if (nbtCompound == null || other == null){
+            //no tag readable on this server: Bukkit's own comparison stands in for it (it also weighs durability, so a
+            //wildcard damage value is exact here)
+            return ours != null && theirs != null && ours.isSimilar(theirs);
+        }
+        return nbtCompound.equals(other);
     }
 
     @Override
@@ -76,7 +95,7 @@ public class ComparableItemComplex extends ComparableItem {
 
     @Override
     public boolean match(ComparableItem comparableItem) {
-        return super.match(comparableItem) && this.nbtCompound.equals(extractCompound(comparableItem));
+        return super.match(comparableItem) && sameTag(extractCompound(comparableItem), getItemStack(), comparableItem.getItemStack());
     }
 
     @Override
