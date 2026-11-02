@@ -71,12 +71,17 @@ public abstract class AbstractTestPlatform implements IPlatform {
 
     @Override
     public boolean isPluginLoaded(String pluginName) {
-        throw notConfigured("isPluginLoaded", "Platforms.strict().pluginsLoaded(\"" + pluginName + "\")");
+        throw notConfigured("isPluginLoaded", pluginsHint(pluginName));
     }
 
     @Override
     public boolean isPluginEnabled(String pluginName) {
-        throw notConfigured("isPluginEnabled", "Platforms.strict().pluginsLoaded(\"" + pluginName + "\")");
+        throw notConfigured("isPluginEnabled", pluginsHint(pluginName));
+    }
+
+    private static String pluginsHint(String pluginName) {
+        return "Platforms.strict().pluginsLoaded(\"" + pluginName + "\") when it is running, or pluginsLoaded() with no"
+                + " names when no plugin is";
     }
 
     @Override

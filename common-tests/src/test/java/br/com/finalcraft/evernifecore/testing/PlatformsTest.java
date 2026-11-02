@@ -62,6 +62,17 @@ class PlatformsTest {
     }
 
     @Test
+    void anUnconfiguredPluginQuestionTeachesBothAnswers() {
+        TestPlatform platform = Platforms.strict().build();
+
+        UnsupportedOperationException thrown =
+                assertThrows(UnsupportedOperationException.class, () -> platform.isPluginEnabled("Vault"));
+
+        assertTrue(thrown.getMessage().contains("pluginsLoaded(\"Vault\")"), thrown.getMessage());
+        assertTrue(thrown.getMessage().contains("pluginsLoaded() with no names when no plugin is"), thrown.getMessage());
+    }
+
+    @Test
     void anInstalledPluginThatIsNotRunningIsLoadedButNotEnabled() {
         TestPlatform platform = Platforms.strict()
                 .pluginsLoaded("Vault")

@@ -769,6 +769,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **The strict double's refusal of `isPluginLoaded`/`isPluginEnabled` teaches both answers** (test kit):
+  `pluginsLoaded("X")` when the plugin runs, `pluginsLoaded()` with no names when no plugin does.
 - **`checkLinkage` reads the ECNmsUtils era packages** (build): each `v1_*` package is asked about its `org/bukkit/` references
   against the release of its own revision (`linkageEraRuntimes`: 1.7.10, 1.12.2, 1.16.5, 1.20.1, 1.20.2, 1.21.1 - the last
   three read only for their era), and the log prints the count per era. An unmapped era fails the check. Its CraftBukkit and
