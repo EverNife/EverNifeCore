@@ -126,8 +126,26 @@ class PlatformConformanceTest {
         //the task runs in place, yet isWorldThread answers false inside it: it ran on a thread that does not own the world
         List<String> failures = PlatformConformance.check(Platforms.lenient().offWorldThread().build());
 
-        assertTrue(failures.stream().anyMatch(line -> line.startsWith("runOnWorldThread") && line.contains("not the world's")),
-                failures.toString());
+        //"runOnWorldThreadNextTick" also starts with "runOnWorldThread": each probe is named by its whole method
+        assertEquals(2, failures.size(), failures.toString());
+        assertTrue(failures.get(0).startsWith("runOnWorldThread threw") && failures.get(0).contains("not the world's"), failures.get(0));
+        assertTrue(failures.get(1).startsWith("runOnWorldThreadNextTick threw") && failures.get(1).contains("not the world's"), failures.get(1));
+    }
+
+    @Test
+    void onlyARunOnWorldThreadOffTheWorldThreadNamesThatHop() {
+        List<String> failures = PlatformConformance.check(offTheWorldThreadIn("runOnWorldThread"));
+
+        assertEquals(1, failures.size(), failures.toString());
+        assertTrue(failures.get(0).startsWith("runOnWorldThread threw") && failures.get(0).contains("not the world's"), failures.get(0));
+    }
+
+    @Test
+    void onlyANextTickHopOffTheWorldThreadNamesThatHop() {
+        List<String> failures = PlatformConformance.check(offTheWorldThreadIn("runOnWorldThreadNextTick"));
+
+        assertEquals(1, failures.size(), failures.toString());
+        assertTrue(failures.get(0).startsWith("runOnWorldThreadNextTick threw") && failures.get(0).contains("not the world's"), failures.get(0));
     }
 
     @Test
@@ -138,6 +156,21 @@ class PlatformConformanceTest {
 
         assertEquals(1, failures.size(), failures.toString());
         assertTrue(failures.get(0).startsWith("onWorldLoaded") && failures.get(0).contains("null listener"), failures.get(0));
+    }
+
+    /** A lenient double whose {@code hop} runs its task in place, on a thread that does not own the world. */
+    private static IPlatform offTheWorldThreadIn(String hop) {
+        boolean[] inHop = new boolean[1];
+        IPlatform answersFromInside = overriding(Platforms.lenient().build(), "isWorldThread", args -> !inHop[0]);
+        return overriding(answersFromInside, hop, args -> {
+            inHop[0] = true;
+            try {
+                ((Runnable) args[1]).run();
+            } finally {
+                inHop[0] = false;
+            }
+            return CompletableFuture.completedFuture(null);
+        });
     }
 
     /** {@code platform}, except that {@code method} answers {@code answer} instead. */
