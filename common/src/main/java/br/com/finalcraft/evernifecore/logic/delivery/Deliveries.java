@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -77,7 +78,7 @@ public final class Deliveries {
     /** Claims every delivery of each player who logs in and sweeps the expired ones once a minute, until {@link #closeAll()}. */
     public static synchronized void start() {
         if (loginSubscription == null) {
-            loginSubscription = ECEventBus.global().subscribe(ECPlayerFullyLoggedInEvent.class, event -> onLogin(event.getPlayer()));
+            loginSubscription = ECEventBus.global().subscribe(ECPlayerFullyLoggedInEvent.class, Deliveries::onLogin);
         }
         //a delayed effect whose player left waits here instead of being dropped
         DeferredEffects.register(Deliveries::keepDeferred);
@@ -105,12 +106,20 @@ public final class Deliveries {
         });
     }
 
-    private static void onLogin(@Nullable FPlayer player) {
+    private static void onLogin(ECPlayerFullyLoggedInEvent event) {
+        FPlayer player = event.getPlayer();
         if (player == null || !PlayerController.getConfiguredPDSections().containsKey(DeliveriesSection.class)) {
             return;
         }
         get().claimAll(player).exceptionally(failure -> {
-            EverNifeCore.getLog().warning("The pending deliveries of " + player.getName() + " were not claimed on login: " + failure);
+            Throwable cause = failure instanceof CompletionException && failure.getCause() != null ? failure.getCause() : failure;
+            if (cause instanceof UnsupportedOperationException) {
+                //the platform refused a call it does not offer: every login would hit it again, so it is no backend hiccup
+                //for the next claim to retry - it goes where a broken subscriber goes
+                ECEventBus.global().getExceptionHandler().onSubscriberFailure(loginSubscription, event, cause);
+            } else {
+                EverNifeCore.getLog().warning("The pending deliveries of " + player.getName() + " were not claimed on login: " + failure);
+            }
             return null;
         });
     }

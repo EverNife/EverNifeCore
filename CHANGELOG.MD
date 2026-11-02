@@ -738,6 +738,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **A login claim the platform refuses** (`UnsupportedOperationException`: a call the platform does not offer) goes to
+  the global bus's exception handler (SEVERE with the stack, by default) instead of a "not claimed on login" warning:
+  every login would hit it again. A storage failure keeps the warning and waits for the next login.
 - **Text written in code reads `&` as colour, as text in a file does**: `Screen.title` (both forms, and so
   `ConfirmRequest.of`, `RankingRequest.title` and `Menu.Builder.title`), `Icon.displayName` and `Icon.lore` colour
   `&` codes and `&#RRGGBB`. A value put in later - an opener's `{0}`, a replacer, a placeholder - is never coloured.
