@@ -490,6 +490,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **Hytale: `spawn-point` after a real death.** The flag's teleport is put once the server's own teleport has left the
   player (checked tick by tick, up to two seconds), instead of replacing it in the same buffer, where the server's
   teleport system ignored the replacement. Past the wait it is dropped with a warning.
+- **A `GroupProvider` that throws no longer breaks the group lookup**: `GroupLookup` asks every provider a plugin
+  registered inside its own guard, so one that throws counts as one that does not answer - `getGroupsOf`, `exists`,
+  `getMembers`, `getLeader` and `getHoldersOf` go on with the others, and the damage, rewards and quests that ask a
+  player's groups keep working. The server is warned once per registered provider, naming its plugin and the exception.
+  The core's own `GroupManager`s are not shielded.
 - **A plugin that leaves releases everything, by either exit path**: the shutdown hook (`onECPluginShutdownPre`) and
   the plugin-disable path (`ECPluginManager.removePluginData`) now run one list of releases - boosters, audit log, flags,
   currencies, destinations, parsers, commands, listeners, screens, prompts, menus, cooldowns, variables, values,

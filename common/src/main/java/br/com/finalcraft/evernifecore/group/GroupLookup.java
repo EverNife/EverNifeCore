@@ -19,6 +19,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 
 /**
  * The one place to ask about groups, whoever keeps them: every open {@link GroupManager} (always) plus the
@@ -34,10 +36,26 @@ public final class GroupLookup {
     private static final class Entry {
         final ECPluginData owner;
         final GroupProvider provider;
+        private final AtomicBoolean warned = new AtomicBoolean();
 
         Entry(ECPluginData owner, GroupProvider provider) {
             this.owner = owner;
             this.provider = provider;
+        }
+
+        /** {@code question} asked of this provider, or {@code silence} when it throws - warned once per registration. */
+        <T> T ask(Function<GroupProvider, T> question, T silence) {
+            try {
+                return question.apply(provider);
+            } catch (RuntimeException failed) {
+                if (warned.compareAndSet(false, true)) {
+                    EverNifeCore.getLog().warning("The GroupProvider of " + owner.getMetaInfo().getName() + " ("
+                            + provider.getClass().getName() + ") threw " + failed + " - the group lookup goes on without its"
+                            + " answers, and further failures of it stay silent until it is registered again. Fix the"
+                            + " provider in " + owner.getMetaInfo().getName() + ".");
+                }
+                return silence;
+            }
         }
     }
 
@@ -119,27 +137,28 @@ public final class GroupLookup {
         }
     }
 
-    private List<GroupProvider> providers() {
-        List<GroupProvider> all = new ArrayList<GroupProvider>(GroupManager.all());
-        for (Entry entry : registered) {
-            all.add(entry.provider);
-        }
-        return all;
-    }
-
-    /** Every group {@code player} is an explicit member of, provider by provider. */
+    /**
+     * Every group {@code player} is an explicit member of, provider by provider. A registered provider that throws, here
+     * or in any other query, counts as one that does not answer; the core's own managers are not shielded.
+     */
     public List<GroupId> getGroupsOf(UUID player) {
         List<GroupId> ids = new ArrayList<>();
-        for (GroupProvider provider : providers()) {
-            ids.addAll(provider.getGroupIdsOf(player));
+        for (GroupManager manager : GroupManager.all()) {
+            ids.addAll(manager.getGroupIdsOf(player));
+        }
+        for (Entry entry : registered) {
+            ids.addAll(entry.ask(provider -> provider.getGroupIdsOf(player), Collections.<GroupId>emptyList()));
         }
         return ids;
     }
 
     public List<GroupId> getGroupsOf(UUID player, GroupKind kind) {
         List<GroupId> ids = new ArrayList<>();
-        for (GroupProvider provider : providers()) {
-            ids.addAll(provider.getGroupIdsOf(player, kind));
+        for (GroupManager manager : GroupManager.all()) {
+            ids.addAll(manager.getGroupIdsOf(player, kind));
+        }
+        for (Entry entry : registered) {
+            ids.addAll(entry.ask(provider -> provider.getGroupIdsOf(player, kind), Collections.<GroupId>emptyList()));
         }
         return ids;
     }
@@ -164,7 +183,7 @@ public final class GroupLookup {
             return true;
         }
         for (Entry entry : registered) {
-            if (entry.provider.exists(id)) {
+            if (entry.ask(provider -> provider.exists(id), false)) {
                 return true;
             }
         }
@@ -182,8 +201,8 @@ public final class GroupLookup {
             return uuids;
         }
         for (Entry entry : registered) {
-            if (entry.provider.exists(id)) {
-                return entry.provider.getMembers(id);
+            if (entry.ask(provider -> provider.exists(id), false)) {
+                return entry.ask(provider -> provider.getMembers(id), Collections.<UUID>emptySet());
             }
         }
         return Collections.emptySet();
@@ -195,8 +214,8 @@ public final class GroupLookup {
             return managed.getLeader();
         }
         for (Entry entry : registered) {
-            if (entry.provider.exists(id)) {
-                return entry.provider.getLeader(id);
+            if (entry.ask(provider -> provider.exists(id), false)) {
+                return entry.ask(provider -> provider.getLeader(id), null);
             }
         }
         return null;
@@ -230,8 +249,11 @@ public final class GroupLookup {
     /** The flag holders that follow {@code player}, highest priority first: the ACTOR layer of the resolution. */
     public List<FlagHolder> getHoldersOf(FPlayer player) {
         List<FlagHolder> holders = new ArrayList<>();
-        for (GroupProvider provider : providers()) {
-            holders.addAll(provider.getHoldersOf(player));
+        for (GroupManager manager : GroupManager.all()) {
+            holders.addAll(manager.getHoldersOf(player));
+        }
+        for (Entry entry : registered) {
+            holders.addAll(entry.ask(provider -> provider.getHoldersOf(player), Collections.<FlagHolder>emptyList()));
         }
         holders.sort((x, y) -> Integer.compare(y.getPriority(), x.getPriority()));
         return holders;

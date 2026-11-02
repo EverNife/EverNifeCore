@@ -1,13 +1,16 @@
 package br.com.finalcraft.evernifecore.group;
 
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.flag.AmountEvery;
+import br.com.finalcraft.evernifecore.flag.FlagHolder;
 import br.com.finalcraft.evernifecore.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.flag.Resolution;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.GroupWorld;
+import br.com.finalcraft.evernifecore.testing.Logs;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
@@ -265,5 +268,99 @@ class GroupLookupTest {
 
         assertTrue(RegionLookup.get().getSession(member).isRevalidateAllPending());
         assertFalse(RegionLookup.get().getSession(outsider).isRevalidateAllPending(), "not a member: nothing of theirs changed");
+    }
+
+    /** A provider of another plugin that throws on every question. */
+    private static final class BrokenProvider implements GroupProvider {
+        final GroupKind kind;
+
+        BrokenProvider(GroupKind kind) {
+            this.kind = kind;
+        }
+
+        @Override
+        public Collection<GroupKind> getKinds() {
+            return Collections.singleton(kind);
+        }
+
+        @Override
+        public List<GroupId> getGroupIdsOf(UUID player) {
+            throw new IllegalStateException("broken clans database");
+        }
+
+        @Override
+        public List<GroupId> getGroupIdsOf(UUID player, GroupKind kind) {
+            throw new IllegalStateException("broken clans database");
+        }
+
+        @Override
+        public boolean exists(GroupId id) {
+            throw new IllegalStateException("broken clans database");
+        }
+
+        @Override
+        public Set<UUID> getMembers(GroupId id) {
+            throw new IllegalStateException("broken clans database");
+        }
+
+        @Override
+        public @Nullable UUID getLeader(GroupId id) {
+            throw new IllegalStateException("broken clans database");
+        }
+
+        @Override
+        public Collection<? extends FlagHolder> getHoldersOf(FPlayer player) {
+            throw new IllegalStateException("broken clans database");
+        }
+    }
+
+    private ECPluginData registerBroken() {
+        ECPluginData brokenPlugin = Plugins.fakePluginData("BrokenClans", tempDir.resolve("broken").toFile());
+        GroupLookup.get().register(brokenPlugin, new BrokenProvider(GroupKind.of(brokenPlugin, "tribe").build()));
+        return brokenPlugin;
+    }
+
+    private void unregisterBroken(ECPluginData brokenPlugin) {
+        GroupLookup.get().unregisterAll(brokenPlugin);
+        Plugins.forget("BrokenClans");
+    }
+
+    @Test
+    void aProviderThatThrowsIsSkippedAndTheOthersStillAnswer() {
+        ECPluginData brokenPlugin = registerBroken();
+        try {
+            TestFPlayerSender steve = parties.player("Steve");
+            Group alpha = parties.group("alpha", party);
+            alpha.add(steve.getUniqueId());
+            GroupId wolves = clans.clan(clansPlugin, "wolves", null, steve.getUniqueId());
+            GroupId nobody = GroupId.of(brokenPlugin, "nobody");
+
+            assertEquals(new LinkedHashSet<>(Arrays.asList(alpha.getId(), wolves)),
+                    new LinkedHashSet<>(GroupLookup.get().getGroupsOf(steve.getUniqueId())));
+            assertEquals(Collections.singletonList(wolves), GroupLookup.get().getGroupsOf(steve.getUniqueId(), clans.kind));
+            assertFalse(GroupLookup.get().exists(nobody));
+            assertTrue(GroupLookup.get().getMembers(nobody).isEmpty());
+            assertNull(GroupLookup.get().getLeader(nobody));
+            assertTrue(GroupLookup.get().getHoldersOf(steve).contains(alpha), "the managers' holders still come");
+        } finally {
+            unregisterBroken(brokenPlugin);
+        }
+    }
+
+    @Test
+    void aProviderThatThrowsIsWarnedAboutOnceNamingItsPlugin() {
+        ECPluginData brokenPlugin = registerBroken();
+        try {
+            UUID steve = UUID.randomUUID();
+
+            List<String> first = Logs.capture(() -> GroupLookup.get().getGroupsOf(steve));
+            List<String> second = Logs.capture(() -> GroupLookup.get().getGroupsOf(steve));
+
+            assertTrue(first.stream().anyMatch(line -> line.contains("GroupProvider of BrokenClans") && line.contains("broken clans database")),
+                    String.valueOf(first));
+            assertFalse(second.stream().anyMatch(line -> line.contains("GroupProvider of BrokenClans")), String.valueOf(second));
+        } finally {
+            unregisterBroken(brokenPlugin);
+        }
     }
 }
