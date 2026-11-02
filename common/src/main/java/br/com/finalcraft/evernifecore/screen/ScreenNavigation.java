@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 /**
  * The chain of screens a player walked into, and the only thing that moves them along it.
@@ -50,12 +51,24 @@ public final class ScreenNavigation {
     /** {@link #open(ScreenView, Screen)} with {@code args} as what {@code {0}}..{@code {n}} read on {@code next}; null keeps the current ones. */
     @Nonnull
     public static CompletableFuture<Object> open(@Nonnull ScreenView current, @Nonnull Screen<?> next, @Nullable Object[] args) {
+        return open(current, next, args, null);
+    }
+
+    /**
+     * {@link #open(ScreenView, Screen, Object[])}, asking {@code admit} on the renderer thread once {@code next} holds the
+     * window: a non-null answer is a refusal - {@code next} goes back down, the screen under it returns, and the future
+     * fails with that text. What must not happen unless the window is really up (a charge) goes there.
+     */
+    @Nonnull
+    public static CompletableFuture<Object> open(@Nonnull ScreenView current, @Nonnull Screen<?> next, @Nullable Object[] args,
+                                                 @Nullable Function<ScreenView, String> admit) {
         CompletableFuture<Object> result = new CompletableFuture<>();
-        current.getScheduler().later(1L, () -> openOnRenderThread(current, next, args, result));
+        current.getScheduler().later(1L, () -> openOnRenderThread(current, next, args, admit, result));
         return result;
     }
 
-    private static void openOnRenderThread(ScreenView current, Screen<?> next, @Nullable Object[] args, CompletableFuture<Object> result) {
+    private static void openOnRenderThread(ScreenView current, Screen<?> next, @Nullable Object[] args,
+                                           @Nullable Function<ScreenView, String> admit, CompletableFuture<Object> result) {
         FPlayer viewer = current.getViewer();
         if (!suspend(current)) {
             result.completeExceptionally(new IllegalStateException("A screen can only open another one while it is the "
@@ -73,6 +86,11 @@ public final class ScreenNavigation {
         }
         opened.setPendingResult(result);
         chainOf(viewer.getUniqueId()).push(opened);
+        String refusal = admit == null ? null : admit.apply(opened);
+        if (refusal != null) {
+            result.completeExceptionally(new IllegalStateException(refusal));
+            backOnRenderThread(opened, null);
+        }
     }
 
     /**

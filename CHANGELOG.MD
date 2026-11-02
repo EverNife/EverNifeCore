@@ -476,6 +476,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **A menu's open gate is paid after its screen opened**: an open the platform refuses (the player is asleep, another
+  plugin cancelled it) no longer charges; the gate is still checked first, so a player who cannot pay reads why and
+  nothing opens. `ScreenNavigation.open(current, next, args, admit)` is the hook: `admit` runs once `next` holds the
+  window, and a refusal from it takes `next` back down.
 - **A delivery no longer drops what failed on the claim**: an effect of the core that runs and fails on a claim (a
   currency that is not registered or cannot pay, an inventory that is not there) stays in the delivery, is logged, and
   is tried on the next claim, instead of being dropped as delivered. The `money` effect and cost treat an unregistered

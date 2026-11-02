@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Collections;
@@ -193,6 +194,79 @@ class MenuRegistryTest extends MenuTestWorlds {
         assertTrue(opened.isCompletedExceptionally());
         assertNull(Screens.getOpenView(alex));
         assertTrue(alex.anyMessageContains("VIPs only."), alex.getMessages().toString());
+    }
+
+    private Menu registerCharging(String name) {
+        Menu menu = Menu.of(shop.getOwner(), name).openGate(Gate.builder().cost(Price.of(menus.coins(), 10).getLines().get(0).asCost(BigDecimal.TEN)).build())
+                .offer("sword", 13, menus.buy(Goods.ofItem(ItemSpec.of("minecraft:iron_sword", 1)), 10).build()).build();
+        MenuRegistry.get().register(shop.getOwner(), menu);
+        return menu;
+    }
+
+    @Test
+    void aRefusedOpenChargesNothingOfTheOpenGate() {
+        TestFPlayerSender alex = menus.player("Alex", 1000);
+        registerCharging("vip");
+        screens.getRenderer().refuseOpens(true);
+
+        CompletableFuture<ScreenView> opened = MenuRegistry.get().open(alex, "fakeshop:vip", Collections.<String>emptyList());
+        screens.advanceTicks(2);
+
+        assertTrue(opened.isCompletedExceptionally());
+        assertNull(Screens.getOpenView(alex));
+        assertEquals(0, new BigDecimal(1000).compareTo(menus.balance(menus.coins(), alex)), "nothing was charged for a window that never opened");
+    }
+
+    @Test
+    void anOpenedMenuPaysItsOpenGateOnce() {
+        TestFPlayerSender alex = menus.player("Alex", 1000);
+        registerCharging("vip");
+
+        ScreenView view = MenuRegistry.get().open(alex, "fakeshop:vip", Collections.<String>emptyList()).join();
+        screens.advanceTicks(1);
+
+        assertEquals(0, new BigDecimal(990).compareTo(menus.balance(menus.coins(), alex)));
+        close(view);
+    }
+
+    @Test
+    void aMenuRefusedOnTopChargesNothing() throws Exception {
+        TestFPlayerSender alex = menus.player("Alex", 1000);
+        registerCharging("vip");
+        Effect openVip = Effects.parse(shop.getOwner(), new ObjectMapper().readTree(
+                "{\"type\": \"open-menu\", \"menu\": \"fakeshop:vip\"}"), ZoneOffset.UTC);
+        Screen<?> hub = Screen.of(3).title("Hub");
+        hub.icon(0, Icon.of(ItemSpec.of("minecraft:chest", 1))).id("to-vip").rule(ClickRule.on(ClickGesture.PRIMARY).onSuccess(openVip));
+        ScreenView hubView = screens.open(hub, alex);
+        screens.getRenderer().refuseOpens(true);
+
+        screens.click(hubView, "to-vip", ClickGesture.PRIMARY);
+        screens.advanceTicks(2);
+
+        assertEquals(0, new BigDecimal(1000).compareTo(menus.balance(menus.coins(), alex)));
+        screens.getRenderer().refuseOpens(false);
+        close(hubView);
+    }
+
+    @Test
+    void aMenuOpenedOnTopPaysItsOpenGate() throws Exception {
+        TestFPlayerSender alex = menus.player("Alex", 1000);
+        registerCharging("vip");
+        Effect openVip = Effects.parse(shop.getOwner(), new ObjectMapper().readTree(
+                "{\"type\": \"open-menu\", \"menu\": \"fakeshop:vip\"}"), ZoneOffset.UTC);
+        Screen<?> hub = Screen.of(3).title("Hub");
+        hub.icon(0, Icon.of(ItemSpec.of("minecraft:chest", 1))).id("to-vip").rule(ClickRule.on(ClickGesture.PRIMARY).onSuccess(openVip));
+        ScreenView hubView = screens.open(hub, alex);
+
+        screens.click(hubView, "to-vip", ClickGesture.PRIMARY);
+        screens.advanceTicks(2);
+
+        assertEquals("fakeshop:vip", String.valueOf(MenuRegistry.get().find("fakeshop:vip").getId()));
+        assertTrue(Screens.getOpenView(alex) != hubView, "the menu is up on top");
+        assertEquals(0, new BigDecimal(990).compareTo(menus.balance(menus.coins(), alex)));
+        ScreenNavigation.back(Screens.getOpenView(alex), null);
+        screens.advanceTicks(2);
+        close(hubView);
     }
 
     @Test
