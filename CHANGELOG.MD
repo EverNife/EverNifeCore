@@ -476,6 +476,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **`Transactions.sellAll` and `sellHand` sell up to the offer's limit** instead of refusing the whole lot with
+  `LIMIT_REACHED`; `sellHand(HELD_STACK)` with less than one unit in hand answers `NO_ITEMS` and takes nothing.
 - **A confirmed offer confirms the trade it makes**: the question names the resolved quantity and its total
   (`Sell 30x Diamond for 300 coins?`) and a yes trades exactly that quantity, and `Quantity.ASK` asks the number before
   the confirmation. An offer where nothing fits skips the question and answers the trade's own refusal.

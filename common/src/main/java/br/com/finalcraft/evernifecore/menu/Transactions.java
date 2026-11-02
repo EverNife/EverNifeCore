@@ -210,8 +210,8 @@ public final class Transactions {
     }
 
     /**
-     * Sells every unit of the main inventory {@code catalog} prices, one {@link #sell} per offer it matched (each posting
-     * its own {@link TransactionEvent}).
+     * Sells every unit of the main inventory {@code catalog} prices, up to each offer's limit, one {@link #sell} per offer
+     * it matched (each posting its own {@link TransactionEvent}).
      */
     public static SellAllResult sellAll(ExecutionContext ctx, OfferCatalog catalog) {
         FPlayer player = ctx.getPlayer();
@@ -229,13 +229,16 @@ public final class Transactions {
         for (Offer offer : matched.keySet()) {
             int held = offer.getGoods().count(ctx);
             if (held > 0) {
-                results.add(sell(ctx, offer, held));
+                results.add(sell(ctx, offer, withinLimit(ctx, offer, held)));
             }
         }
         return new SellAllResult(results);
     }
 
-    /** Sells the stack in the player's hand ({@link HandScope#HELD_STACK}) or every unit its offer matches. */
+    /**
+     * Sells the stack in the player's hand ({@link HandScope#HELD_STACK}) or every unit its offer matches, up to the
+     * offer's limit. A hand holding less than one unit of the offer answers {@code NO_ITEMS} and takes nothing.
+     */
     public static TransactionResult sellHand(ExecutionContext ctx, OfferCatalog catalog, HandScope scope) {
         FPlayer player = ctx.getPlayer();
         ItemSpec held = player == null ? null : DeliveryDestinations.requireInventory().getHeld(player);
@@ -251,8 +254,17 @@ public final class Transactions {
         if (scope == HandScope.HELD_STACK && offer.getGoods() instanceof ItemGoods) {
             //the units of the held stack; taking by the matcher takes items that are worth the same, wherever they lie
             units = Math.min(units, held.getAmount() / ((ItemGoods) offer.getGoods()).getItem().getAmount());
+            if (units < 1) {
+                return TransactionResult.failed(TransactionResult.Failure.NO_ITEMS, offer, 1, null, text(NOT_HELD, ctx, "goods", goods(ctx, offer, 1)));
+            }
         }
-        return sell(ctx, offer, Math.max(1, units));
+        return sell(ctx, offer, withinLimit(ctx, offer, Math.max(1, units)));
+    }
+
+    /** {@code units} cut to what the offer's limit still allows; 1 when nothing is left, so the refusal names the limit. */
+    private static int withinLimit(ExecutionContext ctx, Offer offer, int units) {
+        Cooldown counter = offer.getCounter(ctx);
+        return counter == null ? units : Math.max(1, Math.min(units, counter.getUsesLeft()));
     }
 
     // -----------------------------------------------------------------------------------------------------------------

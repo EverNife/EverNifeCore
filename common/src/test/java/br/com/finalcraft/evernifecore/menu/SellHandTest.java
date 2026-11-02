@@ -2,11 +2,15 @@ package br.com.finalcraft.evernifecore.menu;
 
 import br.com.finalcraft.evernifecore.item.ItemMatcher;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
+import br.com.finalcraft.evernifecore.logic.RepeatPolicy;
 import br.com.finalcraft.evernifecore.testing.Menus;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
+import br.com.finalcraft.evernifecore.time.Window;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,6 +29,11 @@ class SellHandTest extends MenuTestWorlds {
 
     private OfferCatalog diamondsAtFive(ItemMatcher matcher) {
         return Menus.catalog(menus.sell(Goods.ofItem(DIAMOND, matcher), 5).build());
+    }
+
+    private OfferCatalog tenADayAtFive(String counter) {
+        return Menus.catalog(menus.sell(Goods.ofItem(DIAMOND, PLAIN_DIAMOND), 5)
+                .limit(counter, RepeatPolicy.limited(10).window(Window.daily(LocalTime.of(4, 0), ZoneOffset.UTC)), LimitScope.PLAYER).build());
     }
 
     private int diamonds(TestFPlayerSender player) {
@@ -116,5 +125,46 @@ class SellHandTest extends MenuTestWorlds {
         assertAmount("20", sold.getTotals().get(menus.gold().getId()));
         assertEquals(2, menus.recorded(TransactionEvent.class).size(), "one TransactionEvent per offer matched");
         assertEquals(5, menus.inventory().count(alex, ItemMatcher.of("minecraft:stone")), "what the catalog does not buy stays");
+    }
+
+    @Test
+    void sellAllSellsUpToTheLimitAndNoFurther() {
+        TestFPlayerSender alex = menus.player("Alex", 0);
+        menus.inventory().add(alex, DIAMOND.withAmount(15));
+
+        SellAllResult sold = Transactions.sellAll(menus.context(alex), tenADayAtFive("diamond-all"));
+
+        assertEquals(10, sold.getUnits());
+        assertEquals(5, diamonds(alex), "what is past the limit stays");
+        assertAmount("50", menus.balance(menus.coins(), alex));
+    }
+
+    @Test
+    void sellHandSweepStopsAtTheLimit() {
+        TestFPlayerSender alex = menus.player("Alex", 0);
+        menus.inventory().addSeparately(alex, DIAMOND.withAmount(10));
+        menus.inventory().addSeparately(alex, DIAMOND.withAmount(5));
+
+        TransactionResult sold = Transactions.sellHand(menus.context(alex), tenADayAtFive("diamond-hand"), HandScope.SAME_ITEM_EVERYWHERE);
+
+        assertTrue(sold.isSuccess(), sold.toString());
+        assertEquals(10, sold.getQuantity());
+        assertEquals(5, diamonds(alex));
+        assertAmount("50", menus.balance(menus.coins(), alex));
+    }
+
+    @Test
+    void aHandSmallerThanOneUnitSellsNothing() {
+        TestFPlayerSender alex = menus.player("Alex", 0);
+        menus.inventory().addSeparately(alex, DIAMOND.withAmount(2));
+        menus.inventory().addSeparately(alex, DIAMOND.withAmount(10));
+        menus.inventory().hold(alex, 0);
+        OfferCatalog fourAtATime = Menus.catalog(menus.sell(Goods.ofItem(DIAMOND.withAmount(4), PLAIN_DIAMOND), 5).build());
+
+        TransactionResult refused = Transactions.sellHand(menus.context(alex), fourAtATime, HandScope.HELD_STACK);
+
+        assertEquals(TransactionResult.Failure.NO_ITEMS, refused.getFailure(), refused.toString());
+        assertEquals(12, diamonds(alex), "nothing was taken from outside the hand");
+        assertAmount("0", menus.balance(menus.coins(), alex));
     }
 }
