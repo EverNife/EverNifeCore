@@ -218,4 +218,25 @@ class PlayerControllerSectionHooksTest {
         assertNull(neverWritten.getLockVersion());
         assertNull(await(neverWritten.readStoredVersion()), "a transient default has no row in the backend");
     }
+
+    @Test
+    void twoFlushesInARowOfOneInstanceAdvanceItsVersionWithoutAConflict() throws Exception {
+        register();
+        UUID uuid = UUID.randomUUID();
+        HookedSection live = stored(uuid);
+
+        live.level = 2;
+        live.markDirty();
+        world.flushAll();
+        live.level = 3;
+        live.markDirty();
+        world.flushAll();
+
+        assertEquals(Long.valueOf(2L), live.getLockVersion(), "each own flush adopts the version it wrote");
+        assertEquals(Long.valueOf(2L), await(live.readStoredVersion()));
+        Repository<UUID, HookedSection> repository = PlayerController.get().getBinding(HookedSection.class).getRepository();
+        assertEquals(3, await(repository.find(uuid)).get().level, "the second write landed");
+        assertEquals(3, live.level, "and no stored winner was adopted over it");
+        assertTrue(PlayerController.storageStatus().contains("conflicts-adopted=0"), PlayerController.storageStatus());
+    }
 }
