@@ -7,7 +7,7 @@
  * {@code FinalCmdTestHarness}...) linked against the relocated core, and {@link
  * br.com.finalcraft.evernifecore.testing.minecraft.ItemWorld ItemWorld} - a described server with an
  * item factory, named worlds and the Bukkit config codecs. {@code screen.BukkitScreenWorld} - the real chest
- * renderer over a described server; {@code installWithItemMetadata} for a test that reads names and lore.</p>
+ * renderer over a described server, whose items remember the names and lore it drew.</p>
  *
  * <p>Never put {@code evernifecore-common-tests} or {@code evernifecore-common} on the same test
  * classpath: their classes are in here already, rewritten onto the relocated names, and a second,

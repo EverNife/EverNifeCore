@@ -293,6 +293,13 @@ public class TestPlatform extends AbstractTestPlatform {
         onlinePlayers = new ArrayList<>(players);
     }
 
+    /** Adds one player to who is online, keeping the rest. */
+    public void addOnlinePlayer(FPlayer player) {
+        List<FPlayer> online = onlinePlayers == null ? new ArrayList<>() : new ArrayList<>(onlinePlayers);
+        online.add(player);
+        onlinePlayers = online;
+    }
+
     /**
      * The replacer {@code createPlaceholderIntegration} handed out under {@code prefix}, as the plugin registered
      * on it; null when nothing registered that prefix. Needs {@link Platforms#recordingPlaceholderIntegrations()}.

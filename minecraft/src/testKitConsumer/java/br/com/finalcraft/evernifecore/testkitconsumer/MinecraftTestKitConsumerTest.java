@@ -70,7 +70,7 @@ class MinecraftTestKitConsumerTest {
 
     @Test
     void theChestDrawsTheNameAndLoreOfAnIcon() {
-        try (BukkitScreenWorld world = BukkitScreenWorld.installWithItemMetadata(tempDir)) {
+        try (BukkitScreenWorld world = BukkitScreenWorld.install(tempDir)) {
             PlayerDouble player = world.newPlayer("Steve");
             Screen<Layout> screen = Screen.of(1);
             screen.icon(0, Icon.of("minecraft:paper").displayName("§eHello").lore("§7World"));

@@ -56,9 +56,10 @@ import java.util.logging.Logger;
  * }</pre>
  *
  * <p>Three things are stubbed and nothing else. The <b>main thread</b> is whichever thread installed this world, so
- * the commit's refusal to write from anywhere else stays testable. The <b>item factory</b> answers no metadata, which
- * makes two stacks compare by type and amount. And <b>createInventory</b> answers a {@link SurfaceDouble} wearing the
- * platform's interface, so a window opened through the renderer's real entry point still records every write.</p>
+ * the commit's refusal to write from anywhere else stays testable. The <b>item factory</b> answers an
+ * {@link ItemMetaDouble}, which remembers a name, a lore and a flag. And <b>createInventory</b> answers a
+ * {@link SurfaceDouble} wearing the platform's interface, so a window opened through the renderer's real entry point
+ * still records every write.</p>
  *
  * <p>{@link #install} brings its own lenient platform: everything a chest asks of a server comes through Bukkit, and
  * the platform is only what the core reaches for on the way past; {@link #install(Path, UnaryOperator)} adjusts it
@@ -66,11 +67,11 @@ import java.util.logging.Logger;
  * lays the same server over a {@link ScreenWorld} instead - the form {@code RendererConformance} runs on - and the screen world's clock and
  * prompt answers then move this server's.</p>
  *
- * <p>Published in {@code evernifecore-minecraft-tests}, so a plugin's test opens its own screens on the real chest.
- * {@link #installWithItemMetadata} is the form for a test that reads the names and lore the chest drew:</p>
+ * <p>Published in {@code evernifecore-minecraft-tests}, so a plugin's test opens its own screens on the real chest and
+ * reads the names and lore it drew:</p>
  *
  * <pre>{@code
- * try (BukkitScreenWorld world = BukkitScreenWorld.installWithItemMetadata(dir)) {
+ * try (BukkitScreenWorld world = BukkitScreenWorld.install(dir)) {
  *     PlayerDouble player = world.newPlayer("Steve");
  *     Screen<Layout> screen = Screen.of(1);
  *     screen.icon(0, Icon.of("minecraft:paper").displayName("§eHello"));
@@ -85,7 +86,8 @@ import java.util.logging.Logger;
  */
 public final class BukkitScreenWorld implements AutoCloseable {
 
-    //a modern version that answers none of the questions an item asks: every reduced answer is a named refusal
+    //a modern version that answers none of the questions an item asks: every reduced answer is a named refusal. Only
+    //the chest laid over a ScreenWorld stands on it - the conformance scenarios compare stacks by type and amount
     private static final ItemRuntime SILENT_ITEMS = ItemRuntime.of(MCDetailedVersion.v1_21_R1);
 
     /** The same server, answering metadata: the runtime a screen made of text has to stand on. */
@@ -141,7 +143,7 @@ public final class BukkitScreenWorld implements AutoCloseable {
         PromptRegistry.get().register(ecPluginData, new BukkitChatPromptChannel());
     }
 
-    /** A chest over items that carry no metadata - two stacks then compare by type and amount alone. */
+    /** A chest over items that remember a name, a lore and a flag - the text a screen draws can be read back. */
     public static BukkitScreenWorld install(Path dataFolder) {
         return install(dataFolder, UnaryOperator.identity());
     }
@@ -151,10 +153,10 @@ public final class BukkitScreenWorld implements AutoCloseable {
      * for a button that makes the player run a command, {@code p -> p.parsingWith(...)} for a placeholder.
      */
     public static BukkitScreenWorld install(Path dataFolder, UnaryOperator<Platforms> platform) {
-        return new BukkitScreenWorld(dataFolder, SILENT_ITEMS, platform, null);
+        return new BukkitScreenWorld(dataFolder, SPEAKING_ITEMS, platform, null);
     }
 
-    /** A chest over items that remember a name, a lore and a flag - what a test about text needs. */
+    /** The same world as {@link #install(Path)}, whose items now remember their text too. */
     public static BukkitScreenWorld installWithItemMetadata(Path dataFolder) {
         return installWithItemMetadata(dataFolder, UnaryOperator.identity());
     }
@@ -205,6 +207,7 @@ public final class BukkitScreenWorld implements AutoCloseable {
         return platformWorld.platform();
     }
 
+
     /**
      * Installs {@code economy} for the life of this world, the way {@link ECoreTestWorld#withEconomy} does - a price, a
      * shop's sale, {@code Currencies.money()} all reach it; {@link #close()} puts the previous provider back.
@@ -222,9 +225,16 @@ public final class BukkitScreenWorld implements AutoCloseable {
         return ecPluginData;
     }
 
+    /**
+     * A player online on this server and on its platform, so {@code EverNifeCore.getPlatform().getPlayer(uuid)} finds
+     * them. A chest laid over a {@link ScreenWorld} leaves the platform to that world ({@code ScreenWorld.viewer}).
+     */
     public PlayerDouble newPlayer(String name) {
         PlayerDouble player = new PlayerDouble(name, events, this::windowOver);
         players.put(player.getUniqueId(), player);
+        if (platformWorld != null) {
+            platformWorld.platform().addOnlinePlayer(player.asFPlayer());
+        }
         return player;
     }
 

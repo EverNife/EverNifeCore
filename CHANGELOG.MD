@@ -769,6 +769,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **`BukkitScreenWorld.install` draws item text** (test kit): its items remember a name, a lore and a flag, so a test reads
+  an icon's name off a plain `install(...)` where it got a null `ItemMeta`. `installWithItemMetadata` is now the same
+  world; only `BukkitScreenWorld.over(...)` stays on items without metadata.
+- **`BukkitScreenWorld.newPlayer` is online on the world's platform** (test kit): `EverNifeCore.getPlatform().getPlayer(uuid)`
+  finds them without `Platforms.onlinePlayers(...)`. `TestPlatform.addOnlinePlayer(player)` adds one player to who is
+  online.
 - **The strict double's refusal of `isPluginLoaded`/`isPluginEnabled` teaches both answers** (test kit):
   `pluginsLoaded("X")` when the plugin runs, `pluginsLoaded()` with no names when no plugin does.
 - **`checkLinkage` reads the ECNmsUtils era packages** (build): each `v1_*` package is asked about its `org/bukkit/` references
