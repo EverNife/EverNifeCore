@@ -762,6 +762,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **`checkLinkage` reads the ECNmsUtils era packages** (build): each `v1_*` package is asked about its `org/bukkit/` references
+  against the release of its own revision (`linkageEraRuntimes`: 1.7.10, 1.12.2, 1.16.5, 1.20.1, 1.20.2, 1.21.1 - the last
+  three read only for their era), and the log prints the count per era. An unmapped era fails the check. Its CraftBukkit and
+  NMS references stay unchecked: no API jar carries them.
 - **Every test task stops after 5 minutes** (build): a suite that deadlocks (lanes left held) ends `BUILD FAILED` with
   "Timeout has been exceeded" instead of hanging until killed.
 - **An effect the platform refuses** (`UnsupportedOperationException`) is still audited `EFFECT_FAILED`, but goes to the

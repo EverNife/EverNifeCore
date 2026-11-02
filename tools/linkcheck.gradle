@@ -23,8 +23,12 @@
 //    * only `org/bukkit/` references are asked about here. The FinalCraft libraries the shadow jar
 //      embeds are checked by `checkEmbeddedLinkage` against the jar itself, after shadowJar; NBT-API
 //      and kyori only so far as a FinalCraft class names them under their relocated names. The one
-//      embedded library asked here too is ECNmsUtils, outside its era packages (v1_*): those classes
-//      load on every server, while an era package loads only on the server it was written for;
+//      embedded library asked here too is ECNmsUtils: outside its era packages against every target, and
+//      each era package (v1_*), which loads only on its own revision, against that revision's release
+//      alone (`linkageEraRuntimes`);
+//    * an era package's references to CraftBukkit (`org/bukkit/craftbukkit/`) and to NMS: the API jars
+//      carry neither, and a fork (Paper, Arclight) changes them without touching the API - a member
+//      that links on Spigot and not there is the in-server conformance matrix's to catch;
 //    * a reference whose owner is outside the target's API jar counts as present, except for
 //      `java/`/`javax/`, which are asked of this JVM. A third-party owner is simply unverifiable;
 //    * only what the constant pool names. A member reached by reflection or by
@@ -73,12 +77,30 @@ ext.linkageTargets = [
         '26.2'   : 'org.spigotmc:spigot-api:26.2-R0.1-SNAPSHOT',
 ]
 
+// The release each ECNmsUtils era package is checked against: the one its NmsRevision serves (the last,
+// when it serves several). An era package missing here fails the check instead of going unread.
+ext.linkageEraRuntimes = [
+        v1_7_R4 : '1.7.10',
+        v1_12_R1: '1.12.2',
+        v1_16_R3: '1.16.5',
+        v1_20_R1: '1.20.1',
+        v1_20_R2: '1.20.2',
+        v1_21_R1: '1.21.1',
+]
+
+// The era releases that are not a target above: read only for the era package that runs on them.
+ext.linkageEraOnlyTargets = [
+        '1.20.1': 'org.spigotmc:spigot-api:1.20.1-R0.1-SNAPSHOT',
+        '1.20.2': 'org.spigotmc:spigot-api:1.20.2-R0.1-SNAPSHOT',
+        '1.21.1': 'org.spigotmc:spigot-api:1.21.1-R0.1-SNAPSHOT',
+]
+
 ext.linkageConfigurationOf = { String targetId -> 'linkageApi_' + targetId.replace('.', '_') }
 
 // One configuration per era, never one shared bucket: they are all the same module, so a single
 // configuration would resolve the conflict by keeping the newest and silently check nothing else.
 // Each is non-transitive - org/bukkit lives in the jar itself.
-ext.linkageTargets.each { String targetId, Object coordinates ->
+(ext.linkageTargets + ext.linkageEraOnlyTargets).each { String targetId, Object coordinates ->
     String declaredIn = ext.linkageConfigurationOf(targetId) + '_declared'
     configurations.dependencyScope(declaredIn)
     configurations.resolvable(ext.linkageConfigurationOf(targetId)) {
@@ -313,6 +335,10 @@ tasks.register('checkLinkage') {
     def apiConfigurations = rootProject.ext.linkageTargets.keySet().collectEntries {
         [(it): configurations.getByName(rootProject.ext.linkageConfigurationOf(it))]
     }
+    def eraOnlyConfigurations = rootProject.ext.linkageEraOnlyTargets.keySet().collectEntries {
+        [(it): configurations.getByName(rootProject.ext.linkageConfigurationOf(it))]
+    }
+    Map<String, String> eraRuntimes = rootProject.ext.linkageEraRuntimes
     def allowlistFile = rootProject.file('tools/linkage-allowlist.txt')
     def embeddedNms = configurations.getByName('linkageEmbeddedNms')
 
@@ -338,7 +364,8 @@ tasks.register('checkLinkage') {
         }
 
         Map<String, TargetApi> runtimes = [:]
-        apiConfigurations.each { String targetId, Object configuration ->
+        Map<String, TargetApi> eraOnlyRuntimes = [:]
+        (apiConfigurations + eraOnlyConfigurations).each { String targetId, Object configuration ->
             TargetApi runtime = new TargetApi(id: targetId)
             configuration.files.each { File jar ->
                 new ZipFile(jar).withCloseable { zip ->
@@ -359,7 +386,7 @@ tasks.register('checkLinkage') {
                         + " jar, so it would pass by knowing nothing. Check that"
                         + " ${rootProject.ext.linkageTargets[targetId]} still resolves to a real jar.")
             }
-            runtimes[targetId] = runtime
+            (apiConfigurations.containsKey(targetId) ? runtimes : eraOnlyRuntimes)[targetId] = runtime
         }
         logger.lifecycle("checkLinkage: ${runtimes.size()} target runtimes "
                 + runtimes.collect { id, r -> "${id}(${r.classes.size()} classes)" }.join(', '))
@@ -368,23 +395,48 @@ tasks.register('checkLinkage') {
         Set<String> unusedAllowances = new LinkedHashSet<>(allowed)
         int scannedClasses = 0
 
+        // Each class with the runtimes it is asked of: null for every target.
         List<byte[]> classes = []
+        List<String> eraOf = []
         classDirs.each { dir ->
             File root = dir.get().asFile
             if (!root.exists()) return
             root.eachFileRecurse { File file ->
-                if (file.name.endsWith('.class')) classes << file.bytes
+                if (file.name.endsWith('.class')) {
+                    classes << file.bytes
+                    eraOf << null
+                }
             }
         }
         int nmsClasses = 0
+        Map<String, Integer> eraClasses = new TreeMap<>()
+        Set<String> unmappedEras = new TreeSet<>()
         embeddedNms.files.each { File jar ->
             new ZipFile(jar).withCloseable { zip ->
                 zip.entries().each { ZipEntry entry ->
-                    if (!entry.name.endsWith('.class') || entry.name.contains('/v1_')) return
+                    if (!entry.name.endsWith('.class')) return
+                    def era = (entry.name =~ /\/(v\d+_\d+_R\d+)\//)
+                    if (era.find()) {
+                        String segment = era.group(1)
+                        if (!eraRuntimes.containsKey(segment)) {
+                            unmappedEras << segment
+                            return
+                        }
+                        classes << zip.getInputStream(entry).bytes
+                        eraOf << segment
+                        eraClasses[segment] = (eraClasses[segment] ?: 0) + 1
+                        return
+                    }
                     classes << zip.getInputStream(entry).bytes
+                    eraOf << null
                     nmsClasses++
                 }
             }
+        }
+        if (!unmappedEras.isEmpty()) {
+            throw new GradleException("checkLinkage found ECNmsUtils era packages ${unmappedEras} with no release to check"
+                    + " them against. Add each to linkageEraRuntimes in tools/linkcheck.gradle with the release its NmsRevision"
+                    + " serves (and to linkageEraOnlyTargets when that release is not a target already).")
         }
         if (nmsClasses == 0) {
             throw new GradleException("checkLinkage found no ECNmsUtils class outside the era packages in"
@@ -393,14 +445,24 @@ tasks.register('checkLinkage') {
         }
         logger.lifecycle("checkLinkage: ${nmsClasses} ECNmsUtils classes outside the era packages submitted"
                 + " to the org/bukkit check (${embeddedNms.files*.name.join(', ')})")
+        logger.lifecycle("checkLinkage: ECNmsUtils era classes submitted to their own runtime "
+                + eraClasses.collect { segment, count -> "${segment}->${eraRuntimes[segment]}(${count})" }.join(', '))
 
-        classes.each { byte[] bytes ->
+        classes.eachWithIndex { byte[] bytes, int index ->
             scannedClasses++
             ClassFile parsed = new ClassReader(bytes).read()
             String site = parsed.name.replace('/', '.')
+            String era = eraOf[index]
+            Map<String, TargetApi> askedOf = runtimes
+            if (era != null) {
+                String eraRuntime = eraRuntimes[era]
+                askedOf = [(eraRuntime): runtimes[eraRuntime] ?: eraOnlyRuntimes[eraRuntime]]
+            }
+            //an era class names its own CraftBukkit, which no API jar carries
+            Closure<Boolean> asked = { String name -> name.startsWith('org/bukkit/') && !(era != null && name.startsWith('org/bukkit/craftbukkit/')) }
 
-            runtimes.each { String runtimeId, TargetApi runtime ->
-                parsed.classRefs.collect { elementTypeOf(it) }.findAll { it.startsWith('org/bukkit/') }.each { String ref ->
+            askedOf.each { String runtimeId, TargetApi runtime ->
+                parsed.classRefs.collect { elementTypeOf(it) }.findAll { asked(it) }.each { String ref ->
                     if (!runtime.declares(ref)) {
                         report(findings, unusedAllowances, allowed, runtimeId, 'class', ref, site,
                                 'the class is not in that server at all')
@@ -411,7 +473,7 @@ tasks.register('checkLinkage') {
                     //the owner stays as the pool wrote it: an array owner ([Lorg/bukkit/ItemStack;)
                     //declares no member of its own - clone() and the rest come from Object - so it
                     //falls out here instead of being normalized into the type it holds
-                    if (!owner.startsWith('org/bukkit/')) return
+                    if (!asked(owner)) return
                     Boolean ownerIsInterface = runtime.isInterface(owner)
                     if (ownerIsInterface == null) return // already reported as a missing class
                     boolean refWantsInterface = tag == 'InterfaceMethodref'
