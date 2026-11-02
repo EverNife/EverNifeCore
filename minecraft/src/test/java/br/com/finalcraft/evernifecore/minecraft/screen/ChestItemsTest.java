@@ -56,6 +56,12 @@ class ChestItemsTest {
     }
 
     @Test
+    void aVanillaIdInAnyCaseResolvesToItsMaterial() {
+        assertEquals(Material.STONE, ChestItems.stackOf(ItemSpec.of("MINECRAFT:STONE", 1)).getType());
+        assertEquals(Material.STONE, ChestItems.stackOf(ItemSpec.of("Minecraft:Stone", 1)).getType());
+    }
+
+    @Test
     void aNativeItemIsDrawnAsItself() {
         ItemStack stack = new ItemStack(Material.IRON_INGOT, 5);
         Screen<Layout> screen = Screen.of(3);

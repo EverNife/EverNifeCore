@@ -476,6 +476,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **A sale never takes worn armor or the off-hand**: `McInventoryDestination.count` and `take` read the main
+  inventory (36 slots) like `getContents` and `roomFor` already did; on 1.9+ `getContents()` carries armor and the
+  off-hand after them, and a `sellHand`/`sellAll`/`ALL_HELD` by matcher could count and take a worn chestplate. An item
+  price line (`ItemLine.asCost`) counts the same way, so worn armor no longer pays for a purchase.
+- **`ChestItems` reads the `minecraft:` prefix in any case**: `MINECRAFT:STONE` is drawn as stone, not as the
+  placeholder barrier.
 - **A fractional total on an item price line is refused by `Quote.setTotal`** with the rule in the message, instead of
   an `ArithmeticException` out of the click that left the player reading nothing.
 - **A `TransactionPreEvent` listener that raises the quantity is held to the limit, the room and the items**, and a

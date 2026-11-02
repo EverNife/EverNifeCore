@@ -113,8 +113,9 @@ public final class ChestItems {
         if (id == null || id.isEmpty()) {
             return null;
         }
-        boolean vanilla = id.startsWith(VANILLA) || id.indexOf(':') < 0;
-        String name = id.startsWith(VANILLA) ? id.substring(VANILLA.length()) : id;
+        boolean prefixed = id.regionMatches(true, 0, VANILLA, 0, VANILLA.length());
+        boolean vanilla = prefixed || id.indexOf(':') < 0;
+        String name = (prefixed ? id.substring(VANILLA.length()) : id).toLowerCase(Locale.ROOT); //the legacy colour names below are lower case
         short data = 0;
         if (vanilla && !MCVersion.isHigherEquals(MCVersion.v1_13)) {
             for (String block : new String[]{"_stained_glass_pane", "_stained_glass", "_wool"}) {

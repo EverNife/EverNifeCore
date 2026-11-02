@@ -25,8 +25,9 @@ import java.util.concurrent.Callable;
 
 /**
  * The player's inventory on Bukkit, {@code evernifecore:inventory}: items are built from the {@link ItemSpec} (or
- * cloned from its native item) and added stack by stack; counting and taking read the material, name and lore. Any thread: off the
- * main thread it waits for the main thread to do the work.
+ * cloned from its native item) and added stack by stack; counting and taking read the material, name and lore, and only in the
+ * main inventory (storage and hotbar) - worn armor and the off-hand are never counted nor taken. Any thread: off the main thread it
+ * waits for the main thread to do the work.
  */
 public final class McInventoryDestination implements InventoryDestination {
 
@@ -74,10 +75,11 @@ public final class McInventoryDestination implements InventoryDestination {
             return 0;
         }
         return onMainThread(() -> {
+            ItemStack[] contents = bukkit.getInventory().getContents();
             int held = 0;
-            for (ItemStack stack : bukkit.getInventory().getContents()) {
-                if (matches(stack, matcher)) {
-                    held += stack.getAmount();
+            for (int slot = 0; slot < mainSlots(contents); slot++) {
+                if (matches(contents[slot], matcher)) {
+                    held += contents[slot].getAmount();
                 }
             }
             return held;
@@ -94,16 +96,16 @@ public final class McInventoryDestination implements InventoryDestination {
             PlayerInventory inventory = bukkit.getInventory();
             ItemStack[] contents = inventory.getContents();
             int held = 0;
-            for (ItemStack stack : contents) {
-                if (matches(stack, matcher)) {
-                    held += stack.getAmount();
+            for (int slot = 0; slot < mainSlots(contents); slot++) {
+                if (matches(contents[slot], matcher)) {
+                    held += contents[slot].getAmount();
                 }
             }
             if (held < amount) {
                 return false;
             }
             int missing = amount;
-            for (int slot = 0; slot < contents.length && missing > 0; slot++) {
+            for (int slot = 0; slot < mainSlots(contents) && missing > 0; slot++) {
                 ItemStack stack = contents[slot];
                 if (!matches(stack, matcher)) {
                     continue;
@@ -121,6 +123,11 @@ public final class McInventoryDestination implements InventoryDestination {
         });
     }
 
+    /** How many of {@code contents} a trade reads: the main slots, never the armor and off-hand that 1.9+ appends. */
+    private static int mainSlots(ItemStack[] contents) {
+        return Math.min(MAIN_SLOTS, contents.length);
+    }
+
     private static boolean matches(@Nullable ItemStack stack, ItemMatcher matcher) {
         ItemSpec described = describe(stack);
         return described != null && matcher.matches(described);
@@ -135,7 +142,7 @@ public final class McInventoryDestination implements InventoryDestination {
         return onMainThread(() -> {
             ItemStack[] contents = bukkit.getInventory().getContents();
             List<ItemSpec> stacks = new ArrayList<>();
-            for (int slot = 0; slot < Math.min(MAIN_SLOTS, contents.length); slot++) {
+            for (int slot = 0; slot < mainSlots(contents); slot++) {
                 ItemSpec described = describe(contents[slot]);
                 if (described != null) {
                     stacks.add(described);
@@ -164,7 +171,7 @@ public final class McInventoryDestination implements InventoryDestination {
             int max = Math.max(1, template.getMaxStackSize());
             ItemStack[] contents = bukkit.getInventory().getContents();
             int room = 0;
-            for (int slot = 0; slot < Math.min(MAIN_SLOTS, contents.length); slot++) {
+            for (int slot = 0; slot < mainSlots(contents); slot++) {
                 ItemStack stack = contents[slot];
                 if (stack == null || stack.getType() == Material.AIR) {
                     room += max;

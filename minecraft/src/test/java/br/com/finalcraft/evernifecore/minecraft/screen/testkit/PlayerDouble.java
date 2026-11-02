@@ -43,12 +43,20 @@ public final class PlayerDouble {
 
     /** What a stack holds here. The real number comes from a server registry this rig does not have. */
     private static final int STACK = 64;
+    /** The storage and hotbar slots; armor and the off-hand come after them. */
+    private static final int MAIN_SLOTS = 36;
+    /** What {@code PlayerInventory.getSize()} and {@code getContents()} answer on 1.9+: main, armor, off-hand. */
+    private static final int ALL_SLOTS = MAIN_SLOTS + 4 + 1;
 
     private final UUID uniqueId;
     private final String name;
     private final Set<String> permissions = new LinkedHashSet<>();
     /** 36 slots: the hotbar and the three rows above it, which is all a gui ever reaches into. */
-    private final SurfaceDouble playerInventory = new SurfaceDouble(36);
+    private final SurfaceDouble playerInventory = new SurfaceDouble(MAIN_SLOTS);
+    /** Boots, leggings, chestplate, helmet: slots 36 to 39 of the inventory, as on 1.9+. */
+    private final ItemStack[] armor = new ItemStack[4];
+    /** Slot 40 of the inventory, as on 1.9+. */
+    private ItemStack offHand;
     private final List<String> messages = new ArrayList<>();
     private final List<PlayedSound> sounds = new ArrayList<>();
     private final List<Drop> drops = new ArrayList<>();
@@ -164,6 +172,18 @@ public final class PlayerDouble {
         return this;
     }
 
+    /** Puts {@code item} on an armor slot, numbered as the platform numbers it: 36 boots to 39 helmet. */
+    public PlayerDouble wearing(int slot, ItemStack item) {
+        armor[slot - MAIN_SLOTS] = item;
+        return this;
+    }
+
+    /** Puts {@code item} in the off-hand, slot 40. */
+    public PlayerDouble withOffHand(ItemStack item) {
+        this.offHand = item;
+        return this;
+    }
+
     public ItemStack getCursor() {
         return cursor;
     }
@@ -214,8 +234,9 @@ public final class PlayerDouble {
     }
 
     /**
-     * The player's own inventory, as much of it as a gui ever asks for: one slot read, one slot written,
-     * and {@code addItem}, which is how the framework gives an item back.
+     * The player's own inventory, laid out as on 1.9+: the 36 main slots, then armor (36-39) and the
+     * off-hand (40), all of them read and written by index and answered together by {@code getContents}.
+     * {@code addItem}, which is how the framework gives an item back, only ever fills the main slots.
      *
      * <p>{@code addItem} tops up the stacks already there before filling an empty slot and answers
      * whatever did not fit, the same shape the platform answers with. A stack is 64 here whatever the
@@ -224,16 +245,42 @@ public final class PlayerDouble {
     private PlayerInventory playerInventoryFace() {
         if (inventoryFace == null) {
             inventoryFace = Doubles.of(PlayerInventory.class)
-                    .on("getSize", args -> playerInventory.getSize())
-                    .on("getItem", args -> playerInventory.getItem((Integer) args[0]))
+                    .on("getSize", args -> ALL_SLOTS)
+                    .on("getItem", args -> slot((Integer) args[0]))
                     .on("setItem", args -> {
-                        playerInventory.set((Integer) args[0], (ItemStack) args[1]);
+                        setSlot((Integer) args[0], (ItemStack) args[1]);
                         return null;
                     })
+                    .on("getContents", args -> {
+                        ItemStack[] contents = new ItemStack[ALL_SLOTS];
+                        for (int slot = 0; slot < ALL_SLOTS; slot++) {
+                            contents[slot] = slot(slot);
+                        }
+                        return contents;
+                    })
+                    .on("getArmorContents", args -> armor.clone())
+                    .on("getItemInOffHand", args -> offHand)
                     .on("addItem", args -> addItems((ItemStack[]) args[0]))
                     .build();
         }
         return inventoryFace;
+    }
+
+    private ItemStack slot(int slot) {
+        if (slot < MAIN_SLOTS) {
+            return playerInventory.getItem(slot);
+        }
+        return slot < ALL_SLOTS - 1 ? armor[slot - MAIN_SLOTS] : offHand;
+    }
+
+    private void setSlot(int slot, ItemStack item) {
+        if (slot < MAIN_SLOTS) {
+            playerInventory.set(slot, item);
+        } else if (slot < ALL_SLOTS - 1) {
+            armor[slot - MAIN_SLOTS] = item;
+        } else {
+            offHand = item;
+        }
     }
 
     private Map<Integer, ItemStack> addItems(ItemStack[] items) {
