@@ -16,62 +16,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ## [Unreleased]
 
+## [3.0.1-alpha.71] - 2026-11-02
+
 ### Added
 
-- **A strict double's refusal that the core only reported fails the world** (test kit): `notConfigured` throws
-  `PlatformNotConfiguredException` (still an `UnsupportedOperationException`), and `ECoreTestWorld` watches the global
-  bus's exception handler for it: `close()` fails with the refusal's message, which names the builder call. A product
-  test that hit an unconfigured `Platforms.strict()` call inside a subscriber used to stay green with a log line.
-- **`PlayerDouble.getTitles()` / `getActionBars()`** (test kit): the titles (`PlayerDouble.Title`, `Title.CLEARED` for a
-  cleared one) and action bars a chest test's player was shown through the Bukkit API.
-- **`BukkitScreenWorld.withEconomy(economy)`** (test kit): the chest test's economy, the same form as
-  `ECoreTestWorld.withEconomy` (`Economies.inMemory()...build()`), put back on `close()` - no more registering an
-  `IEconomyProvider` by hand. Its `PlayerDouble` answers `getStorageContents`/`setStorageContents`, so
-  `FCInventoryUtil` counts, finds and takes items from the player of a chest test: a whole sale runs on the real chest.
-- **`ECScheduler.repeatAsync(task, delayMillis, periodMillis)`**: a repeated async task with a `RepeatingTask` handle that
-  cancels it; a run that throws is printed and the next one still comes. It runs through the same `Backend` as
-  `scheduleAsync`, so `TestClock` drives it.
-- **`ItemContext.getItem()`**: the item of a pickup, drop, craft, consume, enchant or catch as an `ItemSpec` carrying the
-  platform's stack (name and lore included), so a plugin reads it without `getNativeEvent(CraftItemEvent.class)`. The
-  stack is copied on the first call only; null for a Bukkit smelt and a Hytale craft, whose events carry no stack. The
-  constructor takes the item as a last `@Nullable Supplier<ItemSpec>`. Test kit: `ItemMetaDouble.factory()`.
-- **`BukkitScreenWorld.install(dir, platform)`** (test kit): the chest over
-  the lenient platform adjusted by a `UnaryOperator<Platforms>`, the same form as `ScreenWorld.open(dir, platform)` -
-  `Platforms::capturingCommands` for a button that runs a command as the player, `p -> p.parsingWith(...)` for a
-  placeholder.
-- **`CountedGoods.refuseGives(why)`** (test kit): goods whose give throws, for the path where a trade must refund and
-  refuse.
-- **`RecordingRenderer.refuseNextOpen()`** (test kit) refuses exactly the next open and opens the ones after it, so a
-  test tells "the screen on top was refused" from "the way back was refused"; `refuseOpens(true)` still refuses every
-  open.
-- **`ScriptedStorage.releaseNewestWrite()`, `heldWrites()` and `lastLanded(collection, type)`** (test kit): a held
-  backend can let its writes through newest first, one at a time, and a test reads which entity the backend took
-  last - for code that must survive writes completing out of order. `releaseWrites()` releases in arrival order.
-- **`evernifecore-minecraft-tests` ships the chest test kit**: `BukkitScreenWorld` (`install`,
-  `over(ScreenWorld)`) and its doubles (`PlayerDouble`, `SurfaceDouble`, `SchedulerDouble`, `ScreenEventBus`,
-  `ClickSimulator`) move to the published test fixtures as `testing.minecraft.screen`, so a plugin's test opens the real
-  `ChestScreenRenderer` over a described server and reads the names and lore it drew.
-- **`Plugins.fakeOther(name, dir)`** (test kit): the `ECPluginData` of a second fake plugin (the owner of a currency
-  or a flag) without replacing the extractor the test world installed; `fakeCore` is now `fakeOther("EverNifeCore", dir)`.
-- **`LogicWorld.rebootPlayers()`** (test kit) writes every dirty PlayerData row and drops the offline players' sections
-  from the cache, so their next load reads them back from storage.
-- **A left click on an NPC raises `interact-npc` too**: `EntityContext.getClickType()` (`ClickType.LEFT`/`RIGHT`) says
-  which. The Bukkit providers hear both clicks (Citizens' `NPCLeftClickEvent` beside `NPCRightClickEvent`, the left
-  click of FancyNpcs and ZNPCsPlus), and the test kit's `FakeNpcProvider.leftClick(player, ref)` punches. An
-  `interact-npc` objective takes `click: right|left` (default `right`), and a dialogue opens on the right click only, so
-  today's quests and dialogues behave as before. A cancelled `Pre` of a punch cancels the NPC plugin's left-click event.
-  `McActionContexts.npcUse` takes the click type. On Hytale the `Use` of an NPC is `RIGHT` and a hit a player lands
-  on it with his hand is `LEFT` (the server's primary attack ends in a `Damage`, never a `UseEntityEvent`); a
-  cancelled `Pre` of the punch cancels the hit.
-- **`ECoreTestWorld.withCorePluginData(data)`** lends the core its own plugin data (`EverNifeCore.getLog()`, the core's
-  debug modules) for the life of the world; `EverNifeCore.onLoaderInstantiate(null)` clears it. `-Dec.debug=LOGIC,QUESTS`
-  on a test run switches those debug modules and the core's debug on in every world.
-- **`AuditLog.awaitWrites()` is public** (for tests and shutdown: completes when every write started so far landed),
-  and the test kit's `LogicWorld.awaitAudit()` waits on the owner's open log - no more polling a query.
-- **`target: online-players`**: an effect applies to every online player (the members of `ProgressOwner.global()`),
-  whatever the owner of the context.
-- **`GroupKindRegisteredEvent`**: `GroupManager.registerKind` posts it (after reading the stored groups of the kind, when
-  the manager has loaded), so a plugin waiting for a kind no longer needs the first `GroupCreatedEvent`.
+#### Quests
+
 - **`StartResult.getReason()` and `QuestPresenter.refusal(player, definition, result)`**: which check refused a start
   or an offer (`NO_GROUP`, `NOT_LOADED`, `STATUS`, `REQUIRES`, `WINDOW`, `OWNER_KIND`, `GATE`, `CANCELLED`,
   `UNKNOWN_QUEST`), and a presenter that rewrites the text the quest command node and the offer screen send for it.
@@ -80,37 +30,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   journal use it.
 - **`QuestEngine.of(owner, storage, section, configure)`** takes the section's `PDSectionConfiguration.Builder` (legacy
   YAML, migration, collection) in its one registration; the lifecycle stays `ONLINE`.
-- **`Dialogue.parseYaml(owner, name, yaml)`**, in the server's zone; text that is not YAML names the dialogue.
 - **`QuestPool`: `reroll.per-window`** (`Builder.rerollsPerWindow`) caps the rerolls of an owner per window, and
   **`expire-active-on-turn`** (`Builder.expireActiveOnTurn`) expires the previous draw's ACTIVE quests when the window
   turns, as a closed window does (`QuestExpireEvent`, `on-window-end` rules). `PoolDraw.getRerolls()` counts them.
-- **The Hytale `inventory-readers` conformance case**: in a live Hytale server, five stone in the bot's active hotbar
-  slot are what `getHeld` reads, `getContents` lists them, and `roomFor` has room that is gone once every slot is full.
-- **Page arrows for a menu's paged offers**: `Menu.Builder.offers(region, previous, next, source)` draws the framework's
-  arrows on the raw slots given (a null side draws none), and `Menu.getOfferList()` hands back the screen's own
-  `PagedList<Offer, ?>` (id `offers`) - `arrows(...)`, `pagedBy(...)`, `spillIntoPageArrows` or `pager` on it without a
-  cast. A menu pours one paged offer list: a second `offers(...)` is refused.
-- **An item's data value**: `ItemSpec.getData()`/`withData(int)` (`-1` = unspecified, the default) and
-  `ItemMatcher.of(id, data)`/`withData(int)`, compared only when both sides specify one - `of("minecraft:wool", 14)` no
-  longer takes white wool. `ItemSpec.equals` includes it. The Bukkit inventory describes every stack with its
-  `getDurability()` (0 for a plain one) and builds what it hands out with the spec's data; the chest draws a spec's data
-  before 1.13 (from 1.13 the colour is in the id). The stock `give-item` effect and `item` cost take an optional `data`,
-  and a pending item keeps it. Hytale items stay `-1`.
-- **`MenuRegistry.unregister(owner, name)`**: takes out one menu of its owner (a reload that drops a menu file, an
-  editor that deletes one) and answers whether it was there; `name` is the bare name or `owner:name`. Unregistering a
-  menu another plugin registered is refused naming both.
-- **`RendererConformance` checks each element kind**: `label-draws-its-text`, `choice-disabled-carries-reason`,
-  `progress-reports-ratio`, `input-asks-through-a-prompt` and `list-pages-with-arrows`, and
-  `check(renderer, world, Supplier<FPlayer> viewers)` lets a renderer whose `supports` needs a handshake give its own
-  viewers. The probe now forwards `suspended()` to the renderer's window. `ScreenWorld.click` documents that its
-  boolean is whether the item move may go through, never whether a handler ran.
-- **`Screen.label(SlotSet, Icon)`, `Screen.input(SlotSet, Icon)`, `Screen.progress(SlotSet, Icon, State<Double>)`**: the
-  three element kinds that only had a layout form can sit on raw slots, like `icon` and `choice`.
-- **`PagedList.arrows(previous, next)`**: the icons of page arrows placed on raw slots by `pagedBy(SlotSet, SlotSet)`;
-  a `null` side keeps the framework's arrow.
-- **`Button.visibleWhen(Predicate<ScreenView>[, ticks])`**: the predicate receives the view being drawn, so one
-  screen can show an icon to one viewer and hide it from another (`view.getViewer()`, `view.test(condition)`). The
-  `Supplier` forms stay.
 - **Quest engine** (`evernifecore.quest`): a plugin opens `QuestEngine.of(plugin, storage, MyQuestSection.class)` and
   registers `QuestDefinition`s (YAML through `QuestDefinitions` or a builder) - stages as graph nodes (`then`, goto,
   `COMPLETE`/`FAIL`, `all`/`any`/`at-least` groups), objectives of event (one stock `ObjectiveType` per action source,
@@ -121,7 +43,6 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   condition `quest-status`, variable `quest-times`, effects `start-quest`, `offer-quest`, `complete-quest`,
   `fail-quest`, `track-quest`; the `quest.event` family; `ECDebugModule.QUESTS`. Engine: `QuestWorld`,
   `QuestDefinitionsFixture`.
-
 - **Quest owners, rewards, pools and region objectives**: a quest of `owner: group` started by a member belongs to
   their group (every member counts, by contribution), `owner: region` counts the actions inside the region; a dissolved
   group or a removed region fails its quests with `FailCause.OWNER_GONE`. `rewards:` is a list of `logic.reward`
@@ -166,6 +87,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `pickup`, `craft`, `interact`, `reach-location` map) is refused on registration, naming the objective.
   `QuestEngine.addDefinitionCheck` is the hook; `QuestDefinition.getHytaleNative()` the raw map.
 
+#### Dialogue
+
+- **`Dialogue.parseYaml(owner, name, yaml)`**, in the server's zone; text that is not YAML names the dialogue.
 - **Dialogue trees** (`br.com.finalcraft.evernifecore.dialogue`): nodes, options gated by a `Gate`, effects, `goto`, one
   session per player with timeout and fail-when, started by the `start-dialogue` effect, an NPC or a region crossing, and
   drawn by the default `evernifecore:dialogue` screen that any plugin may override. A `Dialogue` is built in code
@@ -179,6 +103,37 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `Screen.choice(SlotSet, ...)` and a public `Screens.build` let an engine route a choice and know the screen it showed.
   The test engine gains `DialogueTrees`.
 
+#### NPCs
+
+- **NPC references (`br.com.finalcraft.evernifecore.npc`)**: `NpcRef` is `provider:id` (`citizens:12`,
+  `fancynpcs:<uuid>`, `znpcsplus:merchant`, `hytale:<uuid>`, lowercased); the `NpcProvider` SPI answers `resolve(entity)`,
+  `find(ref)`, `getLocation(ref)`, `getName(ref)` and starts raising clicks only while needed; `Npcs.register(owner,
+  provider)` (a duplicate id names both owners), `Npcs.resolve/find/getLocation/getName`, `Npcs.requireProvider(ref)`
+  (`NpcProviderException` lists the providers registered). Citizens, FancyNpcs and ZNPCsPlus are recognised by
+  reflection on Bukkit - none is a dependency, an absent one is simply unavailable, and the three join the core's
+  `softdepend`; NPC entities by uuid on Hytale (`HyNpcProvider`). `Actor.getNpc()` carries the reference
+  (`Actor.entity(key, type, root, handle, npc)`), so a kill of a Citizens or Hytale NPC names it. The new source
+  `interact-npc` (`InteractNpcActionEvent.Pre/Post` over an `EntityContext`) is a player right-clicking an NPC - packet
+  NPCs included -, raised by each provider from its plugin's click event; `EntityContext.getItemInHandKey()` says what the
+  player held out (also on `interact` with an entity). The condition `near-npc: {npc, radius}` (needs `MOVE`) and the
+  waypoint target `NpcWaypointTarget` read the NPC's location; both refuse a reference to an unregistered provider.
+  `common-tests`: `FakeNpcProvider`, `Actors.npc(key, ref)`.
+
+#### Menus and shops
+
+- **Page arrows for a menu's paged offers**: `Menu.Builder.offers(region, previous, next, source)` draws the framework's
+  arrows on the raw slots given (a null side draws none), and `Menu.getOfferList()` hands back the screen's own
+  `PagedList<Offer, ?>` (id `offers`) - `arrows(...)`, `pagedBy(...)`, `spillIntoPageArrows` or `pager` on it without a
+  cast. A menu pours one paged offer list: a second `offers(...)` is refused.
+- **An item's data value**: `ItemSpec.getData()`/`withData(int)` (`-1` = unspecified, the default) and
+  `ItemMatcher.of(id, data)`/`withData(int)`, compared only when both sides specify one - `of("minecraft:wool", 14)` no
+  longer takes white wool. `ItemSpec.equals` includes it. The Bukkit inventory describes every stack with its
+  `getDurability()` (0 for a plain one) and builds what it hands out with the spec's data; the chest draws a spec's data
+  before 1.13 (from 1.13 the colour is in the id). The stock `give-item` effect and `item` cost take an optional `data`,
+  and a pending item keeps it. Hytale items stay `-1`.
+- **`MenuRegistry.unregister(owner, name)`**: takes out one menu of its owner (a reload that drops a menu file, an
+  editor that deletes one) and answers whether it was there; `name` is the bare name or `owner:name`. Unregistering a
+  menu another plugin registered is refused naming both.
 - **Menus and shops (`menu`)**: a plugin registers a `Menu` (a `Screen` with offer buttons) under `owner:name` and
   anything opens it by id with positional arguments (`MenuRegistry.open`, the `evernifecore:open-menu` effect - on top
   of the screen a click came from, so back returns -, the mountable `MenuCommandNode` with `open`, `openfor`, `list`).
@@ -198,6 +153,22 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   pending deliveries unless the offer says `NoSpacePolicy.REFUSE`. `OfferCatalog` finds the SELL offer of an item for
   `sellHand` (held stack or the same item everywhere) and `sellAll`. Engine: `Menus` (over `ScreenWorld` + `LogicWorld`),
   `CountedGoods`, `RecordingGoods`, `TestCurrency.refuseTakes`, `TestInventory.hold/addSeparately`.
+- `ItemSpec.withText(displayName, lore)`.
+
+#### Screens
+
+- **`RendererConformance` checks each element kind**: `label-draws-its-text`, `choice-disabled-carries-reason`,
+  `progress-reports-ratio`, `input-asks-through-a-prompt` and `list-pages-with-arrows`, and
+  `check(renderer, world, Supplier<FPlayer> viewers)` lets a renderer whose `supports` needs a handshake give its own
+  viewers. The probe now forwards `suspended()` to the renderer's window. `ScreenWorld.click` documents that its
+  boolean is whether the item move may go through, never whether a handler ran.
+- **`Screen.label(SlotSet, Icon)`, `Screen.input(SlotSet, Icon)`, `Screen.progress(SlotSet, Icon, State<Double>)`**: the
+  three element kinds that only had a layout form can sit on raw slots, like `icon` and `choice`.
+- **`PagedList.arrows(previous, next)`**: the icons of page arrows placed on raw slots by `pagedBy(SlotSet, SlotSet)`;
+  a `null` side keeps the framework's arrow.
+- **`Button.visibleWhen(Predicate<ScreenView>[, ticks])`**: the predicate receives the view being drawn, so one
+  screen can show an icon to one viewer and hide it from another (`view.getViewer()`, `view.test(condition)`). The
+  `Supplier` forms stay.
 - **Screens render on Hytale**: `HyPageRenderer` (`evernifecore:page`, `hytale.screen`) draws any `Screen` as a server
   page (`InteractiveCustomUIPage`) from the core's own layouts in its asset pack (`EverNifeCore/Screen.ui`, `Cell.ui`,
   `Prompt.ui`): a frame sized to the grid, the title, one cell per slot with the item, its amount and the name and lore
@@ -210,27 +181,197 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `HyPagePrompt`, asks on a page with a field, OK and Cancel; a parser's refusal shows under the field. Registered at
   enable; `ScreenWorld.open(dir, platform, ...)` adjusts the test platform (`Platforms::offWorldThread`). The
   `hytale-0.7.1` conformance flavor gains the `screen` suite (8 cases) and `/ecc screen sample <player>`.
-- `PlayerController.getRemoteSignal(sectionClass)` answers how this server hears another server's write to a section's
-  rows: `RemoteSignal.LIVE` (a cache-sync covers the collection), `CONFLICT_ONLY` (a shared network backend without one:
-  only the next flush conflict tells) or `NONE` (file, H2, memory). A plugin running on several servers decides how
-  careful a debit must be by it.
-- `PlayerController.findSections(sectionClass, uuids)`: the stored rows of a known set of players in ONE backend read by
-  key, never filling the cache (the key needs no `@Indexed`, unlike `querySections`) - a clan page over its members.
-- **NPC references (`br.com.finalcraft.evernifecore.npc`)**: `NpcRef` is `provider:id` (`citizens:12`,
-  `fancynpcs:<uuid>`, `znpcsplus:merchant`, `hytale:<uuid>`, lowercased); the `NpcProvider` SPI answers `resolve(entity)`,
-  `find(ref)`, `getLocation(ref)`, `getName(ref)` and starts raising clicks only while needed; `Npcs.register(owner,
-  provider)` (a duplicate id names both owners), `Npcs.resolve/find/getLocation/getName`, `Npcs.requireProvider(ref)`
-  (`NpcProviderException` lists the providers registered). Citizens, FancyNpcs and ZNPCsPlus are recognised by
-  reflection on Bukkit - none is a dependency, an absent one is simply unavailable, and the three join the core's
-  `softdepend`; NPC entities by uuid on Hytale (`HyNpcProvider`). `Actor.getNpc()` carries the reference
-  (`Actor.entity(key, type, root, handle, npc)`), so a kill of a Citizens or Hytale NPC names it. The new source
-  `interact-npc` (`InteractNpcActionEvent.Pre/Post` over an `EntityContext`) is a player right-clicking an NPC - packet
-  NPCs included -, raised by each provider from its plugin's click event; `EntityContext.getItemInHandKey()` says what the
-  player held out (also on `interact` with an entity). The condition `near-npc: {npc, radius}` (needs `MOVE`) and the
-  waypoint target `NpcWaypointTarget` read the NPC's location; both refuse a reference to an unregistered provider.
-  `common-tests`: `FakeNpcProvider`, `Actors.npc(key, ref)`.
-- `ItemSpec.withText(displayName, lore)`.
 
+#### Logic
+
+- **`AuditLog.awaitWrites()` is public** (for tests and shutdown: completes when every write started so far landed),
+  and the test kit's `LogicWorld.awaitAudit()` waits on the owner's open log - no more polling a query.
+- **`target: online-players`**: an effect applies to every online player (the members of `ProgressOwner.global()`),
+  whatever the owner of the context.
+- **Group rewards (`br.com.finalcraft.evernifecore.logic.reward`)**: `Rewards.pay(rule, context)` pays a group
+  (or any `ProgressOwner`) by one `RewardRule` built from registrable pieces - eligibility (`any-member`, `online`,
+  `present`, `role`, `last-actor`, `contribution-at-least`, `contribution-share`, `top`, `condition`), distribution
+  (`each`, `split-equal`, `proportional`, `top-takes-all`, `tiers`), absence (`deliver` as a pending delivery,
+  `forfeit`, `redistribute`), moment and leaver/joiner rules - with the same YAML a quest writes (`RewardRule.parse`).
+  The caller hands in the contributions and the last actor through `RewardContext`; every payment posts a
+  `RewardPaidEvent` and lands in the caller plugin's `AuditLog` (`AuditKind.REWARD_PAID`). Plugins add pieces on
+  `Rewards.registry()` ("reward-piece"). `LogicWorld` registers the pieces with its stock.
+- **Dynamic values and contributions** (`br.com.finalcraft.evernifecore.logic.value`): `DynamicValues.of(plugin,
+  storage).define(id, spec)` - base, min/max, step per bump, decay toward the base computed on read from the clock, one
+  state per `ProgressOwner`, persisted (`ec_dynamic_values`), readable as the variable `{plugin:id}`; a `DynamicValueSpec`
+  is written as `{base, min, max, step, decay: {amount, every}}`. `Contributions.of(plugin, storage).define(id, target,
+  requirement)` collects deposits per member up to the target (`CurrencyRequirement.of(currency, amount)`, `consume` or
+  `check()`), posts a `ContributionDepositEvent` per deposit and applies its completion effects once
+  (`ContributionCompletedEvent`).
+- Stock cost and effect `money` (`amount` a number or a `{variable}`, `currency` default `money`; the effect is boosted
+  unless `boosted: false`, a missing wallet or economy is audited and never thrown; the cost names what to install when
+  there is no economy).
+- **Pending deliveries** (`br.com.finalcraft.evernifecore.logic.delivery`): what cannot be handed over now (a full
+  inventory, an offline recipient, a delayed effect whose player left) becomes a `Delivery` - raw effect nodes with
+  origin (`DeliveryOrigin` plugin, emitter, reason), date, optional expiry and policy (`KEEP_SELF_CONTAINED` hands out
+  the core's effects and keeps a missing plugin's ones raw; `REQUIRES_ORIGIN` waits whole for every plugin) - kept by
+  the core in the player's `deliveries` section (`ONLINE`). `Deliveries.get()` `enqueue`, `listOf`, `claim`, `claimAll`
+  (run on every login), `purge`, `listFrom`, `enqueueSelfContained` (keeps only the core's nodes and audits the rest as
+  `DELIVERY_DISCARDED`); expired ones are swept once a minute; every step posts a `DeliveryEvent`. A claim keeps what
+  still does not fit in the same delivery. `DeliveriesCommandNode` (`list`, `claim <id>|all`) mounts on a plugin's
+  command; `/ecore deliveries list|purge <plugin>` (`evernifecore.command.deliveries`) is the admin side.
+- **Delivery destinations**: the effect modifier `to: <destination>` (accepted by effects whose
+  `Effect.acceptsDestination()` is true - `give-item` and `money`; refused, naming them, on any other) sends what the
+  effect gives to a `DeliveryDestination` of `DeliveryDestinations` (a `TypeRegistry` "destination"):
+  `evernifecore:inventory` (an `InventoryDestination` each platform registers - Bukkit and Hytale), `evernifecore:pending`
+  or a plugin's own. A destination nobody registered keeps the whole node, `to:` included, as a pending delivery.
+- Stock effect `give-item` (`item` id, `amount`, `expires`; what does not fit becomes a pending delivery from the
+  caller) and stock cost `item` (`item` id - a bare name matches any namespace - and `amount`: counted and taken from the
+  inventory all or nothing, given back through it on a refund). `item.ItemMatcher`, `ItemSpec.getAmount()`/`withAmount`/
+  `of(id, amount)` (that factory keeps the id's case: Hytale ids are case-sensitive), `logic.value.ItemRequirement` for
+  item contributions.
+- **Audit log** (`br.com.finalcraft.evernifecore.logic.audit`): `AuditLog.of(plugin, storage[, AuditRetention])` keeps
+  (`ec_audit`) what the plugin's own gates paid or denied, refunds that failed, balance changes, transfers (the payer as
+  `player`, the receiver as `getCounterparty()`) and deliveries, plus the boosters its `BoosterManager` grants and the
+  deposits to its contributions; `record(entry|trail)` adds more. `query(AuditQuery)` filters by player, counterparty,
+  `between(a, b)` (who traded with whom, in either order), `since`, kind and limit, newest first. Retention (30 days by
+  default, `AuditRetention.forever()`) is swept hourly (`ECDebugModule.AUDIT` logs the count). A plugin shows its log
+  through the mountable `AuditCommandNode` (`/<cmd> log [--player] [--since] [--kind] [--page]` or `log view [player]
+  [since] [kind] [page]`, gated on `<base>.view`); `/ecore logic audit <plugin> [player] [since]`
+  (`evernifecore.command.logic.audit`) stays for debugging. `AuditEntry` gains an id, `getPlayer()`, `getCounterparty()`
+  and `getSubject()`, and `AuditEntry.builder(kind, caller)`; `AuditKind` gains the kinds of balances, transfers,
+  deposits, boosters and deliveries. `AuditLog.closeOwnedBy` runs at the owner's shutdown.
+- **Self-describing type registries (`types`)**: a `TypeRegistry<T>` holds the types of one kind by `owner:name` key,
+  each described by a `TypeDescriptor` (aliases, one-sentence description, `ParamSpec` parameters, platforms, needed
+  player capabilities, event sources, factory). A definition node (`{type: compare, amount: 3}`, or `permission: shop.vip`
+  for a one-parameter type) is validated before the factory runs, and every refusal names the type, the parameter, the
+  value, the expected format and the type's parameters; a bare name resolves to the caller's own type first, an
+  ambiguous one lists the owners. `parseLater` keeps a definition that cites an absent type as a `PendingDefinition`
+  that resolves when the type registers (a child node always does), and a type this platform cannot run fails the
+  parse. A plugin's types leave on shutdown (`TypeRegistries.unregisterAll`).
+- **The operations engine (`logic`)**: `ExecutionContext` (built with a mandatory `Caller` - plugin + readable origin -
+  and a `ProgressOwner`: `player`, `global`, `region`, `world`, or a kind a plugin answers through a
+  `ProgressOwnerProvider`), `Condition`/`Cost`/`Effect`/`Variable`/`MutableVariable`, and `Gate`: `check` lists every
+  failure, `pay` takes the costs in order and refunds the taken ones in reverse when one does not come out (a refund
+  that throws is audited and logged severe). The compositions `all`/`any`/`none`/`at-least`/`optional` are condition
+  types; effects take the modifiers `delay`, `chance`, `if`, `repeat`+`every`, `as` and `target`, and `Effects.apply`
+  runs each on its target's thread (a delayed effect whose player left goes to a `DeferredEffectSink`, never to an
+  offline player). `ctx.resolve(text)` fills `{variables}` and `%placeholders%`; `getMultiplier` multiplies the
+  registered `MultiplierProvider`s. Every step is written to the context's `AuditTrail` and posted as `GateCheckEvent`,
+  `GatePrePayEvent` (cancellable), `CostTakeEvent`, `CostRefundEvent`, `EffectApplyEvent` (cancellable, the effect
+  replaceable), `GatePaidEvent` and `GateDeniedEvent`. `common-tests` gains `LogicWorld` and `TestClock`, the clock and
+  scheduler `RegionWorld` now shares with it.
+- **The stock logic types**: the variables `exp-level`, `exp-points`, `health`, `food`, `gamemode` (all writable),
+  `permission`, `placeholder`, `playtime` and `stat`; the conditions `compare` (numbers, texts, true/false) and
+  `permission`; the effects `message`, `command` (`as: player|console`), `set`, `add`, `teleport` and the holdable
+  `gamemode`, `fly`, `potion-effect`, `player-time` and `player-weather` - `scope: held` holds the slot for the context's
+  `StateHolder` (`HoldableEffect.HOLDER_ATTRIBUTE`) and the slot is given back when it lets go or on quit; `scope: held`
+  on an effect that cannot be held fails the parse. `IPlayerStateAccess` gains the capabilities `EXPERIENCE`
+  (`getLevel`/`setLevel`/`getExp`/`setExp`) and `STATISTICS` (`getStatistic`); Bukkit has both, Hytale neither yet.
+- **`RepeatPolicy` and plugin variables**: `RepeatPolicy` (`once`/`limited(n)`/`unlimited`, a minimum gap with
+  `cooldown(Duration)`, a count that resets each `window(Window)`, `reach(LOCAL|NETWORK)`, `persistent`) reads
+  `{limit: 3, cooldown: 10m, window: "daily at 04:00", reach: network}` and becomes a gate cost with `asCost(id)`, or
+  the stock cost `{type: repeat, counter: vip-door, limit: 3, window: "daily at 04:00"}` in a definition - the use is
+  given back when a later cost does not come out. `Cooldowns.resolve(caller, owner, id, policy)` routes the
+  counter by owner: a player's row, the server's, or, for a region, a world or a group, the `ec_cooldowns` collection of
+  the plugin's own storage (`Cooldowns.of(plugin, storage)`; without one only a non-persistent policy is accepted), pruned
+  by retention once a minute. `Variables.custom(plugin, storage).define(name, type, initial)` gives a plugin its own
+  variable, one value per owner, stored in `ec_variables` and read as `{plugin:name}` or `{type: custom, id: ...}`;
+  `.window(Window)` makes it an accumulator that starts over each window. `LogicWorld` gains `cooldowns()` and
+  `customVariables()`.
+- **`/ecore logic trace <player> [plugin]` and `/ecore types export [kind]`**: the trace (permission
+  `evernifecore.command.logic`) toggles, for whoever typed it, a line per condition checked, cost taken or refunded,
+  effect applied and multiplier of that player's contexts - only one plugin's callers when one is named - with the
+  caller in front (`LogicTrace`; a player who watches stops on quit), and the `LOGIC` debug module (off by default)
+  writes the same lines to the log. The export (permission `evernifecore.command.types`) writes
+  `export/types-<kind>.md` into the core's folder from the live registries: one table per type with its parameters,
+  platforms, sources, capabilities and whether this platform runs it. `LogicWorld.trace(player)` hands a test the
+  lines.
+
+#### Actions
+
+- **`ItemContext.getItem()`**: the item of a pickup, drop, craft, consume, enchant or catch as an `ItemSpec` carrying the
+  platform's stack (name and lore included), so a plugin reads it without `getNativeEvent(CraftItemEvent.class)`. The
+  stack is copied on the first call only; null for a Bukkit smelt and a Hytale craft, whose events carry no stack. The
+  constructor takes the item as a last `@Nullable Supplier<ItemSpec>`. Test kit: `ItemMetaDouble.factory()`.
+- **A left click on an NPC raises `interact-npc` too**: `EntityContext.getClickType()` (`ClickType.LEFT`/`RIGHT`) says
+  which. The Bukkit providers hear both clicks (Citizens' `NPCLeftClickEvent` beside `NPCRightClickEvent`, the left
+  click of FancyNpcs and ZNPCsPlus), and the test kit's `FakeNpcProvider.leftClick(player, ref)` punches. An
+  `interact-npc` objective takes `click: right|left` (default `right`), and a dialogue opens on the right click only, so
+  today's quests and dialogues behave as before. A cancelled `Pre` of a punch cancels the NPC plugin's left-click event.
+  `McActionContexts.npcUse` takes the click type. On Hytale the `Use` of an NPC is `RIGHT` and a hit a player lands
+  on it with his hand is `LEFT` (the server's primary attack ends in a `Damage`, never a `UseEntityEvent`); a
+  cancelled `Pre` of the punch cancels the hit.
+- **Public action events** (`action.event`): every game event the core translates posts a `<Source>ActionEvent` on the
+  `ECEventBus` - `.Pre` (cancellable, posted after the regions allowed the action, where the platform has a point before
+  the outcome) and `.Post` (after it, never for a cancelled native event): `Break`, `Place`, `Interact`, `Damage`,
+  `Spawn`, `Explosion`, `Fluid`, `Respawn`, `Pickup`, `Drop`, `Vehicle`, `FireSpread`, `FlightToggle`. Built only while
+  somebody listens, and the native listener or System of the source is on the server only while somebody listens
+  (`EventSourceUsage` holds the source for each listened pair, 3 min idle); subscribing to the base `ActionEvent`
+  switches every source on. `ActionEvents` is the catalog (`of(source).getPre()/getPost()`, `newPre/newPost(context)`,
+  `all()`), `Actions` what a platform listener does (`denied`, `cancelled`, `post`), `SimpleContext` the context of a
+  source with no detail. On Bukkit each listener posts the `.Pre` at its deciding priority and the `.Post` from a
+  `MONITOR` handler that ignores cancelled events (a piston moving blocks is asked of the regions and posts nothing); on
+  Hytale the deciding System posts both, the `.Post` once it leaves the event uncancelled (a hit on a block or an
+  explosion's block damage posts only the `.Pre`: it is not the break).
+  `ActionSupport` says which sources a platform raises and where a `.Pre` exists (`declare`, `isServed`, `hasPre`,
+  `isNativeCommandSource`); `ActionSupport.requireServed` is the loud failure (`UnsupportedSourceException`, naming the
+  definition, the source and the server) a definition raises at load on a platform without the source.
+  Twelve new sources, each with its pair: `KILL` (`KillActionEvent`, a `DamageContext` whose victim died), `CRAFT`,
+  `SMELT`, `FISH`, `CONSUME`, `ENCHANT` (`ItemContext`), `XP_GAIN` (`XpContext`), `TAME`, `BREED`, `SHEAR`
+  (`EntityContext`), `COMMAND` (`CommandContext`: the label typed and every name of the command, moved here from
+  FinalProtection) and `EXPLORE` (`ExploreContext`: the chunk left and the chunk entered). `KILL`, `SMELT` and
+  `XP_GAIN` have no `.Pre` on Bukkit (none of those events can be cancelled). Bukkit raises all twelve through
+  `KillActionListener`, `CraftActionListener`, `SmeltActionListener`, `FishActionListener` (a catch only),
+  `ConsumeActionListener`, `XpGainActionListener` (a gain only), `EnchantActionListener`, `TameActionListener`,
+  `BreedActionListener` (from 1.12; before it `BREED` is declared not raised), `ShearActionListener`,
+  `CommandActionListener` (`PlayerCommandPreprocessEvent`, every plugin's commands) and `ExploreActionListener`.
+  Where the platform has no command event (`ActionSupport.isNativeCommandSource()` false: Hytale), the `FinalCMD`
+  executor raises `COMMAND` for its own commands: the `.Pre` past the command's permission and before anything runs (a
+  denial or a cancelled `.Pre` stops the command), the `.Post` after it ran; on Bukkit it never posts, so a command is
+  posted once. Hytale raises `CRAFT` (`CraftRecipeEvent.Pre` asks and can cancel, `.Post` posts; the amount is the
+  recipe's primary output times the crafts), `KILL` (on the server's death hook, the killer named by the death's damage),
+  `RESPAWN` (`RespawnEvent`, with a `.Pre` that keeps the player dead), `EXPLORE` (the region tick, on a chunk change,
+  `.Post` only) and `COMMAND` (through `FinalCMD`); it has no event for smelting, fishing, eating, experience,
+  enchanting, taming, breeding or shearing, and declares those sources not raised. With `RESPAWN` raised, Hytale's boot
+  no longer warns about `spawn-point`.
+- **Provenance** (`action.provenance`): `ProvenanceTracker.open(owner, storage)` records who placed a block
+  (`PLAYER_PLACED`), what made a creature (`SPAWNER`, `EGG`, `BREEDING`, `COMMAND`) and who dropped an item
+  (`PLAYER_DROP`), as a subscriber of the action events - `record()` returns the `ProvenanceHold` that keeps it
+  subscribed, and subscribing is what switches the platform's listeners on - and answers `getOrigin(block)` (async),
+  `peekOrigin(block)` and `getOrigin(entity)`; `Provenance.isOwn(player)` tells a player's own block or drop. Nothing
+  recorded reads `NATURAL`. Blocks persist per chunk on the owner's storage (`provenance_blocks`, write-back through
+  `SVWorldDataManager`); creatures and items live in memory only (50 000 at most), and Hytale spawns are all natural. A
+  break, a kill and a pickup forget the record. Off by default; the core settings gain `Provenance.shared` (one tracker
+  in a storage the core opens on the default backend of its `storage.yml`, answering every plugin), `Provenance.always`
+  (record from boot) and `Provenance.retention.player-placed` (30d; an older placed block reads natural and its record
+  is dropped when read). A plugin's tracker closes in `onECPluginShutdownPre`, before its regions.
+
+#### Flags
+
+- **Six core flags over the logic module** (56 in `CoreFlags.all()`): `effects-on-enter` / `effects-on-exit` (a list of
+  effects of any plugin, `{type: <name>, ...}` maps, applied as a player enters or leaves; one whose plugin is absent is
+  kept as written, skipped and shown as `(pending: <type>)` in `region info` until it registers), `effects-while-inside`
+  (`ACTOR`; holdable effects only - `gamemode`, `fly`, `potion-effect`, `player-time`, `player-weather` - held while the
+  value applies and given back on leaving or quitting; any other effect is refused when read, naming `effects-on-enter`),
+  `entry-gate` (a `Gate`, `{require: [...], cost: [...]}`: the conditions are checked on every entry, the costs charged
+  through the gate's own audited `pay` as `EntryGateSettings.charge` says - `ONCE_PER_SESSION`, `EVERY_ENTRY` or
+  `PER_WINDOW` with a `window`; a player who fails is sent back and told why), `boosters` (`ACTOR`, `DATA`: a list of
+  `BoosterEntry` `on=<gain> factor=<n>` or `bonus=<n>`, exactly one of the two, joined by `concat` for the booster engine
+  to read) and `damage-multiplier` (`ACTOR`: scales the damage a player takes; layers multiply within
+  `DamageMultiplierSettings` `floor`/`cap`, written on the hit by `DamageContext.multiplyDamage` and applied by the damage
+  listener on Bukkit and Hytale; an `invincible` player is denied first).
+- `FlagTypes.effects(flag, holdableOnly)`, `FlagTypes.gate(flag)` and `FlagTypes.BOOSTERS`; `FlagDefinition` keeps a logic
+  definition with the node it was written as (what is stored, shown and compared). `Effects.getPendingType(effect)`,
+  `HeldPlayerState.releaseAll(holder, player)`, `RegionPlayerSession.getPaidGates()`.
+
+#### Regions
+
+- **`RegionCrossedEvent`**: posted once a crossing took effect, with the regions left, the regions entered, the
+  player, from/to, the `MoveCause` and the native event; never cancellable. `RegionEnterEvent`/`RegionLeaveEvent`
+  keep their "before the crossing, cancellable" role.
+- **`RegionManager.of(owner)`**: a manager without storage, for `TRANSIENT` regions only - creating a `PERSISTENT`
+  region there is a refusal in the `CreationResult` that says how to open the manager on a storage.
+
+#### Groups
+
+- **`GroupKindRegisteredEvent`**: `GroupManager.registerKind` posts it (after reading the stored groups of the kind, when
+  the manager has loaded), so a plugin waiting for a kind no longer needs the first `GroupCreatedEvent`.
 - **Group engine (`br.com.finalcraft.evernifecore.group`)**: `GroupManager.of(owner, storage)` keeps a plugin's groups in
   its own storage (collection `groups`; `of(owner)` holds TRANSIENT groups only and refuses a PERSISTENT one saying how
   to persist it); `GroupKind` declares cardinality (`ONE` refuses a second group of the kind on `add` and `join`), a roles
@@ -278,14 +419,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   [ttl]` (5 minutes by default), `join <group>` (through the invite when there is one), `leave [group]` (the sender's in a
   ONE kind), `kick`, `promote`/`demote <group> <player> <role>`, `disband`, `info`, `list` and `flag <group> <flag>
   [value|-] [-t ttl]`, every message in EN_US and PT_BR.
-- **Group rewards (`br.com.finalcraft.evernifecore.logic.reward`)**: `Rewards.pay(rule, context)` pays a group
-  (or any `ProgressOwner`) by one `RewardRule` built from registrable pieces - eligibility (`any-member`, `online`,
-  `present`, `role`, `last-actor`, `contribution-at-least`, `contribution-share`, `top`, `condition`), distribution
-  (`each`, `split-equal`, `proportional`, `top-takes-all`, `tiers`), absence (`deliver` as a pending delivery,
-  `forfeit`, `redistribute`), moment and leaver/joiner rules - with the same YAML a quest writes (`RewardRule.parse`).
-  The caller hands in the contributions and the last actor through `RewardContext`; every payment posts a
-  `RewardPaidEvent` and lands in the caller plugin's `AuditLog` (`AuditKind.REWARD_PAID`). Plugins add pieces on
-  `Rewards.registry()` ("reward-piece"). `LogicWorld` registers the pieces with its stock.
+
+#### Boosters
+
 - **Boosters** (`br.com.finalcraft.evernifecore.booster`): `Booster.on(gain).factor/bonus.forOwner(...).lasting/until/during(season)`,
   `BoosterManager.of(plugin, storage)` keeps a plugin's boosters in its own storage (`ec_boosters`; `of(plugin)` in memory),
   `grant` posts a `BoosterGrantedEvent`, a booster past its end stops counting at once and a sweep drops it once a minute.
@@ -295,65 +431,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   (`Boosters.join.<gain>`) only within what the declaration accepts. `ExecutionContext.getMultiplier` joins them and the
   trace names each parcel. A booster multiplies at the source of the gain (`money` effect `boosted: true`), never inside
   `Currency.give`. A `Booster` is written in a config as `{on: money, factor: 1.5, owner: global, lasting: 1h}`.
-- **Dynamic values and contributions** (`br.com.finalcraft.evernifecore.logic.value`): `DynamicValues.of(plugin,
-  storage).define(id, spec)` - base, min/max, step per bump, decay toward the base computed on read from the clock, one
-  state per `ProgressOwner`, persisted (`ec_dynamic_values`), readable as the variable `{plugin:id}`; a `DynamicValueSpec`
-  is written as `{base, min, max, step, decay: {amount, every}}`. `Contributions.of(plugin, storage).define(id, target,
-  requirement)` collects deposits per member up to the target (`CurrencyRequirement.of(currency, amount)`, `consume` or
-  `check()`), posts a `ContributionDepositEvent` per deposit and applies its completion effects once
-  (`ContributionCompletedEvent`).
-- Stock cost and effect `money` (`amount` a number or a `{variable}`, `currency` default `money`; the effect is boosted
-  unless `boosted: false`, a missing wallet or economy is audited and never thrown; the cost names what to install when
-  there is no economy).
-- **Pending deliveries** (`br.com.finalcraft.evernifecore.logic.delivery`): what cannot be handed over now (a full
-  inventory, an offline recipient, a delayed effect whose player left) becomes a `Delivery` - raw effect nodes with
-  origin (`DeliveryOrigin` plugin, emitter, reason), date, optional expiry and policy (`KEEP_SELF_CONTAINED` hands out
-  the core's effects and keeps a missing plugin's ones raw; `REQUIRES_ORIGIN` waits whole for every plugin) - kept by
-  the core in the player's `deliveries` section (`ONLINE`). `Deliveries.get()` `enqueue`, `listOf`, `claim`, `claimAll`
-  (run on every login), `purge`, `listFrom`, `enqueueSelfContained` (keeps only the core's nodes and audits the rest as
-  `DELIVERY_DISCARDED`); expired ones are swept once a minute; every step posts a `DeliveryEvent`. A claim keeps what
-  still does not fit in the same delivery. `DeliveriesCommandNode` (`list`, `claim <id>|all`) mounts on a plugin's
-  command; `/ecore deliveries list|purge <plugin>` (`evernifecore.command.deliveries`) is the admin side.
-- **Delivery destinations**: the effect modifier `to: <destination>` (accepted by effects whose
-  `Effect.acceptsDestination()` is true - `give-item` and `money`; refused, naming them, on any other) sends what the
-  effect gives to a `DeliveryDestination` of `DeliveryDestinations` (a `TypeRegistry` "destination"):
-  `evernifecore:inventory` (an `InventoryDestination` each platform registers - Bukkit and Hytale), `evernifecore:pending`
-  or a plugin's own. A destination nobody registered keeps the whole node, `to:` included, as a pending delivery.
-- Stock effect `give-item` (`item` id, `amount`, `expires`; what does not fit becomes a pending delivery from the
-  caller) and stock cost `item` (`item` id - a bare name matches any namespace - and `amount`: counted and taken from the
-  inventory all or nothing, given back through it on a refund). `item.ItemMatcher`, `ItemSpec.getAmount()`/`withAmount`/
-  `of(id, amount)` (that factory keeps the id's case: Hytale ids are case-sensitive), `logic.value.ItemRequirement` for
-  item contributions.
-- **Audit log** (`br.com.finalcraft.evernifecore.logic.audit`): `AuditLog.of(plugin, storage[, AuditRetention])` keeps
-  (`ec_audit`) what the plugin's own gates paid or denied, refunds that failed, balance changes, transfers (the payer as
-  `player`, the receiver as `getCounterparty()`) and deliveries, plus the boosters its `BoosterManager` grants and the
-  deposits to its contributions; `record(entry|trail)` adds more. `query(AuditQuery)` filters by player, counterparty,
-  `between(a, b)` (who traded with whom, in either order), `since`, kind and limit, newest first. Retention (30 days by
-  default, `AuditRetention.forever()`) is swept hourly (`ECDebugModule.AUDIT` logs the count). A plugin shows its log
-  through the mountable `AuditCommandNode` (`/<cmd> log [--player] [--since] [--kind] [--page]` or `log view [player]
-  [since] [kind] [page]`, gated on `<base>.view`); `/ecore logic audit <plugin> [player] [since]`
-  (`evernifecore.command.logic.audit`) stays for debugging. `AuditEntry` gains an id, `getPlayer()`, `getCounterparty()`
-  and `getSubject()`, and `AuditEntry.builder(kind, caller)`; `AuditKind` gains the kinds of balances, transfers,
-  deposits, boosters and deliveries. `AuditLog.closeOwnedBy` runs at the owner's shutdown.
-- Engine: `Platforms.withInventory(slots)` registers a `TestInventory` as `evernifecore:inventory` for the life of the
-  world; `LogicWorld.deliveries()` (an in-memory PlayerData layer) and `LogicWorld.auditLog()`;
-  `ScriptedStorage.inMemory()`.
 
-- **Six core flags over the logic module** (56 in `CoreFlags.all()`): `effects-on-enter` / `effects-on-exit` (a list of
-  effects of any plugin, `{type: <name>, ...}` maps, applied as a player enters or leaves; one whose plugin is absent is
-  kept as written, skipped and shown as `(pending: <type>)` in `region info` until it registers), `effects-while-inside`
-  (`ACTOR`; holdable effects only - `gamemode`, `fly`, `potion-effect`, `player-time`, `player-weather` - held while the
-  value applies and given back on leaving or quitting; any other effect is refused when read, naming `effects-on-enter`),
-  `entry-gate` (a `Gate`, `{require: [...], cost: [...]}`: the conditions are checked on every entry, the costs charged
-  through the gate's own audited `pay` as `EntryGateSettings.charge` says - `ONCE_PER_SESSION`, `EVERY_ENTRY` or
-  `PER_WINDOW` with a `window`; a player who fails is sent back and told why), `boosters` (`ACTOR`, `DATA`: a list of
-  `BoosterEntry` `on=<gain> factor=<n>` or `bonus=<n>`, exactly one of the two, joined by `concat` for the booster engine
-  to read) and `damage-multiplier` (`ACTOR`: scales the damage a player takes; layers multiply within
-  `DamageMultiplierSettings` `floor`/`cap`, written on the hit by `DamageContext.multiplyDamage` and applied by the damage
-  listener on Bukkit and Hytale; an `invincible` player is denied first).
-- `FlagTypes.effects(flag, holdableOnly)`, `FlagTypes.gate(flag)` and `FlagTypes.BOOSTERS`; `FlagDefinition` keeps a logic
-  definition with the node it was written as (what is stored, shown and compared). `Effects.getPendingType(effect)`,
-  `HeldPlayerState.releaseAll(holder, player)`, `RegionPlayerSession.getPaidGates()`.
+#### Ranking
 
 - **`ranking`**: `RankedList<T>` is the data half of a ranked list - id `owner:name` (`RankedList.of(plugin, name, type)`,
   or `anonymous(type)` for a list that depends on a command argument), a plain or `CompletableFuture` source
@@ -363,132 +442,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `RankedPlaceholders.register(replacer, owner)` serves `%<prefix>_top_[list]_{n}_name|value|[key]%`, `_size`, `_total`,
   `_position` and `_age`; the core serves `%evernifecore_top_[owner:name]_...%`. `RankedLists.find`/`ownedBy`/`closeOwnedBy`
   (run at the owner's shutdown).
-- **`PlayerController.getAllSections(cls)`**: every stored row of a `PRELOADED` section, from memory (transient defaults
-  left out); any other lifecycle refuses and names `.lifecycle(SectionLifecycle.PRELOADED)` and `querySections` as the
-  ways out.
-- **Section hooks for a network**, on every `PDSection` and `AccountSection`: `onFlushed()` (this row was written; not
-  for a row that lost an optimistic race), `onRemoteChange(ChangeEvent)` (another server wrote or deleted it, told by the
-  multi-server cache-sync before the cell goes stale; never for this server's own writes), `getLockVersion()` and
-  `readStoredVersion()` (one key+version read of the backend). The remote hook needs EveryDatabase 1.5.1
-  (`CacheSync.onRemoteChange`); a throw from either hook is logged and swallowed.
-- **`LocaleOverlay`**: per-locale translation files for the text of a plugin's YAML definitions
-  (`localization/overlay/<LOCALE>.yml`, flat keys on the stable path `<definitionId>.<path in the definition>`).
-  `LocaleOverlay.of(plugin).register(id, root[, textKeys])` marks the text leaves (`DEFAULT_TEXT_KEYS` by default);
-  `text(id, path, locale)` answers the overlay file, then an inline language map on the leaf (`{EN_US: ..., PT_BR: ...}`),
-  then the plugin's language, then the author's text. `/ecore i18n export <plugin> <locale>` (`OverlayExporter`,
-  permission `evernifecore.command.i18n`) writes the missing paths with today's text for a translator and never
-  overwrites a translated one. A plugin's overlay is dropped at its shutdown.
-- **Self-describing type registries (`types`)**: a `TypeRegistry<T>` holds the types of one kind by `owner:name` key,
-  each described by a `TypeDescriptor` (aliases, one-sentence description, `ParamSpec` parameters, platforms, needed
-  player capabilities, event sources, factory). A definition node (`{type: compare, amount: 3}`, or `permission: shop.vip`
-  for a one-parameter type) is validated before the factory runs, and every refusal names the type, the parameter, the
-  value, the expected format and the type's parameters; a bare name resolves to the caller's own type first, an
-  ambiguous one lists the owners. `parseLater` keeps a definition that cites an absent type as a `PendingDefinition`
-  that resolves when the type registers (a child node always does), and a type this platform cannot run fails the
-  parse. A plugin's types leave on shutdown (`TypeRegistries.unregisterAll`).
-- **`time.Window` and `Season`**: daily, weekly, monthly (29-31 clamp to the month's last day), 5-field cron and season
-  windows in a `ZoneId`, with `currentStart`/`nextBoundary`/`isOpen`; daylight-saving safe (a boundary in the spring gap
-  moves forward, one in the autumn overlap takes the first occurrence). `Window.parse` reads `daily at 04:00`,
-  `weekly on monday at 18:00 zone Europe/Lisbon`, `monthly on 1`, `cron 0 4 * * 1` and `{season: {id, from, to, zone}}`;
-  a cron that can never match is a parse error.
-- **The operations engine (`logic`)**: `ExecutionContext` (built with a mandatory `Caller` - plugin + readable origin -
-  and a `ProgressOwner`: `player`, `global`, `region`, `world`, or a kind a plugin answers through a
-  `ProgressOwnerProvider`), `Condition`/`Cost`/`Effect`/`Variable`/`MutableVariable`, and `Gate`: `check` lists every
-  failure, `pay` takes the costs in order and refunds the taken ones in reverse when one does not come out (a refund
-  that throws is audited and logged severe). The compositions `all`/`any`/`none`/`at-least`/`optional` are condition
-  types; effects take the modifiers `delay`, `chance`, `if`, `repeat`+`every`, `as` and `target`, and `Effects.apply`
-  runs each on its target's thread (a delayed effect whose player left goes to a `DeferredEffectSink`, never to an
-  offline player). `ctx.resolve(text)` fills `{variables}` and `%placeholders%`; `getMultiplier` multiplies the
-  registered `MultiplierProvider`s. Every step is written to the context's `AuditTrail` and posted as `GateCheckEvent`,
-  `GatePrePayEvent` (cancellable), `CostTakeEvent`, `CostRefundEvent`, `EffectApplyEvent` (cancellable, the effect
-  replaceable), `GatePaidEvent` and `GateDeniedEvent`. `common-tests` gains `LogicWorld` and `TestClock`, the clock and
-  scheduler `RegionWorld` now shares with it.
-- **The stock logic types**: the variables `exp-level`, `exp-points`, `health`, `food`, `gamemode` (all writable),
-  `permission`, `placeholder`, `playtime` and `stat`; the conditions `compare` (numbers, texts, true/false) and
-  `permission`; the effects `message`, `command` (`as: player|console`), `set`, `add`, `teleport` and the holdable
-  `gamemode`, `fly`, `potion-effect`, `player-time` and `player-weather` - `scope: held` holds the slot for the context's
-  `StateHolder` (`HoldableEffect.HOLDER_ATTRIBUTE`) and the slot is given back when it lets go or on quit; `scope: held`
-  on an effect that cannot be held fails the parse. `IPlayerStateAccess` gains the capabilities `EXPERIENCE`
-  (`getLevel`/`setLevel`/`getExp`/`setExp`) and `STATISTICS` (`getStatistic`); Bukkit has both, Hytale neither yet.
-- **`RepeatPolicy` and plugin variables**: `RepeatPolicy` (`once`/`limited(n)`/`unlimited`, a minimum gap with
-  `cooldown(Duration)`, a count that resets each `window(Window)`, `reach(LOCAL|NETWORK)`, `persistent`) reads
-  `{limit: 3, cooldown: 10m, window: "daily at 04:00", reach: network}` and becomes a gate cost with `asCost(id)`, or
-  the stock cost `{type: repeat, counter: vip-door, limit: 3, window: "daily at 04:00"}` in a definition - the use is
-  given back when a later cost does not come out. `Cooldowns.resolve(caller, owner, id, policy)` routes the
-  counter by owner: a player's row, the server's, or, for a region, a world or a group, the `ec_cooldowns` collection of
-  the plugin's own storage (`Cooldowns.of(plugin, storage)`; without one only a non-persistent policy is accepted), pruned
-  by retention once a minute. `Variables.custom(plugin, storage).define(name, type, initial)` gives a plugin its own
-  variable, one value per owner, stored in `ec_variables` and read as `{plugin:name}` or `{type: custom, id: ...}`;
-  `.window(Window)` makes it an accumulator that starts over each window. `LogicWorld` gains `cooldowns()` and
-  `customVariables()`.
-- **`/ecore logic trace <player> [plugin]` and `/ecore types export [kind]`**: the trace (permission
-  `evernifecore.command.logic`) toggles, for whoever typed it, a line per condition checked, cost taken or refunded,
-  effect applied and multiplier of that player's contexts - only one plugin's callers when one is named - with the
-  caller in front (`LogicTrace`; a player who watches stops on quit), and the `LOGIC` debug module (off by default)
-  writes the same lines to the log. The export (permission `evernifecore.command.types`) writes
-  `export/types-<kind>.md` into the core's folder from the live registries: one table per type with its parameters,
-  platforms, sources, capabilities and whether this platform runs it. `LogicWorld.trace(player)` hands a test the
-  lines.
-- **`RegionCrossedEvent`**: posted once a crossing took effect, with the regions left, the regions entered, the
-  player, from/to, the `MoveCause` and the native event; never cancellable. `RegionEnterEvent`/`RegionLeaveEvent`
-  keep their "before the crossing, cancellable" role.
-- **`RegionManager.of(owner)`**: a manager without storage, for `TRANSIENT` regions only - creating a `PERSISTENT`
-  region there is a refusal in the `CreationResult` that says how to open the manager on a storage.
-- **`FancyText.raw(String)`**: a piece that renders its text as written - no `&` colour translation, no `${key}`
-  resolution - for player-typed text inside a line with hover/click (`FancySegment.isRaw()`).
-- **`FCommandSender.canSee(FPlayer)`**: whether the platform hides that player from the sender (Bukkit `canSee`,
-  Hytale `HiddenPlayersManager`; the console sees everyone). `TestFPlayerSender.hide(FPlayer)` in `common-tests`.
-- **The console filter is a provider**: `ECConsoleFilter.global()` asks one `IConsoleFilterProvider` for every
-  console line; the default `CORE_COMMANDS` hides the echo of `/ecdcmd` and `/ecpage`, and a plugin (FinalConsoleFilter)
-  replaces it with `setProvider`/`removeProvider`. On Bukkit the core installs `ECBukkitConsoleFilter` on the Log4j root
-  logger at enable and removes it at shutdown - the hook it never installed before. `ECBukkitConsoleFilter.applyFilter()`
-  is gone (`install()` is the core's).
-- **Public action events** (`action.event`): every game event the core translates posts a `<Source>ActionEvent` on the
-  `ECEventBus` - `.Pre` (cancellable, posted after the regions allowed the action, where the platform has a point before
-  the outcome) and `.Post` (after it, never for a cancelled native event): `Break`, `Place`, `Interact`, `Damage`,
-  `Spawn`, `Explosion`, `Fluid`, `Respawn`, `Pickup`, `Drop`, `Vehicle`, `FireSpread`, `FlightToggle`. Built only while
-  somebody listens, and the native listener or System of the source is on the server only while somebody listens
-  (`EventSourceUsage` holds the source for each listened pair, 3 min idle); subscribing to the base `ActionEvent`
-  switches every source on. `ActionEvents` is the catalog (`of(source).getPre()/getPost()`, `newPre/newPost(context)`,
-  `all()`), `Actions` what a platform listener does (`denied`, `cancelled`, `post`), `SimpleContext` the context of a
-  source with no detail. On Bukkit each listener posts the `.Pre` at its deciding priority and the `.Post` from a
-  `MONITOR` handler that ignores cancelled events (a piston moving blocks is asked of the regions and posts nothing); on
-  Hytale the deciding System posts both, the `.Post` once it leaves the event uncancelled (a hit on a block or an
-  explosion's block damage posts only the `.Pre`: it is not the break).
-  `ActionSupport` says which sources a platform raises and where a `.Pre` exists (`declare`, `isServed`, `hasPre`,
-  `isNativeCommandSource`); `ActionSupport.requireServed` is the loud failure (`UnsupportedSourceException`, naming the
-  definition, the source and the server) a definition raises at load on a platform without the source.
-  Twelve new sources, each with its pair: `KILL` (`KillActionEvent`, a `DamageContext` whose victim died), `CRAFT`,
-  `SMELT`, `FISH`, `CONSUME`, `ENCHANT` (`ItemContext`), `XP_GAIN` (`XpContext`), `TAME`, `BREED`, `SHEAR`
-  (`EntityContext`), `COMMAND` (`CommandContext`: the label typed and every name of the command, moved here from
-  FinalProtection) and `EXPLORE` (`ExploreContext`: the chunk left and the chunk entered). `KILL`, `SMELT` and
-  `XP_GAIN` have no `.Pre` on Bukkit (none of those events can be cancelled). Bukkit raises all twelve through
-  `KillActionListener`, `CraftActionListener`, `SmeltActionListener`, `FishActionListener` (a catch only),
-  `ConsumeActionListener`, `XpGainActionListener` (a gain only), `EnchantActionListener`, `TameActionListener`,
-  `BreedActionListener` (from 1.12; before it `BREED` is declared not raised), `ShearActionListener`,
-  `CommandActionListener` (`PlayerCommandPreprocessEvent`, every plugin's commands) and `ExploreActionListener`.
-  Where the platform has no command event (`ActionSupport.isNativeCommandSource()` false: Hytale), the `FinalCMD`
-  executor raises `COMMAND` for its own commands: the `.Pre` past the command's permission and before anything runs (a
-  denial or a cancelled `.Pre` stops the command), the `.Post` after it ran; on Bukkit it never posts, so a command is
-  posted once. Hytale raises `CRAFT` (`CraftRecipeEvent.Pre` asks and can cancel, `.Post` posts; the amount is the
-  recipe's primary output times the crafts), `KILL` (on the server's death hook, the killer named by the death's damage),
-  `RESPAWN` (`RespawnEvent`, with a `.Pre` that keeps the player dead), `EXPLORE` (the region tick, on a chunk change,
-  `.Post` only) and `COMMAND` (through `FinalCMD`); it has no event for smelting, fishing, eating, experience,
-  enchanting, taming, breeding or shearing, and declares those sources not raised. With `RESPAWN` raised, Hytale's boot
-  no longer warns about `spawn-point`.
-- **Provenance** (`action.provenance`): `ProvenanceTracker.open(owner, storage)` records who placed a block
-  (`PLAYER_PLACED`), what made a creature (`SPAWNER`, `EGG`, `BREEDING`, `COMMAND`) and who dropped an item
-  (`PLAYER_DROP`), as a subscriber of the action events - `record()` returns the `ProvenanceHold` that keeps it
-  subscribed, and subscribing is what switches the platform's listeners on - and answers `getOrigin(block)` (async),
-  `peekOrigin(block)` and `getOrigin(entity)`; `Provenance.isOwn(player)` tells a player's own block or drop. Nothing
-  recorded reads `NATURAL`. Blocks persist per chunk on the owner's storage (`provenance_blocks`, write-back through
-  `SVWorldDataManager`); creatures and items live in memory only (50 000 at most), and Hytale spawns are all natural. A
-  break, a kill and a pickup forget the record. Off by default; the core settings gain `Provenance.shared` (one tracker
-  in a storage the core opens on the default backend of its `storage.yml`, answering every plugin), `Provenance.always`
-  (record from boot) and `Provenance.retention.player-placed` (30d; an older placed block reads natural and its record
-  is dropped when read). A plugin's tracker closes in `onECPluginShutdownPre`, before its regions.
-- **`ActionWorld` in `common-tests`**: one plugin's actions against the test doubles - `pre`/`post` as a native listener
-  does them, the contexts they carry, `isNeeded(source)` and the owner's `provenance()` on the world's storage.
+
+#### Notifications and HUD
+
 - **`IPlatform.getHud()`**: the `notify.IHudAccess` seam - action bar, title, boss bar (with progress), sidebar, toast,
   quest tracker, sound and compass - with `supports(Capability)`; a call of a capability the platform lacks throws.
   Bukkit answers by version (action bar and title above 1.7.10 or with NecroTempus, boss bar from 1.9, toast from 1.12;
@@ -511,109 +467,113 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   platform (`Waypoints.validate` is the load-time check). Channels are a `TypeRegistry` (`Waypoints.register`);
   `Settings.Waypoint.channels` (default `compass`, `particle-path`), `refresh-ticks` (10), `particle-path-length` (16).
 
+#### PlayerData
+
+- `PlayerController.getRemoteSignal(sectionClass)` answers how this server hears another server's write to a section's
+  rows: `RemoteSignal.LIVE` (a cache-sync covers the collection), `CONFLICT_ONLY` (a shared network backend without one:
+  only the next flush conflict tells) or `NONE` (file, H2, memory). A plugin running on several servers decides how
+  careful a debit must be by it.
+- `PlayerController.findSections(sectionClass, uuids)`: the stored rows of a known set of players in ONE backend read by
+  key, never filling the cache (the key needs no `@Indexed`, unlike `querySections`) - a clan page over its members.
+- **`PlayerController.getAllSections(cls)`**: every stored row of a `PRELOADED` section, from memory (transient defaults
+  left out); any other lifecycle refuses and names `.lifecycle(SectionLifecycle.PRELOADED)` and `querySections` as the
+  ways out.
+- **Section hooks for a network**, on every `PDSection` and `AccountSection`: `onFlushed()` (this row was written; not
+  for a row that lost an optimistic race), `onRemoteChange(ChangeEvent)` (another server wrote or deleted it, told by the
+  multi-server cache-sync before the cell goes stale; never for this server's own writes), `getLockVersion()` and
+  `readStoredVersion()` (one key+version read of the backend). The remote hook needs EveryDatabase 1.5.1
+  (`CacheSync.onRemoteChange`); a throw from either hook is logged and swallowed.
+
+#### Config and locale
+
+- **`LocaleOverlay`**: per-locale translation files for the text of a plugin's YAML definitions
+  (`localization/overlay/<LOCALE>.yml`, flat keys on the stable path `<definitionId>.<path in the definition>`).
+  `LocaleOverlay.of(plugin).register(id, root[, textKeys])` marks the text leaves (`DEFAULT_TEXT_KEYS` by default);
+  `text(id, path, locale)` answers the overlay file, then an inline language map on the leaf (`{EN_US: ..., PT_BR: ...}`),
+  then the plugin's language, then the author's text. `/ecore i18n export <plugin> <locale>` (`OverlayExporter`,
+  permission `evernifecore.command.i18n`) writes the missing paths with today's text for a translator and never
+  overwrites a translated one. A plugin's overlay is dropped at its shutdown.
+
+#### Scheduler and time
+
+- **`ECScheduler.repeatAsync(task, delayMillis, periodMillis)`**: a repeated async task with a `RepeatingTask` handle that
+  cancels it; a run that throws is printed and the next one still comes. It runs through the same `Backend` as
+  `scheduleAsync`, so `TestClock` drives it.
+- **`time.Window` and `Season`**: daily, weekly, monthly (29-31 clamp to the month's last day), 5-field cron and season
+  windows in a `ZoneId`, with `currentStart`/`nextBoundary`/`isOpen`; daylight-saving safe (a boundary in the spring gap
+  moves forward, one in the autumn overlap takes the first occurrence). `Window.parse` reads `daily at 04:00`,
+  `weekly on monday at 18:00 zone Europe/Lisbon`, `monthly on 1`, `cron 0 4 * * 1` and `{season: {id, from, to, zone}}`;
+  a cron that can never match is a parse error.
+
+#### Common utilities
+
+- **`FancyText.raw(String)`**: a piece that renders its text as written - no `&` colour translation, no `${key}`
+  resolution - for player-typed text inside a line with hover/click (`FancySegment.isRaw()`).
+
+#### Bukkit platform
+
+- **`FCommandSender.canSee(FPlayer)`**: whether the platform hides that player from the sender (Bukkit `canSee`,
+  Hytale `HiddenPlayersManager`; the console sees everyone). `TestFPlayerSender.hide(FPlayer)` in `common-tests`.
+- **The console filter is a provider**: `ECConsoleFilter.global()` asks one `IConsoleFilterProvider` for every
+  console line; the default `CORE_COMMANDS` hides the echo of `/ecdcmd` and `/ecpage`, and a plugin (FinalConsoleFilter)
+  replaces it with `setProvider`/`removeProvider`. On Bukkit the core installs `ECBukkitConsoleFilter` on the Log4j root
+  logger at enable and removes it at shutdown - the hook it never installed before. `ECBukkitConsoleFilter.applyFilter()`
+  is gone (`install()` is the core's).
+
+#### Hytale
+
+- **The Hytale `inventory-readers` conformance case**: in a live Hytale server, five stone in the bot's active hotbar
+  slot are what `getHeld` reads, `getContents` lists them, and `roomFor` has room that is gone once every slot is full.
+
+#### Test kit
+
+- **A strict double's refusal that the core only reported fails the world** (test kit): `notConfigured` throws
+  `PlatformNotConfiguredException` (still an `UnsupportedOperationException`), and `ECoreTestWorld` watches the global
+  bus's exception handler for it: `close()` fails with the refusal's message, which names the builder call. A product
+  test that hit an unconfigured `Platforms.strict()` call inside a subscriber used to stay green with a log line.
+- **`PlayerDouble.getTitles()` / `getActionBars()`** (test kit): the titles (`PlayerDouble.Title`, `Title.CLEARED` for a
+  cleared one) and action bars a chest test's player was shown through the Bukkit API.
+- **`BukkitScreenWorld.withEconomy(economy)`** (test kit): the chest test's economy, the same form as
+  `ECoreTestWorld.withEconomy` (`Economies.inMemory()...build()`), put back on `close()` - no more registering an
+  `IEconomyProvider` by hand. Its `PlayerDouble` answers `getStorageContents`/`setStorageContents`, so
+  `FCInventoryUtil` counts, finds and takes items from the player of a chest test: a whole sale runs on the real chest.
+- **`BukkitScreenWorld.install(dir, platform)`** (test kit): the chest over
+  the lenient platform adjusted by a `UnaryOperator<Platforms>`, the same form as `ScreenWorld.open(dir, platform)` -
+  `Platforms::capturingCommands` for a button that runs a command as the player, `p -> p.parsingWith(...)` for a
+  placeholder.
+- **`CountedGoods.refuseGives(why)`** (test kit): goods whose give throws, for the path where a trade must refund and
+  refuse.
+- **`RecordingRenderer.refuseNextOpen()`** (test kit) refuses exactly the next open and opens the ones after it, so a
+  test tells "the screen on top was refused" from "the way back was refused"; `refuseOpens(true)` still refuses every
+  open.
+- **`ScriptedStorage.releaseNewestWrite()`, `heldWrites()` and `lastLanded(collection, type)`** (test kit): a held
+  backend can let its writes through newest first, one at a time, and a test reads which entity the backend took
+  last - for code that must survive writes completing out of order. `releaseWrites()` releases in arrival order.
+- **`evernifecore-minecraft-tests` ships the chest test kit**: `BukkitScreenWorld` (`install`,
+  `over(ScreenWorld)`) and its doubles (`PlayerDouble`, `SurfaceDouble`, `SchedulerDouble`, `ScreenEventBus`,
+  `ClickSimulator`) move to the published test fixtures as `testing.minecraft.screen`, so a plugin's test opens the real
+  `ChestScreenRenderer` over a described server and reads the names and lore it drew.
+- **`Plugins.fakeOther(name, dir)`** (test kit): the `ECPluginData` of a second fake plugin (the owner of a currency
+  or a flag) without replacing the extractor the test world installed; `fakeCore` is now `fakeOther("EverNifeCore", dir)`.
+- **`LogicWorld.rebootPlayers()`** (test kit) writes every dirty PlayerData row and drops the offline players' sections
+  from the cache, so their next load reads them back from storage.
+- **`ECoreTestWorld.withCorePluginData(data)`** lends the core its own plugin data (`EverNifeCore.getLog()`, the core's
+  debug modules) for the life of the world; `EverNifeCore.onLoaderInstantiate(null)` clears it. `-Dec.debug=LOGIC,QUESTS`
+  on a test run switches those debug modules and the core's debug on in every world.
+- Engine: `Platforms.withInventory(slots)` registers a `TestInventory` as `evernifecore:inventory` for the life of the
+  world; `LogicWorld.deliveries()` (an in-memory PlayerData layer) and `LogicWorld.auditLog()`;
+  `ScriptedStorage.inMemory()`.
+- **`ActionWorld` in `common-tests`**: one plugin's actions against the test doubles - `pre`/`post` as a native listener
+  does them, the contexts they carry, `isNeeded(source)` and the owner's `provenance()` on the world's storage.
+
 ### Fixed
 
-- **A custom variable is read under its row's monitor** (`CustomVariables.CustomVariable.read`, and the snapshot the
-  writer takes): a value and the window it was set in are read as one pair, never a new value with an old window.
-- **`FCTimeFrame` formats before the core locale loads** (a test world, a plugin's static init): its words fall back to
-  English where the formatting threw a `NullPointerException`, so a screen with a time in its text no longer needs
-  `FCLocaleScanner.scanForLocale(FCTimeFrame.class)` first.
-- **`FCItemFactory.from("minecraft:<id>")` builds without an NMS bridge** (a unit test, an unsupported server): a vanilla
-  id without snbt resolves through the Bukkit `Material` of the same name; any other id is refused with an
-  `IllegalArgumentException` that names the Bukkit material to write instead, where the build threw
-  `UnsupportedOperationException`.
-- **A flag that cannot act in full logs its line once**: `FlagRegistry` remembers the line each flag last logged and stays
-  quiet on a re-check that does not change it. Hytale declares its sources (`ActionSupport.declare`) and then its missing
-  player-state capabilities, and each of those used to repeat every flag's line (`force-fly`, `track-changes`, both
-  `*-fake-players`) in the boot log.
-- **Hytale: `HyPAPIIntegration.isPresent()` asks whether PlaceholderAPI is enabled, every time**, like the Bukkit side: only
-  the classpath probe is cached (`isApiOnClasspath`), and the answer comes from `IPlatform.isPluginEnabled("PlaceholderAPI")`.
-  An answer given before PlaceholderAPI started, or after it shut down, no longer sticks.
-- **`AuditLog.of(owner, storage)` closed and reopened the log on every call**: `AuditRetention` compared by identity and
-  the two-argument form builds a new `days(30)` each time. Retentions are now equal by value (`equals`/`hashCode`), so
-  opening the log again with an equal retention returns the one already open.
-- **`CustomVariables` handed the live row to the backend**: a `set` racing an earlier write could store a half-changed
-  row, and two writes landing newest first left the older value. It now writes like contributions and dynamic values -
-  a copy taken under the row's monitor, one write per key at a time (`logic.value.RowWriter`, now public).
-- **An object-node argument with a double quote left open** (`a="b c`) was read as if closed at the end. It is now
-  refused, and the message says to close the quote after the value or to write a JSON object.
-- **A `BukkitScreenWorld` closing removed a core it had not registered** (test kit): a core already registered when
-  it was installed is now left registered on `close()`; one it registered itself is removed as before.
-- **A `Choice` over an icon with a language block shows its state colour**: the `§a` (enabled) / `§7` (disabled) of a
-  name with no colour of its own is put on the text the viewer reads - `Icon` applies it after the block and the
-  placeholders - where the block used to replace the name without it.
-- **`Plugins.forget(Plugins.CORE)` after a `Plugins.fakeCore` that found a core already registered** (test kit; a
-  `BukkitScreenWorld`'s, another world's) removed that core from `ECPluginManager`. `fakeCore` still hands out the
-  registered one, and `forget(CORE)` now leaves it with whoever registered it; a core `fakeCore` built itself is
-  forgotten as before.
-- **A title or an action bar sent with no core plugin running** (a test server) tried the Adventure bridge first,
-  which cannot be built without the plugin, and an action bar ended dropped with a SEVERE. Both now go straight to the
-  Bukkit API there (`player.sendTitle`/`resetTitle`, `player.spigot().sendMessage(ACTION_BAR, ...)`), as chat already
-  did; `FCMinecraftAdventureUtil.isAdventureAvailable()` tells the two cases apart.
-- **`ComparableItemComplex` on a server with no NMS bridge** (`NMSUtils.isSupported()` false, a unit test) threw from
-  NBT-API on construction; it now reads no tag there (`getNbtCompound()` is null) and compares by what Bukkit answers
-  (`ItemStack.isSimilar`), so `FCInventoryUtil.getAmount`/`contains`/`removeFrom` work with it.
-- **`FCItemUtils.getLocalizedName` answers without an NMS bridge** (an unsupported server, a unit test): it reads a name
-  off the material (`DIAMOND_SWORD` -> "Diamond Sword") where it threw `UnsupportedOperationException`.
-- **A disabled native item with no name keeps its vanilla name in a chest**: the grey `§7` it was given as a name, and
-  the empty name an unnamed item was written with, are no longer written.
-- **A layout title the file does not carry is coloured**: the `@ScreenLayout` title a per-language read falls back to
-  translates `&` codes like the file's.
-- **A `Choice` over an icon with a language block shows its cost line**: the line goes under the text the viewer reads
-  (`Icon` trailing lore), where the block's lore replaced it.
-- **A message to a player arrives when no core plugin is running** (a test server, `BukkitScreenWorld`): without the
-  Spigot chat API and without `EverNifeCoreBukkitPlugin.instance` it goes out as legacy text through
-  `Player.sendMessage(String)`, where building the Adventure bridge threw a `NullPointerException`.
-- **A player's item keeps its own name and lore in a chest screen.** `ChestItems.specOf(stack)` carries the stack's
-  name and lore as the spec's text; it carried none, and drawing the stack wrote an empty name over the player's.
-- **Hytale: a hammer, bucket, hoe or light used inside `deny-interact` is now denied.** The interaction-start System
-  judges the block the client aimed at (or the entity), read from the chain's packet data; the context's target meta
-  it used to read is only filled by the server after the event, so the System never saw a target.
-- **Hytale: `spawn-point` after a real death.** The flag's teleport is put once the server's own teleport has left the
-  player (checked tick by tick, up to two seconds), instead of replacing it in the same buffer, where the server's
-  teleport system ignored the replacement. Past the wait it is dropped with a warning.
-- **A shop button whose goods throw tells the player, with or without a confirmation**: a `Goods.give` that throws no
-  longer turns `Transactions.buy`/`trade` into an `IllegalStateException`; the price still goes back, the plugin's log
-  gets the exception, and the trade answers the new `TransactionResult.Failure.NOT_DELIVERED` ("... could not be handed
-  over; what you paid went back."), which the menu's deny text tells the player. Before, a direct click only logged it
-  and a confirmed one lost it inside the confirmation's callback. A trade that breaks in `OfferButtons` is logged severe
-  on the menu owner's log and the screen redraws.
-- **Two first `CustomVariables.define` of one variable at once no longer throw**: the define is one atomic step, so
-  every thread racing to define a variable gets the same instance and only the one that created it registers its
-  variable type - before, the loser threw `already registered`.
-- **Contributions and dynamic values no longer leave the backend a write behind**: two changes of one row whose writes
-  completed out of order left the older snapshot in storage until the next change. Each row now has at most one write
-  on its way, and a change made meanwhile writes the row's latest state once that one lands (`Contributions`,
-  `DynamicValues`); the row's monitor is held only for the copy.
-- **A currency announces the balance before at its own scale**: `AbstractCurrency.take`/`give`/`transfer` round the
-  amount by the currency's `NumericSpec` before the wallet moves, so a `take(0.015)` on a scale-2 currency at `100.00`
-  posts a `BalanceChangeEvent` with `before = 100.00` (not `99.995`) and the response carries the `0.02` that moved.
-  An amount that rounds to zero is a successful no-op, like zero.
-- **A `GroupProvider` that throws no longer breaks the group lookup**: `GroupLookup` asks every provider a plugin
-  registered inside its own guard, so one that throws counts as one that does not answer - `getGroupsOf`, `exists`,
-  `getMembers`, `getLeader` and `getHoldersOf` go on with the others, and the damage, rewards and quests that ask a
-  player's groups keep working. The server is warned once per registered provider, naming its plugin and the exception.
-  The core's own `GroupManager`s are not shielded.
-- **A plugin that leaves releases everything, by either exit path**: the shutdown hook (`onECPluginShutdownPre`) and
-  the plugin-disable path (`ECPluginManager.removePluginData`) now run one list of releases - boosters, audit log, flags,
-  currencies, destinations, parsers, commands, listeners, screens, prompts, menus, cooldowns, variables, values,
-  contributions and the rest - each step on its own, so one that throws is logged on the plugin's log and the rest still
-  runs. A plugin that leaves without its shutdown hook no longer keeps multiplying gains through its boosters or writing
-  audit entries to a closed storage. `ArgParserManager.unregisterAll` of the core keeps the builtin parsers.
-- **stay-in-region closes when its duration ends**: the engine schedules one check for that moment on every crossing into the target; the 60 s sweep is no longer what notices it.
-- **A group's `stay-in-region` is measured on its members**: the new `presence` param says when the group is inside -
-  `all` (the default) while every online member is, `any` while one is; no member online is outside. Any member's
-  crossing and the sweep measure the group, so a party standing still in the region completes; before, only the member
-  who crossed was measured and the sweep skipped group quests. A player's quest ignores `presence`.
+#### Quests
+
 - **Quest effects and rewards run after the owner's lock**: `on-start`, `on-complete`, `on-fail`, `on-abandon`, a
   stage's `on-complete` and the reward rules wait until the engine let go of every owner's lane, as `on-match` already
   did. A player's completion starting a group quest while that group's completion started a quest for the player no
   longer leaves the two waiting for each other forever.
-- **Colour codes written with `&` in a layout file are translated again**: `name:`, `lore:`, the `Locale` blocks
-  and `settings.title` of a `guis/*.yml` read `&a` as `§a`, as every layout did before the screen layer took over
-  reading them. A `§` written in the file is kept, and a seeded file now writes its colours with `&`.
-- **`FCColorUtil.colorfy` translates only an `&` that starts a colour code**: `Tom & Jerry` stays text instead of
-  becoming `Tom § Jerry`.
 - **A cancelled QuestCompletePreEvent no longer replays the stage**: the stage's on-complete effects, StageCompleteEvent and
   presenter run once (`QuestState.isStageClosed()` remembers it across a restart); only the move after them is retried by
   the sweep.
@@ -631,6 +591,33 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **An objective's costs are taken only when the match counts**: a cancelled `ObjectiveProgressPreEvent` (or a delta
   set to 0), or an objective already done, charges nothing; the costs are paid after the pre event, in one place for
   actions, crossings and `QuestEngine.progress` - which now pays them too.
+- **`QuestDefinitions.parse` names the key in every error**: `gate`, `requires`, `fail-when[i]`, `repeat`,
+  `rewards[i]`, `on-start/on-complete/on-fail/on-abandon[i]`, and for an objective its stage too
+  (`Quest 'x', stage 'dig', objective 'iron' key 'mode': 'bogus' is not a progress mode - write count or each-match.`).
+- **`quest list` and the quest journal obey `meta.visibility`** (`QuestMeta.Visibility.lists`): `secret` lists once it
+  is no longer LOCKED, `hidden` once started (not LOCKED, AVAILABLE nor OFFERED).
+- **A `quest-status` loop between gates answers LOCKED** where it closes and logs the chain once, instead of a
+  `StackOverflowError` in every list and placeholder.
+- **A group or global quest's gate is checked and paid with the member who starts it**: a `permission` or item gate no
+  longer denies the member who holds it. A money cost still takes from the owner's wallet.
+
+#### Dialogue
+
+- **`DialogueScreen` checks each option's gate once per redraw**: the one check a `Choice` makes decides whether it
+  is hidden (new `Choice.hiddenUntilPassed()`), disabled with its reasons or enabled with its costs - before, a hidden
+  option was checked three times per redraw and a visible one twice, each check posting a `GateCheckEvent`. A
+  `Choice` now dresses the name and lore itself: a name with no colour of its own reads green when it can be picked
+  and grey when not, a pass adds the costs as the last lore line, and a failure leaves the reasons to the renderer
+  (the dialogue no longer bakes them into the lore).
+
+#### Menus and shops
+
+- **A shop button whose goods throw tells the player, with or without a confirmation**: a `Goods.give` that throws no
+  longer turns `Transactions.buy`/`trade` into an `IllegalStateException`; the price still goes back, the plugin's log
+  gets the exception, and the trade answers the new `TransactionResult.Failure.NOT_DELIVERED` ("... could not be handed
+  over; what you paid went back."), which the menu's deny text tells the player. Before, a direct click only logged it
+  and a confirmed one lost it inside the confirmation's callback. A trade that breaks in `OfferButtons` is logged severe
+  on the menu owner's log and the screen redraws.
 - **A sale never takes worn armor or the off-hand**: `McInventoryDestination.count` and `take` read the main
   inventory (36 slots) like `getContents` and `roomFor` already did; on 1.9+ `getContents()` carries armor and the
   off-hand after them, and a `sellHand`/`sellAll`/`ALL_HELD` by matcher could count and take a worn chestplate. An item
@@ -650,6 +637,59 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   plugin cancelled it) no longer charges; the gate is still checked first, so a player who cannot pay reads why and
   nothing opens. `ScreenNavigation.open(current, next, args, admit)` is the hook: `admit` runs once `next` holds the
   window, and a refusal from it takes `next` back down.
+- **`Transactions.quote` prices a per-player or per-group limited offer for a context without that owner**: a catalog
+  priced from the console or a server-wide screen gets the totals and every other check, without the limit, instead of
+  an `IllegalStateException`; `buy`/`sell`/`trade` still refuse with it. New `LimitScope.findOwner(ctx)` (null when the
+  context has no owner of that scope); `ownerOf` keeps throwing.
+
+#### Screens
+
+- **A `Choice` over an icon with a language block shows its state colour**: the `§a` (enabled) / `§7` (disabled) of a
+  name with no colour of its own is put on the text the viewer reads - `Icon` applies it after the block and the
+  placeholders - where the block used to replace the name without it.
+- **A disabled native item with no name keeps its vanilla name in a chest**: the grey `§7` it was given as a name, and
+  the empty name an unnamed item was written with, are no longer written.
+- **A layout title the file does not carry is coloured**: the `@ScreenLayout` title a per-language read falls back to
+  translates `&` codes like the file's.
+- **A `Choice` over an icon with a language block shows its cost line**: the line goes under the text the viewer reads
+  (`Icon` trailing lore), where the block's lore replaced it.
+- **A player's item keeps its own name and lore in a chest screen.** `ChestItems.specOf(stack)` carries the stack's
+  name and lore as the spec's text; it carried none, and drawing the stack wrote an empty name over the player's.
+- **A chest screen that goes away closes its window on Bukkit.** A `back()` out of a root screen (CONFIRM/DENY of the
+  confirmation included), `Screens.closeAll()`/`closeOwnedBy()` and a failed open released the view first and then
+  looked the player up through it, so `closeInventory` never ran: the chest stayed up unguarded, its icons could be
+  taken, and an editable area's items, already read back into the store, could be taken a second time. The window now
+  keeps its viewer's id. A step back whose screen underneath is refused its window, and a refused `replace`, close the
+  window they left behind too.
+- **A slot whose item did not change still reaches the renderer when its element state did**: a `ProgressBar` whose
+  ratio moved, or an element turning disabled with the same item, sends its patch. The commit compared only the
+  drawn item, so a renderer that draws by element kept the old ratio.
+- **`ScreenNavigation.replace` of a screen set aside swaps it in place**: the replacement waits set aside where the
+  old one was (inheriting what it owed its opener), the screen on top keeps its window, and stepping back from the top
+  lands on the replacement. It used to push the replacement on top, taking the window of the screen the player was
+  looking at. New `NavStack.replace(old, next)`, `contains` and `remove`. A refused replacement drops the old screen
+  from the chain and cancels its answer.
+- **The chest renderer draws a disabled element**: a `Choice` whose gate fails (any element the view paints disabled)
+  shows its name grey, unless it has a colour of its own, and its reason as the last lore lines in red - before, the
+  chest drew it exactly like an enabled one. A `Choice`'s reason holds one failure per line.
+
+#### Logic
+
+- **A custom variable is read under its row's monitor** (`CustomVariables.CustomVariable.read`, and the snapshot the
+  writer takes): a value and the window it was set in are read as one pair, never a new value with an old window.
+- **`AuditLog.of(owner, storage)` closed and reopened the log on every call**: `AuditRetention` compared by identity and
+  the two-argument form builds a new `days(30)` each time. Retentions are now equal by value (`equals`/`hashCode`), so
+  opening the log again with an equal retention returns the one already open.
+- **`CustomVariables` handed the live row to the backend**: a `set` racing an earlier write could store a half-changed
+  row, and two writes landing newest first left the older value. It now writes like contributions and dynamic values -
+  a copy taken under the row's monitor, one write per key at a time (`logic.value.RowWriter`, now public).
+- **Two first `CustomVariables.define` of one variable at once no longer throw**: the define is one atomic step, so
+  every thread racing to define a variable gets the same instance and only the one that created it registers its
+  variable type - before, the loser threw `already registered`.
+- **Contributions and dynamic values no longer leave the backend a write behind**: two changes of one row whose writes
+  completed out of order left the older snapshot in storage until the next change. Each row now has at most one write
+  on its way, and a change made meanwhile writes the row's latest state once that one lands (`Contributions`,
+  `DynamicValues`); the row's monitor is held only for the copy.
 - **A delivery no longer drops what failed on the claim**: an effect of the core that runs and fails on a claim (a
   currency that is not registered or cannot pay, an inventory that is not there) stays in the delivery, is logged, and
   is tried on the next claim, instead of being dropped as delivered. The `money` effect and cost treat an unregistered
@@ -663,32 +703,6 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   hands the storage is a snapshot, and reopening `Contributions`, `DynamicValues` or a `BoosterManager` on another
   storage waits for the writes of the one it replaces. The test kit's `ScriptedStorage` captures the last `save` per
   collection (`lastSaved`) and can hold the writes (`holdWrites`/`releaseWrites`/`pendingSaves`).
-- **A chest screen that goes away closes its window on Bukkit.** A `back()` out of a root screen (CONFIRM/DENY of the
-  confirmation included), `Screens.closeAll()`/`closeOwnedBy()` and a failed open released the view first and then
-  looked the player up through it, so `closeInventory` never ran: the chest stayed up unguarded, its icons could be
-  taken, and an editable area's items, already read back into the store, could be taken a second time. The window now
-  keeps its viewer's id. A step back whose screen underneath is refused its window, and a refused `replace`, close the
-  window they left behind too.
-
-- **PlayerData on the memory and file backends keeps a real lock version.** The current EveryDatabase 1.5.1 makes
-  the in-memory, local-file and grouped-file backends check and advance the version of a versioned section like SQL and Mongo do: a
-  section adopts version 0 on its first write, each flush moves it by one, and a write behind another server's lands
-  as a conflict that resolves by `ADOPT_WINNER` instead of silently overwriting it.
-
-- **hytale: an environment block break reaches the track-changes journal and `BreakActionEvent.Post`; spawn-point
-  teleports the respawned player.** A System hears `EnvironmentBreakBlockEvent` (fire, a harvest nobody did), keeps the
-  block in the journal and posts a BREAK by `environment:break`; the event is not cancellable, so no flag denies it.
-  `spawn-point` sends the player to its point once the server's own respawn moved him (immediately for a `RespawnEvent`
-  with no death behind it).
-- **region: a failed re-read of an owner already loaded says it kept its regions** ("are loaded from an earlier
-  read; the re-read failed ...") instead of "did not load after 1 try", in the future and the log.
-- **region: the placeholder cache never re-admits a removed region**: a caller still holding the removed
-  `Region` is answered, and the answer is not kept. `Region.isAttached()` (live in its manager) is public.
-- **minecraft: an `ECEvent` builds in a JVM without a Bukkit server** (synchronous: there is no other thread), so a
-  plugin's unit test posts one on the global bus without the Bukkit event rig. **`PluginListener` cleans up after a plugin
-  disabled before the core enabled** - one ahead of the core in Bukkit's enable order and disabled now loses its sections,
-  protections, PAPI expansions and plugin data, as a disable heard live would; a plugin after the core and a name Bukkit
-  does not know are left alone.
 - **`Cooldown.seed(lastUseAt)` counts one use in the window of that instant** for a limited policy, so an adopted
   claim of today leaves one use fewer; a use seeded in an older window counts nothing now and leaves the current
   window's count as it is. A caller that did `tryUse()` + `seed()` to count it now counts it twice.
@@ -696,66 +710,141 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   (`currency: "finalpoints:{points-currency}"`); `toString` keeps what was written.
 - **`Effects` no longer audits `EFFECT_APPLIED` after an effect audited its own `EFFECT_FAILED`**: an effect that
   refuses (`open-screen` without a player, a `money` effect the wallet refused) reads as failed only, not as both.
-- **`FancyFormatter.getText()` returns the text of every piece**, concatenated in order; it returned only the last
-  piece's, so a joined `GateResult.explain().getText()` (and every text read that way) lost all but its last failure.
-- **`QuestDefinitions.parse` names the key in every error**: `gate`, `requires`, `fail-when[i]`, `repeat`,
-  `rewards[i]`, `on-start/on-complete/on-fail/on-abandon[i]`, and for an objective its stage too
-  (`Quest 'x', stage 'dig', objective 'iron' key 'mode': 'bogus' is not a progress mode - write count or each-match.`).
-- **`quest list` and the quest journal obey `meta.visibility`** (`QuestMeta.Visibility.lists`): `secret` lists once it
-  is no longer LOCKED, `hidden` once started (not LOCKED, AVAILABLE nor OFFERED).
-- **A `quest-status` loop between gates answers LOCKED** where it closes and logs the chain once, instead of a
-  `StackOverflowError` in every list and placeholder.
-- **A group or global quest's gate is checked and paid with the member who starts it**: a `permission` or item gate no
-  longer denies the member who holds it. A money cost still takes from the owner's wallet.
-- **The locale scanner tells a command class scanned by hand** that its `@FCLocale` live in the `@FinalCMD` annotations
-  and are read when the command registers, instead of only "has no fields of LocaleMessage.class".
-- **`Transactions.quote` prices a per-player or per-group limited offer for a context without that owner**: a catalog
-  priced from the console or a server-wide screen gets the totals and every other check, without the limit, instead of
-  an `IllegalStateException`; `buy`/`sell`/`trade` still refuse with it. New `LimitScope.findOwner(ctx)` (null when the
-  context has no owner of that scope); `ownerOf` keeps throwing.
-- **A slot whose item did not change still reaches the renderer when its element state did**: a `ProgressBar` whose
-  ratio moved, or an element turning disabled with the same item, sends its patch. The commit compared only the
-  drawn item, so a renderer that draws by element kept the old ratio.
-- **`ScreenNavigation.replace` of a screen set aside swaps it in place**: the replacement waits set aside where the
-  old one was (inheriting what it owed its opener), the screen on top keeps its window, and stepping back from the top
-  lands on the replacement. It used to push the replacement on top, taking the window of the screen the player was
-  looking at. New `NavStack.replace(old, next)`, `contains` and `remove`. A refused replacement drops the old screen
-  from the chain and cancels its answer.
-- **`DialogueScreen` checks each option's gate once per redraw**: the one check a `Choice` makes decides whether it
-  is hidden (new `Choice.hiddenUntilPassed()`), disabled with its reasons or enabled with its costs - before, a hidden
-  option was checked three times per redraw and a visible one twice, each check posting a `GateCheckEvent`. A
-  `Choice` now dresses the name and lore itself: a name with no colour of its own reads green when it can be picked
-  and grey when not, a pass adds the costs as the last lore line, and a failure leaves the reasons to the renderer
-  (the dialogue no longer bakes them into the lore).
-- **The chest renderer draws a disabled element**: a `Choice` whose gate fails (any element the view paints disabled)
-  shows its name grey, unless it has a colour of its own, and its reason as the last lore lines in red - before, the
-  chest drew it exactly like an enabled one. A `Choice`'s reason holds one failure per line.
-- **An icon read back from `guis/<Layout>.yml` keeps the fallbacks its field declared**: the file holds only the
-  primary item, and re-reading it dropped the rest, so from the second boot `CONFIRM`/`DENY` drew a barrier instead of
-  the lime/red wool on a server without the mod items. The same for a state's `DisplayItem`. New
-  `Icon.setFallbacks(List<ItemSpec>)` and `Icon.getStateFallbacks(name)`.
-- **`PermissionBoosterSource` no longer grants the largest factor to every op**: a `vip.booster.*` node counts only
-  when it is set (`FCommandSender.isPermissionSet`, new) and granted, never by the op wildcard of Bukkit. A Hytale
-  operator still gets it: its `hytale:Admin` group grants `*`, which is a set node. `TestFPlayerSender.op(true)`
-  answers `hasPermission` true to every node and `isPermissionSet` only for what `grant` gave.
-- **A plugin that fails before EverNifeCore enables no longer takes the core down**: a section registered by a plugin
-  whose enable failed ahead of the core (its jar already closed) is dropped with a SEVERE line naming the plugin, and the
-  core and every other section boot; before, `PlayerController` died binding it (`IllegalStateException: zip file closed`)
-  and every plugin on the core failed with it.
+
+#### Actions
+
+- **Plugin teardown drops the `ActorHolders` providers the plugin registered** (`onECPluginShutdownPre` and
+  `ECPluginManager.removePluginData`), so no holder of a gone plugin joins a resolution.
+
+#### Flags
+
+- **A flag that cannot act in full logs its line once**: `FlagRegistry` remembers the line each flag last logged and stays
+  quiet on a re-check that does not change it. Hytale declares its sources (`ActionSupport.declare`) and then its missing
+  player-state capabilities, and each of those used to repeat every flag's line (`force-fly`, `track-changes`, both
+  `*-fake-players`) in the boot log.
+- **stay-in-region closes when its duration ends**: the engine schedules one check for that moment on every crossing into the target; the 60 s sweep is no longer what notices it.
+
+#### Regions
+
+- **region: a failed re-read of an owner already loaded says it kept its regions** ("are loaded from an earlier
+  read; the re-read failed ...") instead of "did not load after 1 try", in the future and the log.
+- **region: the placeholder cache never re-admits a removed region**: a caller still holding the removed
+  `Region` is answered, and the answer is not kept. `Region.isAttached()` (live in its manager) is public.
+
+#### Groups
+
+- **A `GroupProvider` that throws no longer breaks the group lookup**: `GroupLookup` asks every provider a plugin
+  registered inside its own guard, so one that throws counts as one that does not answer - `getGroupsOf`, `exists`,
+  `getMembers`, `getLeader` and `getHoldersOf` go on with the others, and the damage, rewards and quests that ask a
+  player's groups keep working. The server is warned once per registered provider, naming its plugin and the exception.
+  The core's own `GroupManager`s are not shielded.
+- **A group's `stay-in-region` is measured on its members**: the new `presence` param says when the group is inside -
+  `all` (the default) while every online member is, `any` while one is; no member online is outside. Any member's
+  crossing and the sweep measure the group, so a party standing still in the region completes; before, only the member
+  who crossed was measured and the sweep skipped group quests. A player's quest ignores `presence`.
 - **A group kind's flag default now reaches the flag resolution**: `Group.getFlagValue` answers the kind's
   `flagDefault` when the group sets nothing, so a kind that defaults `deny-friendly-fire` (or `invincible`,
   `damage-multiplier`) acts on its members; before, only `getEffectiveFlag` saw the default and the resolution read the
   flag's own default instead. The group's own value still wins.
+- **`glow-members` glows a member who logs in and stops glowing one who quits**: the quit unglows while the player is
+  still online, so no `Glowing` tag rides the logout and comes back after the flag went away. Nothing listens while no
+  group glows.
 
-- **`LogicWorld` beside another world**: it puts the stock on a core plugin data the test already built (and leaves it
-  there when it closes), and adds or takes only its own players on the platform's online list instead of replacing it,
-  so a `GroupWorld` (or `RegionWorld`) open next to it keeps its players.
+#### Economy
 
-- **Player tab-complete no longer reveals vanished players**: the `FPlayer` and Bukkit `Player` parsers, and the
-  online form of the player-data and `UUID` parsers, list only the players the sender can see.
+- **A currency announces the balance before at its own scale**: `AbstractCurrency.take`/`give`/`transfer` round the
+  amount by the currency's `NumericSpec` before the wallet moves, so a `take(0.015)` on a scale-2 currency at `100.00`
+  posts a `BalanceChangeEvent` with `before = 100.00` (not `99.995`) and the response carries the `0.02` that moved.
+  An amount that rounds to zero is a successful no-op, like zero.
+
+#### Boosters
+
+- **`PermissionBoosterSource` no longer grants the largest factor to every op**: a `vip.booster.*` node counts only
+  when it is set (`FCommandSender.isPermissionSet`, new) and granted, never by the op wildcard of Bukkit. A Hytale
+  operator still gets it: its `hytale:Admin` group grants `*`, which is a set node. `TestFPlayerSender.op(true)`
+  answers `hasPermission` true to every node and `isPermissionSet` only for what `grant` gave.
+
+#### Notifications and HUD
+
+- **A title or an action bar sent with no core plugin running** (a test server) tried the Adventure bridge first,
+  which cannot be built without the plugin, and an action bar ended dropped with a SEVERE. Both now go straight to the
+  Bukkit API there (`player.sendTitle`/`resetTitle`, `player.spigot().sendMessage(ACTION_BAR, ...)`), as chat already
+  did; `FCMinecraftAdventureUtil.isAdventureAvailable()` tells the two cases apart.
+- **A message to a player arrives when no core plugin is running** (a test server, `BukkitScreenWorld`): without the
+  Spigot chat API and without `EverNifeCoreBukkitPlugin.instance` it goes out as legacy text through
+  `Player.sendMessage(String)`, where building the Adventure bridge threw a `NullPointerException`.
+
+#### PlayerData
+
+- **PlayerData on the memory and file backends keeps a real lock version.** The current EveryDatabase 1.5.1 makes
+  the in-memory, local-file and grouped-file backends check and advance the version of a versioned section like SQL and Mongo do: a
+  section adopts version 0 on its first write, each flush moves it by one, and a write behind another server's lands
+  as a conflict that resolves by `ADOPT_WINNER` instead of silently overwriting it.
+
+#### Config and locale
+
+- **Colour codes written with `&` in a layout file are translated again**: `name:`, `lore:`, the `Locale` blocks
+  and `settings.title` of a `guis/*.yml` read `&a` as `§a`, as every layout did before the screen layer took over
+  reading them. A `§` written in the file is kept, and a seeded file now writes its colours with `&`.
+- **`FCColorUtil.colorfy` translates only an `&` that starts a colour code**: `Tom & Jerry` stays text instead of
+  becoming `Tom § Jerry`.
+- **The locale scanner tells a command class scanned by hand** that its `@FCLocale` live in the `@FinalCMD` annotations
+  and are read when the command registers, instead of only "has no fields of LocaleMessage.class".
+- **An icon read back from `guis/<Layout>.yml` keeps the fallbacks its field declared**: the file holds only the
+  primary item, and re-reading it dropped the rest, so from the second boot `CONFIRM`/`DENY` drew a barrier instead of
+  the lime/red wool on a server without the mod items. The same for a state's `DisplayItem`. New
+  `Icon.setFallbacks(List<ItemSpec>)` and `Icon.getStateFallbacks(name)`.
+
+#### Commands
+
+- **An object-node argument with a double quote left open** (`a="b c`) was read as if closed at the end. It is now
+  refused, and the message says to close the quote after the value or to write a JSON object.
+
+#### Scheduler and time
+
+- **`FCTimeFrame` formats before the core locale loads** (a test world, a plugin's static init): its words fall back to
+  English where the formatting threw a `NullPointerException`, so a screen with a time in its text no longer needs
+  `FCLocaleScanner.scanForLocale(FCTimeFrame.class)` first.
+
+#### Plugin lifecycle
+
+- **A plugin that leaves releases everything, by either exit path**: the shutdown hook (`onECPluginShutdownPre`) and
+  the plugin-disable path (`ECPluginManager.removePluginData`) now run one list of releases - boosters, audit log, flags,
+  currencies, destinations, parsers, commands, listeners, screens, prompts, menus, cooldowns, variables, values,
+  contributions and the rest - each step on its own, so one that throws is logged on the plugin's log and the rest still
+  runs. A plugin that leaves without its shutdown hook no longer keeps multiplying gains through its boosters or writing
+  audit entries to a closed storage. `ArgParserManager.unregisterAll` of the core keeps the builtin parsers.
+- **A plugin that fails before EverNifeCore enables no longer takes the core down**: a section registered by a plugin
+  whose enable failed ahead of the core (its jar already closed) is dropped with a SEVERE line naming the plugin, and the
+  core and every other section boot; before, `PlayerController` died binding it (`IllegalStateException: zip file closed`)
+  and every plugin on the core failed with it.
+
+#### Common utilities
+
+- **`FancyFormatter.getText()` returns the text of every piece**, concatenated in order; it returned only the last
+  piece's, so a joined `GateResult.explain().getText()` (and every text read that way) lost all but its last failure.
 - **`RegexReplacer` manipulators keep a deterministic order**: longer prefix first, then more `_`, then registration
   order. Two tied templates no longer swap priority with every later `addManipulator`, and both overloads sort by the
   same rule.
+
+#### Bukkit platform
+
+- **`FCItemFactory.from("minecraft:<id>")` builds without an NMS bridge** (a unit test, an unsupported server): a vanilla
+  id without snbt resolves through the Bukkit `Material` of the same name; any other id is refused with an
+  `IllegalArgumentException` that names the Bukkit material to write instead, where the build threw
+  `UnsupportedOperationException`.
+- **`ComparableItemComplex` on a server with no NMS bridge** (`NMSUtils.isSupported()` false, a unit test) threw from
+  NBT-API on construction; it now reads no tag there (`getNbtCompound()` is null) and compares by what Bukkit answers
+  (`ItemStack.isSimilar`), so `FCInventoryUtil.getAmount`/`contains`/`removeFrom` work with it.
+- **`FCItemUtils.getLocalizedName` answers without an NMS bridge** (an unsupported server, a unit test): it reads a name
+  off the material (`DIAMOND_SWORD` -> "Diamond Sword") where it threw `UnsupportedOperationException`.
+- **minecraft: an `ECEvent` builds in a JVM without a Bukkit server** (synchronous: there is no other thread), so a
+  plugin's unit test posts one on the global bus without the Bukkit event rig. **`PluginListener` cleans up after a plugin
+  disabled before the core enabled** - one ahead of the core in Bukkit's enable order and disabled now loses its sections,
+  protections, PAPI expansions and plugin data, as a disable heard live would; a plugin after the core and a name Bukkit
+  does not know are left alone.
+- **Player tab-complete no longer reveals vanished players**: the `FPlayer` and Bukkit `Player` parsers, and the
+  online form of the player-data and `UUID` parsers, list only the players the sender can see.
 - **Mohist subscribes on the buses a plugin hands in**: `ForgeListener.registerListener(plugin, listener, bus...)` on
   Mohist 1.16.5 puts the handlers on each modern bus passed (Pixelmon's `EVENT_BUS` included) instead of Forge's main
   bus, where a mod's own events never arrive; a 1.12.2 bus is heard through Mohist's Bukkit mirror, and no bus means
@@ -763,86 +852,66 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **A plugin's PlaceholderAPI expansion is unregistered on its disable** (Bukkit): a runtime disable/re-enable no
   longer leaves the old expansion answering. Best effort - a PlaceholderAPI build without unregister (1.7.10) keeps it
   until a restart, with a warning.
-- **Plugin teardown drops the `ActorHolders` providers the plugin registered** (`onECPluginShutdownPre` and
-  `ECPluginManager.removePluginData`), so no holder of a gone plugin joins a resolution.
-- **`glow-members` glows a member who logs in and stops glowing one who quits**: the quit unglows while the player is
-  still online, so no `Glowing` tag rides the logout and comes back after the flag went away. Nothing listens while no
-  group glows.
+
+#### Hytale
+
+- **Hytale: `HyPAPIIntegration.isPresent()` asks whether PlaceholderAPI is enabled, every time**, like the Bukkit side: only
+  the classpath probe is cached (`isApiOnClasspath`), and the answer comes from `IPlatform.isPluginEnabled("PlaceholderAPI")`.
+  An answer given before PlaceholderAPI started, or after it shut down, no longer sticks.
+- **Hytale: a hammer, bucket, hoe or light used inside `deny-interact` is now denied.** The interaction-start System
+  judges the block the client aimed at (or the entity), read from the chain's packet data; the context's target meta
+  it used to read is only filled by the server after the event, so the System never saw a target.
+- **Hytale: `spawn-point` after a real death.** The flag's teleport is put once the server's own teleport has left the
+  player (checked tick by tick, up to two seconds), instead of replacing it in the same buffer, where the server's
+  teleport system ignored the replacement. Past the wait it is dropped with a warning.
+- **hytale: an environment block break reaches the track-changes journal and `BreakActionEvent.Post`; spawn-point
+  teleports the respawned player.** A System hears `EnvironmentBreakBlockEvent` (fire, a harvest nobody did), keeps the
+  block in the journal and posts a BREAK by `environment:break`; the event is not cancellable, so no flag denies it.
+  `spawn-point` sends the player to its point once the server's own respawn moved him (immediately for a `RespawnEvent`
+  with no death behind it).
+
+#### Test kit
+
+- **A `BukkitScreenWorld` closing removed a core it had not registered** (test kit): a core already registered when
+  it was installed is now left registered on `close()`; one it registered itself is removed as before.
+- **`Plugins.forget(Plugins.CORE)` after a `Plugins.fakeCore` that found a core already registered** (test kit; a
+  `BukkitScreenWorld`'s, another world's) removed that core from `ECPluginManager`. `fakeCore` still hands out the
+  registered one, and `forget(CORE)` now leaves it with whoever registered it; a core `fakeCore` built itself is
+  forgotten as before.
+- **`LogicWorld` beside another world**: it puts the stock on a core plugin data the test already built (and leaves it
+  there when it closes), and adds or takes only its own players on the platform's online list instead of replacing it,
+  so a `GroupWorld` (or `RegionWorld`) open next to it keeps its players.
 
 ### Changed
+
+#### Quests
 
 - **The quest engine refuses another owner's lane inside one it holds** (`QuestEngine`): a subscriber of a quest event runs
   inside the owner's change, and one that calls the engine for another owner gets an `IllegalStateException` telling it
   to leave the thread (`ECScheduler.runAsync`), where two such threads could wait for each other forever. Calling back
   for the same owner is unchanged.
-- **`BukkitScreenWorld.install` draws item text** (test kit): its items remember a name, a lore and a flag, so a test reads
-  an icon's name off a plain `install(...)` where it got a null `ItemMeta`. `installWithItemMetadata` is removed: call
-  `install`. Only `BukkitScreenWorld.over(...)` stays on items without metadata.
-- **`BukkitScreenWorld.newPlayer` is online on the world's platform** (test kit): `EverNifeCore.getPlatform().getPlayer(uuid)`
-  finds them without `Platforms.onlinePlayers(...)`. `TestPlatform.addOnlinePlayer(player)` adds one player to who is
-  online.
-- **The strict double's refusal of `isPluginLoaded`/`isPluginEnabled` teaches both answers** (test kit):
-  `pluginsLoaded("X")` when the plugin runs, `pluginsLoaded()` with no names when no plugin does.
-- **`checkLinkage` reads the ECNmsUtils era packages** (build): each `v1_*` package is asked about its `org/bukkit/` references
-  against the release of its own revision (`linkageEraRuntimes`: 1.7.10, 1.12.2, 1.16.5, 1.20.1, 1.20.2, 1.21.1 - the last
-  three read only for their era), and the log prints the count per era. An unmapped era fails the check. Its CraftBukkit and
-  NMS references stay unchecked: no API jar carries them.
-- **Every test task stops after 5 minutes** (build): a suite that deadlocks (lanes left held) ends `BUILD FAILED` with
-  "Timeout has been exceeded" instead of hanging until killed.
-- **An effect the platform refuses** (`UnsupportedOperationException`) is still audited `EFFECT_FAILED`, but goes to the
-  global bus's exception handler (SEVERE with the stack, by default) instead of the caller's warning, so a strict test
-  double's refusal fails the `ECoreTestWorld`. `ECEventExceptionHandler.onSubscriberFailure` takes a null subscription
-  for such a report.
-- **A login claim the platform refuses** (`UnsupportedOperationException`: a call the platform does not offer) goes to
-  the global bus's exception handler (SEVERE with the stack, by default) instead of a "not claimed on login" warning:
-  every login would hit it again. A storage failure keeps the warning and waits for the next login.
+
+#### Menus and shops
+
+- **Trade texts in the player's language**: every text `Transactions` writes for the player - the refusals (no room, not
+  held, cannot be sold, catalog line, called off, nothing in hand, nobody buys, a price line not paid), the quantity
+  prompt and its errors - and `TransactionResult.describe` ("Bought 3x sword for 30 coins") are core locale messages
+  in `EN_US` and `PT_BR`, read in `ExecutionContext.getLocale()`; they were English only. `SellAllResult`'s
+  constructor is public. Engine: `Menus` loads the trade texts.
+- **`ItemMatcher` reads name and lore when asked**: `plainOnly()` refuses an item with a name or lore of its own and
+  `exact(ItemSpec)` wants its very name and lore; `of(id)` still looks at the material only. Both platforms' inventories
+  now match on the whole description.
+- **`InventoryDestination` exposes the inventory**: `getContents(player)` (main inventory, described), `getHeld(player)`
+  and `roomFor(player, item)` join `count`/`take`, implemented on Bukkit, Hytale and `TestInventory`.
+
+#### Screens
+
 - **Text written in code reads `&` as colour, as text in a file does**: `Screen.title` (both forms, and so
   `ConfirmRequest.of`, `RankingRequest.title` and `Menu.Builder.title`), `Icon.displayName` and `Icon.lore` colour
   `&` codes and `&#RRGGBB`. A value put in later - an opener's `{0}`, a replacer, a placeholder - is never coloured.
 - **`Icon.displayName`/`lore` replace the icon's language block**, so `DefaultIcons.info().displayName("x")` draws
   "x" and is accepted in a layout field without `@FCLocale`; a field with `@FCLocale` and a `.displayName()` is still
   refused ("names the same icon in two places").
-- **`PlatformConformance.check` observes the thread hops**: `runOnWorldThread` must complete within five seconds and,
-  when it completes normally, must have run the task on the world's thread (`isWorldThread` true inside it);
-  `runOnWorldThreadNextTick` is held to the same when the caller is not the world's thread (the world's own thread
-  would wait on the tick it has to give). `onWorldLoaded`/`onWorldUnloaded` must refuse a null listener, and the check
-  no longer leaves a listener of its own behind; the test double refuses null too. The Hytale conformance plugin now
-  runs the same check against `HyPlatform` (`platform` case), and both platforms prove `runOnWorldThreadNextTick`
-  lands in a later tick (`world-thread-next-tick`).
-- **On Hytale the main-thread hop runs on one dedicated thread**: `ECScheduler.onMainThread` / `onMainThreadLater` run
-  their tasks one at a time, in the order asked, on the core's own thread (`evernifecore-main`), and `onMainThread` runs
-  in place when the caller already is that thread - as on Bukkit. Before, every task ran on a fresh background thread,
-  so two tasks of the same plugin could run at once.
-- **flag: the boot log says "acts in part" for a flag with some sources served and "never matches" for an actor kind
-  the platform has none of**: `track-changes` and `force-fly` on Hytale act in part (no explosion, no flight toggle there),
-  `deny-block-break-fake-players`/`-place-fake-players` never match. `ActionSupport.declare` takes a fifth argument, the
-  `ECEntityType`s no context of the platform ever carries (null for none; Hytale declares `FAKE_PLAYER`), and
-  `ActionSupport.neverClassifies(entry)` answers it. "Has no effect" stays for a flag none of whose sources is raised.
-- **common: `RankedList` no longer knows its chat renderer**: `getPageViewer`/`setPageViewer` are gone;
-  `PageViewer.attachedTo(list)` answers what `/ecpage <id>` sends. Keep the `PageViewer` you built in a field.
-- **common: `ItemSpec.of(id, name, lore)` keeps the id's case**, as `of(id, amount)` already did - a Hytale asset id is
-  case-sensitive. Only the blanks around it go.
-- **common: the `evernifecore-common` and `-relocated` POMs carry `jakarta.annotation-api`**, so a plugin can use
-  `@Nullable`/`@Nonnull` without declaring it. The Hytale jar leaves it out: the annotations only
-  serve the compiler, and a missing annotation class never fails at runtime.
-- **common-tests: `ECoreTestWorld` and `FinalCmdTestHarness` hand back the core's plugin data on close** (null
-  included) instead of leaving the last one lent for the rest of the JVM; the one a world lends when none is set is built
-  on a lenient double, so a strict world needs no logging for it. **`QuestWorld.login` attaches the `FPlayer`**
-  (`PDSection.getPlayer()` answers it) and `quit` detaches it.
-- **`HeldPlayerState.release` puts back the value of the holder that stays**: when the latest holder of a shared slot
-  lets go, the holder now latest writes its own value again - a `scope: held` gamemode released inside a `game-mode`
-  region gives back the region's mode, not the effect's. `hold(slot, holder, value, rewrite, persistent, online)` takes
-  that writer; a holder that takes the slot again becomes the latest. The flags lost their own work-around for it.
-- **A delayed or repeated effect whose player left becomes a delivery**: `Deliveries.start()` registers the deferred
-  sink (`closeAll()` puts the dropping one back), which keeps the core's own effects for the player to claim on login.
-  `DeferredEffectSink.defer(ctx, effect, node, absentPlayer)` carries the effect's node without the modifiers that
-  already ran (`delay`, `every`, `repeat`, `target`, `chance`, `if`); a share of a reward is still dropped, its node
-  saying the whole amount. `ECoreTestWorld.close()` restores the dropping sink; `LogicWorld.rejoin(player)`.
-- **Trade texts in the player's language**: every text `Transactions` writes for the player - the refusals (no room, not
-  held, cannot be sold, catalog line, called off, nothing in hand, nobody buys, a price line not paid), the quantity
-  prompt and its errors - and `TransactionResult.describe` ("Bought 3x sword for 30 coins") are core locale messages
-  in `EN_US` and `PT_BR`, read in `ExecutionContext.getLocale()`; they were English only. `SellAllResult`'s
-  constructor is public. Engine: `Menus` loads the trade texts.
 - **`ConfirmScreen<L extends ConfirmLayout>` is extensible**: `protected ConfirmScreen(L layout, ConfirmRequest)`, and
   `ConfirmScreen.of(request)` returns `ConfirmScreen<ConfirmLayout>`. A plugin's own confirmation extends it over a
   layout that extends `ConfirmLayout` and keeps the shift-click of a dangerous request, the paid gate and `{cost}`.
@@ -875,11 +944,6 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **`ClickContext.open(screen, args...)` and `ClickContext.open(key, request)`**: a screen opened on top can carry its
   own `{0}..{n}`, and a keyed screen (`ScreenKey.CONFIRM`) opens on top through the four override layers;
   `ScreenNavigation.open(current, next, args)` underneath.
-- **`ItemMatcher` reads name and lore when asked**: `plainOnly()` refuses an item with a name or lore of its own and
-  `exact(ItemSpec)` wants its very name and lore; `of(id)` still looks at the material only. Both platforms' inventories
-  now match on the whole description.
-- **`InventoryDestination` exposes the inventory**: `getContents(player)` (main inventory, described), `getHeld(player)`
-  and `roomFor(player, item)` join `count`/`take`, implemented on Bukkit, Hytale and `TestInventory`.
 - **The gui framework is the `screen` package of `:common`.** `Gui` is `Screen`, `GuiView` is `ScreenView`, `Icon` carries
   an `ItemSpec` and only looks like something; what a slot does is a `Button` (`screen.icon(l -> l.X)` answers one), a
   `Label`, a `PagedList`, an `InputField`, a `ProgressBar` or a dialogue `Choice`, each with a stable id. A click runs
@@ -904,42 +968,85 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `GenericInventory` and `ScreenSurface.released(reason)` gives back what a window held before `onClose`;
   `FCItemBuilder.asIcon()` answers a `screen.Icon`; permission `evernifecore.command.screen`. ECoreConformance's `gui`
   suite is `screen` (`/ecc screen <screen> <player>`, 19 screens on every Bukkit flavor).
-- **`RegionVerbAccess` is `NodeVerbAccess`** (`commands.finalcmd.accessvalidation`): any node that implements
-  `VerbPermissionBase` (`getPermissionBase()`) - the region and the group nodes and their branches - gates each verb on
-  `<base>.<verb>`. `RegionCommandNode.getVerbPermission(verb)` and `RegionCommandNode.of(executor)` are gone.
+- `ConfigSetting` and `SettingsScanner` moved from `minecraft.gui.cfg` to `br.com.finalcraft.evernifecore.config`
+  (`:common`): they read annotated fields over EveryConfig and never were gui code.
+
+#### Logic
+
+- **An effect the platform refuses** (`UnsupportedOperationException`) is still audited `EFFECT_FAILED`, but goes to the
+  global bus's exception handler (SEVERE with the stack, by default) instead of the caller's warning, so a strict test
+  double's refusal fails the `ECoreTestWorld`. `ECEventExceptionHandler.onSubscriberFailure` takes a null subscription
+  for such a report.
+- **A login claim the platform refuses** (`UnsupportedOperationException`: a call the platform does not offer) goes to
+  the global bus's exception handler (SEVERE with the stack, by default) instead of a "not claimed on login" warning:
+  every login would hit it again. A storage failure keeps the warning and waits for the next login.
+- **A delayed or repeated effect whose player left becomes a delivery**: `Deliveries.start()` registers the deferred
+  sink (`closeAll()` puts the dropping one back), which keeps the core's own effects for the player to claim on login.
+  `DeferredEffectSink.defer(ctx, effect, node, absentPlayer)` carries the effect's node without the modifiers that
+  already ran (`delay`, `every`, `repeat`, `target`, `chance`, `if`); a share of a reward is still dropped, its node
+  saying the whole amount. `ECoreTestWorld.close()` restores the dropping sink; `LogicWorld.rejoin(player)`.
+- **Cooldowns learn repeat policies.** `GenericCooldown`, `PlayerCooldown` and `NetworkCooldown` are gone: the one
+  handle is `Cooldown`, built from a `RepeatPolicy` over the same storage (`CooldownEntry` now carries `uses` and the
+  window it counts in; `PlayerCooldownsLocal`/`PlayerCooldownsNetwork`, `Cooldowns.yml` and `ServerCooldowns` keep their
+  rows and files, and an old row reads no uses). `isInCooldown`, `startWith`, `warnPlayer` and the other verbs keep
+  working; `canUse`, `tryUse`/`tryUse(n)` (all or nothing), `giveBack`, `getUsesLeft`, `getRemaining`, `getLastUseAt`,
+  `seed`, `reset` and `explain` join them. `IPlayerData.getCooldown(id)` and `getNetworkCooldown(id)` stay, return
+  `CompletableFuture<Cooldown>` and gain a `RepeatPolicy` overload; `PlayerCooldown.of(uuid, id)` is
+  `Cooldown.of(uuid, id)` (`network` alike); `new GenericCooldown("")` is `Cooldown.inMemory(id)`, never stored nor
+  listed; `Cooldown.initialize()`, `getMapOfCooldowns()` and `fromConfigMap` moved to `Cooldowns` (`loadServerFile()`).
+  A player cooldown that is not persistent is now shared by every handle over it until it expires, instead of living
+  only in the handle that started it. `/eccooldown` keeps its verbs, shows the uses and window, and `reset` clears them.
+
+#### Actions
+
+- **`HeldPlayerState.release` puts back the value of the holder that stays**: when the latest holder of a shared slot
+  lets go, the holder now latest writes its own value again - a `scope: held` gamemode released inside a `game-mode`
+  region gives back the region's mode, not the effect's. `hold(slot, holder, value, rewrite, persistent, online)` takes
+  that writer; a holder that takes the slot again becomes the latest. The flags lost their own work-around for it.
+- `FlagRegistry.setServedSources` is gone: a platform declares what it raises with `ActionSupport.declare(platform, post,
+  pre, nativeCommandSource)`, and `FlagRegistry.getUnservedSources` reads `ActionSupport.isServed`.
+- The Bukkit listeners of `minecraft.action.listener` are named for the action: `RegionListeners` is `ActionListeners`
+  (`ActionListeners.follow` for a plugin's own source), each `Region<X>Listener` is `<X>ActionListener`
+  (`RegionItemListeners`/`RegionVehicleListeners` are `ItemActionListeners`/`VehicleActionListeners`), `RegionContexts` is
+  `McActionContexts`; the `track-changes` journal listeners are `TerrainJournalListener` and
+  `TerrainJournalBlockExplodeListener`. On Hytale `hytale.region.HyRegionContexts` is `hytale.action.HyActionContexts`.
+- The Bukkit spawn listener posts `SpawnActionEvent` for egg spawns too; the regions still never decide those.
+- **The region engine's shared pieces leave `region`**: the action contexts, `Actor`/`TypeKey`/`ECEntityType`,
+  `EventSource`, `EventSourceUsage`/`UsageHold`/`UsageWatch` and `TriggerThrottle` now live in
+  `br.com.finalcraft.evernifecore.action`; `IPlayerStateAccess`, `HeldPlayerState`, `PlayerStateBackup`, `ECGameMode`,
+  `PlayerTime`, `ActiveEffect` and `EffectLevel` in `player.state`; `ItemSpec` in `item`; everything of `region.flag`
+  and `region.flag.core` plus `Resolution` in `flag` / `flag.core`, where `RegionFlag<T>` is now `Flag<T>`. Same
+  classes, same behaviour, same stored format (`regions/flags/<name>.yml` and the region records are keyed by flag
+  key, not by class): a plugin updates its imports and `extends Flag<T>`.
+- **One clock and one scheduler**: `time.ECClock` replaces `RegionClock`; `time.ECScheduler` replaces both
+  `scheduler.FCScheduler` and `RegionScheduler` with the same static methods (`runAsync`, `scheduleAsync`,
+  `runAsyncFuture`, `supplyAsyncFuture`, `getScheduler`, `getMinecraftScheduler`, `getHytaleScheduler`; the test
+  seam `RegionScheduler.set` is `ECScheduler.set`). No alias is kept; `McFCScheduler`/`HyFCScheduler` are unchanged.
+- **`HeldPlayerState` is one per player** (`HeldPlayerState.of(uuid)`, no public constructor) and is held by any
+  `StateHolder` - `Flag` and `FlagKey` are holders - instead of a region flag: `hold`/`release` take a `StateHolder` and
+  `getHolders` answers by holder id. What is still held when the player quits is given back (`HeldPlayerState.forget`).
+- **The Bukkit region listeners live in `minecraft.action.listener`** (`RegionListeners`, `RegionContexts`, ...); on
+  Hytale `HyRegionSystems` is `hytale.action.HyActionSystems`.
+- `ItemContext`, `EntityContext` and `DamageContext` take their source, and refuse one they do not serve:
+  `ItemContext(source, position, actor, nativeEvent, itemKey, amount, itemEntity)` serves the pickup, drop, craft, smelt,
+  fish, consume and enchant sources (`getAmount()`, `getItemEntityId()` - null for a craft or a meal);
+  `EntityContext(source, ...)` the interact, tame, breed and shear sources; `DamageContext(source, ...)` the damage and
+  kill sources.
+- **A `FlagHandler` of a flag that protects a victim** (`invincible`, `deny-damage-from-mobs`, `damage-multiplier`)
+  **gets the victim as `FlagOutcomeContext.getPlayer()`**, not the attacker (nor null under a mob's hit): the outcome
+  carries the flag's subject, the player its value was resolved for.
+
+#### Flags
+
+- **flag: the boot log says "acts in part" for a flag with some sources served and "never matches" for an actor kind
+  the platform has none of**: `track-changes` and `force-fly` on Hytale act in part (no explosion, no flight toggle there),
+  `deny-block-break-fake-players`/`-place-fake-players` never match. `ActionSupport.declare` takes a fifth argument, the
+  `ECEntityType`s no context of the platform ever carries (null for none; Hytale declares `FAKE_PLAYER`), and
+  `ActionSupport.neverClassifies(entry)` answers it. "Has no effect" stays for a flag none of whose sources is raised.
 - **The victim's protection flags speak for the victim**: `invincible`, `deny-damage-from-mobs` and `damage-multiplier`
   resolve the groups and following holders (and the bypass) of the player hit, not of the attacker - a party's
   `invincible` now protects its member from a mob outside every region, and no longer shields whoever its members hit.
   `Flag.getSubject(context)` names whose layers a flag reads.
-- `ConfigSetting` and `SettingsScanner` moved from `minecraft.gui.cfg` to `br.com.finalcraft.evernifecore.config`
-  (`:common`): they read annotated fields over EveryConfig and never were gui code.
-- **`AccessGroup` is gone**: `Region.getGroup(name)` returns a `Group` of `GroupKind.REGION_LOCAL` (same stored format,
-  now with optional leader, roles - free tags in a region's group - and invites; a record written before still reads);
-  `Membership` is `GroupMember` (`getMembership(uuid)` -> `getMember(uuid)`, `addMember` -> `add`, `removeMember` ->
-  `remove(uuid, LeaveCause)`); `RegionGroupChangedEvent` and `GroupChange` are replaced by the `Group*Event`s, whose
-  `getGroup().getRegion()` names the region; `MembershipCheck` moved to `group`. Removing a group or its region dissolves
-  it (`DissolveCause.REGION_REMOVED`). The region `group` command node gains `leader <player|->` and `role <player> <role|->`.
-- **Economy is `Currency`** (`br.com.finalcraft.evernifecore.economy`): plugins read and move money through
-  `Currencies.money()` (or any registered currency, `Currencies.find/require(id)`) with a `CurrencyOwner` -
-  `player(uuid)`, `group(id)`, `global()` - and a `Caller`; `Currency.supports(kind)` says which owners a currency
-  keeps wallets for (`money`: players only). Every implementation extends `AbstractCurrency`, whose final verbs own the
-  rules (negative amount, unsupported owner, unavailable currency, zero as a no-op); `transfer` gives the first leg back
-  when the second fails and posts one `TransferEvent`; every change posts one `BalanceChangeEvent`. A registered
-  currency is also a variable of the same id. `EcoResponse` gains `UNSUPPORTED_OWNER`, `UNAVAILABLE` and
-  `getCurrency()` - no call throws for a missing economy any more: a move answers `UNAVAILABLE`, a read answers zero.
-  `LevelCurve` (`linear`, `quadratic`, `table`) maps exp to level. Config codecs for `Currency` (by id),
-  `CurrencyOwner`, `LevelCurve` and `Balance`. `IEconomyProvider`, `LazyEconomyProvider` and the Vault/VaultUnlocked
-  bridges stay as the internal bridge behind `money` - an economy plugin still registers there - and no longer repeat
-  the amount rules. Bukkit registers the currencies `exp-levels` and `exp-points`. EveryLibs 1.3.0 (`Balance`,
-  `NumericSpec`).
-- `FCEcoUtil` stays as the one-liner facade over `Currencies.money()`: `ecoGive`, `ecoTake`, `ecoSet`,
-  `ecoHasEnough`, `ecoGet` and `ecoFormat` keep their `double` and `BigDecimal` overloads and still answer an
-  `EcoResponse`, on the core's own caller; code that needs another currency, a group owner or its own `Caller` uses
-  `Currency`. `FCMessageUtil.ecoNotEnough` and `EcoResponse.warnIfInsufficient` format with the currency that refused.
-- `EconomyConformance` checks a `Currency` (`check(currency)`, `checkMutating(currency, scratch, caller)`, one
-  `BalanceChangeEvent` per verb that moved money); `Economies.currency(id[, kinds])` builds a `TestCurrency` next to
-  the `TestEconomy` bridge, and `ECoreTestWorld.withCurrency(owner, currency, aliases...)` registers it for the world.
-
 - **Flags are a value model, not a region feature.** `Flag<T>` declares a `FlagScope` (`PLACE` or `ACTOR`); every
   `FlagHolder` (a region, a group of a region, and a holder that follows a player wherever they stand, registered in
   `ActorHolders`) carries values with an envelope: `mode: add|set`, a written `priority`, a `lock` marker and `since`.
@@ -970,86 +1077,146 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - `SessionContext.getRegion()` may be null (a value that came only from a holder that follows the player);
   `SessionContext.getSettings(flag)` gives the settings in effect either way. `FlagOutcomeContext.getResolution()` gives
   the layers behind an outcome. Protection and session flags of a holder that follows the player apply outside every region.
-- `common-tests`: `RegionWorld.actorHolder(id, members...)` (`TestActorHolder`, also usable alone through
-  `TestActorHolder.providerOf(holders)`) and `RegionWorld.explain(flag, player)`.
 
-- **`VisualStyle.PATH`**: the outline renderers draw a waypoint path with a particle of its own (Bukkit `HEART`,
-  Hytale `Lore_Note_Glow`).
-- **Hytale Server 0.7.5** (was 0.7.2; no source change).
+#### Groups
+
+- **`AccessGroup` is gone**: `Region.getGroup(name)` returns a `Group` of `GroupKind.REGION_LOCAL` (same stored format,
+  now with optional leader, roles - free tags in a region's group - and invites; a record written before still reads);
+  `Membership` is `GroupMember` (`getMembership(uuid)` -> `getMember(uuid)`, `addMember` -> `add`, `removeMember` ->
+  `remove(uuid, LeaveCause)`); `RegionGroupChangedEvent` and `GroupChange` are replaced by the `Group*Event`s, whose
+  `getGroup().getRegion()` names the region; `MembershipCheck` moved to `group`. Removing a group or its region dissolves
+  it (`DissolveCause.REGION_REMOVED`). The region `group` command node gains `leader <player|->` and `role <player> <role|->`.
+
+#### Economy
+
+- **Economy is `Currency`** (`br.com.finalcraft.evernifecore.economy`): plugins read and move money through
+  `Currencies.money()` (or any registered currency, `Currencies.find/require(id)`) with a `CurrencyOwner` -
+  `player(uuid)`, `group(id)`, `global()` - and a `Caller`; `Currency.supports(kind)` says which owners a currency
+  keeps wallets for (`money`: players only). Every implementation extends `AbstractCurrency`, whose final verbs own the
+  rules (negative amount, unsupported owner, unavailable currency, zero as a no-op); `transfer` gives the first leg back
+  when the second fails and posts one `TransferEvent`; every change posts one `BalanceChangeEvent`. A registered
+  currency is also a variable of the same id. `EcoResponse` gains `UNSUPPORTED_OWNER`, `UNAVAILABLE` and
+  `getCurrency()` - no call throws for a missing economy any more: a move answers `UNAVAILABLE`, a read answers zero.
+  `LevelCurve` (`linear`, `quadratic`, `table`) maps exp to level. Config codecs for `Currency` (by id),
+  `CurrencyOwner`, `LevelCurve` and `Balance`. `IEconomyProvider`, `LazyEconomyProvider` and the Vault/VaultUnlocked
+  bridges stay as the internal bridge behind `money` - an economy plugin still registers there - and no longer repeat
+  the amount rules. Bukkit registers the currencies `exp-levels` and `exp-points`. EveryLibs 1.3.0 (`Balance`,
+  `NumericSpec`).
+- `FCEcoUtil` stays as the one-liner facade over `Currencies.money()`: `ecoGive`, `ecoTake`, `ecoSet`,
+  `ecoHasEnough`, `ecoGet` and `ecoFormat` keep their `double` and `BigDecimal` overloads and still answer an
+  `EcoResponse`, on the core's own caller; code that needs another currency, a group owner or its own `Caller` uses
+  `Currency`. `FCMessageUtil.ecoNotEnough` and `EcoResponse.warnIfInsufficient` format with the currency that refused.
+- `EconomyConformance` checks a `Currency` (`check(currency)`, `checkMutating(currency, scratch, caller)`, one
+  `BalanceChangeEvent` per verb that moved money); `Economies.currency(id[, kinds])` builds a `TestCurrency` next to
+  the `TestEconomy` bridge, and `ECoreTestWorld.withCurrency(owner, currency, aliases...)` registers it for the world.
+
+#### Ranking
+
+- **common: `RankedList` no longer knows its chat renderer**: `getPageViewer`/`setPageViewer` are gone;
+  `PageViewer.attachedTo(list)` answers what `/ecpage <id>` sends. Keep the `PageViewer` you built in a field.
 - **`PageViewer` is now the chat renderer of a `RankedList`**: `PageViewer.of(rankedList)` keeps the format, theme,
   navigation, page size and viewer placeholders; `source`, `maxEntries`, `orderBy`, `cache`, `id` and `addRowPlaceholder`
   moved to `RankedList` (`addRowPlaceholder` is `RankedList.Builder.addValue`). `PageViewer.of(Class)` and `PageRegistry`
   are gone (`RankedLists` finds a list by id). `/ecpage <id> <page>` sends the list's renderer. A list with an async
   source is delivered on the main thread when its read lands, still naming the command it was sent from.
 - The core's `/ecore region list` page is an anonymous list now (a world name is not an id): it pages by session.
-- Requires EveryDatabase 1.5.1.
+
+#### Notifications and HUD
+
+- **`VisualStyle.PATH`**: the outline renderers draw a waypoint path with a particle of its own (Bukkit `HEART`,
+  Hytale `Lore_Note_Glow`).
+
+#### PlayerData
+
 - **`PlayerController.querySections` / `queryAccountSections`** are static (the instance `querySection` /
   `queryAccountSection` are gone) and wait for the controller to be ready like every other facade method.
 - **`forceSave()`** replaces `PDSection.forceSavePDSection()` and is the one name on both section kinds.
 - `CacheSyncWiring.startIfEnabled` takes the `RemoteChangeListener` the sync calls.
-- `FlagRegistry.setServedSources` is gone: a platform declares what it raises with `ActionSupport.declare(platform, post,
-  pre, nativeCommandSource)`, and `FlagRegistry.getUnservedSources` reads `ActionSupport.isServed`.
-- The Bukkit listeners of `minecraft.action.listener` are named for the action: `RegionListeners` is `ActionListeners`
-  (`ActionListeners.follow` for a plugin's own source), each `Region<X>Listener` is `<X>ActionListener`
-  (`RegionItemListeners`/`RegionVehicleListeners` are `ItemActionListeners`/`VehicleActionListeners`), `RegionContexts` is
-  `McActionContexts`; the `track-changes` journal listeners are `TerrainJournalListener` and
-  `TerrainJournalBlockExplodeListener`. On Hytale `hytale.region.HyRegionContexts` is `hytale.action.HyActionContexts`.
-- The Bukkit spawn listener posts `SpawnActionEvent` for egg spawns too; the regions still never decide those.
-- **EveryConfig 1.4.3**: `getOrMergeValue(path, bean)` keeps an unreadable value in the file (reported as a
-  `COERCION` `LoadIssue`) instead of writing the field default over it.
-- **The region engine's shared pieces leave `region`**: the action contexts, `Actor`/`TypeKey`/`ECEntityType`,
-  `EventSource`, `EventSourceUsage`/`UsageHold`/`UsageWatch` and `TriggerThrottle` now live in
-  `br.com.finalcraft.evernifecore.action`; `IPlayerStateAccess`, `HeldPlayerState`, `PlayerStateBackup`, `ECGameMode`,
-  `PlayerTime`, `ActiveEffect` and `EffectLevel` in `player.state`; `ItemSpec` in `item`; everything of `region.flag`
-  and `region.flag.core` plus `Resolution` in `flag` / `flag.core`, where `RegionFlag<T>` is now `Flag<T>`. Same
-  classes, same behaviour, same stored format (`regions/flags/<name>.yml` and the region records are keyed by flag
-  key, not by class): a plugin updates its imports and `extends Flag<T>`.
-- **One clock and one scheduler**: `time.ECClock` replaces `RegionClock`; `time.ECScheduler` replaces both
-  `scheduler.FCScheduler` and `RegionScheduler` with the same static methods (`runAsync`, `scheduleAsync`,
-  `runAsyncFuture`, `supplyAsyncFuture`, `getScheduler`, `getMinecraftScheduler`, `getHytaleScheduler`; the test
-  seam `RegionScheduler.set` is `ECScheduler.set`). No alias is kept; `McFCScheduler`/`HyFCScheduler` are unchanged.
-- **Cooldowns learn repeat policies.** `GenericCooldown`, `PlayerCooldown` and `NetworkCooldown` are gone: the one
-  handle is `Cooldown`, built from a `RepeatPolicy` over the same storage (`CooldownEntry` now carries `uses` and the
-  window it counts in; `PlayerCooldownsLocal`/`PlayerCooldownsNetwork`, `Cooldowns.yml` and `ServerCooldowns` keep their
-  rows and files, and an old row reads no uses). `isInCooldown`, `startWith`, `warnPlayer` and the other verbs keep
-  working; `canUse`, `tryUse`/`tryUse(n)` (all or nothing), `giveBack`, `getUsesLeft`, `getRemaining`, `getLastUseAt`,
-  `seed`, `reset` and `explain` join them. `IPlayerData.getCooldown(id)` and `getNetworkCooldown(id)` stay, return
-  `CompletableFuture<Cooldown>` and gain a `RepeatPolicy` overload; `PlayerCooldown.of(uuid, id)` is
-  `Cooldown.of(uuid, id)` (`network` alike); `new GenericCooldown("")` is `Cooldown.inMemory(id)`, never stored nor
-  listed; `Cooldown.initialize()`, `getMapOfCooldowns()` and `fromConfigMap` moved to `Cooldowns` (`loadServerFile()`).
-  A player cooldown that is not persistent is now shared by every handle over it until it expires, instead of living
-  only in the handle that started it. `/eccooldown` keeps its verbs, shows the uses and window, and `reset` clears them.
-- **`HeldPlayerState` is one per player** (`HeldPlayerState.of(uuid)`, no public constructor) and is held by any
-  `StateHolder` - `Flag` and `FlagKey` are holders - instead of a region flag: `hold`/`release` take a `StateHolder` and
-  `getHolders` answers by holder id. What is still held when the player quits is given back (`HeldPlayerState.forget`).
-- **The Bukkit region listeners live in `minecraft.action.listener`** (`RegionListeners`, `RegionContexts`, ...); on
-  Hytale `HyRegionSystems` is `hytale.action.HyActionSystems`.
-- `ItemContext`, `EntityContext` and `DamageContext` take their source, and refuse one they do not serve:
-  `ItemContext(source, position, actor, nativeEvent, itemKey, amount, itemEntity)` serves the pickup, drop, craft, smelt,
-  fish, consume and enchant sources (`getAmount()`, `getItemEntityId()` - null for a craft or a meal);
-  `EntityContext(source, ...)` the interact, tame, breed and shear sources; `DamageContext(source, ...)` the damage and
-  kill sources.
-- **A `FlagHandler` of a flag that protects a victim** (`invincible`, `deny-damage-from-mobs`, `damage-multiplier`)
-  **gets the victim as `FlagOutcomeContext.getPlayer()`**, not the attacker (nor null under a mob's hit): the outcome
-  carries the flag's subject, the player its value was resolved for.
 - **`region.Persistence` moved to `storage.Persistence`**: regions, groups and quests share it.
 
+#### Config and locale
+
+- **EveryConfig 1.4.3**: `getOrMergeValue(path, bean)` keeps an unreadable value in the file (reported as a
+  `COERCION` `LoadIssue`) instead of writing the field default over it.
+
+#### Commands
+
+- **`RegionVerbAccess` is `NodeVerbAccess`** (`commands.finalcmd.accessvalidation`): any node that implements
+  `VerbPermissionBase` (`getPermissionBase()`) - the region and the group nodes and their branches - gates each verb on
+  `<base>.<verb>`. `RegionCommandNode.getVerbPermission(verb)` and `RegionCommandNode.of(executor)` are gone.
+
+#### Scheduler and time
+
+- **`PlatformConformance.check` observes the thread hops**: `runOnWorldThread` must complete within five seconds and,
+  when it completes normally, must have run the task on the world's thread (`isWorldThread` true inside it);
+  `runOnWorldThreadNextTick` is held to the same when the caller is not the world's thread (the world's own thread
+  would wait on the tick it has to give). `onWorldLoaded`/`onWorldUnloaded` must refuse a null listener, and the check
+  no longer leaves a listener of its own behind; the test double refuses null too. The Hytale conformance plugin now
+  runs the same check against `HyPlatform` (`platform` case), and both platforms prove `runOnWorldThreadNextTick`
+  lands in a later tick (`world-thread-next-tick`).
+
+#### Common utilities
+
+- **common: `ItemSpec.of(id, name, lore)` keeps the id's case**, as `of(id, amount)` already did - a Hytale asset id is
+  case-sensitive. Only the blanks around it go.
+
+#### Hytale
+
+- **On Hytale the main-thread hop runs on one dedicated thread**: `ECScheduler.onMainThread` / `onMainThreadLater` run
+  their tasks one at a time, in the order asked, on the core's own thread (`evernifecore-main`), and `onMainThread` runs
+  in place when the caller already is that thread - as on Bukkit. Before, every task ran on a fresh background thread,
+  so two tasks of the same plugin could run at once.
+- **Hytale Server 0.7.5** (was 0.7.2; no source change).
+
+#### Test kit
+
+- **`BukkitScreenWorld.install` draws item text** (test kit): its items remember a name, a lore and a flag, so a test reads
+  an icon's name off a plain `install(...)` where it got a null `ItemMeta`. `installWithItemMetadata` is removed: call
+  `install`. Only `BukkitScreenWorld.over(...)` stays on items without metadata.
+- **`BukkitScreenWorld.newPlayer` is online on the world's platform** (test kit): `EverNifeCore.getPlatform().getPlayer(uuid)`
+  finds them without `Platforms.onlinePlayers(...)`. `TestPlatform.addOnlinePlayer(player)` adds one player to who is
+  online.
+- **The strict double's refusal of `isPluginLoaded`/`isPluginEnabled` teaches both answers** (test kit):
+  `pluginsLoaded("X")` when the plugin runs, `pluginsLoaded()` with no names when no plugin does.
+- **common-tests: `ECoreTestWorld` and `FinalCmdTestHarness` hand back the core's plugin data on close** (null
+  included) instead of leaving the last one lent for the rest of the JVM; the one a world lends when none is set is built
+  on a lenient double, so a strict world needs no logging for it. **`QuestWorld.login` attaches the `FPlayer`**
+  (`PDSection.getPlayer()` answers it) and `quit` detaches it.
+- `common-tests`: `RegionWorld.actorHolder(id, members...)` (`TestActorHolder`, also usable alone through
+  `TestActorHolder.providerOf(holders)`) and `RegionWorld.explain(flag, player)`.
+
+#### Build and dependencies
+
+- **`checkLinkage` reads the ECNmsUtils era packages** (build): each `v1_*` package is asked about its `org/bukkit/` references
+  against the release of its own revision (`linkageEraRuntimes`: 1.7.10, 1.12.2, 1.16.5, 1.20.1, 1.20.2, 1.21.1 - the last
+  three read only for their era), and the log prints the count per era. An unmapped era fails the check. Its CraftBukkit and
+  NMS references stay unchecked: no API jar carries them.
+- **Every test task stops after 5 minutes** (build): a suite that deadlocks (lanes left held) ends `BUILD FAILED` with
+  "Timeout has been exceeded" instead of hanging until killed.
+- **common: the `evernifecore-common` and `-relocated` POMs carry `jakarta.annotation-api`**, so a plugin can use
+  `@Nullable`/`@Nonnull` without declaring it. The Hytale jar leaves it out: the annotations only
+  serve the compiler, and a missing annotation class never fails at runtime.
+- Requires EveryDatabase 1.5.1.
+
 ### Removed
+
+#### Screens
 
 - **`RendererCapability.FREE_LAYOUT` and `TEXT_INPUT`**: no screen ever required them and no renderer could serve
   them - a `NamedRegion` has no coordinates to place by, and an `InputField` asks through `PromptRegistry` on every
   renderer. A capability comes back together with the API that uses it.
-- **`minecraft.region.listener`** (the 13 `Region*Listener` classes): the Bukkit native listeners are
-  `minecraft.action.listener`, attached only while a loaded region uses a flag of their `EventSource`.
-  `minecraft.commands.CMDGuiLayout` (`/ecoregui`) is gone with `minecraft.gui`: `/ecore screen reload|diff|which`.
 - **Removed `br.com.finalcraft.evernifecore.minecraft.gui`** (65 classes), `ResultGui`, `LayoutGui`, `LayoutResultGui`,
   `SubjectHolder`, `EnumWool`, `EnumStainedGlassPane` (`DefaultIcons.wool/pane(Color)`), `GuiType` (`minecraft.screen.ChestKind`),
   `FCItemBuilder.onClick/every` (`asIcon()` stays), `ClickContext.sound(...)` (a `sound` effect does it). Plugins compiled
   against `minecraft.gui` break at load: AWShop, LabQuests, DailyRewards, EverNifeTemplate, FinalPokeBuilder, FinalAuction,
   EveryInventoryRollback, EvRTraders, FinalWonderTrade, PokeRecycler, KazumonCompanion, RandomCrate, FinalAlerts,
   PokeShowdown, BlockLimiter, FinalKits, FinalTags, TheMarket, EveryInventoryAPI, MCTF.
-- `pageviewer.CachePolicy`, `PageSnapshot`, `Row`, `PageOrder`, `PageRegistry` (moved to `ranking` as `CachePolicy`,
-  `RankedSnapshot`, `RankedEntry`, internal, `RankedLists`).
+
+#### Actions
+
+- **`minecraft.region.listener`** (the 13 `Region*Listener` classes): the Bukkit native listeners are
+  `minecraft.action.listener`, attached only while a loaded region uses a flag of their `EventSource`.
+  `minecraft.commands.CMDGuiLayout` (`/ecoregui`) is gone with `minecraft.gui`: `/ecore screen reload|diff|which`.
 - **The Bukkit-only events** `ECPlayerCraftItemEvent`, `ECPlayerChangeChunkEvent` and the `ECPlayerdataDamagePlayerdata`
   family (`ECPlayerDamagedByPlayer`, `ECPlayerDamagedByPet`, `ECPetDamagedByPet`, `ECPetDamagedByPlayer`) no longer exist,
   nor do their producers `PlayerCraftListener`, `PlayerMoveListener` and `PlayerDamageByEntityListener`. Use
@@ -1059,6 +1226,19 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `CraftActionEvent` (`.Pre` to cancel the craft, `.Post` after it; `getContext().getAmount()` is the old
   `getAmountProduced()`, a shift-click counted the same way); `ECPlayerChangeChunkEvent` is `ExploreActionEvent`
   (`getContext().getFrom()`/`getTo()` are the chunks, `.Pre` cancels the step).
+
+#### Groups
+
+- **`Group.resolve(flag, player)`**: use `getEffectiveFlag(flag)` (the kind's default included) and
+  `contains(player)`.
+
+#### Ranking
+
+- `pageviewer.CachePolicy`, `PageSnapshot`, `Row`, `PageOrder`, `PageRegistry` (moved to `ranking` as `CachePolicy`,
+  `RankedSnapshot`, `RankedEntry`, internal, `RankedLists`).
+
+#### Notifications and HUD
+
 - **`IPlatform.runOnMainThread` and `IPlatform.runOnMainThreadNextTick`** (the `Runnable` and `Supplier` forms): the
   main-thread hop belongs to `time.ECScheduler`, which each platform installs through `ECScheduler.setMainThread`.
   `getPlatform().runOnMainThread(task)` becomes `ECScheduler.onMainThread(task)` (in place when the caller already
@@ -1076,8 +1256,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `Notifier.get().notify(player, Notification.of(NotifyKind.INFO).text(...).channels("action-bar").build())` (or
   `"title"`; `priority`, `id` and `duration`/`ticks` keep the old queue's meaning). Plugins still on the old API
   (EveryCommands, FinalHomesAndWarps, FinalRTP) migrate in the template round.
-- **`Group.resolve(flag, player)`**: use `getEffectiveFlag(flag)` (the kind's default included) and
-  `contains(player)`.
+
+#### Scheduler and time
+
 - **`time.DayOfToday`**: `Window.getServerZone()` is the server zone (`Settings.Time.ZONE_ID_OF_DAY_OF_TODAY`, the
   system's when unset or unreadable) and `ECTimeFormat` formats in it; its `currentTimeMillisWithOffset` ignored daylight
   saving.
