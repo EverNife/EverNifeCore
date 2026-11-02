@@ -755,6 +755,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **Every test task stops after 5 minutes** (build): a suite that deadlocks (lanes left held) ends `BUILD FAILED` with
+  "Timeout has been exceeded" instead of hanging until killed.
 - **An effect the platform refuses** (`UnsupportedOperationException`) is still audited `EFFECT_FAILED`, but goes to the
   global bus's exception handler (SEVERE with the stack, by default) instead of the caller's warning, so a strict test
   double's refusal fails the `ECoreTestWorld`. `ECEventExceptionHandler.onSubscriberFailure` takes a null subscription

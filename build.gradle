@@ -1,6 +1,8 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 
+import java.time.Duration
+
 // Project version: single source of truth is gradle/libs.versions.toml ([versions].evernifecore).
 // Captured here (root project scope, where the `libs` catalog accessor is unambiguous) and
 // applied to every module below.
@@ -63,6 +65,8 @@ subprojects {
     }
 
     tasks.withType(Test).configureEach {
+        // a deadlocked suite fails the build instead of hanging it: about 3x a full :common:test on the owner's machine
+        timeout = Duration.ofMinutes(5)
         testLogging {
             events = [TestLogEvent.PASSED, TestLogEvent.FAILED, TestLogEvent.SKIPPED]
             exceptionFormat = TestExceptionFormat.FULL
