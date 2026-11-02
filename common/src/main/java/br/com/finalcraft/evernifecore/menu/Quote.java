@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 import jakarta.annotation.Nullable;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -46,13 +47,19 @@ public final class Quote {
     /**
      * Charges (BUY) or pays (SELL) {@code total} for the line {@code lineId} instead.
      *
-     * @throws IllegalArgumentException when the line is not in this quote or the total is negative
+     * @throws IllegalArgumentException when the line is not in this quote, the total is negative, or the line counts items
+     *                                  and the total is not a whole number
      */
     public synchronized void setTotal(String lineId, BigDecimal total) {
         PriceLine line = require(lineId);
         if (total == null || total.signum() < 0) {
             throw new IllegalArgumentException("A total of " + total + " for " + lineId + " is not a price: write zero or more. A discount"
                     + " lowers the total, a refund is a separate give.");
+        }
+        if (line instanceof Price.ItemLine && total.stripTrailingZeros().scale() > 0) {
+            throw new IllegalArgumentException("A total of " + total.toPlainString() + " for " + lineId + " is not a count of items: write a"
+                    + " whole number - round a discount on an item line yourself (" + total.toPlainString() + " down is "
+                    + total.setScale(0, RoundingMode.DOWN).toPlainString() + ").");
         }
         totals.put(line.getId(), total);
     }

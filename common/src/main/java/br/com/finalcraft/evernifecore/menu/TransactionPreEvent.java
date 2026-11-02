@@ -8,7 +8,7 @@ import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 /**
  * A trade passed its gate and limit and is about to take: cancel it ({@code CANCELLED}, nothing taken), change the
  * quantity, or change the totals through {@link #getQuote()} - a tax, a discount. Changing the quantity does not
- * recompute the totals. Posted only when somebody listens, on the trading thread.
+ * recompute the totals; the new quantity is checked again against the limit, the room and the items held. Posted only when somebody listens, on the trading thread.
  */
 public class TransactionPreEvent extends ECEvent implements IECEvent, ECCancellable {
 

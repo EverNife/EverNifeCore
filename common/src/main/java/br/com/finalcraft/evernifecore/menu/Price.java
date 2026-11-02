@@ -216,7 +216,7 @@ public final class Price {
         }
     }
 
-    private static final class ItemLine implements PriceLine {
+    static final class ItemLine implements PriceLine {
         private final ItemMatcher matcher;
         private final int unitCount;
 

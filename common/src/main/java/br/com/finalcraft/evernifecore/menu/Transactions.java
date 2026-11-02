@@ -33,9 +33,9 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * Runs an {@link Offer}. Every verb runs on the caller's thread (a click, a command), without blocking I/O, in one fixed
- * order: the offer's gate checked (every failure) -> the limit -> room or units held -> {@link TransactionPreEvent} ->
- * the price and the fixed costs taken by one {@link Gate#pay} (refunded in reverse when one does not come out) -> the
- * goods handed over or taken -> the limit counted -> the owner's {@link AuditLog} -> {@link TransactionEvent}. A
+ * order: the offer's gate checked (every failure) -> the limit -> room or units held -> {@link TransactionPreEvent} (a
+ * quantity it changed is checked again) -> the price and the fixed costs taken by one {@link Gate#pay} (refunded in
+ * reverse when one does not come out) -> the goods handed over or taken -> the limit counted -> the owner's {@link AuditLog} -> {@link TransactionEvent}. A
  * refusal before the pre-event posts nothing. The texts for the player ({@link TransactionResult#describe}, the quantity
  * prompt) are the core's locale messages, in {@link ExecutionContext#getLocale()}.
  */
@@ -283,13 +283,20 @@ public final class Transactions {
         if (pre != null && pre.isCancelled()) {
             return TransactionResult.failed(TransactionResult.Failure.CANCELLED, offer, units, quote, text(CALLED_OFF, ctx));
         }
+        if (units != quantity) {
+            //the limit, the room and the items were measured for the asked quantity, not the listener's
+            TransactionResult refusedNow = precheck(ctx, offer, units, quote, false);
+            if (refusedNow != null) {
+                return refusedNow;
+            }
+        }
         TransactionResult result = offer.getType() == Offer.Type.BUY ? takeAndGive(ctx, offer, units, quote) : takeAndPay(ctx, offer, units, quote);
         if (!result.isSuccess()) {
             return result;
         }
         Cooldown counter = offer.getCounter(ctx);
-        if (counter != null) {
-            counter.tryUse(units);
+        if (counter != null && !counter.tryUse(units)) {
+            uncounted(ctx, offer, units);
         }
         audit(ctx, result);
         ECEventBus.global().postIfListened(TransactionEvent.class, () -> new TransactionEvent(ctx, result));
@@ -422,6 +429,15 @@ public final class Transactions {
                 : player.getName() + " (uuid " + player.getUniqueId() + ")") + " " + what + " - give it back by hand.";
         AuditLog.ofIfPresent(ctx.getCaller().getPlugin()).ifPresent(log -> log.record(AuditEntry.builder(AuditKind.REFUND_FAILED, ctx.getCaller())
                 .owner(ctx.getOwner()).player(player == null ? null : player.getUniqueId()).text(text).build()));
+        ctx.getCaller().getPlugin().getLog().severe("[" + ctx.getCaller() + "] " + text);
+    }
+
+    /** A trade that went through and its limit could not count (used up in between): audited and logged, never silent. */
+    private static void uncounted(ExecutionContext ctx, Offer offer, int units) {
+        FPlayer player = ctx.getPlayer();
+        String text = "The trade of " + units + " units of " + offer + " for " + (player == null ? ctx.getOwner().toString() : player.getName())
+                + " went through and its limit could not count it, so those units are not on the limit - check the counter by hand.";
+        ctx.getAudit().add(ctx, AuditKind.EFFECT_FAILED, text);
         ctx.getCaller().getPlugin().getLog().severe("[" + ctx.getCaller() + "] " + text);
     }
 

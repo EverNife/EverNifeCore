@@ -476,6 +476,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **A fractional total on an item price line is refused by `Quote.setTotal`** with the rule in the message, instead of
+  an `ArithmeticException` out of the click that left the player reading nothing.
+- **A `TransactionPreEvent` listener that raises the quantity is held to the limit, the room and the items**, and a
+  limit counter that could not count the trade is logged severe and audited instead of staying silent.
 - **`Transactions.sellAll` and `sellHand` sell up to the offer's limit** instead of refusing the whole lot with
   `LIMIT_REACHED`; `sellHand(HELD_STACK)` with less than one unit in hand answers `NO_ITEMS` and takes nothing.
 - **A confirmed offer confirms the trade it makes**: the question names the resolved quantity and its total

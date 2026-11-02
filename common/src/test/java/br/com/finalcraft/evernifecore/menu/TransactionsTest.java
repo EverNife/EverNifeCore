@@ -6,12 +6,16 @@ import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.logic.ConditionResult;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 import br.com.finalcraft.evernifecore.logic.Gate;
+import br.com.finalcraft.evernifecore.logic.RepeatPolicy;
 import br.com.finalcraft.evernifecore.testing.CountedGoods;
 import br.com.finalcraft.evernifecore.testing.Menus;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
+import br.com.finalcraft.evernifecore.time.Window;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -19,6 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** The order and the outcomes of one trade: quote, buy, sell, the two events, and the refusals that charge nothing. */
@@ -85,6 +90,34 @@ class TransactionsTest extends MenuTestWorlds {
         assertAmount("420", menus.balance(menus.coins(), alex));
         assertAmount("80", result.getQuote().getTotal(menus.coins().getId()));
         assertAmount("100", result.getQuote().getOriginal().getTotal(menus.coins().getId()));
+    }
+
+    @Test
+    void aListenerThatRaisesTheQuantityIsHeldToTheLimit() {
+        TestFPlayerSender alex = menus.player("Alex", 500);
+        CountedGoods swords = Menus.counted("sword", 0);
+        Offer threeADay = menus.buy(swords, 10)
+                .limit("raised", RepeatPolicy.limited(3).window(Window.daily(LocalTime.of(4, 0), ZoneOffset.UTC)), LimitScope.PLAYER).build();
+        onPreEvent(pre -> pre.setQuantity(5));
+
+        TransactionResult result = Transactions.buy(menus.context(alex), threeADay, 2);
+
+        assertEquals(TransactionResult.Failure.LIMIT_REACHED, result.getFailure(), result.toString());
+        assertEquals(0, swords.getHeld());
+        assertAmount("500", menus.balance(menus.coins(), alex));
+    }
+
+    @Test
+    void aFractionalTotalOnAnItemLineIsRefusedWithTheRule() {
+        TestFPlayerSender alex = menus.player("Alex", 500);
+        Quote quote = Price.free().andItem(ItemMatcher.of("minecraft:iron_ingot"), 9).quote(menus.context(alex), 1);
+
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+                () -> quote.setTotal("item:minecraft:iron_ingot", new BigDecimal("8.1")));
+
+        assertTrue(refused.getMessage().contains("whole number"), refused.getMessage());
+        quote.setTotal("item:minecraft:iron_ingot", new BigDecimal("8.0"));
+        assertAmount("8", quote.getTotal("item:minecraft:iron_ingot"));
     }
 
     @Test
