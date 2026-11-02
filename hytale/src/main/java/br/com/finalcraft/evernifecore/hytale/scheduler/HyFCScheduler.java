@@ -23,6 +23,11 @@ public class HyFCScheduler implements ECScheduler.MainThread {
     private boolean serverStarted = false;
     private final List<CompletableFuture<Void>> pendingStartGates = new ArrayList<>();
 
+    //Hytale ticks each world on its own thread and has no server thread, so the core owns one: every main-thread
+    //task of this scheduler runs on it, one at a time, in the order asked - what ECScheduler.MainThread promises.
+    private ExecutorService mainThread;
+    private volatile Thread mainThreadRef;
+
     public HyFCScheduler() {
 
     }
@@ -60,16 +65,25 @@ public class HyFCScheduler implements ECScheduler.MainThread {
     //  The main thread ECScheduler hops to
     // -----------------------------------------------------------------------------------------------------------------
 
-    /** The same as {@link #onMainThreadLater(Supplier)}: there is no main thread here to test the caller against. */
+    /**
+     * In place, before this call returns, when the caller already is the core's main thread; queued like
+     * {@link #onMainThreadLater(Supplier)} otherwise. A throwable is printed and fails the future.
+     */
     @Override
     public <T> CompletableFuture<T> onMainThread(Supplier<T> task) {
-        return onMainThreadLater(task);
+        if (Thread.currentThread() != mainThreadRef) {
+            return onMainThreadLater(task);
+        }
+        CompletableFuture<T> future = new CompletableFuture<>();
+        complete(future, task);
+        return future;
     }
 
     /**
-     * Runs the task on a background thread - Hytale has no single main thread (schedulers are per-world) - once the
-     * start phase came: asked before it, the task waits for {@link #flushPendingMainThreadTasks()}; asked after, it
-     * runs right away. A throwable is printed and fails the future.
+     * Never in place: queued on the core's main thread, after every task queued before it, and run there one at a
+     * time - a task that blocks holds the queue, so never join this future from the main thread. Asked before the
+     * start phase, it waits for {@link #flushPendingMainThreadTasks()}; asked after, it runs next. A throwable is
+     * printed and fails the future.
      */
     @Override
     public <T> CompletableFuture<T> onMainThreadLater(Supplier<T> task) {
@@ -82,7 +96,32 @@ public class HyFCScheduler implements ECScheduler.MainThread {
                 pendingStartGates.add(gate);
             }
         }
-        return gate.thenCompose(ignored -> ECScheduler.supplyAsyncFuture(task));
+        CompletableFuture<T> future = new CompletableFuture<>();
+        //the flush completes the gates in the order asked, on one thread, so the queue keeps that order
+        gate.thenRun(() -> mainThread().execute(() -> complete(future, task)));
+        return future;
+    }
+
+    //Created on the first task, so loading the class (INSTANCE) in a test that never hops starts no thread.
+    private synchronized ExecutorService mainThread() {
+        if (mainThread == null) {
+            mainThread = Executors.newSingleThreadExecutor(runnable -> {
+                Thread thread = new Thread(runnable, "evernifecore-main");
+                thread.setDaemon(true); //the server never waits for it on shutdown
+                mainThreadRef = thread;
+                return thread;
+            });
+        }
+        return mainThread;
+    }
+
+    private static <T> void complete(CompletableFuture<T> future, Supplier<T> task) {
+        try {
+            future.complete(task.get());
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+            future.completeExceptionally(throwable);
+        }
     }
 
     /**

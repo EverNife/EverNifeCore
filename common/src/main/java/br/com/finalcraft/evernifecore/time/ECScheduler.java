@@ -23,8 +23,8 @@ public final class ECScheduler {
 
     /**
      * The platform's main thread, installed by the platform module through {@link #setMainThread}. Bukkit: the server
-     * thread. Hytale has no single main thread: both forms run on a background thread once the server reached its
-     * start phase.
+     * thread. Hytale, which ticks each world on its own thread: the core's own main thread, one for the server, tasks
+     * one at a time in the order asked, from the start phase on. Either way a task that blocks holds the queue.
      */
     public interface MainThread {
         /** Runs the task on the main thread: in place when the caller already is it, queued otherwise. */
@@ -150,9 +150,10 @@ public final class ECScheduler {
      * Runs the task on the main thread, never in place. Asked during enable, it runs once every plugin has enabled
      * (Bukkit: the first tick; Hytale: the start phase, after every plugin's setup() and the world loads). Asked later,
      * it runs at the next opportunity, which is not a promise of a later tick: on Bukkit a task queued by a running
-     * scheduler task may run in that same tick, and on Hytale it runs on a background thread right away. To pace work
-     * one piece per tick use {@code IPlatform.runOnWorldThreadNextTick}. On Bukkit the task holds the tick until it
-     * returns. Any thread.
+     * scheduler task may run in that same tick, and on Hytale it runs next on the core's main thread, after the tasks
+     * already queued. To pace work one piece per tick use {@code IPlatform.runOnWorldThreadNextTick}. The task holds
+     * the main thread until it returns (on Bukkit, the tick), so never join this future from the main thread. Any
+     * thread.
      *
      * @throws IllegalStateException when no platform installed its main thread
      */

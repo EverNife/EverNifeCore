@@ -635,6 +635,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **On Hytale the main-thread hop runs on one dedicated thread**: `ECScheduler.onMainThread` / `onMainThreadLater` run
+  their tasks one at a time, in the order asked, on the core's own thread (`evernifecore-main`), and `onMainThread` runs
+  in place when the caller already is that thread - as on Bukkit. Before, every task ran on a fresh background thread,
+  so two tasks of the same plugin could run at once.
 - **flag: the boot log says "acts in part" for a flag with some sources served and "never matches" for an actor kind
   the platform has none of**: `track-changes` and `force-fly` on Hytale act in part (no explosion, no flight toggle there),
   `deny-block-break-fake-players`/`-place-fake-players` never match. `ActionSupport.declare` takes a fifth argument, the
