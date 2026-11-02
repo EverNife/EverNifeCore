@@ -52,6 +52,7 @@ import com.hypixel.hytale.component.system.ISystem;
 import com.hypixel.hytale.component.system.RefSystem;
 import com.hypixel.hytale.component.system.WorldEventSystem;
 import com.hypixel.hytale.protocol.BlockPosition;
+import com.hypixel.hytale.protocol.InteractionChainData;
 import com.hypixel.hytale.protocol.InteractionState;
 import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
@@ -645,20 +646,40 @@ public final class HyActionSystems {
                 return;
             }
             Ref<EntityStore> user = chunk.getReferenceTo(index);
-            Ref<EntityStore> target = context.getTargetEntity();
+            Ref<EntityStore> target = chainTargetEntity(event, store.getExternalData());
             if (target != null) {
                 decideOnEntity(EventSource.INTERACT, user, target, store, event, HyActionContexts.itemKey(context.getHeldItem()));
                 return;
             }
-            BlockPosition block = context.getTargetBlock();
-            if (block != null) {
-                Vector3i at = new Vector3i(block.x, block.y, block.z);
+            Vector3i at = chainTargetBlock(event);
+            if (at != null) {
                 if (type == InteractionType.Secondary && clicked(user, store, event, at, context.getHeldItem(), false)) {
                     return;
                 }
                 onBlock(EventSource.INTERACT, user, store, event, at, HyActionContexts.key((BlockType) null), context.getHeldItem());
             }
         }
+    }
+
+    /**
+     * The entity the client aimed a starting chain at, by the network id in the chain's packet data: the server puts
+     * the context's target meta only after {@link InteractionChainStartEvent}. Null for no entity (a negative id, as the
+     * server reads it) or one the world no longer knows.
+     */
+    static @Nullable Ref<EntityStore> chainTargetEntity(InteractionChainStartEvent event, EntityStore entities) {
+        InteractionChainData data = event.getChain().getChainData();
+        Ref<EntityStore> target = data == null || data.entityId < 0 ? null : entities.getRefFromNetworkId(data.entityId);
+        return target != null && target.isValid() ? target : null;
+    }
+
+    /**
+     * The block the client aimed a starting chain at, from the chain's packet data; null for none. It is the block
+     * clicked, not the root of a multiblock the server maps it to later: the region judges where the player acted.
+     */
+    static @Nullable Vector3i chainTargetBlock(InteractionChainStartEvent event) {
+        InteractionChainData data = event.getChain().getChainData();
+        BlockPosition block = data == null ? null : data.blockPosition;
+        return block == null ? null : new Vector3i(block.x, block.y, block.z);
     }
 
     private static final class ItemDropSystem extends ByActor<DropItemEvent.Drop> {

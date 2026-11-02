@@ -16,7 +16,14 @@ import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.npc.NpcRef;
 import br.com.finalcraft.evernifecore.testing.Logs;
 import com.hypixel.hytale.math.vector.Rotation3f;
+import com.hypixel.hytale.protocol.BlockPosition;
+import com.hypixel.hytale.protocol.InteractionChainData;
 import com.hypixel.hytale.protocol.InteractionType;
+import com.hypixel.hytale.server.core.entity.InteractionChain;
+import com.hypixel.hytale.server.core.entity.InteractionContext;
+import com.hypixel.hytale.server.core.modules.interaction.event.InteractionChainStartEvent;
+import com.hypixel.hytale.server.core.modules.interaction.interaction.config.RootInteraction;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.core.event.events.ecs.EnvironmentBreakBlockEvent;
 import com.hypixel.hytale.server.core.modules.entity.teleport.Teleport;
 import br.com.finalcraft.evernifecore.action.SimpleContext;
@@ -640,5 +647,38 @@ class HyActionSystemsTest {
         } finally {
             veto.unsubscribe();
         }
+    }
+
+    private static InteractionChainStartEvent chainStart(InteractionChainData data) {
+        return new InteractionChainStartEvent(new InteractionChain(InteractionType.Secondary, InteractionContext.withoutEntity(), data, new RootInteraction(), null, false));
+    }
+
+    @Test
+    void anInteractionChainStartNamesTheBlockTheClientClickedNotTheMetaTheServerFillsLater() {
+        InteractionChainData data = new InteractionChainData();
+        data.blockPosition = new BlockPosition(3, 4, 5);
+        InteractionChainStartEvent event = chainStart(data);
+
+        assertNull(event.getContext().getTargetBlock(), "the server fills the target meta only after the event");
+        assertEquals(new Vector3i(3, 4, 5), HyActionSystems.chainTargetBlock(event));
+    }
+
+    @Test
+    void aChainStartedWithNoTargetNamesNeitherABlockNorAnEntity() {
+        InteractionChainStartEvent event = chainStart(new InteractionChainData());   //entityId -1, no block: a chain the server started
+
+        assertNull(HyActionSystems.chainTargetBlock(event));
+        assertNull(HyActionSystems.chainTargetEntity(event, null), "a negative id never reaches the entity store");
+    }
+
+    @Test
+    void anEntityIdTheWorldNoLongerKnowsIsNoTarget() {
+        InteractionChainData data = new InteractionChainData();
+        data.entityId = 42;
+        data.blockPosition = new BlockPosition(3, 4, 5);
+        InteractionChainStartEvent event = chainStart(data);
+
+        assertNull(HyActionSystems.chainTargetEntity(event, new EntityStore(null)), "the entity left between the click and the server");
+        assertEquals(new Vector3i(3, 4, 5), HyActionSystems.chainTargetBlock(event));
     }
 }
