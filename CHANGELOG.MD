@@ -493,6 +493,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **Hytale: `spawn-point` after a real death.** The flag's teleport is put once the server's own teleport has left the
   player (checked tick by tick, up to two seconds), instead of replacing it in the same buffer, where the server's
   teleport system ignored the replacement. Past the wait it is dropped with a warning.
+- **Two first `CustomVariables.define` of one variable at once no longer throw**: the define is one atomic step, so
+  every thread racing to define a variable gets the same instance and only the one that created it registers its
+  variable type - before, the loser threw `already registered`.
 - **Contributions and dynamic values no longer leave the backend a write behind**: two changes of one row whose writes
   completed out of order left the older snapshot in storage until the next change. Each row now has at most one write
   on its way, and a change made meanwhile writes the row's latest state once that one lands (`Contributions`,

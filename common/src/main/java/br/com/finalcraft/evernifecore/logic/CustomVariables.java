@@ -93,23 +93,27 @@ public final class CustomVariables {
                     + " read: define it as BigDecimal, String, Boolean or Duration.");
         }
         String id = RegionId.requireOwner(plugin.getMetaInfo().getName()) + ":" + RegionId.requireName("variable", name);
-        CustomVariable<?> existing = DEFINED.get(id);
-        if (existing != null && existing.owner() == this) {
-            if (existing.getType() != type) {
-                throw new IllegalArgumentException("The custom variable " + id + " is already defined as a " + existing.getType().getSimpleName()
-                        + ", not a " + type.getSimpleName() + ": give the new one another name.");
+        Objects.requireNonNull(initial, "initial");
+        boolean[] created = {false};
+        //one compute: threads racing to the first define of an id all get the one variable, and only its creator registers it
+        CustomVariable<?> variable = DEFINED.compute(id, (key, existing) -> {
+            if (existing != null && existing.owner() == this) {
+                if (existing.getType() != type) {
+                    throw new IllegalArgumentException("The custom variable " + id + " is already defined as a " + existing.getType().getSimpleName()
+                            + ", not a " + type.getSimpleName() + ": give the new one another name.");
+                }
+                return existing;
             }
-            return (CustomVariable<T>) existing;
-        }
-        CustomVariable<T> variable = new CustomVariable<>(this, id, name, type, Objects.requireNonNull(initial, "initial"));
-        DEFINED.put(id, variable);
-        if (!Variables.registry().find(id).isPresent()) {
+            created[0] = true;
+            return new CustomVariable<>(this, id, name, type, initial);
+        });
+        if (created[0] && !Variables.registry().find(id).isPresent()) {
             Variables.registry().register(plugin, TypeDescriptor.<Variable<?>>of(id)
                     .describe("A variable of " + plugin.getMetaInfo().getName() + ", one value per owner.")
                     .factory(params -> DEFINED.get(id))
                     .build());
         }
-        return variable;
+        return (CustomVariable<T>) variable;
     }
 
     public ECPluginData getPlugin() {
