@@ -18,6 +18,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **`PlayerDouble.getTitles()` / `getActionBars()`** (test kit): the titles (`PlayerDouble.Title`, `Title.CLEARED` for a
+  cleared one) and action bars a chest test's player was shown through the Bukkit API.
+- **`BukkitScreenWorld.withEconomy(economy)`** (test kit): the chest test's economy, the same form as
+  `ECoreTestWorld.withEconomy` (`Economies.inMemory()...build()`), put back on `close()` - no more registering an
+  `IEconomyProvider` by hand. Its `PlayerDouble` answers `getStorageContents`/`setStorageContents`, so
+  `FCInventoryUtil` counts, finds and takes items from the player of a chest test: a whole sale runs on the real chest.
 - **`ECScheduler.repeatAsync(task, delayMillis, periodMillis)`**: a repeated async task with a `RepeatingTask` handle that
   cancels it; a run that throws is printed and the next one still comes. It runs through the same `Backend` as
   `scheduleAsync`, so `TestClock` drives it.

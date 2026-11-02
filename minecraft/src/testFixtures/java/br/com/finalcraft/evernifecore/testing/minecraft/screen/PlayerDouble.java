@@ -3,6 +3,8 @@ package br.com.finalcraft.evernifecore.testing.minecraft.screen;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFPlayer;
 import br.com.finalcraft.evernifecore.testing.minecraft.Doubles;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.BaseComponent;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.HumanEntity;
@@ -58,6 +60,8 @@ public final class PlayerDouble {
     /** Slot 40 of the inventory, as on 1.9+. */
     private ItemStack offHand;
     private final List<String> messages = new ArrayList<>();
+    private final List<String> actionBars = new ArrayList<>();
+    private final List<Title> titles = new ArrayList<>();
     private final List<PlayedSound> sounds = new ArrayList<>();
     private final List<Drop> drops = new ArrayList<>();
     private final World world;
@@ -113,6 +117,17 @@ public final class PlayerDouble {
                     messages.add(String.valueOf(args[0]));
                     return null;
                 })
+                //a title and an action bar arrive here through the Bukkit API: with no core plugin there is no
+                //Adventure bridge to carry them
+                .on("sendTitle", args -> {
+                    titles.add(new Title(String.valueOf(args[0]), String.valueOf(args[1])));
+                    return null;
+                })
+                .on("resetTitle", args -> {
+                    titles.add(Title.CLEARED);
+                    return null;
+                })
+                .on("spigot", args -> spigot())
                 .on("playSound", args -> {
                     sounds.add(playedSound(args));
                     return null;
@@ -202,6 +217,28 @@ public final class PlayerDouble {
         return new ArrayList<>(messages);
     }
 
+    /** Every action bar shown to this player, as legacy text, in order. */
+    public List<String> getActionBars() {
+        return new ArrayList<>(actionBars);
+    }
+
+    /** Every title shown to this player, in order; {@link Title#CLEARED} where one was cleared. */
+    public List<Title> getTitles() {
+        return new ArrayList<>(titles);
+    }
+
+    /** {@code player.spigot()}: only its action bar is answered, the one message type chat does not already carry. */
+    private Player.Spigot spigot() {
+        return new Player.Spigot() {
+            @Override
+            public void sendMessage(ChatMessageType position, BaseComponent... components) {
+                if (position == ChatMessageType.ACTION_BAR) {
+                    actionBars.add(BaseComponent.toLegacyText(components));
+                }
+            }
+        };
+    }
+
     /** Every sound played to this player, in order. */
     public List<PlayedSound> getSounds() {
         return new ArrayList<>(sounds);
@@ -257,6 +294,21 @@ public final class PlayerDouble {
                             contents[slot] = slot(slot);
                         }
                         return contents;
+                    })
+                    //the 36 main slots alone: what a shop counts and takes from
+                    .on("getStorageContents", args -> {
+                        ItemStack[] storage = new ItemStack[MAIN_SLOTS];
+                        for (int slot = 0; slot < MAIN_SLOTS; slot++) {
+                            storage[slot] = playerInventory.getItem(slot);
+                        }
+                        return storage;
+                    })
+                    .on("setStorageContents", args -> {
+                        ItemStack[] storage = (ItemStack[]) args[0];
+                        for (int slot = 0; slot < MAIN_SLOTS; slot++) {
+                            playerInventory.set(slot, slot < storage.length ? storage[slot] : null);
+                        }
+                        return null;
                     })
                     .on("getArmorContents", args -> armor.clone())
                     .on("getItemInOffHand", args -> offHand)
@@ -435,6 +487,26 @@ public final class PlayerDouble {
         @Override
         public String toString() {
             return "PlayedSound{" + sound + " at volume " + volume + ", pitch " + pitch + "}";
+        }
+    }
+
+    /** One title as the player saw it: the title line and the subtitle under it. */
+    public static final class Title {
+
+        /** What a cleared title leaves in {@link #getTitles()}. */
+        public static final Title CLEARED = new Title(null, null);
+
+        public final String title;
+        public final String subtitle;
+
+        Title(String title, String subtitle) {
+            this.title = title;
+            this.subtitle = subtitle;
+        }
+
+        @Override
+        public String toString() {
+            return this == CLEARED ? "Title{cleared}" : "Title{" + title + " / " + subtitle + "}";
         }
     }
 

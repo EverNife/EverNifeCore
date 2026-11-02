@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.testing.minecraft.screen;
 
+import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
@@ -198,6 +199,18 @@ public final class BukkitScreenWorld implements AutoCloseable {
             throw new IllegalStateException("This chest was laid over a ScreenWorld; read its platform there.");
         }
         return platformWorld.platform();
+    }
+
+    /**
+     * Installs {@code economy} for the life of this world, the way {@link ECoreTestWorld#withEconomy} does - a price, a
+     * shop's sale, {@code Currencies.money()} all reach it; {@link #close()} puts the previous provider back.
+     */
+    public BukkitScreenWorld withEconomy(IEconomyProvider economy) {
+        if (platformWorld == null) {
+            throw new IllegalStateException("This chest was laid over a ScreenWorld; give that world the economy.");
+        }
+        platformWorld.withEconomy(economy);
+        return this;
     }
 
     /** The core's plugin data, for the setup a real enable would have done and this one does not. */
