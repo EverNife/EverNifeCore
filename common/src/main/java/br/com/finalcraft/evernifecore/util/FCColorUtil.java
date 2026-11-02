@@ -15,6 +15,8 @@ import java.util.regex.Pattern;
 public class FCColorUtil {
 
     private static final Pattern HEX_PATTERN = Pattern.compile("&#([A-Fa-f0-9]{6})");
+    // Only an & that starts a code becomes a §: "Tom & Jerry" is text, not a broken colour.
+    private static final Pattern CODE_PATTERN = Pattern.compile("&(?=[0-9A-Fa-fK-Ok-oRrXx])");
     private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacyAmpersand();
     // Hex-aware: colorfy() expands &#RRGGBB into the §x§R§R§G§G§B§B form, which only round-trips
     // through a serializer built with hexColors() + useUnusualXRepeatedCharacterHexFormat().
@@ -45,7 +47,7 @@ public class FCColorUtil {
         }
         matcher.appendTail(buffer);
         
-        return buffer.toString().replace('&', '§');
+        return CODE_PATTERN.matcher(buffer).replaceAll("§");
     }
 
     public static List<String> colorfy(@Nullable List<String> text) {

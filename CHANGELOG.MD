@@ -478,6 +478,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **`FCColorUtil.colorfy` translates only an `&` that starts a colour code**: `Tom & Jerry` stays text instead of
+  becoming `Tom § Jerry`.
 - **A cancelled QuestCompletePreEvent no longer replays the stage**: the stage's on-complete effects, StageCompleteEvent and
   presenter run once (`QuestState.isStageClosed()` remembers it across a restart); only the move after them is retried by
   the sweep.
