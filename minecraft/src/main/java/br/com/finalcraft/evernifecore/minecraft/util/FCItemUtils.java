@@ -12,6 +12,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class FCItemUtils {
 
@@ -23,8 +24,27 @@ public class FCItemUtils {
         return itemMeta.getDisplayName();
     }
 
+    /** The client's name of the item; without an NMS bridge (or in a test), a name read off the material instead. */
     public static @Nonnull String getLocalizedName(ItemStack itemStack){
+        if (!NMSUtils.isSupported()){
+            return nameOf(itemStack.getType());
+        }
         return NMSUtils.get().items().getLocalizedName(itemStack);
+    }
+
+    //DIAMOND_SWORD -> "Diamond Sword": English only, so a server with a bridge still answers in the client's language
+    private static String nameOf(Material material){
+        StringBuilder name = new StringBuilder();
+        for (String word : material.name().toLowerCase(Locale.ROOT).split("_")){
+            if (word.isEmpty()){
+                continue;
+            }
+            if (name.length() > 0){
+                name.append(' ');
+            }
+            name.append(Character.toUpperCase(word.charAt(0))).append(word, 1, word.length());
+        }
+        return name.toString();
     }
 
     public static void setDisplayName(ItemStack itemStack, String displayName){

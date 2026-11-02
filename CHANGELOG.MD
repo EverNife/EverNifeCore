@@ -496,6 +496,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **`FCItemUtils.getLocalizedName` answers without an NMS bridge** (an unsupported server, a unit test): it reads a name
+  off the material (`DIAMOND_SWORD` -> "Diamond Sword") where it threw `UnsupportedOperationException`.
 - **A message to a player arrives when no core plugin is running** (a test server, `BukkitScreenWorld`): without the
   Spigot chat API and without `EverNifeCoreBukkitPlugin.instance` it goes out as legacy text through
   `Player.sendMessage(String)`, where building the Adventure bridge threw a `NullPointerException`.
