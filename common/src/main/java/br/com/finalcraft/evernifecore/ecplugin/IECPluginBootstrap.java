@@ -1,41 +1,6 @@
 package br.com.finalcraft.evernifecore.ecplugin;
 
-import br.com.finalcraft.evernifecore.dialogue.Dialogues;
-import br.com.finalcraft.evernifecore.booster.BoosterManager;
-import br.com.finalcraft.evernifecore.booster.Boosters;
-import br.com.finalcraft.evernifecore.economy.Currencies;
-import br.com.finalcraft.evernifecore.logic.audit.AuditLog;
-import br.com.finalcraft.evernifecore.menu.MenuRegistry;
-import br.com.finalcraft.evernifecore.logic.delivery.DeliveryDestinations;
-import br.com.finalcraft.evernifecore.logic.value.Contributions;
-import br.com.finalcraft.evernifecore.logic.value.DynamicValues;
-import br.com.finalcraft.evernifecore.action.provenance.ProvenanceTracker;
-import br.com.finalcraft.evernifecore.cooldown.Cooldowns;
-import br.com.finalcraft.evernifecore.logic.CustomVariables;
-import br.com.finalcraft.evernifecore.logic.Multipliers;
-import br.com.finalcraft.evernifecore.notify.Notifier;
-import br.com.finalcraft.evernifecore.npc.Npcs;
-import br.com.finalcraft.evernifecore.waypoint.Waypoints;
-import br.com.finalcraft.evernifecore.types.TypeRegistries;
-import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.action.EventSource;
-import br.com.finalcraft.evernifecore.action.EventSourceUsage;
-import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
-import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
-import br.com.finalcraft.evernifecore.flag.ActorHolders;
-import br.com.finalcraft.evernifecore.flag.FlagRegistry;
-import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ECLogger;
-import br.com.finalcraft.evernifecore.locale.LocaleOverlay;
-import br.com.finalcraft.evernifecore.ranking.RankedLists;
-import br.com.finalcraft.evernifecore.group.GroupLookup;
-import br.com.finalcraft.evernifecore.group.GroupManager;
-import br.com.finalcraft.evernifecore.group.Groups;
-import br.com.finalcraft.evernifecore.quest.QuestEngine;
-import br.com.finalcraft.evernifecore.region.RegionManager;
-import br.com.finalcraft.evernifecore.screen.Screens;
-import br.com.finalcraft.evernifecore.screen.prompt.PromptRegistry;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 
 /**
@@ -130,55 +95,20 @@ public interface IECPluginBootstrap {
     // ------------------------------------------------------------------
 
     /**
-     * Optional shutdown extras that run BEFORE the shared teardown. The default first closes the plugin's
-     * {@link RegionManager} and its {@link GroupManager} - writing its regions and groups while the plugin's storage is
-     * still open - unregisters
-     * its region flags, its types ({@link TypeRegistries}) and event sources and stops its {@link EventSourceUsage#watch usage watches}, then takes back every entry point this plugin opened - the listeners registered through {@link ECListener#register},
-     * the commands registered through {@link FinalCMDManager}, the argument parsers registered through
-     * {@link ArgParserManager} (its own and the global ones it owns) and the subscriptions taken in this
-     * plugin's name on the {@link ECEventBus} - so nothing still reaches it when
-     * {@link #onECPluginShutdown()} closes the resources those touch. An override REPLACES that
-     * cleanup, so it has to ask for it back: {@code super.onECPluginShutdownPre()} from a subclass of
-     * a base that already implements this interface ({@code ECBukkitPlugin}, {@code ECHytalePlugin}),
-     * or {@code IECPluginBootstrap.super.onECPluginShutdownPre()} only from a class that implements
-     * it directly - the qualified form does not compile anywhere else.
+     * Optional shutdown extras that run BEFORE the shared teardown. The default takes back everything the core keeps
+     * for this plugin, writing its regions, groups and quests while its storage is still open: managers, registrations,
+     * listeners, commands, argument parsers and bus subscriptions - so nothing still reaches the plugin when
+     * {@link #onECPluginShutdown()} closes the resources those touch. It is the same set
+     * {@link ECPluginManager#removePluginData(String)} takes back for a plugin that leaves without this hook; each
+     * step runs even when an earlier one threw, and the failure goes to the plugin's log.
+     *
+     * <p>An override REPLACES that cleanup, so it has to ask for it back: {@code super.onECPluginShutdownPre()} from
+     * a subclass of a base that already implements this interface ({@code ECBukkitPlugin}, {@code ECHytalePlugin}),
+     * or {@code IECPluginBootstrap.super.onECPluginShutdownPre()} only from a class that implements it directly - the
+     * qualified form does not compile anywhere else.</p>
      */
     public default void onECPluginShutdownPre() {
-        //the writers first: provenance and regions write to the plugin's storage, which the plugin closes right after this hook
-        ProvenanceTracker.closeOwnedBy(getPluginData());
-        RegionManager.closeOwnedBy(getPluginData());
-        GroupManager.closeOwnedBy(getPluginData());
-        QuestEngine.closeOwnedBy(getPluginData());
-        GroupLookup.get().unregisterAll(getPluginData());
-        Groups.unregisterNetwork(getPluginData());
-        Cooldowns.closeOwnedBy(getPluginData());
-        CustomVariables.closeOwnedBy(getPluginData());
-        BoosterManager.closeOwnedBy(getPluginData());
-        DynamicValues.closeOwnedBy(getPluginData());
-        Contributions.closeOwnedBy(getPluginData());
-        AuditLog.closeOwnedBy(getPluginData());
-        RankedLists.closeOwnedBy(getPluginData());
-        Dialogues.closeOwnedBy(getPluginData()); //before its screens: a session ends as OWNER_DISABLED, not CLOSED
-        Screens.closeOwnedBy(getPluginData());
-        PromptRegistry.get().unregisterAll(getPluginData());
-        MenuRegistry.get().unregisterAll(getPluginData());
-        LocaleOverlay.closeOwnedBy(getPluginData());
-        Notifier.get().closeOwnedBy(getPluginData());
-        Waypoints.get().hideOwnedBy(getPluginData());
-        Npcs.unregisterAll(getPluginData());
-        FlagRegistry.get().unregisterAll(getPluginData());
-        ActorHolders.unregisterAll(getPluginData());
-        Currencies.unregisterAll(getPluginData());
-        DeliveryDestinations.unregisterAll(getPluginData());
-        TypeRegistries.unregisterAll(getPluginData());
-        Multipliers.unregisterAll(getPluginData());
-        Boosters.unregisterAll(getPluginData());
-        EventSource.unregisterAll(getPluginData());
-        EventSourceUsage.stopAll(getPluginData());
-        ECListener.unregisterAll(getPluginData());
-        FinalCMDManager.unregisterAllCommands(getPluginData());
-        ArgParserManager.unregisterAll(getPluginData());
-        EverNifeCore.getEventBus().unsubscribeAll(getPluginData());
+        ECPluginManager.releaseEverythingOf(getPluginData(), true);
     }
 
     /** The platform-agnostic shutdown teardown. Mandatory - implemented once in the plugin's common bootstrap. */

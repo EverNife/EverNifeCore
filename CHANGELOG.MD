@@ -484,6 +484,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **A plugin that leaves releases everything, by either exit path**: the shutdown hook (`onECPluginShutdownPre`) and
+  the plugin-disable path (`ECPluginManager.removePluginData`) now run one list of releases - boosters, audit log, flags,
+  currencies, destinations, parsers, commands, listeners, screens, prompts, menus, cooldowns, variables, values,
+  contributions and the rest - each step on its own, so one that throws is logged on the plugin's log and the rest still
+  runs. A plugin that leaves without its shutdown hook no longer keeps multiplying gains through its boosters or writing
+  audit entries to a closed storage. `ArgParserManager.unregisterAll` of the core keeps the builtin parsers.
 - **Colour codes written with `&` in a layout file are translated again**: `name:`, `lore:`, the `Locale` blocks
   and `settings.title` of a `guis/*.yml` read `&a` as `§a`, as every layout did before the screen layer took over
   reading them. A `§` written in the file is kept, and a seeded file now writes its colours with `&`.

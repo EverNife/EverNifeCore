@@ -83,14 +83,17 @@ public class ArgParserManager {
     }
 
     /**
-     * Takes back everything {@code plugin} registered: its own plugin parsers and every global one it owns.
-     * The default {@code onECPluginShutdownPre} calls it together with the command teardown, so a plugin that
-     * is disabled or reloaded leaves no parser behind.
+     * Takes back everything {@code plugin} registered: its own plugin parsers and every global one it owns -
+     * except for the core ({@value #CORE_OWNER}), whose global ones are the builtins. Both exit paths of a plugin
+     * call it ({@code onECPluginShutdownPre} and {@code ECPluginManager.removePluginData}), so a plugin that is
+     * disabled or reloaded leaves no parser behind.
      */
     public static synchronized void unregisterAll(ECPluginData plugin){
         String owner = ownerName(plugin);
         PLUGIN_CONTEXT_MAP.remove(owner);
-        GLOBAL_CONTEXT_PARSER.removeOwner(owner);
+        if (!CORE_OWNER.equals(owner)) { //the builtins are registered once per class load and leave with the classes
+            GLOBAL_CONTEXT_PARSER.removeOwner(owner);
+        }
     }
 
     private static String ownerName(ECPluginData plugin){
