@@ -106,9 +106,7 @@ public class Choice extends Button {
         }
         String costs = result.describeCosts();
         if (!costs.isEmpty()) {
-            List<String> lore = new ArrayList<>(drawn.getItem().getLore());
-            lore.add("§7" + costs);
-            drawn.setItem(drawn.getItem().withText(drawn.getItem().getDisplayName(), lore));
+            drawn.appendTrailingLore("§7" + costs);
         }
         writer.paint(base, getSlots(), drawn);
     }

@@ -498,6 +498,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 - **`FCItemUtils.getLocalizedName` answers without an NMS bridge** (an unsupported server, a unit test): it reads a name
   off the material (`DIAMOND_SWORD` -> "Diamond Sword") where it threw `UnsupportedOperationException`.
+- **A disabled native item with no name keeps its vanilla name in a chest**: the grey `§7` it was given as a name, and
+  the empty name an unnamed item was written with, are no longer written.
+- **A layout title the file does not carry is coloured**: the `@ScreenLayout` title a per-language read falls back to
+  translates `&` codes like the file's.
+- **A `Choice` over an icon with a language block shows its cost line**: the line goes under the text the viewer reads
+  (`Icon` trailing lore), where the block's lore replaced it.
 - **A message to a player arrives when no core plugin is running** (a test server, `BukkitScreenWorld`): without the
   Spigot chat API and without `EverNifeCoreBukkitPlugin.instance` it goes out as legacy text through
   `Player.sendMessage(String)`, where building the Adventure bridge threw a `NullPointerException`.

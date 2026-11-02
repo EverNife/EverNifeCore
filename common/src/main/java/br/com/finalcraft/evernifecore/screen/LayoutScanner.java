@@ -253,7 +253,7 @@ public final class LayoutScanner {
         instance.applySettings(plugin, type.getSimpleName(), language,
                 rowsOf(plugin, type, declaration, source),
                 source.getBoolean(SETTINGS + ".integrateToPAPI", declaration.integrateToPAPI()),
-                title == null ? declaration.title() : FCColorUtil.colorfy(title));
+                FCColorUtil.colorfy(title == null ? declaration.title() : title));
 
         Set<String> languages = new LinkedHashSet<>();
         for (FCLocale locale : declaration.locale()) {

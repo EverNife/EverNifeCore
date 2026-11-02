@@ -315,6 +315,25 @@ class LayoutScannerTest {
         assertEquals("§aComprar", layout.getIcon("BUY").renderFor(null, null).getItem().getDisplayName());
     }
 
+    @ScreenLayout(title = "&aPlain", rows = 1)
+    public static class PlainLayout extends Layout {
+
+        @IconData(slot = {0})
+        public Icon PAPER = icon("minecraft:paper");
+    }
+
+    @Test
+    void aDeclaredTitleTheFileDoesNotCarryIsColouredToo() throws IOException {
+        Path file = tempDir.resolve("guis/PlainLayout.yml");
+        Files.createDirectories(file.getParent());
+        Files.write(file, Arrays.asList("Layout:", "  PAPER:", "    Slot: \"[0]\""), StandardCharsets.UTF_8);
+
+        //a per-language read seeds nothing into the base file, so the title falls back to the declaration's
+        PlainLayout layout = LayoutScanner.load(plugin, PlainLayout.class, LocaleType.PT_BR);
+
+        assertEquals("§aPlain", layout.getTitle());
+    }
+
     @Test
     void sectionSignsWrittenInTheFileStayAsTheyAre() throws IOException {
         writeShop(

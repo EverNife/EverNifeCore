@@ -161,7 +161,7 @@ public final class ChestItems {
 
     private static ItemSpec disabledText(ItemSpec spec, @Nullable String reason) {
         String name = spec.getDisplayName();
-        if (name != null && !name.startsWith("§")) {
+        if (name != null && !name.isEmpty() && !name.startsWith("§")) {
             name = "§7" + name;
         }
         List<String> lore = new ArrayList<>(spec.getLore());
@@ -174,14 +174,16 @@ public final class ChestItems {
     }
 
     private static void writeText(ItemStack stack, ItemSpec spec) {
-        if (spec.getDisplayName() == null && spec.getLore().isEmpty()) {
+        //an empty name is no name: writing it would hide the item's vanilla one
+        boolean named = spec.getDisplayName() != null && !spec.getDisplayName().isEmpty();
+        if (!named && spec.getLore().isEmpty()) {
             return;
         }
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) {
             return;
         }
-        if (spec.getDisplayName() != null) {
+        if (named) {
             meta.setDisplayName(spec.getDisplayName());
         }
         if (!spec.getLore().isEmpty()) {

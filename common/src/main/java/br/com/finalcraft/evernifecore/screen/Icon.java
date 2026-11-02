@@ -50,6 +50,8 @@ public class Icon {
     private IconLocale locale;
     private ECPluginData localeOwner;
     private boolean integrateToPAPI = false;
+    //lines the drawing element adds under whatever text the viewer reads - a choice's cost survives the language block
+    private List<String> trailingLore = Collections.emptyList();
     //the icon a copy was taken from, so the copy a screen drew still answers to the one the plugin declared
     private Icon origin;
 
@@ -528,6 +530,11 @@ public class Icon {
         if (replacer != null) {
             item = item.withText(replacer.apply(item.getDisplayName()), replacer.apply(new ArrayList<>(item.getLore())));
         }
+        if (!trailingLore.isEmpty()) {
+            List<String> lore = new ArrayList<>(item.getLore());
+            lore.addAll(trailingLore);
+            item = item.withText(item.getDisplayName(), lore);
+        }
         return new RenderedIcon(item, drawn.fallbacks, drawn.dataLines);
     }
 
@@ -626,8 +633,16 @@ public class Icon {
         copy.locale = this.locale == null ? null : this.locale.copy();
         copy.localeOwner = this.localeOwner;
         copy.integrateToPAPI = this.integrateToPAPI;
+        copy.trailingLore = this.trailingLore;
         copy.origin = getOrigin();
         return copy;
+    }
+
+    /** Adds {@code line} under the text the viewer reads, language block and placeholders already applied. */
+    void appendTrailingLore(@Nonnull String line) {
+        List<String> lore = new ArrayList<>(trailingLore);
+        lore.add(line);
+        trailingLore = Collections.unmodifiableList(lore);
     }
 
     /** The declared icon this one was copied from - itself when it is no copy. */
