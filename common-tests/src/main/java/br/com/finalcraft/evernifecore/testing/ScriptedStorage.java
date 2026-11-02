@@ -14,6 +14,8 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -51,7 +53,9 @@ public final class ScriptedStorage implements Storage {
     private final AtomicReference<Throwable> nextAllFailure = new AtomicReference<Throwable>();
     private final AtomicReference<Throwable> everyAllFailure = new AtomicReference<Throwable>();
     private final Map<String, Object> lastSaved = new ConcurrentHashMap<String, Object>();
-    private final AtomicReference<CompletableFuture<Void>> writeGate = new AtomicReference<CompletableFuture<Void>>(CompletableFuture.<Void>completedFuture(null));
+    private final Map<String, Object> lastLanded = new ConcurrentHashMap<String, Object>();
+    private volatile boolean holdingWrites;
+    private final List<CompletableFuture<Void>> heldWrites = new ArrayList<CompletableFuture<Void>>();
     private final AtomicInteger pendingSaves = new AtomicInteger();
 
     private ScriptedStorage(Storage delegate) {
@@ -122,18 +126,60 @@ public final class ScriptedStorage implements Storage {
     }
 
     /**
+     * The entity of the {@code save} of {@code collection} that completed last in the backend - what the backend holds
+     * for that row when the collection has one, whatever order the saves were handed in. Empty when none completed.
+     */
+    public <V> Optional<V> lastLanded(String collection, Class<V> type) {
+        return Optional.ofNullable(lastLanded.get(collection)).map(type::cast);
+    }
+
+    /**
      * Holds every {@code save} and {@code saveAll} from now on: each is counted by {@link #pendingSaves()} and reaches
-     * the backend only after {@link #releaseWrites()} - a slow backend, for code that must wait for its writes.
+     * the backend only after {@link #releaseWrites()} or {@link #releaseNewestWrite()} - a slow backend, for code that
+     * must wait for its writes or that must survive writes landing out of order.
      */
     public ScriptedStorage holdWrites() {
-        writeGate.updateAndGet(gate -> gate.isDone() ? new CompletableFuture<Void>() : gate);
+        holdingWrites = true;
         return this;
     }
 
-    /** Lets the writes held by {@link #holdWrites()} through, on the calling thread, and stops holding new ones. */
+    /** Lets the writes held by {@link #holdWrites()} through in the order they came, on the calling thread, and stops holding new ones. */
     public ScriptedStorage releaseWrites() {
-        writeGate.getAndSet(CompletableFuture.<Void>completedFuture(null)).complete(null);
+        holdingWrites = false;
+        List<CompletableFuture<Void>> released;
+        synchronized (heldWrites) {
+            released = new ArrayList<CompletableFuture<Void>>(heldWrites);
+            heldWrites.clear();
+        }
+        for (CompletableFuture<Void> gate : released) {
+            gate.complete(null);
+        }
         return this;
+    }
+
+    /**
+     * Lets only the most recent held write through, on the calling thread, and keeps holding the rest and the new ones
+     * - a backend whose writes complete newest first.
+     *
+     * @throws IllegalStateException when no write is held
+     */
+    public ScriptedStorage releaseNewestWrite() {
+        CompletableFuture<Void> newest;
+        synchronized (heldWrites) {
+            if (heldWrites.isEmpty()) {
+                throw new IllegalStateException("No write is held: call holdWrites() before the writes, and check heldWrites() first.");
+            }
+            newest = heldWrites.remove(heldWrites.size() - 1);
+        }
+        newest.complete(null);
+        return this;
+    }
+
+    /** How many {@code save}/{@code saveAll} calls are held and have not reached the backend yet. */
+    public int heldWrites() {
+        synchronized (heldWrites) {
+            return heldWrites.size();
+        }
     }
 
     /** How many {@code save}/{@code saveAll} calls have not completed yet. */
@@ -252,7 +298,14 @@ public final class ScriptedStorage implements Storage {
             if (!"save".equals(name) && !"saveAll".equals(name)) {
                 return call(method, args);
             }
-            CompletableFuture<Void> gate = writeGate.get();
+            CompletableFuture<Void> gate = new CompletableFuture<Void>();
+            synchronized (heldWrites) {
+                if (holdingWrites) {
+                    heldWrites.add(gate);
+                } else {
+                    gate.complete(null);
+                }
+            }
             pendingSaves.incrementAndGet();
             CompletableFuture<Object> written;
             if (gate.isDone()) {
@@ -273,7 +326,13 @@ public final class ScriptedStorage implements Storage {
                     }
                 });
             }
-            return written.whenComplete((ok, error) -> pendingSaves.decrementAndGet());
+            Object entity = "save".equals(name) && args != null && args.length == 1 ? args[0] : null;
+            return written.whenComplete((ok, error) -> {
+                if (error == null && entity != null) {
+                    lastLanded.put(collection, entity);
+                }
+                pendingSaves.decrementAndGet();
+            });
         }
 
         private Object call(Method method, Object[] args) throws Throwable {

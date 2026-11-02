@@ -18,6 +18,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **`ScriptedStorage.releaseNewestWrite()`, `heldWrites()` and `lastLanded(collection, type)`** (test kit): a held
+  backend can let its writes through newest first, one at a time, and a test reads which entity the backend took
+  last - for code that must survive writes completing out of order. `releaseWrites()` releases in arrival order.
 - **`evernifecore-minecraft-tests` ships the chest test kit**: `BukkitScreenWorld` (`install`, `installWithItemMetadata`,
   `over(ScreenWorld)`) and its doubles (`PlayerDouble`, `SurfaceDouble`, `SchedulerDouble`, `ScreenEventBus`,
   `ClickSimulator`) move to the published test fixtures as `testing.minecraft.screen`, so a plugin's test opens the real
