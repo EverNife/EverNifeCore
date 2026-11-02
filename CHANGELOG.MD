@@ -16,16 +16,6 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ## [Unreleased]
 
-### Fixed
-
-#### Plugin lifecycle
-
-- **`IECPluginBootstrap.runECPluginShutdown()` runs every step when one throws**: a failing Pre, main or Post hook no longer skips the hooks after it, `closeOpenFileLoggers()` or the unpublish of the instance; the failure is rethrown once they ran.
-
-#### Bukkit platform
-
-- **The console filter comes off on 1.7.10**: its undo called `Logger#get()`, which the log4j 2.0-beta9 of a 1.7.10 server lacks, so the core shutdown ended in a `NoSuchMethodError` and a `/reload` left one more filter installed. It now reaches the `LoggerConfig` through the configuration of the logger, on every log4j.
-
 ## [3.0.1-alpha.71] - 2026-11-02
 
 ### Added
@@ -818,6 +808,7 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 #### Plugin lifecycle
 
+- **`IECPluginBootstrap.runECPluginShutdown()` runs every step when one throws**: a failing Pre, main or Post hook no longer skips the hooks after it, `closeOpenFileLoggers()` or the unpublish of the instance; the failure is rethrown once they ran.
 - **A plugin that leaves releases everything, by either exit path**: the shutdown hook (`onECPluginShutdownPre`) and
   the plugin-disable path (`ECPluginManager.removePluginData`) now run one list of releases - boosters, audit log, flags,
   currencies, destinations, parsers, commands, listeners, screens, prompts, menus, cooldowns, variables, values,
@@ -839,6 +830,7 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 #### Bukkit platform
 
+- **The console filter comes off on 1.7.10**: its undo called `Logger#get()`, which the log4j 2.0-beta9 of a 1.7.10 server lacks, so the core shutdown ended in a `NoSuchMethodError` and a `/reload` left one more filter installed. It now reaches the `LoggerConfig` through the configuration of the logger, on every log4j.
 - **`FCItemFactory.from("minecraft:<id>")` builds without an NMS bridge** (a unit test, an unsupported server): a vanilla
   id without snbt resolves through the Bukkit `Material` of the same name; any other id is refused with an
   `IllegalArgumentException` that names the Bukkit material to write instead, where the build threw
