@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.logic.audit;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
+import java.util.Objects;
 
 /** How long an {@link AuditLog} keeps an entry: {@link #days(int)} (30 by default) or {@link #forever()}. Immutable. */
 public final class AuditRetention {
@@ -31,6 +32,16 @@ public final class AuditRetention {
     /** How long an entry is kept; null for ever. */
     public @Nullable Duration getKeep() {
         return keep;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        return other instanceof AuditRetention && Objects.equals(keep, ((AuditRetention) other).keep);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(keep);
     }
 
     @Override

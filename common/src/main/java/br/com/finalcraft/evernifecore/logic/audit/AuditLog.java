@@ -94,7 +94,7 @@ public final class AuditLog {
     public static AuditLog of(ECPluginData owner, ECStorage storage, AuditRetention retention) {
         AuditLog[] replaced = new AuditLog[1];
         AuditLog opened = OWNED.compute(owner.getMetaInfo().getName(), (name, existing) -> {
-            if (existing != null && existing.storage == storage && existing.retention == retention) {
+            if (existing != null && existing.storage == storage && existing.retention.equals(retention)) {
                 return existing;
             }
             replaced[0] = existing;

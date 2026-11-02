@@ -27,6 +27,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** A plugin's audit log keeps what that plugin moved, answers who traded with whom, and forgets what is past its retention. */
@@ -113,6 +115,15 @@ class AuditLogTest {
         assertEquals(0, new BigDecimal(5).compareTo(newest.getAmount()));
         assertEquals("fakeshop:gold", newest.getSubject());
         assertEquals(1, query(log, new AuditQuery().counterparty(carl)).size());
+    }
+
+    @Test
+    void openingTheLogAgainWithAnEqualRetentionKeepsTheOneAlreadyOpen() {
+        AuditLog first = AuditLog.of(shop.getOwner(), shop.getStorage());
+
+        assertSame(first, AuditLog.of(shop.getOwner(), shop.getStorage()));
+        assertSame(first, AuditLog.of(shop.getOwner(), shop.getStorage(), AuditRetention.days(30)));
+        assertNotSame(first, AuditLog.of(shop.getOwner(), shop.getStorage(), AuditRetention.days(7)));
     }
 
     @Test
