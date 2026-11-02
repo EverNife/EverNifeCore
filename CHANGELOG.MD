@@ -513,6 +513,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **A flag that cannot act in full logs its line once**: `FlagRegistry` remembers the line each flag last logged and stays
+  quiet on a re-check that does not change it. Hytale declares its sources (`ActionSupport.declare`) and then its missing
+  player-state capabilities, and each of those used to repeat every flag's line (`force-fly`, `track-changes`, both
+  `*-fake-players`) in the boot log.
 - **Hytale: `HyPAPIIntegration.isPresent()` asks whether PlaceholderAPI is enabled, every time**, like the Bukkit side: only
   the classpath probe is cached (`isApiOnClasspath`), and the answer comes from `IPlatform.isPluginEnabled("PlaceholderAPI")`.
   An answer given before PlaceholderAPI started, or after it shut down, no longer sticks.

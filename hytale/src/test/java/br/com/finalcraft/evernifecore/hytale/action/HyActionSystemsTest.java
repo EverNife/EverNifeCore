@@ -14,7 +14,6 @@ import br.com.finalcraft.evernifecore.action.event.InteractNpcActionEvent;
 import br.com.finalcraft.evernifecore.flag.core.ActorDenyFlag;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.npc.NpcRef;
-import br.com.finalcraft.evernifecore.testing.Logs;
 import com.hypixel.hytale.math.vector.Rotation3f;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.protocol.BlockPosition;
@@ -83,8 +82,11 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -589,20 +591,34 @@ class HyActionSystemsTest {
     }
 
     @Test
-    void bootNamesTheFakePlayerFlagsThatNeverMatch() {
+    void bootSaysOnceWhatEachFlagActingInPartDoesHere() {
         for (Flag<?> flag : CoreFlags.all()) {
             if (!flag.isRegistered()) {
                 FlagRegistry.get().register(core, flag);
             }
         }
         try {
-            List<String> logged = Logs.capture(() -> HyActionSystems.declareSupport("Hytale"));
+            //the platform's own list: Logs keeps each distinct line once, and a repeat is what this pins
+            List<String> sink = server.platform().getLoggedMessages();
+            int before = sink.size();
+            HyActionSystems.declareSupport("Hytale");
+            List<String> logged = new ArrayList<>(sink.subList(before, sink.size()));
 
-            for (String key : Arrays.asList("deny-block-break-fake-players", "deny-block-place-fake-players")) {
-                assertTrue(logged.stream().anyMatch(line -> line.contains("Flag evernifecore:" + key + " never matches")), key + " in " + logged);
+            Map<String, String> expected = new LinkedHashMap<>();
+            expected.put("force-fly", "Flag evernifecore:force-fly acts in part on this platform: it needs [evernifecore:flight-toggle],"
+                    + " which this server never raises; the rest applies.");
+            expected.put("track-changes", "Flag evernifecore:track-changes acts in part on this platform: it needs [evernifecore:explosion],"
+                    + " which this server never raises; the rest applies.");
+            expected.put("deny-block-break-fake-players", "Flag evernifecore:deny-block-break-fake-players never matches on this platform:"
+                    + " it refines evernifecore:deny-block-break for [fake-player], and this server has none.");
+            expected.put("deny-block-place-fake-players", "Flag evernifecore:deny-block-place-fake-players never matches on this platform:"
+                    + " it refines evernifecore:deny-block-place for [fake-player], and this server has none.");
+            for (Map.Entry<String, String> flag : expected.entrySet()) {
+                assertEquals(1, logged.stream().filter(flag.getValue()::equals).count(), flag.getKey() + " in " + logged);
             }
-            assertTrue(logged.stream().anyMatch(line -> line.contains("Flag evernifecore:track-changes acts in part") && line.contains("explosion")),
-                    "track-changes keeps breaks and places here, never an explosion: " + logged);
+            Map<String, Long> perFlag = logged.stream().filter(line -> line.startsWith("Flag evernifecore:"))
+                    .collect(Collectors.groupingBy(line -> line, Collectors.counting()));
+            perFlag.forEach((line, times) -> assertEquals(1L, times, "sources and capabilities are declared apart, the line once: " + line));
         } finally {
             ActionSupport.declare("an undeclared platform", null, null, true, null);
             FlagRegistry.get().setMissingCapabilities(Collections.emptyList());

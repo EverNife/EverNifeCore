@@ -54,6 +54,9 @@ public final class FlagRegistry {
     private final List<Runnable> changeListeners = new CopyOnWriteArrayList<>();
     private volatile Map<FlagKey, List<Flag<?>>> childrenByParent = Collections.emptyMap();
     private volatile Set<IPlayerStateAccess.Capability> missingCapabilities = Collections.emptySet();
+    // The line each flag last logged: a platform declares its sources and its capabilities apart, and a re-check must
+    // not repeat a line the boot log already holds.
+    private final Map<FlagKey, String> warned = new HashMap<>();
 
     private FlagRegistry() {
         ECEventBus.global().subscribe(ECPluginReloadEvent.Post.class, event -> reloadSettings(event.getECPlugin()));
@@ -152,6 +155,7 @@ public final class FlagRegistry {
             return false;
         }
         flags.remove(flag.getKey(), flag);
+        warned.remove(flag.getKey());
         indexChildren();
         for (Region region : RegionLookup.get().all()) {
             region.getFlagStore().unlink(flag);
@@ -177,7 +181,7 @@ public final class FlagRegistry {
     /**
      * Internal: after the platform declared what it raises ({@link ActionSupport#declare}), each flag that needs a core
      * source outside it says in its owner's log that it has no effect here, one line per flag; a flag registering later
-     * says so on registering.
+     * says so on registering. A flag whose line has not changed since it last logged it stays quiet.
      */
     public synchronized void warnFlagsWithoutEffect() {
         for (Flag<?> flag : flags.values()) {
@@ -247,7 +251,8 @@ public final class FlagRegistry {
 
     private void warnIfWithoutEffect(Flag<?> flag) {
         String line = describeWithoutEffect(flag);
-        if (line != null) {
+        String before = line == null ? warned.remove(flag.getKey()) : warned.put(flag.getKey(), line);
+        if (line != null && !line.equals(before)) {
             flag.getOwner().getLog().warning(line);
         }
     }
