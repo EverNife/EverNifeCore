@@ -4,6 +4,8 @@ import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
 import br.com.finalcraft.evernifecore.group.DissolveCause;
 import br.com.finalcraft.evernifecore.group.Group;
 import br.com.finalcraft.evernifecore.group.GroupKind;
+import br.com.finalcraft.evernifecore.logic.Effect;
+import br.com.finalcraft.evernifecore.logic.Effects;
 import br.com.finalcraft.evernifecore.logic.ProgressOwner;
 import br.com.finalcraft.evernifecore.logic.delivery.Deliveries;
 import br.com.finalcraft.evernifecore.logic.reward.RewardPaidEvent;
@@ -18,6 +20,7 @@ import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.QuestWorld;
 import br.com.finalcraft.evernifecore.testing.TestCurrency;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
+import br.com.finalcraft.evernifecore.types.TypeDescriptor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,10 +35,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.TimeUnit;
 
 import static br.com.finalcraft.evernifecore.testing.QuestWorld.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Owners that are not the player - a party, a region - and what they are paid through logic.reward. */
@@ -343,5 +350,38 @@ class QuestOwnersTest {
 
         QuestState state = engine.getState(ProgressOwner.region(arena.getId()), quests.id("cleanup")).orElseThrow(AssertionError::new);
         assertEquals(2, state.getCount("z"), "the kill outside the arena does not count for it");
+    }
+
+    @Test
+    void aPlayerAndAGroupCompletingAtOnceDoNotWaitForEachOther() {
+        //both completions meet before their start-quest: run inside their owners' locks, each would wait for the other's lock forever
+        CyclicBarrier meet = new CyclicBarrier(2);
+        Effects.registry().register(quests.getOwner(), TypeDescriptor.<Effect>of("fakequests:meet")
+                .describe("Waits for the other completion.")
+                .factory(params -> ctx -> {
+                    try {
+                        meet.await(5, TimeUnit.SECONDS);
+                    } catch (Exception e) {
+                        throw new IllegalStateException(e);
+                    }
+                })
+                .build());
+        engine.register(quests.parse("{id: raid, owner: {type: group}, stages: [{id: s, objectives: [{id: z, type: kill, goal: 9}]}]}"));
+        engine.register(quests.parse("{id: duel, stages: [{id: s, objectives: [{id: z, type: kill, goal: 9}]}]}"));
+        engine.register(quests.parse("{id: solo, stages: [{id: s, objectives: [{id: z, type: kill, goal: 9}]}],"
+                + " on-complete: [{type: 'fakequests:meet'}, {type: start-quest, quest: raid}]}"));
+        engine.register(quests.parse("{id: camp, owner: {type: group}, stages: [{id: s, objectives: [{id: z, type: kill, goal: 9}]}],"
+                + " on-complete: [{type: 'fakequests:meet'}], rewards: [{effects: [{type: start-quest, quest: duel}]}]}"));
+        startFor(steve, "solo");
+        startFor(steve, "camp");
+
+        assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
+            CompletableFuture<Void> player = CompletableFuture.runAsync(() -> await(engine.complete(quests.owner(steve), quests.id("solo"))));
+            CompletableFuture<Void> group = CompletableFuture.runAsync(() -> await(engine.complete(party(), quests.id("camp"))));
+            CompletableFuture.allOf(player, group).join();
+        });
+
+        assertEquals(QuestStatus.ACTIVE, engine.getState(party(), quests.id("raid")).orElseThrow(AssertionError::new).getStatus());
+        assertEquals(QuestStatus.ACTIVE, engine.getState(quests.owner(steve), quests.id("duel")).orElseThrow(AssertionError::new).getStatus());
     }
 }

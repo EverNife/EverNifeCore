@@ -70,6 +70,7 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -92,6 +93,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -127,8 +129,10 @@ public final class QuestEngine {
 
     private static final Map<ECPluginData, QuestEngine> ENGINES = new ConcurrentHashMap<>();
     private static final List<Consumer<QuestDefinition>> DEFINITION_CHECKS = new CopyOnWriteArrayList<>();
-    /** One monitor per owner for every engine: a read of another engine's state of the same owner re-enters it. */
-    private static final Map<ProgressOwner, Object> LANES = new ConcurrentHashMap<>();
+    /** One lock per owner for every engine: a read of another engine's state of the same owner re-enters it. */
+    private static final Map<ProgressOwner, ReentrantLock> LANES = new ConcurrentHashMap<>();
+    /** The lanes this thread holds, and the effects and rewards waiting for it to let go of the last one. */
+    private static final ThreadLocal<HeldLanes> HELD = new ThreadLocal<>();
 
     private final ECPluginData owner;
     private final @Nullable ECStorage storage;
@@ -159,6 +163,8 @@ public final class QuestEngine {
     private volatile QuestPresenter presenter = new NotifierQuestPresenter();
     private volatile boolean loaded;
     private volatile boolean closed;
+    /** The due time of the one pending check of each timed objective, by owner, quest and objective. */
+    private final Map<List<Object>, Long> timedChecks = new ConcurrentHashMap<>();
 
     private QuestEngine(ECPluginData owner, @Nullable ECStorage storage, @Nullable Class<? extends QuestSection> sectionClass) {
         this.owner = owner;
@@ -377,7 +383,7 @@ public final class QuestEngine {
                 }
                 QuestStorage.PoolRecord record = row.value();
                 ProgressOwner progressOwner = ProgressOwner.parse(record.owner);
-                synchronized (lane(progressOwner)) {
+                try (LaneHold inLane = hold(progressOwner)) {
                     poolMemory.computeIfAbsent(progressOwner, key -> new LinkedHashMap<>()).put(record.pool, record.draw);
                 }
             }
@@ -392,7 +398,7 @@ public final class QuestEngine {
                 }
                 QuestStorage.Record record = row.value();
                 ProgressOwner progressOwner = ProgressOwner.parse(record.owner);
-                synchronized (lane(progressOwner)) {
+                try (LaneHold inLane = hold(progressOwner)) {
                     memory.computeIfAbsent(progressOwner, key -> new LinkedHashMap<>()).put(record.state.getQuestId(), record.state);
                 }
                 read++;
@@ -478,7 +484,7 @@ public final class QuestEngine {
             ProgressOwner progressOwner = ProgressOwner.parse(key.substring(0, bar));
             String questId = key.substring(bar + 1);
             QuestState snapshot;
-            synchronized (lane(progressOwner)) {
+            try (LaneHold inLane = hold(progressOwner)) {
                 Map<String, QuestState> states = memory.get(progressOwner);
                 QuestState state = states == null ? null : states.get(questId);
                 snapshot = state == null ? null : state.copy();
@@ -501,7 +507,7 @@ public final class QuestEngine {
             ProgressOwner progressOwner = ProgressOwner.parse(key.substring(0, bar));
             String pool = key.substring(bar + 1);
             PoolDraw snapshot;
-            synchronized (lane(progressOwner)) {
+            try (LaneHold inLane = hold(progressOwner)) {
                 Map<String, PoolDraw> draws = poolMemory.get(progressOwner);
                 PoolDraw draw = draws == null ? null : draws.get(pool);
                 snapshot = draw == null ? null : draw.copy();
@@ -801,7 +807,7 @@ public final class QuestEngine {
     private void migrate(QuestDefinition definition) {
         String key = definition.getId().toString();
         for (ProgressOwner progressOwner : knownOwners()) {
-            synchronized (lane(progressOwner)) {
+            try (LaneHold inLane = hold(progressOwner)) {
                 Map<String, QuestState> states = states(progressOwner);
                 QuestState state = states == null ? null : states.get(key);
                 if (state != null) {
@@ -813,7 +819,7 @@ public final class QuestEngine {
 
     /** {@link #migrate(ProgressOwner, QuestState, QuestDefinition)} of every instance of {@code progressOwner} whose quest is registered. */
     private void migrate(ProgressOwner progressOwner) {
-        synchronized (lane(progressOwner)) {
+        try (LaneHold inLane = hold(progressOwner)) {
             Map<String, QuestState> states = states(progressOwner);
             if (states == null) {
                 return;
@@ -885,7 +891,7 @@ public final class QuestEngine {
         if (expired != null) {
             return done(expired);
         }
-        synchronized (lane(progressOwner)) {
+        try (LaneHold inLane = hold(progressOwner)) {
             Map<String, QuestState> states = states(progressOwner);
             if (states == null) {
                 return done(StartResult.refused(StartResult.Reason.NOT_LOADED, notLoaded(progressOwner, id)));
@@ -948,7 +954,7 @@ public final class QuestEngine {
             return done(StartResult.refused(StartResult.Reason.NOT_LOADED, "The QuestEngine of " + nameOf(owner) + " keeps no player quests: open it with QuestEngine.of(plugin,"
                     + " storage, MyQuestSection.class) to start '" + id + "' for a player."));
         }
-        synchronized (lane(progressOwner)) {
+        try (LaneHold inLane = hold(progressOwner)) {
             Map<String, QuestState> states = states(progressOwner);
             if (states == null) {
                 return done(StartResult.refused(StartResult.Reason.NOT_LOADED, notLoaded(progressOwner, id)));
@@ -1009,7 +1015,7 @@ public final class QuestEngine {
         if (!definition.isAbandonable()) {
             return failed("Quest '" + id + "' cannot be abandoned: its definition says abandonable: false.");
         }
-        synchronized (lane(progressOwner)) {
+        try (LaneHold inLane = hold(progressOwner)) {
             QuestState state = activeState(progressOwner, id);
             if (state == null) {
                 return failed("Quest '" + id + "' is not active for " + progressOwner + ".");
@@ -1036,7 +1042,7 @@ public final class QuestEngine {
         if (definition == null) {
             return failed(unknown(id));
         }
-        synchronized (lane(progressOwner)) {
+        try (LaneHold inLane = hold(progressOwner)) {
             QuestState state = activeState(progressOwner, id);
             if (state == null) {
                 return failed("Quest '" + id + "' is not active for " + progressOwner + ".");
@@ -1053,7 +1059,7 @@ public final class QuestEngine {
         if (definition == null) {
             return failed(unknown(id));
         }
-        synchronized (lane(progressOwner)) {
+        try (LaneHold inLane = hold(progressOwner)) {
             QuestState state = activeState(progressOwner, id);
             if (state == null) {
                 return failed("Quest '" + id + "' is not active for " + progressOwner + ".");
@@ -1066,7 +1072,7 @@ public final class QuestEngine {
 
     /** Drops the owner's state of the quest, whatever it is - an orphan's too. Any thread. */
     public CompletableFuture<Void> reset(ProgressOwner progressOwner, QuestId id) {
-        synchronized (lane(progressOwner)) {
+        try (LaneHold inLane = hold(progressOwner)) {
             Map<String, QuestState> states = states(progressOwner);
             if (states == null) {
                 return failed(notLoaded(progressOwner, id));
@@ -1094,8 +1100,7 @@ public final class QuestEngine {
         if (definition == null) {
             return failed(unknown(id));
         }
-        List<Runnable> afterLane = new ArrayList<>();
-        synchronized (lane(progressOwner)) {
+        try (LaneHold inLane = hold(progressOwner)) {
             QuestState state = activeState(progressOwner, id);
             if (state == null) {
                 return failed("Quest '" + id + "' is not active for " + progressOwner + ".");
@@ -1106,10 +1111,9 @@ public final class QuestEngine {
                 return failed("Quest '" + id + "' has no objective '" + objectiveId + "' in its current stage '" + state.getStageId() + "'.");
             }
             advance(progressOwner, definition, state, objective, delta, null,
-                    context(progressOwner, definition, state, playerOf(progressOwner), null, stage, objective), afterLane);
+                    context(progressOwner, definition, state, playerOf(progressOwner), null, stage, objective));
             reindex(progressOwner);
         }
-        afterLane.forEach(Runnable::run);
         return CompletableFuture.completedFuture(null);
     }
 
@@ -1146,7 +1150,7 @@ public final class QuestEngine {
     /** The quest {@code player} tracks (null for none). Any thread. */
     public CompletableFuture<Void> track(FPlayer player, @Nullable QuestId id) {
         ProgressOwner progressOwner = ProgressOwner.player(player.getUniqueId());
-        synchronized (lane(progressOwner)) {
+        try (LaneHold inLane = hold(progressOwner)) {
             QuestSection section = section(progressOwner);
             if (section == null) {
                 return failed(notLoaded(progressOwner, id));
@@ -1192,7 +1196,7 @@ public final class QuestEngine {
 
     /** A snapshot of the state; empty when there is none, or when a player's section is not loaded (nothing counts offline). */
     public Optional<QuestState> getState(ProgressOwner progressOwner, QuestId id) {
-        synchronized (lane(progressOwner)) {
+        try (LaneHold inLane = hold(progressOwner)) {
             Map<String, QuestState> states = states(progressOwner);
             QuestState state = states == null ? null : states.get(id.toString());
             return state == null ? Optional.<QuestState>empty() : Optional.of(state.copy());
@@ -1201,7 +1205,7 @@ public final class QuestEngine {
 
     /** Snapshots of every state of the owner, orphans included; empty when not loaded. */
     public Collection<QuestState> getStates(ProgressOwner progressOwner) {
-        synchronized (lane(progressOwner)) {
+        try (LaneHold inLane = hold(progressOwner)) {
             Map<String, QuestState> states = states(progressOwner);
             List<QuestState> copies = new ArrayList<>();
             if (states != null) {
@@ -1236,7 +1240,7 @@ public final class QuestEngine {
      */
     public QuestStatus getStatus(ProgressOwner holder, QuestId id, @Nullable FPlayer viewer) {
         QuestDefinition definition = definitions.get(id);
-        synchronized (lane(holder)) {
+        try (LaneHold inLane = hold(holder)) {
             Map<String, QuestState> states = states(holder);
             QuestStatus status = effectiveStatus(states == null ? null : states.get(id.toString()));
             if (status != null && status != QuestStatus.AVAILABLE) {
@@ -1292,9 +1296,8 @@ public final class QuestEngine {
             return false;
         }
         ProgressOwner progressOwner = entry.owner;
-        List<Runnable> afterLane = new ArrayList<>();
         boolean done;
-        synchronized (lane(progressOwner)) {
+        try (LaneHold inLane = hold(progressOwner)) {
             QuestState state = activeState(progressOwner, entry.questId);
             QuestDefinition definition = definitions.get(entry.questId);
             if (state == null || definition == null) {
@@ -1325,23 +1328,20 @@ public final class QuestEngine {
                 }
             }
             done = advance(progressOwner, definition, state, entry.objective, entry.filter.countOf(event),
-                    player == null ? null : player.getUniqueId(), ctx, afterLane);
+                    player == null ? null : player.getUniqueId(), ctx);
             if (done) {
                 reindex(progressOwner);
             }
         }
-        afterLane.forEach(Runnable::run);
         return done;
     }
 
     /**
      * Adds {@code delta} to the objective under the owner's lock, once the pre event let it count and its costs came out; true
-     * when that completed it. The on-match effects go to {@code afterLane}, which the caller runs once it left the lock: an
-     * effect may take another owner's lock (a start-quest of a member's quest), and taking it inside this one would let two
-     * owners wait for each other.
+     * when that completed it.
      */
     private boolean advance(ProgressOwner progressOwner, QuestDefinition definition, QuestState state, Objective objective, long delta,
-                            @Nullable UUID actor, ExecutionContext ctx, List<Runnable> afterLane) {
+                            @Nullable UUID actor, ExecutionContext ctx) {
         ObjectiveState objectiveState = state.objective(objective.getId());
         if (objectiveState.isDone() || delta <= 0) {
             return false;
@@ -1380,7 +1380,7 @@ public final class QuestEngine {
                     () -> new ObjectiveProgressEvent(this, id, progressOwner, caller, state.copy(),
                             objective.getId(), finalCounted, actor));
             ExecutionContext matched = ctx.derive().variable("delta", String.valueOf(counted)).build();
-            afterLane.add(() -> apply(objective.getOnMatch(), matched));
+            apply(objective.getOnMatch(), matched);
             return false;
         }
         objectiveState.setCount(Math.min(objective.getGoal(), objectiveState.getCount() + counted));
@@ -1584,17 +1584,19 @@ public final class QuestEngine {
                 .trigger(trigger)
                 .attribute("quest", state.copy())
                 .build();
-        for (RewardRule rule : definition.getReward().getRules()) {
-            try {
-                Rewards.pay(rule, ctx).whenComplete((paid, error) -> {
-                    if (error != null) {
-                        owner.getLog().warning("A reward of quest {} for {} failed while paying: {}", definition.getId(), progressOwner, error.toString());
-                    }
-                });
-            } catch (RuntimeException refused) {
-                owner.getLog().warning("A reward of quest {} for {} was not paid: {}", definition.getId(), progressOwner, refused.getMessage());
+        afterLanes(() -> {
+            for (RewardRule rule : definition.getReward().getRules()) {
+                try {
+                    Rewards.pay(rule, ctx).whenComplete((paid, error) -> {
+                        if (error != null) {
+                            owner.getLog().warning("A reward of quest {} for {} failed while paying: {}", definition.getId(), progressOwner, error.toString());
+                        }
+                    });
+                } catch (RuntimeException refused) {
+                    owner.getLog().warning("A reward of quest {} for {} was not paid: {}", definition.getId(), progressOwner, refused.getMessage());
+                }
             }
-        }
+        });
     }
 
     /** Re-checks the state objectives of every active quest of the owner - another quest of it just completed. */
@@ -1602,7 +1604,7 @@ public final class QuestEngine {
         if (closed) {
             return;
         }
-        synchronized (lane(progressOwner)) {
+        try (LaneHold inLane = hold(progressOwner)) {
             Map<String, QuestState> states = states(progressOwner);
             if (states == null) {
                 return;
@@ -1652,7 +1654,7 @@ public final class QuestEngine {
             owners.addAll(knownOwners());
         }
         for (ProgressOwner progressOwner : owners) {
-            synchronized (lane(progressOwner)) {
+            try (LaneHold inLane = hold(progressOwner)) {
                 Map<String, QuestState> states = states(progressOwner);
                 if (states == null) {
                     continue;
@@ -1685,7 +1687,7 @@ public final class QuestEngine {
                     failQuest(progressOwner, definition, state, FailCause.TIME_LIMIT);
                     return;
                 }
-                if (progressOwner.isKind(ProgressOwner.PLAYER) && accrueTimed(progressOwner, definition, state, UUID.fromString(progressOwner.getId()), now)) {
+                if (accrueTimed(progressOwner, definition, state, null, now)) {
                     return; //closing the objective evaluated the stage
                 }
                 ExecutionContext ctx = context(progressOwner, definition, state, playerOf(progressOwner), null, null, null);
@@ -1748,11 +1750,15 @@ public final class QuestEngine {
         post(QuestExpireEvent.class, () -> new QuestExpireEvent(this, definition.getId(), progressOwner, caller, state.copy()));
     }
 
-    /** Brings the timed objectives of the current stage up to {@code now} for {@code player}; true when one closed. */
+    /**
+     * Brings the timed objectives of the current stage up to {@code now}, measured on {@link #measuredBy}; true when one
+     * closed. One still open gets a check for the moment it would be done. Under the owner's lane.
+     */
     @SuppressWarnings("unchecked")
-    private boolean accrueTimed(ProgressOwner progressOwner, QuestDefinition definition, QuestState state, UUID player, Instant now) {
+    private boolean accrueTimed(ProgressOwner progressOwner, QuestDefinition definition, QuestState state, @Nullable UUID crosser, Instant now) {
         Stage stage = definition.getStage(state.getStageId());
-        if (stage == null) {
+        List<UUID> measured = measuredBy(progressOwner, crosser);
+        if (stage == null || measured == null) {
             return false;
         }
         for (Objective objective : stage.getObjectives().getObjectives()) {
@@ -1762,14 +1768,65 @@ public final class QuestEngine {
                 continue;
             }
             RegionObjectiveType<Object> type = (RegionObjectiveType<Object>) filter.getType();
-            boolean finished = type.accrue(player, filter.getFilter(), state.objective(objective.getId()), now);
+            ObjectiveState objectiveState = state.objective(objective.getId());
+            boolean finished = type.accrue(measured, filter.getFilter(), objectiveState, now);
             markDirty(progressOwner, definition.getId().toString());
             if (finished) {
-                closeObjective(progressOwner, definition, state, objective, player);
+                closeObjective(progressOwner, definition, state, objective, crosser);
                 return true;
+            }
+            Duration left = type.remaining(measured, filter.getFilter(), objectiveState, now);
+            if (left != null) {
+                scheduleTimedCheck(progressOwner, definition.getId(), objective.getId(), crosser, now.plus(left));
             }
         }
         return false;
+    }
+
+    /**
+     * Who a timed objective of the owner is measured on: the player of a player's quest, the online members of a group's,
+     * whoever crossed for another owner - null when there is nobody to measure (another owner's sweep).
+     */
+    private @Nullable List<UUID> measuredBy(ProgressOwner progressOwner, @Nullable UUID crosser) {
+        if (progressOwner.isKind(ProgressOwner.PLAYER)) {
+            return Collections.singletonList(UUID.fromString(progressOwner.getId()));
+        }
+        if (progressOwner.isKind(ProgressOwner.GROUP)) {
+            List<UUID> online = new ArrayList<>();
+            for (FPlayer member : audienceOf(progressOwner)) {
+                online.add(member.getUniqueId());
+            }
+            return online;
+        }
+        return crosser == null ? null : Collections.singletonList(crosser);
+    }
+
+    /**
+     * One check at the moment a timed objective should be done, so it closes then and not at the next sweep. One pending
+     * per objective: a later moment waits for the pending check, which measures again and schedules what is left; a stale
+     * check only measures. Under the owner's lane.
+     */
+    private void scheduleTimedCheck(ProgressOwner progressOwner, QuestId quest, String objectiveId, @Nullable UUID crosser, Instant due) {
+        List<Object> key = Arrays.<Object>asList(progressOwner, quest, objectiveId);
+        long dueAt = due.toEpochMilli();
+        Long pending = timedChecks.get(key);
+        if (pending != null && pending <= dueAt) {
+            return;
+        }
+        timedChecks.put(key, dueAt);
+        ECScheduler.scheduleAsync(() -> {
+            timedChecks.remove(key, dueAt);
+            if (closed) {
+                return;
+            }
+            try (LaneHold inLane = hold(progressOwner)) {
+                QuestState state = activeState(progressOwner, quest);
+                QuestDefinition definition = definitions.get(quest);
+                if (state != null && definition != null && accrueTimed(progressOwner, definition, state, crosser, ECClock.now())) {
+                    reindex(progressOwner);
+                }
+            }
+        }, Math.max(1, dueAt - ECClock.now().toEpochMilli()));
     }
 
     // ------------------------------------------------------------------
@@ -1783,9 +1840,8 @@ public final class QuestEngine {
             return false;
         }
         ProgressOwner progressOwner = entry.owner;
-        List<Runnable> afterLane = new ArrayList<>();
         boolean finished;
-        synchronized (lane(progressOwner)) {
+        try (LaneHold inLane = hold(progressOwner)) {
             QuestState state = activeState(progressOwner, entry.questId);
             QuestDefinition definition = definitions.get(entry.questId);
             if (state == null || definition == null) {
@@ -1798,10 +1854,9 @@ public final class QuestEngine {
             RegionObjectiveType<Object> type = (RegionObjectiveType<Object>) entry.filter.getType();
             FPlayer player = event.getPlayer();
             if (type.isTimed()) {
-                boolean accrued = type.accrue(player.getUniqueId(), entry.filter.getFilter(), state.objective(entry.objective.getId()), ECClock.now());
-                markDirty(progressOwner, definition.getId().toString());
+                //a member's crossing measures the whole group again
+                boolean accrued = accrueTimed(progressOwner, definition, state, player.getUniqueId(), ECClock.now());
                 if (accrued) {
-                    closeObjective(progressOwner, definition, state, entry.objective, player.getUniqueId());
                     reindex(progressOwner);
                 }
                 return accrued;
@@ -1816,12 +1871,11 @@ public final class QuestEngine {
                     return false;
                 }
             }
-            finished = advance(progressOwner, definition, state, entry.objective, count, player.getUniqueId(), ctx, afterLane);
+            finished = advance(progressOwner, definition, state, entry.objective, count, player.getUniqueId(), ctx);
             if (finished) {
                 reindex(progressOwner);
             }
         }
-        afterLane.forEach(Runnable::run);
         return finished;
     }
 
@@ -1833,7 +1887,7 @@ public final class QuestEngine {
         if (closed) {
             return;
         }
-        synchronized (lane(progressOwner)) {
+        try (LaneHold inLane = hold(progressOwner)) {
             Map<String, QuestState> states = memory.get(progressOwner);
             if (states == null || states.isEmpty()) {
                 return;
@@ -1909,7 +1963,7 @@ public final class QuestEngine {
             return;
         }
         List<QuestIndex.Entry> entries = new ArrayList<>();
-        synchronized (lane(progressOwner)) {
+        try (LaneHold inLane = hold(progressOwner)) {
             Map<String, QuestState> states = states(progressOwner);
             boolean active = false;
             if (states != null) {
@@ -1976,8 +2030,53 @@ public final class QuestEngine {
     //  Internals
     // ------------------------------------------------------------------
 
-    Object lane(ProgressOwner progressOwner) {
-        return LANES.computeIfAbsent(progressOwner, key -> new Object());
+    ReentrantLock lane(ProgressOwner progressOwner) {
+        return LANES.computeIfAbsent(progressOwner, key -> new ReentrantLock());
+    }
+
+    /** Takes the owner's lane until {@link LaneHold#close}; the outermost close runs what {@link #afterLanes} queued. */
+    LaneHold hold(ProgressOwner progressOwner) {
+        ReentrantLock lane = lane(progressOwner);
+        lane.lock();
+        HeldLanes held = HELD.get();
+        if (held == null) {
+            held = new HeldLanes();
+            HELD.set(held);
+        }
+        held.depth++;
+        HeldLanes mine = held;
+        return () -> {
+            lane.unlock();
+            if (--mine.depth == 0) {
+                HELD.remove();
+                mine.after.forEach(Runnable::run);
+            }
+        };
+    }
+
+    /**
+     * Runs {@code work} now, or, when this thread holds a lane, once it let go of the last one: an effect or a reward may
+     * take another owner's lane (a start-quest of a member's quest), and taking it inside this one lets two owners wait for
+     * each other forever.
+     */
+    private static void afterLanes(Runnable work) {
+        HeldLanes held = HELD.get();
+        if (held == null) {
+            work.run();
+        } else {
+            held.after.add(work);
+        }
+    }
+
+    /** An owner's lane held by this thread. */
+    interface LaneHold extends AutoCloseable {
+        @Override
+        void close();
+    }
+
+    private static final class HeldLanes {
+        int depth;
+        final List<Runnable> after = new ArrayList<>();
     }
 
     private boolean isPlayerSectionOwner(ProgressOwner progressOwner) {
@@ -2195,7 +2294,7 @@ public final class QuestEngine {
     }
 
     private static void apply(Effect effect, ExecutionContext ctx) {
-        Effects.apply(ctx, effect);
+        afterLanes(() -> Effects.apply(ctx, effect));
     }
 
     private static <T extends IECEvent> void post(Class<T> type, Supplier<? extends T> event) {

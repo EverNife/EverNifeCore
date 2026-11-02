@@ -124,7 +124,7 @@ public final class QuestPool {
      * Empty for a player whose quests are not loaded - nothing is drawn offline.
      */
     public List<QuestId> current(ProgressOwner owner) {
-        synchronized (engine.lane(owner)) {
+        try (QuestEngine.LaneHold inLane = engine.hold(owner)) {
             Map<String, PoolDraw> draws = engine.poolDraws(owner);
             if (draws == null) {
                 return Collections.emptyList();
@@ -151,7 +151,7 @@ public final class QuestPool {
 
     /** A snapshot of the owner's draw; null when it has none or is not loaded. Draws nothing. */
     public @Nullable PoolDraw getDraw(ProgressOwner owner) {
-        synchronized (engine.lane(owner)) {
+        try (QuestEngine.LaneHold inLane = engine.hold(owner)) {
             Map<String, PoolDraw> draws = engine.poolDraws(owner);
             PoolDraw current = draws == null ? null : draws.get(name);
             return current == null ? null : current.copy();
@@ -169,7 +169,7 @@ public final class QuestPool {
      * never repeat the ones just dropped or the history.
      */
     public RerollResult reroll(ProgressOwner owner, @Nullable FPlayer payer) {
-        synchronized (engine.lane(owner)) {
+        try (QuestEngine.LaneHold inLane = engine.hold(owner)) {
             current(owner);
             Map<String, PoolDraw> draws = engine.poolDraws(owner);
             PoolDraw current = draws == null ? null : draws.get(name);

@@ -490,6 +490,15 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   contributions and the rest - each step on its own, so one that throws is logged on the plugin's log and the rest still
   runs. A plugin that leaves without its shutdown hook no longer keeps multiplying gains through its boosters or writing
   audit entries to a closed storage. `ArgParserManager.unregisterAll` of the core keeps the builtin parsers.
+- **stay-in-region closes when its duration ends**: the engine schedules one check for that moment on every crossing into the target; the 60 s sweep is no longer what notices it.
+- **A group's `stay-in-region` is measured on its members**: the new `presence` param says when the group is inside -
+  `all` (the default) while every online member is, `any` while one is; no member online is outside. Any member's
+  crossing and the sweep measure the group, so a party standing still in the region completes; before, only the member
+  who crossed was measured and the sweep skipped group quests. A player's quest ignores `presence`.
+- **Quest effects and rewards run after the owner's lock**: `on-start`, `on-complete`, `on-fail`, `on-abandon`, a
+  stage's `on-complete` and the reward rules wait until the engine let go of every owner's lane, as `on-match` already
+  did. A player's completion starting a group quest while that group's completion started a quest for the player no
+  longer leaves the two waiting for each other forever.
 - **Colour codes written with `&` in a layout file are translated again**: `name:`, `lore:`, the `Locale` blocks
   and `settings.title` of a `guis/*.yml` read `&a` as `§a`, as every layout did before the screen layer took over
   reading them. A `§` written in the file is kept, and a seeded file now writes its colours with `&`.

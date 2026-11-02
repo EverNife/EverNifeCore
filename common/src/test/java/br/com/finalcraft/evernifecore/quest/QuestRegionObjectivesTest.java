@@ -1,10 +1,17 @@
 package br.com.finalcraft.evernifecore.quest;
 
+import br.com.finalcraft.evernifecore.group.Group;
+import br.com.finalcraft.evernifecore.group.GroupKind;
+import br.com.finalcraft.evernifecore.group.Group;
+import br.com.finalcraft.evernifecore.group.GroupKind;
 import br.com.finalcraft.evernifecore.logic.ProgressOwner;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.quest.core.ReachLocationObjectiveType;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
+import br.com.finalcraft.evernifecore.region.session.RegionMovementTracker;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
+import br.com.finalcraft.evernifecore.testing.GroupWorld;
+import br.com.finalcraft.evernifecore.testing.GroupWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.QuestWorld;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
@@ -38,13 +45,21 @@ class QuestRegionObjectivesTest {
     private QuestWorld quests;
     private QuestEngine engine;
     private TestFPlayerSender alex;
+    private TestFPlayerSender steve;
+    private GroupWorld parties;
+    private Group party;
 
     @BeforeEach
     void open() {
         world = Platforms.lenient().mainThreadInline().install();
+        parties = GroupWorld.open("FakeParty", tempDir.resolve("party"));
         quests = QuestWorld.open("FakeQuests", tempDir.resolve("quests"));
         engine = quests.getEngine();
         alex = quests.player("Alex");
+        steve = quests.player("Steve");
+        party = parties.group("alpha", parties.kind("party", GroupKind.Cardinality.ONE));
+        party.add(alex.getUniqueId());
+        party.add(steve.getUniqueId());
         quests.region("arena", "world", 0, 0, 0, 20, 128, 20);
         quests.region("lobby", "world", 200, 0, 200, 210, 128, 210);
         for (int i = 0; i < CHECKPOINTS.length; i++) {
@@ -52,11 +67,13 @@ class QuestRegionObjectivesTest {
             quests.region("cp" + i, "world", x - 2, 0, 3, x + 2, 128, 7, "checkpoint");
         }
         quests.move(alex, FIELD);
+        quests.move(steve, FIELD);
     }
 
     @AfterEach
     void close() {
         quests.close();
+        parties.close();
         world.close();
     }
 
@@ -67,6 +84,16 @@ class QuestRegionObjectivesTest {
     private void start(String quest) {
         StartResult result = await(engine.start(quests.owner(alex), quests.id(quest), QuestParams.NONE));
         assertTrue(result.isSuccess(), result.toString());
+    }
+
+    private QuestState partyState(String quest) {
+        return engine.getState(ProgressOwner.group(party.getId()), quests.id(quest)).orElseThrow(() -> new AssertionError("no party state of " + quest));
+    }
+
+    private void registerPartyStay(String extra) {
+        engine.register(quests.parse("{id: camp, owner: {type: group}, stages: [{id: s, objectives: [{id: in, type: stay-in-region, region: arena,"
+                + " duration: 10s" + extra + "}]}]}"));
+        start("camp"); //started by alex, for alex's party
     }
 
     @Test
@@ -176,5 +203,92 @@ class QuestRegionObjectivesTest {
 
         assertEquals(QuestStatus.COMPLETED, state("exits").getStatus());
         assertFalse(engine.getState(ProgressOwner.global(), quests.id("exits")).isPresent());
+    }
+
+    @Test
+    void stayInRegionClosesWhenTheDurationEndsNotAtTheNextSweep() {
+        engine.register(quests.parse("{id: hold, stages: [{id: s, objectives: [{id: in, type: stay-in-region, region: arena, duration: 10s}]}]}"));
+        start("hold");
+        quests.move(alex, ARENA);
+
+        quests.advance(Duration.ofSeconds(10));
+        quests.runDue();
+
+        assertEquals(QuestStatus.COMPLETED, state("hold").getStatus(), "the check scheduled on entering ran at 10 s, not the 60 s sweep");
+    }
+
+    @Test
+    void aStaleTimedCheckDoesNotCloseAStayThatStartedOver() {
+        engine.register(quests.parse("{id: hold, stages: [{id: s, objectives: [{id: in, type: stay-in-region, region: arena, duration: 10s}]}]}"));
+        start("hold");
+        quests.move(alex, ARENA);
+        quests.advance(Duration.ofSeconds(5));
+        quests.move(alex, FIELD);
+        quests.move(alex, ARENA);
+
+        quests.advance(Duration.ofSeconds(5));
+        quests.runDue();
+        assertEquals(QuestStatus.ACTIVE, state("hold").getStatus(), "the 10 s check measured a stay of 5 s");
+
+        quests.advance(Duration.ofSeconds(5));
+        quests.runDue();
+        assertEquals(QuestStatus.COMPLETED, state("hold").getStatus(), "the stale check scheduled one for the rest of the new stay");
+    }
+
+    @Test
+    void aGroupStayWaitsForEveryOnlineMemberByDefault() {
+        registerPartyStay("");
+        quests.move(alex, ARENA);
+        quests.advance(Duration.ofSeconds(15));
+        quests.runDue();
+        assertEquals(QuestStatus.ACTIVE, partyState("camp").getStatus(), "steve is still outside");
+
+        quests.move(steve, ARENA);
+        quests.advance(Duration.ofSeconds(10));
+        quests.runDue();
+
+        assertEquals(QuestStatus.COMPLETED, partyState("camp").getStatus(), "both inside for 10 s");
+    }
+
+    @Test
+    void aGroupStayWithPresenceAnyCountsWhileOneMemberIsInside() {
+        registerPartyStay(", presence: any");
+        quests.move(alex, ARENA);
+
+        quests.advance(Duration.ofSeconds(10));
+        quests.runDue();
+
+        assertEquals(QuestStatus.COMPLETED, partyState("camp").getStatus(), "alex alone inside is enough");
+    }
+
+    @Test
+    void aGroupWithNoOnlineMemberIsNotInside() {
+        registerPartyStay(", presence: any, measure: accumulated");
+        quests.move(alex, ARENA);
+        quests.advance(Duration.ofSeconds(3));
+        RegionMovementTracker.get().onQuit(alex); //the platform's quit: alex leaves the arena
+        quests.logic().quit(alex);
+        quests.logic().quit(steve);
+
+        quests.advance(Duration.ofMinutes(5));
+        quests.runDue();
+
+        QuestState camp = partyState("camp");
+        assertEquals(QuestStatus.ACTIVE, camp.getStatus(), camp.toString());
+        assertEquals(3, camp.getCount("in"), "no member online: the five minutes after alex left added nothing");
+    }
+
+    @Test
+    void aGroupStayIsMeasuredByTheSweep() {
+        engine.register(quests.parse("{id: camp, owner: {type: group}, stages: [{id: s, objectives: [{id: in, type: stay-in-region, region: arena,"
+                + " duration: 30s}]}]}"));
+        start("camp");
+        quests.move(alex, ARENA);
+        quests.move(steve, ARENA);
+
+        quests.advance(Duration.ofSeconds(61)); //the party stands still: no crossing after entering
+        quests.runDue();
+
+        assertEquals(QuestStatus.COMPLETED, partyState("camp").getStatus());
     }
 }

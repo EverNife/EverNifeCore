@@ -294,7 +294,7 @@ class QuestEngineTest {
         List<Boolean> heldLock = new CopyOnWriteArrayList<>();
         Effects.registry().register(quests.getOwner(), TypeDescriptor.<Effect>of("fakequests:lock-probe")
                 .describe("Records whether the owner's lock is held.")
-                .factory(params -> ctx -> heldLock.add(Thread.holdsLock(engine.lane(ProgressOwner.global()))))
+                .factory(params -> ctx -> heldLock.add(engine.lane(ProgressOwner.global()).isHeldByCurrentThread()))
                 .build());
         engine.register(quests.parse("{id: tally, owner: global, stages: [{id: s, objectives: [{id: o, type: break-block, mode: each-match,"
                 + " on-match: [{type: 'fakequests:lock-probe'}]}]}]}"));
