@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -248,6 +249,37 @@ class OfferButtonTest extends MenuTestWorlds {
         assertEquals(10, swords.getHeld());
         assertAmount("950", menus.balance(menus.coins(), alex));
         close(Screens.getOpenView(alex));
+    }
+
+    @Test
+    void aTradeWhoseGoodsThrowTellsThePlayerOnADirectClick() {
+        swords.refuseGives("the sword forge is down");
+        ScreenView view = open(market());
+
+        menus.clickOffer(view, "sword", ClickGesture.PRIMARY);
+
+        assertTrue(alex.anyMessageContains("could not be handed over"), alex.getMessages().toString());
+        assertFalse(alex.anyMessageContains("Exception"), alex.getMessages().toString());
+        assertEquals(5, swords.getHeld());
+        assertAmount("1000", menus.balance(menus.coins(), alex));
+        assertEquals(view, Screens.getOpenView(alex));
+        close(view);
+    }
+
+    @Test
+    void aTradeWhoseGoodsThrowAfterTheConfirmationTellsThePlayer() {
+        swords.refuseGives("the sword forge is down");
+        ScreenView view = open(shop(menus.buy(swords, 10).confirm().build()));
+        menus.clickOffer(view, "sword", ClickGesture.PRIMARY);
+
+        menus.confirm(alex, true);
+
+        assertTrue(alex.anyMessageContains("could not be handed over"), alex.getMessages().toString());
+        assertFalse(alex.anyMessageContains("Exception"), alex.getMessages().toString());
+        assertEquals(5, swords.getHeld());
+        assertAmount("1000", menus.balance(menus.coins(), alex));
+        assertEquals(view, Screens.getOpenView(alex), "the shop is back");
+        close(view);
     }
 
     @Test

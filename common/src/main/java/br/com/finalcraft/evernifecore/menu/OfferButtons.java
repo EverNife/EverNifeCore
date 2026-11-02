@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 /**
@@ -164,7 +165,22 @@ final class OfferButtons {
         }
 
         private void trade(ClickContext click, ExecutionContext trading, Quantity traded) {
-            Transactions.trade(trading, offer, traded).thenAccept(result -> finish(click, trading, result));
+            CompletableFuture<TransactionResult> result;
+            try {
+                result = Transactions.trade(trading, offer, traded);
+            } catch (RuntimeException failure) {
+                result = new CompletableFuture<>();
+                result.completeExceptionally(failure);
+            }
+            result.whenComplete((done, failure) -> {
+                if (failure == null) {
+                    finish(click, trading, done);
+                    return;
+                }
+                //a trade that broke instead of answering: the confirmation's callback would swallow it, so it is said here
+                menu.getOwner().getLog().severe("[" + trading.getCaller() + "] " + this + " failed: {}", failure.toString(), failure);
+                click.refresh();
+            });
         }
 
         private void finish(ClickContext click, ExecutionContext trading, TransactionResult result) {

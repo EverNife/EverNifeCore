@@ -20,6 +20,7 @@ public final class CountedGoods implements Goods {
     private int room = Integer.MAX_VALUE;
     private int stackSize = 64;
     private boolean sellable = true;
+    private @Nullable String refusingGives;
 
     public CountedGoods(String name, int held) {
         this.name = name;
@@ -38,6 +39,12 @@ public final class CountedGoods implements Goods {
 
     public CountedGoods unsellable() {
         this.sellable = false;
+        return this;
+    }
+
+    /** Makes every give throw an {@code IllegalStateException} saying {@code why} - goods that cannot be handed over; null takes it back. */
+    public CountedGoods refuseGives(@Nullable String why) {
+        this.refusingGives = why;
         return this;
     }
 
@@ -62,6 +69,9 @@ public final class CountedGoods implements Goods {
 
     @Override
     public @Nullable CompletableFuture<Delivery> give(ExecutionContext ctx, int quantity, @Nullable DeliveryDestination to) {
+        if (refusingGives != null) {
+            throw new IllegalStateException(refusingGives);
+        }
         held += quantity;
         if (room != Integer.MAX_VALUE) {
             room = Math.max(0, room - quantity);

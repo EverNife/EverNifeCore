@@ -18,6 +18,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **`CountedGoods.refuseGives(why)`** (test kit): goods whose give throws, for the path where a trade must refund and
+  refuse.
 - **`RecordingRenderer.refuseNextOpen()`** (test kit) refuses exactly the next open and opens the ones after it, so a
   test tells "the screen on top was refused" from "the way back was refused"; `refuseOpens(true)` still refuses every
   open.
@@ -496,6 +498,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **Hytale: `spawn-point` after a real death.** The flag's teleport is put once the server's own teleport has left the
   player (checked tick by tick, up to two seconds), instead of replacing it in the same buffer, where the server's
   teleport system ignored the replacement. Past the wait it is dropped with a warning.
+- **A shop button whose goods throw tells the player, with or without a confirmation**: a `Goods.give` that throws no
+  longer turns `Transactions.buy`/`trade` into an `IllegalStateException`; the price still goes back, the plugin's log
+  gets the exception, and the trade answers the new `TransactionResult.Failure.NOT_DELIVERED` ("... could not be handed
+  over; what you paid went back."), which the menu's deny text tells the player. Before, a direct click only logged it
+  and a confirmed one lost it inside the confirmation's callback. A trade that breaks in `OfferButtons` is logged severe
+  on the menu owner's log and the screen redraws.
 - **Two first `CustomVariables.define` of one variable at once no longer throw**: the define is one atomic step, so
   every thread racing to define a variable gets the same instance and only the one that created it registers its
   variable type - before, the loser threw `already registered`.

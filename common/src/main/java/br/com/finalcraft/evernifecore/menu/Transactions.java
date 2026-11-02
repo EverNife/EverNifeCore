@@ -69,6 +69,10 @@ public final class Transactions {
     @FCLocale(lang = LocaleType.PT_BR, text = "Ninguém aqui compra ${item}.")
     private static LocaleMessage NOBODY_BUYS;
 
+    @FCLocale(lang = LocaleType.EN_US, text = "${goods} could not be handed over; what you paid went back.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "${goods} não pôde ser entregue; o que você pagou voltou.")
+    private static LocaleMessage NOT_DELIVERED;
+
     @FCLocale(lang = LocaleType.EN_US, text = "${line} could not be paid (${reason}); the goods went back.")
     @FCLocale(lang = LocaleType.PT_BR, text = "${line} não pôde ser pago (${reason}); os itens voltaram.")
     private static LocaleMessage NOT_PAID;
@@ -345,8 +349,10 @@ public final class Transactions {
             delivery = offer.getGoods().give(ctx, units, offer.getDestination());
         } catch (RuntimeException failure) {
             refundInReverse(ctx, paying.getCosts(), "the goods could not be handed over (" + failure.getMessage() + ")");
-            throw new IllegalStateException("The trade of " + offer + " for " + ctx.getCaller() + " could not hand the goods over, and what"
-                    + " was charged went back: " + failure.getMessage(), failure);
+            ctx.getCaller().getPlugin().getLog().severe("[" + ctx.getCaller() + "] The trade of " + offer + " could not hand the goods over,"
+                    + " and what was charged went back. Fix the goods' give: {}", failure.toString(), failure);
+            return TransactionResult.failed(TransactionResult.Failure.NOT_DELIVERED, offer, units, quote,
+                    text(NOT_DELIVERED, ctx, "goods", goods(ctx, offer, units)));
         }
         return TransactionResult.success(offer, units, quote, paid, delivery);
     }

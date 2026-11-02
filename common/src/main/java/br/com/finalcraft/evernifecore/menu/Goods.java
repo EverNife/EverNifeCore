@@ -30,7 +30,8 @@ public interface Goods {
 
     /**
      * Hands {@code quantity} units over, to {@code to} when given, else the player's inventory; what does not fit
-     * becomes a pending delivery.
+     * becomes a pending delivery. A give that throws fails the trade as {@code NOT_DELIVERED}: the price goes back and the
+     * player reads the core's refusal, so it need not warn the player itself.
      *
      * @return the pending delivery being written, or null when everything was handed over
      */

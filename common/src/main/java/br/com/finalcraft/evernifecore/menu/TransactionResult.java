@@ -45,7 +45,9 @@ public final class TransactionResult {
         /** A SELL of goods nobody holds, or of an item the catalog does not buy. */
         NOT_SELLABLE,
         /** A {@link TransactionPreEvent} listener, the quantity prompt or the confirmation called it off. */
-        CANCELLED
+        CANCELLED,
+        /** A BUY whose goods threw when handed over: what was charged went back, and the plugin's log has the exception. */
+        NOT_DELIVERED
     }
 
     private final Failure failure;
