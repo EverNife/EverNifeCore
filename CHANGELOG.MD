@@ -476,6 +476,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **A delivery no longer drops what failed on the claim**: an effect of the core that runs and fails on a claim (a
+  currency that is not registered or cannot pay, an inventory that is not there) stays in the delivery, is logged, and
+  is tried on the next claim, instead of being dropped as delivered. The `money` effect and cost treat an unregistered
+  currency as one that cannot pay right now: the effect is audited `EFFECT_FAILED` (logged once per id), the cost's
+  test fails saying what to do, its `take` answers false and a refund throws.
 - **A `Contribution` deposit no longer locks the contribution while it reaches the wallet or the inventory**, so a reader
   on the player's thread (a menu, a placeholder reading `getTotal()`) never waits behind a deposit that is waiting for
   that thread. What a racing deposit took past the target is given back through the new

@@ -15,6 +15,7 @@ import br.com.finalcraft.evernifecore.logic.Effect;
 import br.com.finalcraft.evernifecore.logic.Effects;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 import br.com.finalcraft.evernifecore.logic.ProgressOwner;
+import br.com.finalcraft.evernifecore.logic.audit.AuditEntry;
 import br.com.finalcraft.evernifecore.logic.audit.AuditKind;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
@@ -232,36 +233,61 @@ public final class Deliveries {
         return new ClaimResult(delivered, kept, expired);
     }
 
-    /** Applies what of {@code delivery} can be applied now; null when nothing is left, else the delivery still owing the rest. */
+    /**
+     * Applies what of {@code delivery} can be applied now; null when nothing is left, else the delivery still owing the
+     * rest, in the original order: a node that does not read, a node whose effect failed (audited {@code EFFECT_FAILED})
+     * and what an effect kept back.
+     */
     private @Nullable Delivery claimOne(FPlayer player, Delivery delivery) {
         ECPluginData plugin = pluginOf(delivery.getOrigin());
         Caller caller = Caller.of(plugin, delivery.getOrigin().getEmitter());
-        List<Effect> parsed = new ArrayList<>();
-        List<JsonNode> unread = new ArrayList<>();
+        List<Effect> parsed = new ArrayList<>(); //parallel to the delivery's nodes: null where the node does not read
+        boolean anyUnread = false;
         for (JsonNode node : delivery.getEffects()) {
+            Effect read = null;
             try {
                 Effect effect = Effects.parse(plugin, node, Window.getServerZone());
                 if (Effects.getPendingType(effect) == null) {
-                    parsed.add(effect);
-                    continue;
+                    read = effect;
                 }
             } catch (TypeRegistryException unreadable) {
                 EverNifeCore.getLog().warning("An effect of delivery " + delivery.getId() + " from " + delivery.getOrigin() + " does not"
                         + " read and stays pending: " + unreadable.getMessage());
             }
-            unread.add(node);
+            anyUnread |= read == null;
+            parsed.add(read);
         }
-        if (!unread.isEmpty() && delivery.getPolicy() == DeliveryPolicy.REQUIRES_ORIGIN) {
+        if (anyUnread && delivery.getPolicy() == DeliveryPolicy.REQUIRES_ORIGIN) {
             return delivery; //one piece: it waits for every effect's plugin
         }
         List<JsonNode> leftovers = new ArrayList<>();
         ExecutionContext ctx = ExecutionContext.builder(caller).player(player).owner(ProgressOwner.player(player.getUniqueId()))
                 .attribute(CLAIM_LEFTOVERS, leftovers).build();
-        for (Effect effect : parsed) {
+        List<JsonNode> remaining = new ArrayList<>();
+        List<String> failures = new ArrayList<>();
+        for (int i = 0; i < parsed.size(); i++) {
+            JsonNode node = delivery.getEffects().get(i);
+            Effect effect = parsed.get(i);
+            if (effect == null) {
+                remaining.add(node);
+                continue;
+            }
+            int failedBefore = ctx.getAudit().getEntries(AuditKind.EFFECT_FAILED).size();
+            int keptBefore = leftovers.size();
             Effects.apply(ctx, effect); //on the player's thread already: in place
+            List<AuditEntry> failed = ctx.getAudit().getEntries(AuditKind.EFFECT_FAILED);
+            if (failed.size() > failedBefore) {
+                //it ran and refused (a currency that cannot pay, no inventory): the whole node waits for the next claim
+                leftovers.subList(keptBefore, leftovers.size()).clear();
+                remaining.add(node);
+                failed.subList(failedBefore, failed.size()).forEach(entry -> failures.add(entry.getText()));
+            }
+            remaining.addAll(leftovers.subList(keptBefore, leftovers.size()));
         }
-        List<JsonNode> remaining = new ArrayList<>(unread);
-        remaining.addAll(leftovers);
+        if (!failures.isEmpty()) {
+            EverNifeCore.getLog().warning("Delivery " + delivery.getId() + " from " + delivery.getOrigin() + " to " + player.getName()
+                    + " stays pending for the next claim, an effect failed: " + String.join("; ", failures));
+        }
         if (remaining.isEmpty()) {
             return null;
         }

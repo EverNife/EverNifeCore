@@ -178,4 +178,18 @@ class StockEconomyTest {
         assertFalse(result.isPassed());
         assertTrue(result.getWhy().getText().contains("No economy on this server"), result.getWhy().getText());
     }
+
+    @Test
+    void anUnregisteredCurrencyCannotPayNowAndNeverThrows() {
+        ExecutionContext ctx = shop.context(alex).build();
+        Cost cost = cost("{'type': 'money', 'amount': 5, 'currency': 'fakeshop:silver'}");
+
+        ConditionResult result = cost.test(ctx);
+        assertFalse(result.isPassed());
+        assertTrue(result.getWhy().getText().contains("No currency 'fakeshop:silver' is registered right now"), result.getWhy().getText());
+        assertFalse(cost.take(ctx), "the gate refunds what it took before");
+        effect("{'type': 'money', 'amount': 5, 'currency': 'fakeshop:silver'}").apply(ctx);
+        assertEquals(1, ctx.getAudit().getEntries(AuditKind.EFFECT_FAILED).size());
+        assertBalance("100");
+    }
 }

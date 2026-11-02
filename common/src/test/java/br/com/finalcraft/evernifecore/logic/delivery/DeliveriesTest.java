@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.logic.delivery;
 
 import br.com.finalcraft.evernifecore.api.events.player.ECPlayerFullyLoggedInEvent;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.economy.Currencies;
 import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.item.ItemMatcher;
@@ -158,6 +159,70 @@ class DeliveriesTest {
 
         assertEquals(1, claimed.getDelivered().size(), claimed.toString());
         assertEquals(0, new BigDecimal("25").compareTo(gold.getBalance(wallet)), gold.getBalance(wallet).toPlainString());
+        assertTrue(pending().isEmpty());
+    }
+
+    @Test
+    void aPendingMoneyWhoseCurrencyCannotPayNowStaysPending() {
+        CurrencyOwner wallet = CurrencyOwner.player(alex.getUniqueId());
+        TestCurrency gold = Economies.currency("fakeshop:gold", CurrencyOwner.Kind.PLAYER).balance(wallet, 0);
+        world.withCurrency(shop.getOwner(), gold);
+        Effects.apply(shop.context(alex).build(), effect("{'type': 'money', 'amount': 25, 'currency': 'fakeshop:gold', 'to': 'pending'}"));
+        Delivery owed = pending().get(0);
+
+        Currencies.unregisterAll(shop.getOwner()); //the currency's plugin is down when the player logs in
+        ClaimResult claimed = await(deliveries.claimAll(alex));
+
+        assertTrue(claimed.getDelivered().isEmpty(), claimed.toString());
+        assertEquals(1, claimed.getKept().size(), "the 25 gold still wait");
+        assertEquals(owed.getId(), pending().get(0).getId());
+        assertEquals(0, gold.getBalance(wallet).signum());
+
+        world.withCurrency(shop.getOwner(), gold); //it is back: the next claim pays
+        await(deliveries.claimAll(alex));
+        assertEquals(0, new BigDecimal("25").compareTo(gold.getBalance(wallet)), gold.getBalance(wallet).toPlainString());
+        assertTrue(pending().isEmpty());
+    }
+
+    @Test
+    void aPendingMoneyWhoseCurrencyRefusesTheWalletStaysPending() {
+        CurrencyOwner wallet = CurrencyOwner.player(alex.getUniqueId());
+        world.withCurrency(shop.getOwner(), Economies.currency("fakeshop:gold", CurrencyOwner.Kind.GROUP)); //no player wallets
+        Effects.apply(shop.context(alex).build(), effect("{'type': 'money', 'amount': 25, 'currency': 'fakeshop:gold', 'to': 'pending'}"));
+
+        ClaimResult claimed = await(deliveries.claimAll(alex));
+
+        assertTrue(claimed.getDelivered().isEmpty(), claimed.toString());
+        assertEquals(1, claimed.getKept().size(), "the 25 gold still wait");
+        assertEquals(1, pending().size());
+
+        Currencies.unregisterAll(shop.getOwner());
+        TestCurrency gold = Economies.currency("fakeshop:gold", CurrencyOwner.Kind.PLAYER).balance(wallet, 0);
+        world.withCurrency(shop.getOwner(), gold); //now it keeps player wallets: the next claim pays
+        await(deliveries.claimAll(alex));
+        assertEquals(0, new BigDecimal("25").compareTo(gold.getBalance(wallet)), gold.getBalance(wallet).toPlainString());
+        assertTrue(pending().isEmpty());
+    }
+
+    @Test
+    void aPendingItemWithoutAnInventoryStaysPending() {
+        Delivery owed = await(deliveries.enqueue(alex.getUniqueId(), DeliveryOrigin.of("FakeShop", "fakeshop:sale", "Refund"),
+                DeliveryPolicy.KEEP_SELF_CONTAINED, null, Collections.singletonList(node("{'type': 'give-item', 'item': '" + IRON
+                        + "', 'amount': 3}"))));
+        InventoryDestination destination = DeliveryDestinations.inventory().get();
+        ECPluginData platformCore = DeliveryDestinations.registry().find(InventoryDestination.ID)
+                .flatMap(DeliveryDestinations.registry()::getOwner).get();
+        assertTrue(DeliveryDestinations.unregister(platformCore, InventoryDestination.ID));
+
+        ClaimResult claimed = await(deliveries.claimAll(alex));
+
+        assertTrue(claimed.getDelivered().isEmpty(), claimed.toString());
+        assertEquals(1, claimed.getKept().size(), "the 3 ingots still wait");
+        assertEquals(owed.getId(), pending().get(0).getId());
+
+        DeliveryDestinations.register(platformCore, destination); //the inventory is back: the next claim hands them out
+        await(deliveries.claimAll(alex));
+        assertEquals(3, held(IRON));
         assertTrue(pending().isEmpty());
     }
 

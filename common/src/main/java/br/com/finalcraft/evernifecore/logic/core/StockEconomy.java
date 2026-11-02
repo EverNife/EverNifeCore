@@ -28,6 +28,9 @@ import jakarta.annotation.Nullable;
 
 import java.math.BigDecimal;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * The stock cost and effect {@code money}: a cost takes an amount of a currency from the context owner's wallet (and
@@ -37,6 +40,8 @@ import java.util.Optional;
 final class StockEconomy {
 
     private static final String DEFAULT_CURRENCY = "money";
+    /** The currency ids already warned about as missing: the log tells each absence once, not once per payment. */
+    private static final Set<String> TOLD_MISSING = ConcurrentHashMap.newKeySet();
 
     private StockEconomy() {
     }
@@ -58,17 +63,27 @@ final class StockEconomy {
                 .build());
     }
 
-    /** The currency {@code written} names once its {@code {variables}} are resolved for {@code ctx}. */
-    static Currency currency(ExecutionContext ctx, String written) {
-        return currency(ctx.resolve(written));
-    }
-
-    /** The currency {@code id} names, {@code money} answering even before its registration. */
-    static Currency currency(String id) {
+    /**
+     * The currency {@code written} names once its {@code {variables}} are resolved for {@code ctx}, {@code money}
+     * answering even before its registration; null when no such currency is registered right now.
+     */
+    static @Nullable Currency currency(ExecutionContext ctx, String written) {
+        String id = ctx.resolve(written);
         if (DEFAULT_CURRENCY.equals(id) || ("evernifecore:" + DEFAULT_CURRENCY).equals(id)) {
             return Currencies.money();
         }
-        return Currencies.require(id);
+        Optional<Currency> found = Currencies.find(id);
+        if (found.isPresent()) {
+            TOLD_MISSING.remove(id); //back again: a later absence is worth a new warning
+        }
+        return found.orElse(null);
+    }
+
+    /** Why {@code id} cannot pay now: no currency of that id or alias is registered. */
+    static String missing(String id) {
+        return "No currency '" + id + "' is registered right now (registered: " + Currencies.getAll().stream().map(Currency::getId)
+                .collect(Collectors.toList()) + "): the plugin that registers it, with Currencies.register(owner, currency), is not"
+                + " enabled. Enable it, or name another currency; a short name works only when one currency has it.";
     }
 
     /**
@@ -111,6 +126,9 @@ final class StockEconomy {
         @Override
         public ConditionResult test(ExecutionContext ctx) {
             Currency currency = currency(ctx, currencyId);
+            if (currency == null) {
+                return ConditionResult.fail(FancyText.of(missing(ctx.resolve(currencyId))));
+            }
             String noWallet = noWallet(currency, ctx);
             if (noWallet != null) {
                 return ConditionResult.fail(FancyText.of(noWallet));
@@ -127,12 +145,16 @@ final class StockEconomy {
         public boolean take(ExecutionContext ctx) {
             Currency currency = currency(ctx, currencyId);
             Optional<CurrencyOwner> owner = CurrencyOwner.of(ctx.getOwner());
-            return owner.isPresent() && currency.take(owner.get(), amount(ctx, amount), ctx.getCaller()).isSuccess();
+            return currency != null && owner.isPresent() && currency.take(owner.get(), amount(ctx, amount), ctx.getCaller()).isSuccess();
         }
 
         @Override
         public void refund(ExecutionContext ctx) {
             Currency currency = currency(ctx, currencyId);
+            if (currency == null) {
+                throw new IllegalStateException("The refund of " + describe(ctx).getText() + " to " + ctx.getOwner() + " failed: "
+                        + missing(ctx.resolve(currencyId)));
+            }
             EcoResponse given = currency.give(CurrencyOwner.of(ctx.getOwner()).get(), amount(ctx, amount), ctx.getCaller());
             if (!given.isSuccess()) {
                 throw new IllegalStateException("The refund of " + describe(ctx).getText() + " to " + ctx.getOwner() + " failed: " + given);
@@ -141,13 +163,19 @@ final class StockEconomy {
 
         @Override
         public FancyText describe(ExecutionContext ctx) {
-            return currency(ctx, currencyId).format(amount(ctx, amount));
+            return format(ctx, currencyId, amount(ctx, amount));
         }
 
         @Override
         public String toString() {
             return "money(" + amount + " " + currencyId + ")";
         }
+    }
+
+    /** {@code amount} in the currency {@code written} names; the bare id when it is not registered right now. */
+    private static FancyText format(ExecutionContext ctx, String written, BigDecimal amount) {
+        Currency currency = currency(ctx, written);
+        return currency != null ? currency.format(amount) : FancyText.of(amount.toPlainString() + " " + ctx.resolve(written));
     }
 
     private static FancyText notEnough(ExecutionContext ctx, Currency currency, BigDecimal balance, BigDecimal needed) {
@@ -180,13 +208,23 @@ final class StockEconomy {
         }
 
         /**
-         * A wallet that is missing or cannot move is audited and logged, never thrown: the other effects still apply. A
+         * A currency that is not registered, or a wallet that is missing or cannot move, is audited and logged, never
+         * thrown: the other effects still apply, and a claim keeps the node pending. A
          * {@code to:} that names no registered destination keeps the amount, already multiplied, as a pending delivery.
          */
         @Override
         public void apply(ExecutionContext ctx) {
             Currency currency = currency(ctx, currencyId);
             BigDecimal given = amount(ctx, amount).multiply(share);
+            if (currency == null) {
+                String id = ctx.resolve(currencyId);
+                String what = "money " + given.toPlainString() + " " + id + " to " + ctx.getOwner();
+                ctx.getAudit().add(ctx, AuditKind.EFFECT_FAILED, what + " not given: " + missing(id), given, null);
+                if (TOLD_MISSING.add(id)) {
+                    EverNifeCore.getLog().warning("[" + ctx.getCaller() + "] " + what + " was not given: " + missing(id));
+                }
+                return;
+            }
             if (boosted) {
                 given = given.multiply(ctx.getMultiplier(currency.getId()));
             }
