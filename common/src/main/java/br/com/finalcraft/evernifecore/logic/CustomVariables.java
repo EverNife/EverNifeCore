@@ -184,10 +184,19 @@ public final class CustomVariables {
         @Override
         public T read(ExecutionContext ctx) {
             Row row = owner.rows.get(key(ctx));
-            if (row == null || row.value == null || row.windowStart != windowStart()) {
+            if (row == null) {
                 return initial;
             }
-            return decode(row.value);
+            String value;
+            long rowWindowStart;
+            synchronized (row) { //a value and the window it was set in are one pair: never a new value with an old window
+                value = row.value;
+                rowWindowStart = row.windowStart;
+            }
+            if (value == null || rowWindowStart != windowStart()) {
+                return initial;
+            }
+            return decode(value);
         }
 
         @Override
@@ -253,7 +262,7 @@ public final class CustomVariables {
             this.key = key;
         }
 
-        Row copy() {
+        synchronized Row copy() {
             Row copy = new Row(key);
             copy.value = value;
             copy.windowStart = windowStart;

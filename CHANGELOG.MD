@@ -513,6 +513,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+- **A custom variable is read under its row's monitor** (`CustomVariables.CustomVariable.read`, and the snapshot the
+  writer takes): a value and the window it was set in are read as one pair, never a new value with an old window.
 - **`FCTimeFrame` formats before the core locale loads** (a test world, a plugin's static init): its words fall back to
   English where the formatting threw a `NullPointerException`, so a screen with a time in its text no longer needs
   `FCLocaleScanner.scanForLocale(FCTimeFrame.class)` first.

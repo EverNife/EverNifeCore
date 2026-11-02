@@ -10,15 +10,18 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -107,5 +110,29 @@ class CustomVariablesTest {
         } finally {
             pool.shutdownNow();
         }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void aReadWaitsForTheRowItReadsSoAValueNeverComesWithAnotherWindow() throws Exception {
+        CustomVariables.CustomVariable<BigDecimal> score = shop.customVariables().define("score", BigDecimal.class, BigDecimal.ZERO);
+        ExecutionContext alex = shop.context(shop.player("Alex")).build();
+        score.set(alex, BigDecimal.ONE);
+        Field rowsField = CustomVariables.class.getDeclaredField("rows");
+        rowsField.setAccessible(true);
+        CustomVariables.Row row = ((Map<?, CustomVariables.Row>) rowsField.get(shop.customVariables())).values().iterator().next();
+        AtomicReference<BigDecimal> read = new AtomicReference<>();
+        Thread reader = new Thread(() -> read.set(score.read(alex)), "variable-reader");
+
+        synchronized (row) { //a write in progress
+            reader.start();
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+            while (reader.getState() != Thread.State.BLOCKED && reader.isAlive() && System.nanoTime() < deadline) {
+                Thread.yield();
+            }
+            assertEquals(Thread.State.BLOCKED, reader.getState(), "the read has to wait for the row's monitor");
+        }
+        reader.join(5_000);
+        assertEquals(BigDecimal.ONE, read.get());
     }
 }
