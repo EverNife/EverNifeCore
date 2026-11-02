@@ -37,6 +37,7 @@ public final class EnchantActionListener implements ECListener {
 
     private static ItemContext context(EnchantItemEvent event) {
         return new ItemContext(EventSource.ENCHANT, McActionContexts.position(event.getEnchantBlock().getLocation()),
-                McActionContexts.actor(event.getEnchanter()), event, McActionContexts.key(event.getItem()), event.getItem().getAmount(), null);
+                McActionContexts.actor(event.getEnchanter()), event, McActionContexts.key(event.getItem()), event.getItem().getAmount(), null,
+                McActionContexts.item(event.getItem()));
     }
 }

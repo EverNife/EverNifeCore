@@ -13,6 +13,7 @@ import br.com.finalcraft.evernifecore.action.EntityContext;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.EventSourceUsage;
 import br.com.finalcraft.evernifecore.action.ItemContext;
+import br.com.finalcraft.evernifecore.api.platoverride.item.NativeItem;
 import br.com.finalcraft.evernifecore.action.SimpleContext;
 import br.com.finalcraft.evernifecore.action.SpawnContext;
 import br.com.finalcraft.evernifecore.action.TypeKey;
@@ -22,6 +23,7 @@ import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.hytale.loader.imp.HyPlatform;
 import br.com.finalcraft.evernifecore.hytale.region.HyRegionMoveSystem;
 import br.com.finalcraft.evernifecore.hytale.region.HySelectionItems;
+import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
@@ -254,7 +256,7 @@ public final class HyActionSystems {
     /** A craft of {@code crafts} times the recipe whose primary output is {@code output}: the amount is every item it gives. */
     static ItemContext crafted(String world, Vector3d at, Actor crafter, @Nullable Object event, MaterialQuantity output, int crafts) {
         return new ItemContext(EventSource.CRAFT, HyActionContexts.position(world, at), crafter, event, HyActionContexts.key(output.getItemId()),
-                output.getQuantity() * crafts, null);
+                output.getQuantity() * crafts, null, null);
     }
 
     /** One block an explosion is about to damage, in {@code world}: a BREAK by the environment - a step, never posted as broken. */
@@ -325,7 +327,8 @@ public final class HyActionSystems {
         }
         String world = worldOf(store);
         return judge(source, world, event, () -> new ItemContext(source, HyActionContexts.position(world, at),
-                HyActionContexts.actor(actor, store), event, key, item.getQuantity(), null));
+                HyActionContexts.actor(actor, store), event, key, item.getQuantity(), null,
+                () -> ItemSpec.of(key.toString(), item.getQuantity()).withNativeItem(new NativeItem(item))));
     }
 
     /** What spawns a creature nobody spawned on purpose: the world itself. */

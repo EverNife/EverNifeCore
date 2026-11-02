@@ -37,6 +37,7 @@ public final class ConsumeActionListener implements ECListener {
 
     private static ItemContext context(PlayerItemConsumeEvent event) {
         return new ItemContext(EventSource.CONSUME, McActionContexts.position(event.getPlayer().getLocation()),
-                McActionContexts.actor(event.getPlayer()), event, McActionContexts.key(event.getItem()), 1, null);
+                McActionContexts.actor(event.getPlayer()), event, McActionContexts.key(event.getItem()), 1, null,
+                McActionContexts.item(event.getItem()));
     }
 }

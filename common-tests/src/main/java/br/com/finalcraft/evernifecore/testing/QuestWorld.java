@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.testing;
 
+import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.action.provenance.ProvenanceTracker;
 import br.com.finalcraft.evernifecore.storage.Persistence;
 import jakarta.annotation.Nullable;
@@ -208,7 +209,7 @@ public final class QuestWorld implements AutoCloseable {
 
     public ItemContext pickup(FPlayer player, String itemKey, int amount) {
         return new ItemContext(EventSource.ITEM_PICKUP, WorldLocPos.of(0, 64, 0, "world"), Actors.player(player), null, TypeKey.parse(itemKey),
-                amount, UUID.randomUUID());
+                amount, UUID.randomUUID(), () -> ItemSpec.of(itemKey, amount));
     }
 
     public DamageContext kill(FPlayer killer, String victimKey) {

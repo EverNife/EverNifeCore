@@ -48,6 +48,6 @@ public final class FishActionListener implements ECListener {
     private static ItemContext context(PlayerFishEvent event, Item caught) {
         return new ItemContext(EventSource.FISH, McActionContexts.position(event.getPlayer().getLocation()),
                 McActionContexts.actor(event.getPlayer()), event, McActionContexts.key(caught.getItemStack()),
-                caught.getItemStack().getAmount(), caught.getUniqueId());
+                caught.getItemStack().getAmount(), caught.getUniqueId(), McActionContexts.item(caught.getItemStack()));
     }
 }

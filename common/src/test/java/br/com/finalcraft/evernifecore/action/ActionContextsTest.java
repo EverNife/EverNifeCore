@@ -34,17 +34,17 @@ class ActionContextsTest {
     @Test
     void anItemContextServesTheItemSourcesAndRefusesAnother() {
         for (EventSource source : ItemContext.SOURCES) {
-            assertEquals(source, new ItemContext(source, AT, steve, null, TypeKey.parse("minecraft:bread"), 1, null).getSource());
+            assertEquals(source, new ItemContext(source, AT, steve, null, TypeKey.parse("minecraft:bread"), 1, null, null).getSource());
         }
         assertTeaches(assertThrows(IllegalArgumentException.class,
-                () -> new ItemContext(EventSource.BREAK, AT, steve, null, TypeKey.parse("minecraft:bread"), 1, null)), EventSource.BREAK);
+                () -> new ItemContext(EventSource.BREAK, AT, steve, null, TypeKey.parse("minecraft:bread"), 1, null, null)), EventSource.BREAK);
     }
 
     @Test
     void anItemContextCarriesTheAmountAndTheItemEntityWhenThereIsOne() {
         UUID dropped = UUID.randomUUID();
-        ItemContext crafted = new ItemContext(EventSource.CRAFT, AT, steve, null, TypeKey.parse("minecraft:stick"), 64, null);
-        ItemContext drop = new ItemContext(EventSource.ITEM_DROP, AT, steve, null, TypeKey.parse("minecraft:stick"), 3, dropped);
+        ItemContext crafted = new ItemContext(EventSource.CRAFT, AT, steve, null, TypeKey.parse("minecraft:stick"), 64, null, null);
+        ItemContext drop = new ItemContext(EventSource.ITEM_DROP, AT, steve, null, TypeKey.parse("minecraft:stick"), 3, dropped, null);
 
         assertEquals(64, crafted.getAmount());
         assertNull(crafted.getItemEntityId(), "a craft has no item lying in the world");

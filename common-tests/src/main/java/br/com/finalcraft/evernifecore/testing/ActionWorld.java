@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.testing;
 
+import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.action.ActionContext;
 import br.com.finalcraft.evernifecore.action.Actions;
 import br.com.finalcraft.evernifecore.action.Actor;
@@ -113,12 +114,12 @@ public final class ActionWorld implements AutoCloseable {
 
         public ItemContext drop(FPlayer player, UUID item, String itemKey) {
             return new ItemContext(EventSource.ITEM_DROP, WorldLocPos.of(0, 64, 0, "world"), Actors.player(player), null,
-                    TypeKey.parse(itemKey), 1, item);
+                    TypeKey.parse(itemKey), 1, item, () -> ItemSpec.of(itemKey, 1));
         }
 
         public ItemContext pickup(FPlayer player, UUID item, String itemKey) {
             return new ItemContext(EventSource.ITEM_PICKUP, WorldLocPos.of(0, 64, 0, "world"), Actors.player(player), null,
-                    TypeKey.parse(itemKey), 1, item);
+                    TypeKey.parse(itemKey), 1, item, () -> ItemSpec.of(itemKey, 1));
         }
 
         public DamageContext kill(FPlayer killer, UUID victim, String victimKey) {

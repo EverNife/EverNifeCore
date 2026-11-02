@@ -81,7 +81,7 @@ class ProtectionCatalogTest {
     }
 
     private Decision item(EventSource source, String key) {
-        return lookup.decide(new ItemContext(source, AT, Actors.player(player), null, TypeKey.parse(key), 1, null));
+        return lookup.decide(new ItemContext(source, AT, Actors.player(player), null, TypeKey.parse(key), 1, null, null));
     }
 
     private Decision hit(Actor attacker) {

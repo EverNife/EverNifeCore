@@ -6,6 +6,8 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import java.util.concurrent.ConcurrentHashMap;
 import br.com.finalcraft.evernifecore.testing.minecraft.Doubles;
+import br.com.finalcraft.evernifecore.testing.minecraft.ItemMetaDouble;
+import org.bukkit.inventory.ItemFactory;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
@@ -459,6 +461,7 @@ public final class BukkitEventWorld implements AutoCloseable {
     }
 
     private Server buildServer(AtomicReference<PluginManager> manager) {
+        ItemFactory itemFactory = ItemMetaDouble.factory();
         //the manager is built against this server, so it can only be handed over after both exist
         return Doubles.of(Server.class)
                 .on("isPrimaryThread", args -> Thread.currentThread() == mainThread)
@@ -475,6 +478,8 @@ public final class BukkitEventWorld implements AutoCloseable {
                 .on("getOnlinePlayers", args -> new ArrayList<>(players))
                 .on("getPlayer", args -> args[0] instanceof UUID ? playerById((UUID) args[0]) : null)
                 .on("getRegistry", args -> BukkitRegistries.forType((Class<?>) args[0]))
+                //a stack keeps the name and lore written to it, as an event's item does on a server
+                .on("getItemFactory", args -> itemFactory)
                 .build();
     }
 

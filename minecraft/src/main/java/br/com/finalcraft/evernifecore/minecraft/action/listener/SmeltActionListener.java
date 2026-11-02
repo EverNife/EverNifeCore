@@ -26,7 +26,7 @@ public final class SmeltActionListener implements ECListener {
         if (event.getItemAmount() > 0 && !McActionContexts.isDisabled(event.getBlock().getWorld())) {
             Actions.post(SmeltActionEvent.Post.class, () -> new SmeltActionEvent.Post(new ItemContext(EventSource.SMELT,
                     McActionContexts.position(event.getBlock().getLocation()), McActionContexts.actor(event.getPlayer()), event,
-                    McActionContexts.key(event.getItemType()), event.getItemAmount(), null)));
+                    McActionContexts.key(event.getItemType()), event.getItemAmount(), null, null)));
         }
     }
 }

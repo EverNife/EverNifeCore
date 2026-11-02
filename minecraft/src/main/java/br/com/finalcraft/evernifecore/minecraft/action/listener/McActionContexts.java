@@ -11,6 +11,8 @@ import br.com.finalcraft.evernifecore.minecraft.npc.CitizensNpcProvider;
 import br.com.finalcraft.evernifecore.minecraft.npc.McNpcProviders;
 import br.com.finalcraft.evernifecore.npc.NpcRef;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
+import br.com.finalcraft.evernifecore.item.ItemSpec;
+import br.com.finalcraft.evernifecore.minecraft.screen.ChestItems;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
@@ -87,6 +89,11 @@ public final class McActionContexts {
             }
         }
         return MCVersion.isHigherEquals(MCVersion.v1_13) ? MaterialKeys.of(material) : bukkitNamed(material.name());
+    }
+
+    /** The item an {@code ItemContext} reads: {@code stack} copied only when a listener asks for it. */
+    public static Supplier<ItemSpec> item(ItemStack stack) {
+        return () -> ChestItems.specOf(stack);
     }
 
     /** What {@code stack} is, by the server's own item registry; the same ladder as {@link #key(Material)}. */

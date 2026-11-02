@@ -18,6 +18,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **`ItemContext.getItem()`**: the item of a pickup, drop, craft, consume, enchant or catch as an `ItemSpec` carrying the
+  platform's stack (name and lore included), so a plugin reads it without `getNativeEvent(CraftItemEvent.class)`. The
+  stack is copied on the first call only; null for a Bukkit smelt and a Hytale craft, whose events carry no stack. The
+  constructor takes the item as a last `@Nullable Supplier<ItemSpec>`. Test kit: `ItemMetaDouble.factory()`.
 - **`BukkitScreenWorld.install(dir, platform)` / `installWithItemMetadata(dir, platform)`** (test kit): the chest over
   the lenient platform adjusted by a `UnaryOperator<Platforms>`, the same form as `ScreenWorld.open(dir, platform)` -
   `Platforms::capturingCommands` for a button that runs a command as the player, `p -> p.parsingWith(...)` for a

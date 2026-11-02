@@ -350,9 +350,9 @@ class HyActionSystemsTest {
         InteractivelyPickupItemEvent pickup = new InteractivelyPickupItemEvent(null);
 
         assertTrue(HyActionSystems.judge(EventSource.ITEM_DROP, WORLD, drop, () -> new ItemContext(EventSource.ITEM_DROP,
-                HyActionContexts.position(WORLD, new Vector3i(5, 5, 5)), player, drop, stick, 1, null)));
+                HyActionContexts.position(WORLD, new Vector3i(5, 5, 5)), player, drop, stick, 1, null, null)));
         assertTrue(HyActionSystems.judge(EventSource.ITEM_PICKUP, WORLD, pickup, () -> new ItemContext(EventSource.ITEM_PICKUP,
-                HyActionContexts.position(WORLD, new Vector3i(5, 5, 5)), player, pickup, stick, 1, null)));
+                HyActionContexts.position(WORLD, new Vector3i(5, 5, 5)), player, pickup, stick, 1, null, null)));
         assertTrue(drop.isCancelled());
         assertTrue(pickup.isCancelled());
     }

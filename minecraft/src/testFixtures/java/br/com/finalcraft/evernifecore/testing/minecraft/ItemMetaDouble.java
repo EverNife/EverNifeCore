@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.testing.minecraft;
 
+import org.bukkit.inventory.ItemFactory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -32,6 +33,17 @@ public final class ItemMetaDouble implements InvocationHandler {
 
     public static ItemMeta create() {
         return new ItemMetaDouble().asMeta();
+    }
+
+    /** A server's item factory that hands out this metadata, so a stack keeps the name and lore written to it. */
+    public static ItemFactory factory() {
+        return Doubles.of(ItemFactory.class)
+                .on("getItemMeta", args -> create())
+                .on("isApplicable", args -> true)
+                .on("asMetaFor", args -> args[0])
+                .on("updateMaterial", args -> args[1])
+                .on("equals", args -> args.length == 2 && (args[0] == args[1] || (args[0] != null && args[0].equals(args[1]))))
+                .build();
     }
 
     private String displayName;

@@ -19,6 +19,7 @@ import br.com.finalcraft.evernifecore.action.event.XpGainActionEvent;
 import br.com.finalcraft.evernifecore.api.events.base.ECCancellable;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
+import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.math.game.vector.chunkpos.ChunkPos;
 import br.com.finalcraft.evernifecore.minecraft.region.RegionServer;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
@@ -49,12 +50,14 @@ import org.bukkit.event.player.PlayerShearEntityEvent;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.Recipe;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -62,7 +65,9 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -156,6 +161,42 @@ class NewSourceActionListenersTest {
         assertEquals(4, crafts.get(0).getContext().getAmount());
         assertEquals(TypeKey.parse("minecraft:stick"), crafts.get(0).getContext().getItemKey());
         assertNull(crafts.get(0).getContext().getItemEntityId());
+    }
+
+    @Test
+    void aCraftCarriesTheResultWithItsNameAndLoreCopiedOnlyWhenAsked() {
+        ItemStack result = new ItemStack(Material.STICK, 2);
+        ItemMeta meta = result.getItemMeta();
+        meta.setDisplayName("§6Wand");
+        meta.setLore(Arrays.asList("§7Crafted", "§7by hand"));
+        result.setItemMeta(meta);
+        Recipe recipe = Doubles.of(Recipe.class).returning("getResult", result).build();
+        InventoryView view = Doubles.of(InventoryView.class).returning("getPlayer", server.player("crafter", 50, 5, 5)).build();
+        List<CraftActionEvent.Post> crafts = hear(CraftActionEvent.Post.class);
+
+        server.call(new CraftItemEvent(recipe, view, InventoryType.SlotType.RESULT, 0, ClickType.LEFT, InventoryAction.PICKUP_ALL));
+        //the stack changed after the context was built: a context that copied it up front would not see this
+        ItemMeta renamed = result.getItemMeta();
+        renamed.setDisplayName("§6Wand of Ages");
+        result.setItemMeta(renamed);
+        ItemSpec item = crafts.get(0).getContext().getItem();
+
+        assertEquals("§6Wand of Ages", item.getDisplayName());
+        assertEquals(Arrays.asList("§7Crafted", "§7by hand"), item.getLore());
+        ItemMeta carried = item.getNativeItem().getItemStack().getItemMeta();
+        assertEquals("§6Wand of Ages", carried.getDisplayName(), "the native item is the result itself");
+        assertEquals(Arrays.asList("§7Crafted", "§7by hand"), carried.getLore());
+        assertNotSame(result, item.getNativeItem().getItemStack(), "copied on the first ask");
+        assertSame(item, crafts.get(0).getContext().getItem(), "and only once");
+    }
+
+    @Test
+    void aSmeltCarriesNoItemTheFurnaceEventNeverHad() {
+        List<SmeltActionEvent.Post> smelts = hear(SmeltActionEvent.Post.class);
+
+        server.call(new FurnaceExtractEvent(server.player("cook", 50, 5, 5), server.world.getBlockAt(52, 5, 5), Material.IRON_INGOT, 3, 1));
+
+        assertNull(smelts.get(0).getContext().getItem());
     }
 
     @Test

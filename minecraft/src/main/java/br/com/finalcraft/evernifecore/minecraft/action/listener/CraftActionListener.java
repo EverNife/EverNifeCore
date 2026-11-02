@@ -47,7 +47,7 @@ public final class CraftActionListener implements ECListener {
     private static ItemContext context(CraftItemEvent event, int amount) {
         Player player = (Player) event.getWhoClicked();
         return new ItemContext(EventSource.CRAFT, McActionContexts.position(player.getLocation()), McActionContexts.actor(player), event,
-                McActionContexts.key(event.getRecipe().getResult()), amount, null);
+                McActionContexts.key(event.getRecipe().getResult()), amount, null, McActionContexts.item(event.getRecipe().getResult()));
     }
 
     /** How many items this click takes out of the grid; 0 when it crafts nothing, or for no player in an enabled world. */
