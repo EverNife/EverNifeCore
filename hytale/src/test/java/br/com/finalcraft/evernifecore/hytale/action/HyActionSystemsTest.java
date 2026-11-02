@@ -16,7 +16,10 @@ import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.npc.NpcRef;
 import br.com.finalcraft.evernifecore.testing.Logs;
 import com.hypixel.hytale.math.vector.Rotation3f;
+import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.protocol.BlockPosition;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import java.lang.reflect.Field;
 import com.hypixel.hytale.protocol.InteractionChainData;
 import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.server.core.entity.InteractionChain;
@@ -680,5 +683,22 @@ class HyActionSystemsTest {
 
         assertNull(HyActionSystems.chainTargetEntity(event, new EntityStore(null)), "the entity left between the click and the server");
         assertEquals(new Vector3i(3, 4, 5), HyActionSystems.chainTargetBlock(event));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void anEntityIdStillMappedToARemovedEntityIsNoTarget() throws ReflectiveOperationException {
+        EntityStore entities = new EntityStore(null);
+        Ref<EntityStore> removed = new Ref<>(null);   //no index: what a Ref is once its entity left the store
+        assertFalse(removed.isValid());
+        Field byNetworkId = EntityStore.class.getDeclaredField("networkIdToRef");
+        byNetworkId.setAccessible(true);
+        ((Int2ReferenceMap<Ref<EntityStore>>) byNetworkId.get(entities)).put(42, removed);
+        InteractionChainData data = new InteractionChainData();
+        data.entityId = 42;
+        InteractionChainStartEvent event = chainStart(data);
+
+        assertSame(removed, entities.getRefFromNetworkId(42), "the store still answers the id");
+        assertNull(HyActionSystems.chainTargetEntity(event, entities), "a removed entity is no target");
     }
 }
