@@ -221,6 +221,19 @@ class OfferButtonTest extends MenuTestWorlds {
     }
 
     @Test
+    void aConfirmedSellWithNothingHeldAsksNothingAndSaysWhy() {
+        CountedGoods diamonds = Menus.counted("diamond", 0);
+        ScreenView view = open(shop(menus.sell(diamonds, 10).confirm().build()));
+
+        menus.clickOffer(view, "sword", ClickGesture.SHIFT_SECONDARY);
+
+        assertEquals(view, Screens.getOpenView(alex), "no confirmation for a trade of nothing");
+        assertTrue(alex.anyMessageContains("You do not have"), alex.getMessages().toString());
+        assertAmount("1000", menus.balance(menus.coins(), alex));
+        close(view);
+    }
+
+    @Test
     void aConfirmedAskAsksTheNumberFirstThenConfirmsIt() {
         ScreenView view = open(shop(menus.buy(swords, 10).confirm().build()));
 
