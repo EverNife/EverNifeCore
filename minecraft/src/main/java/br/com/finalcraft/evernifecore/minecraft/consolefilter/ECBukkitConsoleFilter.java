@@ -31,7 +31,8 @@ public class ECBukkitConsoleFilter extends BaseLog4jFilter {
 		Logger rootLogger = (Logger) LogManager.getRootLogger();
 		ECBukkitConsoleFilter filter = new ECBukkitConsoleFilter(ECConsoleFilter.global());
 		rootLogger.addFilter(filter);
-		//Logger#addFilter delegates to its LoggerConfig, which is where the matching removeFilter lives
-		return () -> rootLogger.get().removeFilter(filter);
+		//Logger#addFilter delegates to its LoggerConfig, which is where the matching removeFilter lives.
+		//Reached through the configuration: Logger#get() does not exist on 1.7.10's log4j 2.0-beta9.
+		return () -> rootLogger.getContext().getConfiguration().getLoggerConfig(rootLogger.getName()).removeFilter(filter);
 	}
 }

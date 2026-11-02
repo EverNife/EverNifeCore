@@ -22,6 +22,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 - **`IECPluginBootstrap.runECPluginShutdown()` runs every step when one throws**: a failing Pre, main or Post hook no longer skips the hooks after it, `closeOpenFileLoggers()` or the unpublish of the instance; the failure is rethrown once they ran.
 
+#### Bukkit platform
+
+- **The console filter comes off on 1.7.10**: its undo called `Logger#get()`, which the log4j 2.0-beta9 of a 1.7.10 server lacks, so the core shutdown ended in a `NoSuchMethodError` and a `/reload` left one more filter installed. It now reaches the `LoggerConfig` through the configuration of the logger, on every log4j.
+
 ## [3.0.1-alpha.71] - 2026-11-02
 
 ### Added

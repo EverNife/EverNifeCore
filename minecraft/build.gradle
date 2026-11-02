@@ -29,6 +29,7 @@ repositories {
 // Declared ahead of the dependencies that fill them - see the evernifecore-minecraft-tests block below.
 configurations {
     testKitEngine { transitive = false }
+    log4jLegacy { transitive = false }
     testKitRuntimeStack { transitive = false }
 }
 
@@ -137,6 +138,9 @@ dependencies {
     // Java 8 bytecode like common-tests: a consumer may run its tests on an old server's toolchain.
     testFixturesAnnotationProcessor libs.jabel
     testFixturesCompileOnly libs.jabel
+
+    log4jLegacy libs.legacy.log4j.api
+    log4jLegacy libs.legacy.log4j.core
 
     testKitEngine project(':common-tests')
     testKitRuntimeStack libs.jackson.core
@@ -262,6 +266,9 @@ tasks.withType(GenerateModuleMetadata) {
 
 test {
     useJUnitPlatform()
+    inputs.files(configurations.log4jLegacy)
+    def log4jLegacy = configurations.log4jLegacy
+    doFirst { systemProperty 'ecore.test.log4jLegacy', log4jLegacy.files.join(File.pathSeparator) }
 }
 
 processResources {
