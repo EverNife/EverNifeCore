@@ -18,6 +18,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **`BukkitScreenWorld.install(dir, platform)` / `installWithItemMetadata(dir, platform)`** (test kit): the chest over
+  the lenient platform adjusted by a `UnaryOperator<Platforms>`, the same form as `ScreenWorld.open(dir, platform)` -
+  `Platforms::capturingCommands` for a button that runs a command as the player, `p -> p.parsingWith(...)` for a
+  placeholder.
 - **`CountedGoods.refuseGives(why)`** (test kit): goods whose give throws, for the path where a trade must refund and
   refuse.
 - **`RecordingRenderer.refuseNextOpen()`** (test kit) refuses exactly the next open and opens the ones after it, so a

@@ -38,6 +38,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.function.UnaryOperator;
 import java.util.logging.Logger;
 
 /**
@@ -59,8 +60,9 @@ import java.util.logging.Logger;
  * platform's interface, so a window opened through the renderer's real entry point still records every write.</p>
  *
  * <p>{@link #install} brings its own lenient platform: everything a chest asks of a server comes through Bukkit, and
- * the platform is only what the core reaches for on the way past. {@link #over(ScreenWorld)} lays the same server over
- * a {@link ScreenWorld} instead - the form {@code RendererConformance} runs on - and the screen world's clock and
+ * the platform is only what the core reaches for on the way past; {@link #install(Path, UnaryOperator)} adjusts it
+ * ({@code Platforms::capturingCommands} for a button that runs a command as the player). {@link #over(ScreenWorld, Path)}
+ * lays the same server over a {@link ScreenWorld} instead - the form {@code RendererConformance} runs on - and the screen world's clock and
  * prompt answers then move this server's.</p>
  *
  * <p>Published in {@code evernifecore-minecraft-tests}, so a plugin's test opens its own screens on the real chest.
@@ -104,13 +106,13 @@ public final class BukkitScreenWorld implements AutoCloseable {
 
     private boolean closed = false;
 
-    private BukkitScreenWorld(Path dataFolder, ItemRuntime runtime, ScreenWorld screens) {
+    private BukkitScreenWorld(Path dataFolder, ItemRuntime runtime, UnaryOperator<Platforms> platform, ScreenWorld screens) {
         //the core's own name: the chest renderer is keyed evernifecore:chest, and a type is registered by the plugin its
         //key names
         this.pluginName = "EverNifeCore";
         this.runtime = runtime;
         if (screens == null) {
-            this.platformWorld = Platforms.lenient().install()
+            this.platformWorld = platform.apply(Platforms.lenient()).install()
                     .withPluginExtractor(Plugins.fake(pluginName, dataFolder.toFile()));
             //EverNifeCore.getLog() is what a screen reports a refused open or a broken handler through, and only the
             //real bootstrap ever sets it
@@ -136,12 +138,25 @@ public final class BukkitScreenWorld implements AutoCloseable {
 
     /** A chest over items that carry no metadata - two stacks then compare by type and amount alone. */
     public static BukkitScreenWorld install(Path dataFolder) {
-        return new BukkitScreenWorld(dataFolder, SILENT_ITEMS, null);
+        return install(dataFolder, UnaryOperator.identity());
+    }
+
+    /**
+     * {@link #install(Path)} over the lenient platform adjusted by {@code platform}: {@code Platforms::capturingCommands}
+     * for a button that makes the player run a command, {@code p -> p.parsingWith(...)} for a placeholder.
+     */
+    public static BukkitScreenWorld install(Path dataFolder, UnaryOperator<Platforms> platform) {
+        return new BukkitScreenWorld(dataFolder, SILENT_ITEMS, platform, null);
     }
 
     /** A chest over items that remember a name, a lore and a flag - what a test about text needs. */
     public static BukkitScreenWorld installWithItemMetadata(Path dataFolder) {
-        return new BukkitScreenWorld(dataFolder, SPEAKING_ITEMS, null);
+        return installWithItemMetadata(dataFolder, UnaryOperator.identity());
+    }
+
+    /** {@link #installWithItemMetadata(Path)} over the lenient platform adjusted by {@code platform}. */
+    public static BukkitScreenWorld installWithItemMetadata(Path dataFolder, UnaryOperator<Platforms> platform) {
+        return new BukkitScreenWorld(dataFolder, SPEAKING_ITEMS, platform, null);
     }
 
     /**
@@ -150,7 +165,7 @@ public final class BukkitScreenWorld implements AutoCloseable {
      * this world before {@code screens}.
      */
     public static BukkitScreenWorld over(ScreenWorld screens, Path dataFolder) {
-        return new BukkitScreenWorld(dataFolder, SILENT_ITEMS, screens);
+        return new BukkitScreenWorld(dataFolder, SILENT_ITEMS, UnaryOperator.identity(), screens);
     }
 
     public ItemRuntime getItemRuntime() {
