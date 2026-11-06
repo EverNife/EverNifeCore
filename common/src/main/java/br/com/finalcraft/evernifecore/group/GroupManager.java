@@ -603,6 +603,9 @@ public final class GroupManager implements GroupProvider {
 
     /** Writes every pending change and deletion; completes once the backend confirmed them all. Any thread. */
     public CompletableFuture<Void> flush() {
+        if (groupStorage == null) {
+            return CompletableFuture.completedFuture(null);   //nowhere to write: no hop to wait for
+        }
         CompletableFuture<Void> done = new CompletableFuture<>();
         ECScheduler.scheduleAsync(() -> write().whenComplete((ignored, error) -> {
             if (error == null) {

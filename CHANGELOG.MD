@@ -27,6 +27,13 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `ManipulatedParser.getDescription()` and `Manipulator.bareForm()` (`battle_win_[filters?]` -> `battle_win`, null
   when a gap or a mandatory block has no bare form).
 
+### Fixed
+
+#### Groups
+
+- **A `GroupManager` without storage closes at once**: `flush()` and `close()` no longer hop to the async scheduler
+  with nothing to write, so the owner's shutdown under a `TestClock` nobody pumps stops waiting the real 30 s.
+
 ### Changed
 
 #### Commands
