@@ -13,15 +13,18 @@ public class ManipulatedParser<O> {
     private final Manipulator manipulator;
     private final RegexReplacer<?> regexReplacer;
     private final BiFunction<O, ManipulationContext, Object> parser;
+    private final String description;
 
-    public <C> ManipulatedParser(String id, RegexReplacer<C> regexReplacer, BiFunction<O, ManipulationContext.RContext<C>, Object> parser) {
+    public <C> ManipulatedParser(String id, String description, RegexReplacer<C> regexReplacer, BiFunction<O, ManipulationContext.RContext<C>, Object> parser) {
         this.manipulator = new Manipulator(id);
+        this.description = description;
         this.regexReplacer = regexReplacer;
         this.parser = (BiFunction<O, ManipulationContext, Object>) (BiFunction) parser;
     }
 
-    public ManipulatedParser(String id, BiFunction<O, ManipulationContext.SimpleContext, Object> parser) {
+    public ManipulatedParser(String id, String description, BiFunction<O, ManipulationContext.SimpleContext, Object> parser) {
         this.manipulator = new Manipulator(id);
+        this.description = description;
         this.regexReplacer = null;
         this.parser = (BiFunction<O, ManipulationContext, Object>) (BiFunction) parser;
     }
@@ -32,6 +35,11 @@ public class ManipulatedParser<O> {
 
     public String getId() {
         return this.manipulator.getOriginalText();
+    }
+
+    /** What the template answers, for a listing; {@code ""} when undescribed. */
+    public String getDescription() {
+        return description;
     }
 
     public @Nullable RegexReplacer getRegexReplacer() {

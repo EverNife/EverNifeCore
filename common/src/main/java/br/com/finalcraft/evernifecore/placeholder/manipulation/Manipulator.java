@@ -230,6 +230,26 @@ public class Manipulator {
         return segments;
     }
 
+    /**
+     * The placeholder this template answers with every optional block left out ({@code battle_win_[filters?]} ->
+     * {@code battle_win}); null when a {@code {gap}} or a mandatory {@code [block]} has no such form.
+     */
+    public @Nullable String bareForm() {
+        if (segments == null) {
+            return null;   //a template without blocks always has a gap
+        }
+        StringBuilder bare = new StringBuilder();
+        for (Segment segment : segments) {
+            if (segment.kind == Kind.GAP || segment.kind == Kind.BLOCK) {
+                return null;
+            }
+            if (segment.kind == Kind.LITERAL) {
+                bare.append(segment.text);
+            }
+        }
+        return bare.toString();
+    }
+
     /** The regex a plain template matches with; null for a template with a block, which is matched by {@link #extract}. */
     public @Nullable Pattern getPattern() {
         return pattern;

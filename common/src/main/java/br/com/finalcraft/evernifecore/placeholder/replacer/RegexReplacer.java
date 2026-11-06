@@ -3,10 +3,13 @@ package br.com.finalcraft.evernifecore.placeholder.replacer;
 import br.com.finalcraft.evernifecore.placeholder.base.IProvider;
 import br.com.finalcraft.evernifecore.placeholder.base.PlaceholderProvider;
 import br.com.finalcraft.evernifecore.placeholder.manipulation.ManipulationContext;
+import br.com.finalcraft.evernifecore.placeholder.manipulation.Manipulator;
 import br.com.finalcraft.evernifecore.placeholder.parser.ManipulatedParser;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -20,6 +23,7 @@ public class RegexReplacer<O> implements Replacer<O>, IProvider<O>  {
     private final Pattern pattern;
     private final PlaceholderProvider<O> provider;
     private final List<ManipulatedParser<O>> manipulators = new ArrayList<>();
+    private final Map<String, String> manipulatorDescriptions = new LinkedHashMap<>();   //registration order
 
     public RegexReplacer() {
         this(Closures.PERCENT);
@@ -80,27 +84,36 @@ public class RegexReplacer<O> implements Replacer<O>, IProvider<O>  {
             .thenComparingLong(parser -> parser.getId().chars().filter(c -> c == '_').count())
             .reversed();
 
-    public RegexReplacer<O> addManipulator(String manipulableString, BiFunction<O, ManipulationContext.SimpleContext, Object> parser){
-        this.manipulators.add(
-                new ManipulatedParser<>(
-                        manipulableString,
-                        parser
-                )
-        );
+    public RegexReplacer<O> addManipulator(String template, BiFunction<O, ManipulationContext.SimpleContext, Object> parser){
+        return addManipulator(template, "", parser);
+    }
+
+    public RegexReplacer<O> addManipulator(String template, String description, BiFunction<O, ManipulationContext.SimpleContext, Object> parser){
+        return add(new ManipulatedParser<>(template, description, parser));
+    }
+
+    public <RC> RegexReplacer<O> addManipulator(String template, RegexReplacer<RC> regexReplacer, BiFunction<O, ManipulationContext.RContext<RC>, Object> parser){
+        return addManipulator(template, "", regexReplacer, parser);
+    }
+
+    public <RC> RegexReplacer<O> addManipulator(String template, String description, RegexReplacer<RC> regexReplacer, BiFunction<O, ManipulationContext.RContext<RC>, Object> parser){
+        return add(new ManipulatedParser<>(template, description, regexReplacer, parser));
+    }
+
+    private RegexReplacer<O> add(ManipulatedParser<O> parser) {
+        this.manipulators.add(parser);
         this.manipulators.sort(MANIPULATOR_ORDER);
+        this.manipulatorDescriptions.put(parser.getId(), parser.getDescription());
         return this;
     }
 
-    public <RC> RegexReplacer<O> addManipulator(String manipulableString, RegexReplacer<RC> regexReplacer, BiFunction<O, ManipulationContext.RContext<RC>, Object> parser){
-        this.manipulators.add(
-                new ManipulatedParser<>(
-                        manipulableString,
-                        regexReplacer,
-                        parser
-                )
-        );
-        this.manipulators.sort(MANIPULATOR_ORDER);
-        return this;
+    /**
+     * Every manipulator template mapped to its description ({@code ""} when undescribed), in registration order
+     * ({@link #getManipulators()} is in matching order). {@link Manipulator#bareForm()} gives the placeholder a template
+     * answers with no argument, when it has one.
+     */
+    public Map<String, String> describeManipulators() {
+        return Collections.unmodifiableMap(manipulatorDescriptions);
     }
 
     @Override

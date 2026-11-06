@@ -16,6 +16,17 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ## [Unreleased]
 
+### Added
+
+#### Placeholders
+
+- **`PlaceholderArgs.bareWordsAsTrue(flags...)`**: a copy where a bare word naming a flag reads as `flag=true`
+  (`[shiny]` equals `[shiny=true]`, cache key included); a bare word that is none of the flags is refused with the list.
+- **Manipulators can be listed**: `addManipulator(template, description, parser)` (both overloads),
+  `RegexReplacer.describeManipulators()` (template -> description, registration order),
+  `ManipulatedParser.getDescription()` and `Manipulator.bareForm()` (`battle_win_[filters?]` -> `battle_win`, null
+  when a gap or a mandatory block has no bare form).
+
 ## [3.0.1-alpha.71] - 2026-11-02
 
 ### Added

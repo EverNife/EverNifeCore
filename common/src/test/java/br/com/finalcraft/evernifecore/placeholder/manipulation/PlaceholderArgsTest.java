@@ -28,7 +28,11 @@ class PlaceholderArgsTest {
                 PlaceholderArgs args = ctx.getArgs("[options]").allowOnly("index", "sort", "online");
                 return args.getInt("index", 1) + " " + args.getEnum("sort", Sort.class, Sort.NAME) + " " + args.getBoolean("online", false);
             })
-            .addManipulator("list_[options]", (o, ctx) -> String.join("+", ctx.getArgs("[options]").getList("sort")));
+            .addManipulator("list_[options]", (o, ctx) -> String.join("+", ctx.getArgs("[options]").getList("sort")))
+            .addManipulator("count_[filters?]", (o, ctx) -> {
+                PlaceholderArgs args = ctx.getArgs("[filters]").bareWordsAsTrue("shiny", "legendary").allowOnly("shiny", "legendary", "name");
+                return "shiny=" + args.getBoolean("shiny", false) + " legendary=" + args.getBoolean("legendary", false);
+            });
 
     private String apply(String placeholder) {
         return replacer.apply("%" + placeholder + "%", new Object());
@@ -122,6 +126,36 @@ class PlaceholderArgsTest {
     void aBadEnumAndABadBooleanAreNamedToo() {
         assertEquals("[options: sort must be one of name, entry, got 'age']", apply("top_[sort=age]"));
         assertEquals("[options: online must be true or false, got 'maybe']", apply("top_[online=maybe]"));
+    }
+
+    // ---- bare words as flags ----
+
+    @Test
+    void aBareWordNamingAFlagReadsAsTrue() {
+        assertEquals("shiny=true legendary=false", apply("count_[shiny]"));
+        assertEquals("shiny=true legendary=true", apply("count_[SHINY|legendary]"));
+        assertEquals("shiny=false legendary=false", apply("count_[shiny=false]"));
+        assertEquals("shiny=false legendary=false", apply("count"));
+    }
+
+    @Test
+    void aBareWordThatIsNoFlagIsRefusedWithTheFlags() {
+        assertEquals("[filters: 'banana' is none of the flags shiny, legendary]", apply("count_[banana]"));
+    }
+
+    @Test
+    void aBareWordEqualsItsExplicitFormSoItKeysTheSameCacheEntry() {
+        PlaceholderArgs bare = PlaceholderArgs.parse("filters", "shiny|name=x", null).bareWordsAsTrue("shiny");
+        PlaceholderArgs explicit = PlaceholderArgs.parse("filters", "name=x|shiny=true", null);
+
+        assertEquals(explicit, bare);
+        assertEquals(explicit.hashCode(), bare.hashCode());
+        assertEquals("[name=x|shiny=true]", bare.toString());
+    }
+
+    @Test
+    void withoutBareWordsAsTrueAPositionalBlockIsUnchanged() {
+        assertEquals("arena_red", apply("echo_[arena_red]"));
     }
 
     // ---- identity ----

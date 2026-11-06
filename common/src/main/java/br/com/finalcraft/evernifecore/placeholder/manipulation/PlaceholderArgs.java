@@ -228,6 +228,29 @@ public final class PlaceholderArgs {
         return this;
     }
 
+    /**
+     * A copy where each positional value naming one of {@code flags} (case-insensitively) reads as
+     * {@code flag=true}: {@code [shiny]} equals {@code [shiny=true]}, cache key included.
+     *
+     * @throws InvalidArgumentException for a positional value that is none of the flags, naming the flags
+     */
+    public PlaceholderArgs bareWordsAsTrue(String... flags) {
+        if (positional.isEmpty()) {
+            return this;
+        }
+        List<String> accepted = Arrays.stream(flags).map(flag -> flag.toLowerCase(Locale.ROOT)).collect(Collectors.toList());
+        Map<String, List<String>> merged = new TreeMap<>();
+        named.forEach((key, values) -> merged.put(key, new ArrayList<>(values)));
+        for (String value : positional) {
+            String flag = value.trim().toLowerCase(Locale.ROOT);
+            if (!accepted.contains(flag)) {
+                throw new InvalidArgumentException(block, "'" + value + "' is none of the flags " + String.join(", ", flags));
+            }
+            merged.computeIfAbsent(flag, ignored -> new ArrayList<>()).add("true");
+        }
+        return new PlaceholderArgs(block, Collections.emptyList(), Collections.unmodifiableMap(merged));
+    }
+
     @Override
     public boolean equals(Object other) {
         return other instanceof PlaceholderArgs
