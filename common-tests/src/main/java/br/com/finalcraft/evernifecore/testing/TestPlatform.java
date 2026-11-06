@@ -108,6 +108,7 @@ public class TestPlatform extends AbstractTestPlatform {
 
     private boolean forceRegisterFailure = false;
     private final AtomicInteger onlinePlayersCalls = new AtomicInteger();
+    private final TestCommandSender broadcastConsole = Senders.console();
 
     TestPlatform() {
     }
@@ -648,8 +649,19 @@ public class TestPlatform extends AbstractTestPlatform {
         }
     }
 
-    /** The chat adapter a lenient platform answers with: every question says "no opinion". */
-    static IPlatformChatAdapter neutralChatAdapter() {
+    /**
+     * The console of this platform's broadcast audience: with {@link Platforms#neutralChatAdapter()}, every broadcast
+     * lands here and on each online player, where a test reads it.
+     */
+    public TestCommandSender getBroadcastConsole() {
+        return broadcastConsole;
+    }
+
+    /**
+     * The chat adapter that answers every question with "no opinion", except who a broadcast reaches: the online players
+     * of {@code platform} and its {@link #getBroadcastConsole() broadcast console}.
+     */
+    static IPlatformChatAdapter neutralChatAdapter(TestPlatform platform) {
         return new IPlatformChatAdapter() {
             @Override
             public ITextMetrics getTextMetrics() {
@@ -659,7 +671,12 @@ public class TestPlatform extends AbstractTestPlatform {
 
             @Override
             public List<FCommandSender> getBroadcastAudience() {
-                return Collections.emptyList();
+                List<FCommandSender> audience = new ArrayList<>();
+                if (platform.onlinePlayers != null) {
+                    audience.addAll(platform.onlinePlayers);
+                }
+                audience.add(platform.broadcastConsole);
+                return audience;
             }
 
             @Override

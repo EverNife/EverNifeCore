@@ -129,9 +129,12 @@ public final class Platforms {
         return this;
     }
 
-    /** A chat adapter that answers every question with "no opinion": centered text is the text itself, empty audience, hover supported. */
+    /**
+     * A chat adapter that answers every question with "no opinion" - centered text is the text itself, hover supported -
+     * and broadcasts to the online players and {@link TestPlatform#getBroadcastConsole()}, where a test reads it.
+     */
     public Platforms neutralChatAdapter() {
-        return chatAdapter(TestPlatform.neutralChatAdapter());
+        return chatAdapter(TestPlatform.neutralChatAdapter(platform));
     }
 
     public Platforms vecAdapter(IPlatformVecAdapter vecAdapter) {

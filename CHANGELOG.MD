@@ -34,6 +34,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **A `GroupManager` without storage closes at once**: `flush()` and `close()` no longer hop to the async scheduler
   with nothing to write, so the owner's shutdown under a `TestClock` nobody pumps stops waiting the real 30 s.
 
+#### Testing
+
+- **A broadcast is observable in tests**: `Platforms.neutralChatAdapter()` broadcasts to the online players and the new
+  `TestPlatform.getBroadcastConsole()` instead of nobody, and `TestLocaleMessage.broadcast()` sends to that audience
+  instead of throwing.
+
 ### Changed
 
 #### Commands

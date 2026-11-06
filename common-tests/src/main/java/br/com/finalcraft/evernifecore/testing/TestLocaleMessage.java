@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.testing;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
@@ -59,9 +60,10 @@ public class TestLocaleMessage implements ILocaleMessageBase {
         }
     }
 
+    /** Sends to the installed platform's broadcast audience ({@link Platforms#neutralChatAdapter()} makes it observable). */
     @Override
     public void broadcast() {
-        throw new UnsupportedOperationException("TestLocaleMessage does not broadcast");
+        send(EverNifeCore.getPlatform().getChatAdapter().getBroadcastAudience().toArray(new FCommandSender[0]));
     }
 
     @Override
