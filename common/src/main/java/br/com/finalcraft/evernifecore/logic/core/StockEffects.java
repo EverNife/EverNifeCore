@@ -13,6 +13,9 @@ import br.com.finalcraft.evernifecore.logic.HoldableEffect;
 import br.com.finalcraft.evernifecore.logic.MutableVariable;
 import br.com.finalcraft.evernifecore.logic.Variable;
 import br.com.finalcraft.evernifecore.logic.audit.AuditKind;
+import br.com.finalcraft.evernifecore.logic.delivery.Deliveries;
+import br.com.finalcraft.evernifecore.logic.delivery.DeliveryPolicy;
+import br.com.finalcraft.evernifecore.logic.delivery.PendingDestination;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.player.state.ECGameMode;
 import br.com.finalcraft.evernifecore.player.state.EffectLevel;
@@ -23,6 +26,8 @@ import br.com.finalcraft.evernifecore.player.state.PlayerTime;
 import br.com.finalcraft.evernifecore.player.state.StateHolder;
 import br.com.finalcraft.evernifecore.types.ParamSpec;
 import br.com.finalcraft.evernifecore.types.TypeDescriptor;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -198,10 +203,23 @@ final class StockEffects {
             this.command = command.startsWith("/") ? command.substring(1) : command;
         }
 
-        /** As the console unless {@code as: player}. */
+        /**
+         * As the console unless {@code as: player}. With no player and the pending destination (an offline member's
+         * reward), it waits as a delivery and runs on the claim, where {@code {player}} has a name to resolve to.
+         */
         @Override
         public void apply(ExecutionContext ctx) {
             boolean asPlayer = "player".equals(ctx.getAttribute(EffectModifiers.SENDER_ATTRIBUTE, String.class));
+            if (ctx.getPlayer() == null && PendingDestination.ID.equals(ctx.getAttribute(EffectModifiers.DESTINATION_ATTRIBUTE, String.class))) {
+                ObjectNode node = JsonNodeFactory.instance.objectNode();
+                node.put("type", "evernifecore:command");
+                node.put("command", command);
+                if (asPlayer) {
+                    node.put("as", "player");
+                }
+                Deliveries.get().keepFor(ctx, DeliveryPolicy.KEEP_SELF_CONTAINED, null, node);
+                return;
+            }
             access().dispatchCommand(asPlayer ? player(ctx, "command") : null, ctx.resolve(command));
         }
 

@@ -31,6 +31,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+#### Logic
+
+- **A `command` effect for an offline member waits for the login**: with `Absence.deliver()` it ran at once with
+  `{player}` unresolved; it is now kept as a pending delivery and runs on the claim with the member's name.
+
 #### Groups
 
 - **A `GroupManager` without storage closes at once**: `flush()` and `close()` no longer hop to the async scheduler

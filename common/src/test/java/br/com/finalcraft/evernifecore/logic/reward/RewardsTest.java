@@ -19,8 +19,10 @@ import br.com.finalcraft.evernifecore.testing.Economies;
 import br.com.finalcraft.evernifecore.testing.GroupWorld;
 import br.com.finalcraft.evernifecore.testing.LogicWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
+import br.com.finalcraft.evernifecore.testing.Senders;
 import br.com.finalcraft.evernifecore.testing.TestCurrency;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
+import br.com.finalcraft.evernifecore.testing.TestPlayerState;
 import br.com.finalcraft.evernifecore.types.TypeRegistryException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,6 +37,7 @@ import java.nio.file.Path;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -178,6 +181,26 @@ class RewardsTest {
         assertPaidEvents(steve.getUniqueId(), alex.getUniqueId(), offline);
         assertBalance(steve.getUniqueId(), "300"); //the currency rounds 299.99999997 to its two places
         assertEquals(1, pending(offline).size());
+    }
+
+    @Test
+    void aCommandForTheOfflineWaitsForTheLoginAndRunsWithTheirName() {
+        alpha.setLeader(offline);
+        RewardRule rule = RewardRule.builder().eligibility(Eligibility.role("leader")).distribution(Distribution.each())
+                .absent(Absence.deliver())
+                .effects(Effects.parseList(duel.getOwner(), node("[{'type': 'command', 'command': 'give {player} diamond 1'}]"), ZoneOffset.UTC))
+                .build();
+        TestPlayerState state = world.platform().getTestPlayerState();
+
+        pay(rule, context().build());
+
+        assertTrue(state.getCommands().isEmpty(), "nothing runs for an offline member: " + state.getCommands());
+        assertEquals(1, pending(offline).size(), "the command waits as a delivery");
+
+        TestFPlayerSender bob = Senders.player("Bob", offline);
+        await(deliveries.claimAll(bob));
+
+        assertEquals(Collections.singletonList("console: give Bob diamond 1"), state.getCommands());
     }
 
     // ------------------------------------------------------------------
