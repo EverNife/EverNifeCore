@@ -11,6 +11,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDP
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ECLogLevel;
+import br.com.finalcraft.evernifecore.logger.ECLogger;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFPlayer;
@@ -204,14 +205,16 @@ public class McPlatform implements IPlatform {
                 }
             }
 
+            ECLogger log = ecPluginData.getLog();
+            Consumer<String> report = removalLevel(existingCommand, notifyPlugin) == ECLogLevel.DEBUG ? log::debug : log::warning;
             if (commandName.equals(existingCommand.getName())){
-                notifyPlugin.getLogger().warning("Removing existent command [" + existingCommand.getName() + "] from " + originalPlugin + "!");
+                report.accept("Removing existent command [" + existingCommand.getName() + "] from " + originalPlugin + "!");
             }else {
-                notifyPlugin.getLogger().warning("Removing existent alias (" + commandName + ") for [" + existingCommand.getName() + "] from " + originalPlugin + "!");
+                report.accept("Removing existent alias (" + commandName + ") for [" + existingCommand.getName() + "] from " + originalPlugin + "!");
             }
 
             for (String extrasMinecraftAlias : extrasMinecraftAliases) {
-                notifyPlugin.getLogger().warning("Removing extra related Minecraft command: " + extrasMinecraftAlias);
+                report.accept("Removing extra related Minecraft command: " + extrasMinecraftAlias);
             }
 
             existingCommand.unregister(getCommandMap());
@@ -220,6 +223,13 @@ public class McPlatform implements IPlatform {
             EverNifeCore.getLog().warning("Failed to UNREGISTER command [" +  commandName + "]");
             e.printStackTrace();
         }
+    }
+
+    /** DEBUG when the plugin takes its own command off the map (every stop does it), WARNING when it takes another's. */
+    static ECLogLevel removalLevel(Command existingCommand, Plugin notifyPlugin) {
+        return existingCommand instanceof PluginIdentifiableCommand
+                && notifyPlugin.equals(((PluginIdentifiableCommand) existingCommand).getPlugin())
+                ? ECLogLevel.DEBUG : ECLogLevel.WARNING;
     }
 
     @Override

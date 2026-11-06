@@ -27,6 +27,13 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `ManipulatedParser.getDescription()` and `Manipulator.bareForm()` (`battle_win_[filters?]` -> `battle_win`, null
   when a gap or a mandatory block has no bare form).
 
+### Changed
+
+#### Commands
+
+- **Unregistering a plugin's own command logs at debug**, not WARN: every stop takes each command and alias off the
+  map, which broke any "WARN = 0" check over a whole log. Removing another plugin's or the server's command still warns.
+
 ## [3.0.1-alpha.71] - 2026-11-02
 
 ### Added
