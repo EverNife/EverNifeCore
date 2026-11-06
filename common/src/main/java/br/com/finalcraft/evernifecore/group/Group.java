@@ -941,6 +941,11 @@ public final class Group implements FlagHolder {
         return flags.remove(flag);
     }
 
+    /** Removes only the temporary value: the permanent one underneath, if any, reads again; false when none was live. */
+    public boolean removeTemporaryFlag(Flag<?> flag) {
+        return flags.removeTemporary(flag);
+    }
+
     /** Internal: the store behind the flag methods, shared with the flag registry. */
     @Override
     public FlagStore getFlagStore() {

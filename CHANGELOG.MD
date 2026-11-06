@@ -22,6 +22,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 - **`PlaceholderArgs.bareWordsAsTrue(flags...)`**: a copy where a bare word naming a flag reads as `flag=true`
   (`[shiny]` equals `[shiny=true]`, cache key included); a bare word that is none of the flags is refused with the list.
+- **`Region.removeTemporaryFlag(flag)`** (and `Group.removeTemporaryFlag`, `FlagStore.removeTemporary`): drops only the
+  temporary value set with a `Duration`, so the permanent value underneath reads again; `removeFlag` still drops both.
 - **Manipulators can be listed**: `addManipulator(template, description, parser)` (both overloads),
   `RegexReplacer.describeManipulators()` (template -> description, registration order),
   `ManipulatedParser.getDescription()` and `Manipulator.bareForm()` (`battle_win_[filters?]` -> `battle_win`, null

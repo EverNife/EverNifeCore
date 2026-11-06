@@ -105,6 +105,39 @@ class RegionFlagValuesTest {
     }
 
     @Test
+    void removingTheTemporaryValueBringsThePermanentOneBack() {
+        region.setFlag(flag, Tristate.TRUE);
+        region.setFlag(flag, Tristate.FALSE, Duration.ofMinutes(15));
+
+        assertTrue(region.removeTemporaryFlag(flag));
+
+        assertEquals(Tristate.TRUE, region.getFlag(flag));
+        assertNull(region.getFlagValue(flag).getExpiresAt());
+        assertFalse(region.removeTemporaryFlag(flag), "no temporary value is left to remove");
+        assertEquals(Tristate.TRUE, region.getFlag(flag), "and the permanent one stays");
+    }
+
+    @Test
+    void removingATemporaryValueWithNothingUnderneathLeavesTheFlagUnset() {
+        region.setFlag(flag, Tristate.FALSE, Duration.ofMinutes(15));
+
+        assertTrue(region.removeTemporaryFlag(flag));
+
+        assertNull(region.getFlagValue(flag));
+        assertFalse(region.getFlags().containsKey(flag.getKey()));
+    }
+
+    @Test
+    void anExpiredTemporaryValueIsNotRemovedTwice() {
+        region.setFlag(flag, Tristate.TRUE);
+        region.setFlag(flag, Tristate.FALSE, Duration.ofMinutes(1));
+        clock.advance(Duration.ofMinutes(2));
+
+        assertFalse(region.removeTemporaryFlag(flag), "the value that reads is already the permanent one");
+        assertEquals(Tristate.TRUE, region.getFlag(flag));
+    }
+
+    @Test
     void refusesUnregisteredFlagAndNonPositiveDuration() {
         TristateFlag stranger = new TristateFlag(FlagKey.of(flag.getOwner(), "not-registered"), Collections.singleton(EventSource.BREAK),
                 Tristate.FALSE, Tristate.TRUE);

@@ -335,9 +335,17 @@ public final class Region implements FlagHolder {
         flags.set(flag, value, ttl);
     }
 
-    /** Removes the local value, permanent and temporary; false when there was none. */
+    /** Removes the local value, permanent and temporary; false when there was none. See {@link #removeTemporaryFlag}. */
     public boolean removeFlag(Flag<?> flag) {
         return flags.remove(flag);
+    }
+
+    /**
+     * Removes only the temporary value set by {@link #setFlag(Flag, Object, Duration)}: the permanent value underneath, if
+     * any, reads again. False when no live temporary value was there.
+     */
+    public boolean removeTemporaryFlag(Flag<?> flag) {
+        return flags.removeTemporary(flag);
     }
 
     /** The stored values of flags that are not registered, raw, by {@code owner:name}. Read-only. */
