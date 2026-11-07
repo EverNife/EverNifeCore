@@ -93,6 +93,14 @@ public final class Transactions {
     @FCLocale(lang = LocaleType.PT_BR, text = "Nenhuma quantidade foi informada.")
     private static LocaleMessage NO_QUANTITY;
 
+    @FCLocale(lang = LocaleType.EN_US, text = "Buy ${goods} for ${price}?")
+    @FCLocale(lang = LocaleType.PT_BR, text = "Comprar ${goods} por ${price}?")
+    private static LocaleMessage CONFIRM_BUY;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "Sell ${goods} for ${price}?")
+    @FCLocale(lang = LocaleType.PT_BR, text = "Vender ${goods} por ${price}?")
+    private static LocaleMessage CONFIRM_SELL;
+
     //what a text reads when nothing loaded the core locales above (the boot does, in ConfigManager.initialize)
     private static final String NOT_LOADED = "[transaction text not loaded]";
 
@@ -113,6 +121,12 @@ public final class Transactions {
             text = text.replace("${" + keysAndValues[i] + "}", String.valueOf(keysAndValues[i + 1]));
         }
         return FancyText.of(text);
+    }
+
+    /** The confirmation a confirmed offer asks before trading {@code units}: "Buy 32x Diamond for 320 coins?", in the context's language. */
+    static String question(ExecutionContext ctx, Offer offer, int units) {
+        return text(offer.getType() == Offer.Type.BUY ? CONFIRM_BUY : CONFIRM_SELL, ctx, "goods", goods(ctx, offer, units),
+                "price", offer.getPrice().quote(ctx, units).describe(ctx).toLegacyString()).toLegacyString();
     }
 
     private static String goods(ExecutionContext ctx, Offer offer, int quantity) {

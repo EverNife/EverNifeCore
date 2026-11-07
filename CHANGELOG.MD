@@ -75,6 +75,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   a screen draws the quest with", and both core screens drew the layout's book for every quest. The layout's text and
   amount stay; a quest without an icon keeps the layout's item.
 
+#### Menus and shops
+
+- **The confirmation of a confirmed offer speaks the core locale**: "Buy/Sell `<goods>` for `<price>`?" was hardcoded
+  English; it is now `Transactions`' `CONFIRM_BUY`/`CONFIRM_SELL` (en_US, pt_BR), in the trading context's language and
+  editable in the core's language file like the other trade texts.
+
 #### Logic
 
 - **A `command` effect for an offline member waits for the login**: with `Absence.deliver()` it ran at once with

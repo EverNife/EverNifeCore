@@ -157,8 +157,7 @@ final class OfferButtons {
 
         /** Asks "Buy 32x Diamond for 320 coins?" and, on yes, trades exactly those units - not the quantity re-read later. */
         private void confirm(ClickContext click, ExecutionContext trading, int units) {
-            String question = (offer.getType() == Offer.Type.BUY ? "Buy " : "Sell ") + offer.getGoods().describe(trading, units).toLegacyString()
-                    + " for " + offer.getPrice().quote(trading, units).describe(trading).toLegacyString() + "?";
+            String question = Transactions.question(trading, offer, units);
             ConfirmRequest request = ConfirmRequest.of(question).owner(menu.getOwner()).display(offer.getIcon(trading.getPlayer()));
             click.open(ScreenKey.CONFIRM, ScreenRequest.of(menu.getOwner()).payload(request)).whenComplete((answer, failed) -> {
                 if (failed == null && Boolean.TRUE.equals(answer)) {

@@ -218,4 +218,17 @@ class TransactionsTest extends MenuTestWorlds {
         assertTrue(refusedInEnglish.startsWith("You do not have "), refusedInEnglish);
         assertTrue(boughtInPortuguese.startsWith("Comprou 1x shield por "), boughtInPortuguese);
     }
+
+    @Test
+    void theConfirmationQuestionIsInTheLanguageOfTheContext() {
+        TestFPlayerSender alex = menus.player("Alex", 500);
+        ExecutionContext portuguese = shop.context(alex).locale(new Locale("pt", "BR")).build();
+        ExecutionContext english = shop.context(alex).locale(Locale.US).build();
+
+        String buyInPortuguese = Transactions.question(portuguese, menus.buy(Menus.counted("shield", 0), 10).build(), 2);
+        String sellInEnglish = Transactions.question(english, menus.sell(Menus.counted("sword", 3), 4).build(), 3);
+
+        assertTrue(buyInPortuguese.startsWith("Comprar 2x shield por "), buyInPortuguese);
+        assertTrue(sellInEnglish.startsWith("Sell 3x sword for ") && sellInEnglish.endsWith("?"), sellInEnglish);
+    }
 }
