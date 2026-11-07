@@ -2,6 +2,9 @@ package br.com.finalcraft.evernifecore.menu;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.LocaleMessage;
+import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.logic.Caller;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 import br.com.finalcraft.evernifecore.logic.GateResult;
@@ -21,9 +24,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Every registered {@link Menu}, by its {@code owner:name}: anything - a command, the {@code open-menu} effect, another
- * plugin - opens one by id with positional arguments. A plugin's menus leave with its shutdown. Thread-safe.
+ * plugin - opens one by id with positional arguments. A plugin's menus leave with its shutdown. Thread-safe. The player
+ * refused by an open gate reads the core locale message {@code MenuRegistry.OPEN_REFUSED}.
  */
 public final class MenuRegistry {
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§c${why}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§c${why}")
+    private static LocaleMessage OPEN_REFUSED;
 
     private static final MenuRegistry INSTANCE = new MenuRegistry();
 
@@ -165,8 +173,10 @@ public final class MenuRegistry {
             return null;
         }
         String why = result.explain().toLegacyString();
-        if (ctx.getPlayer() != null) {
-            ctx.getPlayer().sendMessage("§c" + why);
+        if (ctx.getPlayer() != null && OPEN_REFUSED != null) {
+            OPEN_REFUSED.addPlaceholder("why", why).send(ctx.getPlayer());
+        } else if (ctx.getPlayer() != null) {
+            ctx.getPlayer().sendMessage(why); //the core locales were never loaded (a registry used outside the boot)
         }
         return why;
     }

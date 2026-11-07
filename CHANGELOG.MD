@@ -94,6 +94,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **`MenuCommandNode` answers with locale messages**: the seven fixed English answers of `open`, `openfor` and `list`
   (not a player, no `.others` permission, player offline, malformed id, no such menu, the list header and line) are
   locale messages of `MenuCommandNode` (en_US, pt_BR), registered under the plugin that mounts the node.
+- **A menu's refused open reaches the player as a core locale message**: the gate's explanation went out as a fixed red
+  line; it is now `MenuRegistry.OPEN_REFUSED` (`${why}`, red by default, en_US and pt_BR). The `Menus` test engine
+  loads it.
 
 ### Fixed
 

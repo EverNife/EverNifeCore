@@ -15,6 +15,7 @@ import br.com.finalcraft.evernifecore.screen.Screen;
 import br.com.finalcraft.evernifecore.screen.ScreenNavigation;
 import br.com.finalcraft.evernifecore.screen.ScreenView;
 import br.com.finalcraft.evernifecore.screen.Screens;
+import br.com.finalcraft.evernifecore.testing.Locales;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -206,6 +207,21 @@ class MenuRegistryTest extends MenuTestWorlds {
         assertTrue(opened.isCompletedExceptionally());
         assertNull(Screens.getOpenView(alex));
         assertTrue(alex.anyMessageContains("VIPs only."), alex.getMessages().toString());
+    }
+
+    @Test
+    void theOpenRefusalIsTheCoreLocaleMessage() {
+        TestFPlayerSender alex = menus.player("Alex", 0);
+        Menu vip = Menu.of(shop.getOwner(), "vip").openGate(Gate.builder().require(ctx -> ConditionResult.fail(FancyText.of("VIPs only."))).build())
+                .offer("sword", 13, menus.buy(Goods.ofItem(ItemSpec.of("minecraft:iron_sword", 1)), 10).build()).build();
+        MenuRegistry.get().register(shop.getOwner(), vip);
+        ECPluginData core = screens.getCore();
+
+        try (Locales.Retext edited = Locales.retext(core, "MenuRegistry.OPEN_REFUSED", core.getPluginLanguage(), "§6Closed: ${why}")) {
+            MenuRegistry.get().open(alex, "fakeshop:vip", Arrays.<String>asList());
+        }
+
+        assertTrue(alex.getMessages().contains("§6Closed: VIPs only."), alex.getMessages().toString());
     }
 
     private Menu registerCharging(String name) {
