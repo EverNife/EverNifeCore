@@ -36,25 +36,27 @@ public final class Delivery {
     private @Nullable Long expiresAt;
     private DeliveryPolicy policy;
     private List<JsonNode> effects = new ArrayList<>();
+    private @Nullable DeliveryIcon icon;
 
     private Delivery() {
         //Jackson no-arg constructor
     }
 
     Delivery(UUID id, UUID recipient, DeliveryOrigin origin, Instant createdAt, @Nullable Instant expiresAt, DeliveryPolicy policy,
-             List<JsonNode> effects) {
+             @Nullable DeliveryIcon icon, List<JsonNode> effects) {
         this.id = id.toString();
         this.recipient = recipient.toString();
         this.origin = origin;
         this.createdAt = createdAt.toEpochMilli();
         this.expiresAt = expiresAt == null ? null : expiresAt.toEpochMilli();
         this.policy = policy;
+        this.icon = icon;
         this.effects = new ArrayList<>(effects);
     }
 
     /** The same delivery, still owing only {@code remaining}. */
     Delivery withEffects(List<JsonNode> remaining) {
-        return new Delivery(getId(), getRecipient(), origin, getCreatedAt(), getExpiresAt(), policy, remaining);
+        return new Delivery(getId(), getRecipient(), origin, getCreatedAt(), getExpiresAt(), policy, icon, remaining);
     }
 
     public UUID getId() {
@@ -84,6 +86,11 @@ public final class Delivery {
 
     public DeliveryPolicy getPolicy() {
         return policy;
+    }
+
+    /** What the deliveries screen draws it with; null (a delivery kept before icons, or given none) draws the layout's entry item. */
+    public @Nullable DeliveryIcon getIcon() {
+        return icon;
     }
 
     /** The raw effect nodes still owed, in order. */

@@ -33,7 +33,7 @@ class DeliveriesStrictPlatformTest {
         try {
             TestFPlayerSender alex = shop.player("Alex");
             shop.deliveries().enqueue(alex.getUniqueId(), DeliveryOrigin.of("FakeShop", "test", ""), DeliveryPolicy.KEEP_SELF_CONTAINED,
-                    null, Collections.singletonList(node("{'type': 'command', 'command': 'say hi'}"))).get(5, TimeUnit.SECONDS);
+                    null, null, Collections.singletonList(node("{'type': 'command', 'command': 'say hi'}"))).get(5, TimeUnit.SECONDS);
             Deliveries.start();
             PlayerData data = PlayerController.getOrCreate(alex.getUniqueId()).get(5, TimeUnit.SECONDS);
 

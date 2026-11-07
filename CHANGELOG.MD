@@ -61,6 +61,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 #### Screens
 
+- **A pending delivery can carry an icon**: `DeliveryIcon.of(Theme)` (`QUEST`, `MONEY`, `ITEM`, `COMMAND`, `AUCTION`,
+  `REWARD`) or `DeliveryIcon.of(ItemSpec)` (id, amount and data value kept), stored with the `Delivery`
+  (`getIcon()`). The deliveries screen draws a theme with the `THEME_<NAME>` icon of `guis/DeliveriesLayout.yml` (placed
+  nowhere, a Minecraft item with a Hytale candidate, the server swaps the item) and an own item as it is, both under
+  the entry's text; a delivery without an icon - every one kept before - still draws the entry's chest.
 - **`Icon.itemFor(Function<FPlayer, ItemSpec>)`**: the item each viewer sees in place of the icon's own, asked at every
   render (null answer = the icon's own item); text, placeholders and data lines still apply over it.
 - **`RankingRequest.icon(Function<RankedEntry<?>, ItemSpec>)`**: each ranking entry drawn as the item it answers (a
@@ -76,6 +81,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   messages its core screens draw.
 
 ### Changed
+
+#### Deliveries
+
+- **`Deliveries.enqueue(recipient, origin, policy, ttl, icon, effects)` and `keepFor(ctx, policy, ttl, icon, node)`**
+  take the `@Nullable DeliveryIcon` the delivery is drawn with; the core's own leftovers pass none.
 
 #### Screens
 

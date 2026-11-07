@@ -110,14 +110,14 @@ final class StockItems {
             } else {
                 Optional<DeliveryDestination> found = DeliveryDestinations.find(to);
                 if (!found.isPresent()) {
-                    Deliveries.get().keepFor(ctx, DeliveryPolicy.KEEP_SELF_CONTAINED, expires, PendingDestination.giveItemNode(item, to));
+                    Deliveries.get().keepFor(ctx, DeliveryPolicy.KEEP_SELF_CONTAINED, expires, null, PendingDestination.giveItemNode(item, to));
                     return;
                 }
                 destination = found.get();
             }
             ItemSpec rest = destination.deliverItem(ctx, item);
             if (rest != null && rest.getAmount() > 0) {
-                Deliveries.get().keepFor(ctx, DeliveryPolicy.KEEP_SELF_CONTAINED, expires, PendingDestination.giveItemNode(rest, null));
+                Deliveries.get().keepFor(ctx, DeliveryPolicy.KEEP_SELF_CONTAINED, expires, null, PendingDestination.giveItemNode(rest, null));
             }
         }
 
@@ -163,7 +163,7 @@ final class StockItems {
         public void refund(ExecutionContext ctx) {
             ItemSpec rest = DeliveryDestinations.requireInventory().deliverItem(ctx, matcher.toItem(amount));
             if (rest != null && rest.getAmount() > 0) {
-                Deliveries.get().keepFor(ctx, DeliveryPolicy.KEEP_SELF_CONTAINED, null, PendingDestination.giveItemNode(rest, null));
+                Deliveries.get().keepFor(ctx, DeliveryPolicy.KEEP_SELF_CONTAINED, null, null, PendingDestination.giveItemNode(rest, null));
             }
         }
 

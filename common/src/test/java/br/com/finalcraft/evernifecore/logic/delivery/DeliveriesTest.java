@@ -25,6 +25,7 @@ import br.com.finalcraft.evernifecore.types.ParamSpec;
 import br.com.finalcraft.evernifecore.types.TypeDescriptor;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,6 +45,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** What could not be handed over waits in the recipient's deliveries, and comes out on a claim, a login, an expiry or a purge. */
@@ -101,6 +103,24 @@ class DeliveriesTest {
 
     private int held(String id) {
         return inventory.count(alex, ItemMatcher.of(id));
+    }
+
+    @Test
+    void theIconIsKeptWithTheDeliveryAndOneKeptBeforeIconsReadsNone() throws IOException {
+        Delivery owed = await(deliveries.enqueue(alex.getUniqueId(), DeliveryOrigin.of("FakeShop", "test", ""), DeliveryPolicy.KEEP_SELF_CONTAINED,
+                null, DeliveryIcon.of(DeliveryIcon.Theme.QUEST), Collections.singletonList(node("{'type': 'give-item', 'item': '" + IRON + "'}"))));
+        ObjectMapper mapper = new ObjectMapper();
+        String written = mapper.writeValueAsString(owed);
+
+        assertEquals(DeliveryIcon.Theme.QUEST, mapper.readValue(written, Delivery.class).getIcon().getTheme());
+        ObjectNode beforeIcons = (ObjectNode) mapper.readTree(written);
+        beforeIcons.remove("icon");
+        assertNull(mapper.treeToValue(beforeIcons, Delivery.class).getIcon());
+
+        ItemSpec wool = ItemSpec.of("minecraft:wool", 2).withData(14);
+        DeliveryIcon own = mapper.readValue(mapper.writeValueAsString(DeliveryIcon.of(wool)), DeliveryIcon.class);
+        assertEquals(wool, own.getItem());
+        assertNull(own.getTheme());
     }
 
     @Test
@@ -207,7 +227,7 @@ class DeliveriesTest {
     @Test
     void aPendingItemWithoutAnInventoryStaysPending() {
         Delivery owed = await(deliveries.enqueue(alex.getUniqueId(), DeliveryOrigin.of("FakeShop", "fakeshop:sale", "Refund"),
-                DeliveryPolicy.KEEP_SELF_CONTAINED, null, Collections.singletonList(node("{'type': 'give-item', 'item': '" + IRON
+                DeliveryPolicy.KEEP_SELF_CONTAINED, null, null, Collections.singletonList(node("{'type': 'give-item', 'item': '" + IRON
                         + "', 'amount': 3}"))));
         InventoryDestination destination = DeliveryDestinations.inventory().get();
         ECPluginData platformCore = DeliveryDestinations.registry().find(InventoryDestination.ID)
@@ -229,7 +249,7 @@ class DeliveriesTest {
     @Test
     void aClaimHandsOutWhatFitsAndTheRestStaysInTheSameDelivery() {
         Delivery owed = await(deliveries.enqueue(alex.getUniqueId(), DeliveryOrigin.of("FakeShop", "fakeshop:sale", "Refund"),
-                DeliveryPolicy.KEEP_SELF_CONTAINED, null, Collections.singletonList(node("{'type': 'give-item', 'item': '" + IRON
+                DeliveryPolicy.KEEP_SELF_CONTAINED, null, null, Collections.singletonList(node("{'type': 'give-item', 'item': '" + IRON
                         + "', 'amount': 200}")))); //two slots: 128 fit
         List<DeliveryEvent> events = shop.recorded(DeliveryEvent.class);
 
@@ -248,8 +268,8 @@ class DeliveriesTest {
         List<JsonNode> effects = Arrays.asList(node("{'type': 'give-item', 'item': '" + IRON + "', 'amount': 5}"),
                 node("{'type': 'fakequests:unlock-title', 'title': 'Miner'}"));
         DeliveryOrigin origin = DeliveryOrigin.of("FakeQuests", "fakequests:mine-iron", "Quest reward");
-        Delivery whole = await(deliveries.enqueue(alex.getUniqueId(), origin, DeliveryPolicy.REQUIRES_ORIGIN, null, effects));
-        Delivery split = await(deliveries.enqueue(alex.getUniqueId(), origin, DeliveryPolicy.KEEP_SELF_CONTAINED, null, effects));
+        Delivery whole = await(deliveries.enqueue(alex.getUniqueId(), origin, DeliveryPolicy.REQUIRES_ORIGIN, null, null, effects));
+        Delivery split = await(deliveries.enqueue(alex.getUniqueId(), origin, DeliveryPolicy.KEEP_SELF_CONTAINED, null, null, effects));
         assertFalse(whole.isSelfContained());
 
         await(deliveries.claimAll(alex));
@@ -283,7 +303,7 @@ class DeliveriesTest {
 
     @Test
     void theLoginClaimsEveryPendingDelivery() {
-        await(deliveries.enqueue(alex.getUniqueId(), DeliveryOrigin.of("FakeShop", "test", ""), DeliveryPolicy.KEEP_SELF_CONTAINED, null,
+        await(deliveries.enqueue(alex.getUniqueId(), DeliveryOrigin.of("FakeShop", "test", ""), DeliveryPolicy.KEEP_SELF_CONTAINED, null, null,
                 Collections.singletonList(node("{'type': 'give-item', 'item': '" + IRON + "', 'amount': 7}"))));
         Deliveries.start();
         PlayerData data = await(PlayerController.getOrCreate(alex.getUniqueId()));
@@ -353,9 +373,9 @@ class DeliveriesTest {
         DeliveryOrigin fromShop = DeliveryOrigin.of("FakeShop", "test", "");
         List<JsonNode> iron = Collections.singletonList(node("{'type': 'give-item', 'item': '" + IRON + "'}"));
         TestFPlayerSender bia = shop.player("Bia");
-        await(deliveries.enqueue(alex.getUniqueId(), fromShop, DeliveryPolicy.KEEP_SELF_CONTAINED, null, iron));
-        await(deliveries.enqueue(bia.getUniqueId(), fromShop, DeliveryPolicy.KEEP_SELF_CONTAINED, null, iron));
-        await(deliveries.enqueue(alex.getUniqueId(), DeliveryOrigin.of("OtherPlugin", "x", ""), DeliveryPolicy.KEEP_SELF_CONTAINED, null, iron));
+        await(deliveries.enqueue(alex.getUniqueId(), fromShop, DeliveryPolicy.KEEP_SELF_CONTAINED, null, null, iron));
+        await(deliveries.enqueue(bia.getUniqueId(), fromShop, DeliveryPolicy.KEEP_SELF_CONTAINED, null, null, iron));
+        await(deliveries.enqueue(alex.getUniqueId(), DeliveryOrigin.of("OtherPlugin", "x", ""), DeliveryPolicy.KEEP_SELF_CONTAINED, null, null, iron));
         List<DeliveryEvent> events = shop.recorded(DeliveryEvent.class);
 
         int purged = await(deliveries.purge("fakeshop", shop.caller("admin")));

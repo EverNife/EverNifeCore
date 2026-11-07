@@ -234,7 +234,7 @@ final class StockEconomy {
                 if (!destination.isPresent()) {
                     ObjectNode kept = (ObjectNode) PendingDestination.moneyNode(currency, given);
                     kept.put("to", to);
-                    Deliveries.get().keepFor(ctx, DeliveryPolicy.KEEP_SELF_CONTAINED, null, kept);
+                    Deliveries.get().keepFor(ctx, DeliveryPolicy.KEEP_SELF_CONTAINED, null, null, kept);
                     return;
                 }
                 EcoResponse response = destination.get().deliverAmount(ctx, currency, given);

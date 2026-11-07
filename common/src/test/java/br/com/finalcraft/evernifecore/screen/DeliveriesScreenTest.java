@@ -1,9 +1,12 @@
 package br.com.finalcraft.evernifecore.screen;
 
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
+import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.logic.Effect;
 import br.com.finalcraft.evernifecore.logic.Effects;
 import br.com.finalcraft.evernifecore.logic.delivery.Deliveries;
 import br.com.finalcraft.evernifecore.logic.delivery.Delivery;
+import br.com.finalcraft.evernifecore.logic.delivery.DeliveryIcon;
 import br.com.finalcraft.evernifecore.logic.delivery.DeliveryOrigin;
 import br.com.finalcraft.evernifecore.logic.delivery.DeliveryPolicy;
 import br.com.finalcraft.evernifecore.testing.LogicWorld;
@@ -20,8 +23,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -79,9 +85,13 @@ class DeliveriesScreenTest {
     }
 
     private Delivery enqueue(String gift, String reason) {
+        return enqueue(gift, reason, null);
+    }
+
+    private Delivery enqueue(String gift, String reason, DeliveryIcon icon) {
         try {
             return deliveries.enqueue(alex.getUniqueId(), DeliveryOrigin.of("FakeShop", "test", reason), DeliveryPolicy.KEEP_SELF_CONTAINED,
-                    null, Collections.singletonList(node("{'type': '" + GIFT + "', 'name': '" + gift + "'}"))).get(5, TimeUnit.SECONDS);
+                    null, icon, Collections.singletonList(node("{'type': '" + GIFT + "', 'name': '" + gift + "'}"))).get(5, TimeUnit.SECONDS);
         } catch (Exception failed) {
             throw new AssertionError(failed);
         }
@@ -128,6 +138,28 @@ class DeliveriesScreenTest {
         assertEquals(Collections.singletonList("sword"), given);
         assertEquals(1, ((DeliveriesScreen) view.getScreen()).getPending().size());
         assertNull(surface(view).getSlot(1), "the claimed one left the list");
+        close(view);
+    }
+
+    @Test
+    void anEntryDrawsItsOwnItemItsThemesLayoutItemOrTheLayoutsChest() throws IOException {
+        Path layout = ECPluginManager.getProvidingPlugin(DeliveriesScreen.DeliveriesLayout.class).getMetaInfo().getDataFolder().toPath().resolve("guis/DeliveriesLayout.yml");
+        Files.createDirectories(layout.getParent());
+        Files.write(layout, Arrays.asList("Layout:", "  THEME_MONEY:", "    Slot: \"[]\"", "    DisplayItem:", "    - material:minecraft:sunflower"),
+                StandardCharsets.UTF_8);
+        enqueue("sword", "refund", DeliveryIcon.of(ItemSpec.of("minecraft:diamond", 1)));
+        enqueue("coins", "sale", DeliveryIcon.of(DeliveryIcon.Theme.MONEY));
+        enqueue("shield", "prize");
+
+        ScreenView view = open();
+        settle(view, 3);
+
+        assertEquals("minecraft:diamond", surface(view).getSlot(0).getItem().getMaterialId());
+        assertEquals("minecraft:sunflower", surface(view).getSlot(1).getItem().getMaterialId(), "the theme's item is the server's, in the layout");
+        assertEquals("minecraft:chest", surface(view).getSlot(2).getItem().getMaterialId(), "a delivery without an icon keeps the entry's item");
+        for (int slot = 0; slot < 3; slot++) {
+            assertEquals("§efakeshop", surface(view).getSlot(slot).getItem().getDisplayName(), "every entry keeps the layout's text");
+        }
         close(view);
     }
 

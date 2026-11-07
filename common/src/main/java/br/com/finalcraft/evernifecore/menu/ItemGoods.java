@@ -81,7 +81,7 @@ public class ItemGoods implements Goods {
         if (rest == null || rest.getAmount() <= 0) {
             return null;
         }
-        return Deliveries.get().keepFor(ctx, DeliveryPolicy.KEEP_SELF_CONTAINED, null, PendingDestination.giveItemNode(rest, null));
+        return Deliveries.get().keepFor(ctx, DeliveryPolicy.KEEP_SELF_CONTAINED, null, null, PendingDestination.giveItemNode(rest, null));
     }
 
     @Override

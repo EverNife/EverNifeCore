@@ -322,7 +322,7 @@ public final class ScreenSuite implements ConformanceSuite {
         }
         ObjectNode diamond = JSON.createObjectNode().put("type", "give-item").put("item", "minecraft:diamond").put("amount", 1);
         return Deliveries.get().enqueue(player.getUniqueId(), DeliveryOrigin.of("ECoreConformance", "screen", "screen/deliveries"),
-                DeliveryPolicy.KEEP_SELF_CONTAINED, null, Collections.singletonList(diamond)).thenAccept(seeded -> probe.delivery = seeded.getId());
+                DeliveryPolicy.KEEP_SELF_CONTAINED, null, null, Collections.singletonList(diamond)).thenAccept(seeded -> probe.delivery = seeded.getId());
     }
 
     /** What each screen exists to show, beyond opening and closing. Answers the detail of the case. */

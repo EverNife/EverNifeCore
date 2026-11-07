@@ -132,9 +132,10 @@ public final class Deliveries {
      * Keeps {@code effects} for {@code recipient}, online or not, and posts {@link DeliveryEvent} ENQUEUED.
      *
      * @param ttl how long it waits to be claimed; null keeps it until claimed or purged
+     * @param icon what the deliveries screen draws it with; null draws the layout's entry item
      */
     public CompletableFuture<Delivery> enqueue(UUID recipient, DeliveryOrigin origin, DeliveryPolicy policy, @Nullable Duration ttl,
-                                               List<JsonNode> effects) {
+                                               @Nullable DeliveryIcon icon, List<JsonNode> effects) {
         Objects.requireNonNull(recipient, "recipient");
         Objects.requireNonNull(origin, "origin");
         Objects.requireNonNull(policy, "policy");
@@ -142,7 +143,7 @@ public final class Deliveries {
             throw new IllegalArgumentException("A delivery to " + recipient + " from " + origin + " owes nothing: give it at least one effect.");
         }
         Instant now = ECClock.now();
-        Delivery delivery = new Delivery(UUID.randomUUID(), recipient, origin, now, ttl == null ? null : now.plus(ttl), policy, effects);
+        Delivery delivery = new Delivery(UUID.randomUUID(), recipient, origin, now, ttl == null ? null : now.plus(ttl), policy, icon, effects);
         return section(recipient).thenApply(section -> {
             section.add(delivery);
             post(DeliveryEvent.Kind.ENQUEUED, delivery, null);
@@ -152,19 +153,21 @@ public final class Deliveries {
 
     /**
      * What an effect does with {@code node}, the part of it that did not reach the context's player: inside a claim it
-     * stays in the claimed delivery; anywhere else it becomes a new delivery from the context's caller.
+     * stays in the claimed delivery; anywhere else it becomes a new delivery from the context's caller, drawn with
+     * {@code icon} (null = the layout's entry item).
      *
      * @return the new delivery, or a completed null when it stayed in the claim
      * @throws IllegalStateException when the context has neither a player nor a player owner to keep it for
      */
-    public CompletableFuture<Delivery> keepFor(ExecutionContext ctx, DeliveryPolicy policy, @Nullable Duration ttl, JsonNode node) {
+    public CompletableFuture<Delivery> keepFor(ExecutionContext ctx, DeliveryPolicy policy, @Nullable Duration ttl, @Nullable DeliveryIcon icon,
+                                               JsonNode node) {
         @SuppressWarnings("unchecked")
         List<JsonNode> leftovers = ctx.getAttribute(CLAIM_LEFTOVERS, List.class);
         if (leftovers != null) {
             leftovers.add(node);
             return CompletableFuture.completedFuture(null);
         }
-        return enqueue(recipientOf(ctx), DeliveryOrigin.of(ctx.getCaller(), ""), policy, ttl, Collections.singletonList(node));
+        return enqueue(recipientOf(ctx), DeliveryOrigin.of(ctx.getCaller(), ""), policy, ttl, icon, Collections.singletonList(node));
     }
 
     /**
@@ -185,12 +188,12 @@ public final class Deliveries {
             ctx.getAudit().add(ctx, AuditKind.DELIVERY_DISCARDED, effect + " for " + recipient + " was discarded: its player left before"
                     + " it applied, and only the core's own effects can wait in a delivery.");
             post(DeliveryEvent.Kind.DISCARDED, new Delivery(UUID.randomUUID(), recipient, origin, ECClock.now(), null,
-                    DeliveryPolicy.KEEP_SELF_CONTAINED, Collections.singletonList(effect)), null);
+                    DeliveryPolicy.KEEP_SELF_CONTAINED, null, Collections.singletonList(effect)), null);
         }
         if (kept.isEmpty()) {
             return CompletableFuture.completedFuture(null);
         }
-        return enqueue(recipient, origin, DeliveryPolicy.KEEP_SELF_CONTAINED, null, kept);
+        return enqueue(recipient, origin, DeliveryPolicy.KEEP_SELF_CONTAINED, null, null, kept);
     }
 
     /** Every delivery {@code recipient} has pending, oldest first, expired ones included until the sweep drops them. */

@@ -268,7 +268,7 @@ public final class Price {
                 public void refund(ExecutionContext ctx) {
                     ItemSpec rest = DeliveryDestinations.requireInventory().deliverItem(ctx, matcher.toItem(amount));
                     if (rest != null && rest.getAmount() > 0) {
-                        Deliveries.get().keepFor(ctx, DeliveryPolicy.KEEP_SELF_CONTAINED, null, PendingDestination.giveItemNode(rest, null));
+                        Deliveries.get().keepFor(ctx, DeliveryPolicy.KEEP_SELF_CONTAINED, null, null, PendingDestination.giveItemNode(rest, null));
                     }
                 }
 

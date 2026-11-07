@@ -1,14 +1,17 @@
 package br.com.finalcraft.evernifecore.screen;
 
+import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.logic.delivery.ClaimResult;
 import br.com.finalcraft.evernifecore.logic.delivery.Deliveries;
 import br.com.finalcraft.evernifecore.logic.delivery.Delivery;
+import br.com.finalcraft.evernifecore.logic.delivery.DeliveryIcon;
 import br.com.finalcraft.evernifecore.placeholder.replacer.Closures;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 
 import java.util.Collections;
 import java.util.List;
@@ -19,7 +22,10 @@ import java.util.concurrent.CompletableFuture;
  * claims that delivery, the claim-all button claims every one; what still does not fit stays listed. The entries come
  * from storage, so the list fills a moment after the window opens.
  *
- * <p>The entry template reads {@code {plugin}}, {@code {reason}} and {@code {effects}} of its delivery.</p>
+ * <p>The entry template reads {@code {plugin}}, {@code {reason}} and {@code {effects}} of its delivery. An entry draws the
+ * item of its delivery's {@link DeliveryIcon}: a theme's is the {@code THEME_<NAME>} icon of the layout (each one a
+ * Minecraft item with a Hytale candidate), a plugin's own is that item; either way under the entry's text. A delivery
+ * without one draws the entry's own item.</p>
  */
 public final class DeliveriesScreen extends Screen<DeliveriesScreen.DeliveriesLayout> {
 
@@ -42,7 +48,7 @@ public final class DeliveriesScreen extends Screen<DeliveriesScreen.DeliveriesLa
                 .into(l -> l.ENTRY)
                 .pagedBy(l -> l.PREVIOUS, l -> l.NEXT)
                 .dependsOn(pending)
-                .render((delivery, icon) -> icon.addScope(ENTRY, delivery))
+                .render((delivery, icon) -> drawnAs(icon.addScope(ENTRY, delivery), delivery.getIcon(), layout))
                 .onClick((click, delivery) -> claim(click.getView(), Deliveries.get().claim(click.getViewer(), delivery.getId())));
         icon(l -> l.CLAIM_ALL)
                 .visibleWhen(() -> !pending.get().isEmpty())
@@ -64,6 +70,25 @@ public final class DeliveriesScreen extends Screen<DeliveriesScreen.DeliveriesLa
     @Nonnull
     public List<Delivery> getPending() {
         return pending.get();
+    }
+
+    /** {@code entry} as the item {@code chosen} names, the entry's text kept; untouched without one. */
+    static Icon drawnAs(Icon entry, @Nullable DeliveryIcon chosen, DeliveriesLayout layout) {
+        if (chosen == null) {
+            return entry;
+        }
+        ItemSpec template = entry.getItem();
+        ItemSpec own = chosen.getItem();
+        if (own != null) {
+            entry.setItem(own.withText(template.getDisplayName(), template.getLore()));
+            return entry;
+        }
+        Icon themed = layout.themeOf(chosen.getTheme());
+        if (themed != null) {
+            entry.setItem(themed.getItem().withText(template.getDisplayName(), template.getLore()));
+            entry.setFallbacks(themed.getFallbacks());
+        }
+        return entry;
     }
 
     private void claim(ScreenView view, CompletableFuture<ClaimResult> claim) {
@@ -108,6 +133,30 @@ public final class DeliveriesScreen extends Screen<DeliveriesScreen.DeliveriesLa
 
         @IconData(slot = {28, 29, 31, 33, 34}, background = true)
         public Icon BACKGROUND = Icon.of(DefaultIcons.pane(DefaultIcons.Color.GRAY)).displayName("§7");
+
+        //the item of each DeliveryIcon.Theme: placed nowhere, only lent to the entries (a Hytale renderer draws the hytale: candidate)
+        @IconData(slot = {})
+        public Icon THEME_QUEST = Icon.of(ItemSpec.of("minecraft:book", 1), ItemSpec.of("hytale:Furniture_Chest", 1));
+
+        @IconData(slot = {})
+        public Icon THEME_MONEY = Icon.of(ItemSpec.of("minecraft:gold_ingot", 1), ItemSpec.of("hytale:Ingredient_Bar_Iron", 1));
+
+        @IconData(slot = {})
+        public Icon THEME_ITEM = Icon.of(ItemSpec.of("minecraft:ender_chest", 1), ItemSpec.of("hytale:Furniture_Chest", 1));
+
+        @IconData(slot = {})
+        public Icon THEME_COMMAND = Icon.of(ItemSpec.of("minecraft:command_block", 1), ItemSpec.of("hytale:Furniture_Chest", 1));
+
+        @IconData(slot = {})
+        public Icon THEME_AUCTION = Icon.of(ItemSpec.of("minecraft:emerald", 1), ItemSpec.of("hytale:Ingredient_Bar_Iron", 1));
+
+        @IconData(slot = {})
+        public Icon THEME_REWARD = Icon.of(ItemSpec.of("minecraft:nether_star", 1), ItemSpec.of("hytale:Rock_Gem_Diamond", 1));
+
+        /** The icon, as the file configured it, whose item {@code theme} draws with; null for no theme. */
+        public @Nullable Icon themeOf(@Nullable DeliveryIcon.Theme theme) {
+            return theme == null ? null : getIcon("THEME_" + theme.name());
+        }
 
     }
 

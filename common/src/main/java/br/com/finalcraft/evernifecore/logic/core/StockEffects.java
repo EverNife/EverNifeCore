@@ -217,7 +217,7 @@ final class StockEffects {
                 if (asPlayer) {
                     node.put("as", "player");
                 }
-                Deliveries.get().keepFor(ctx, DeliveryPolicy.KEEP_SELF_CONTAINED, null, node);
+                Deliveries.get().keepFor(ctx, DeliveryPolicy.KEEP_SELF_CONTAINED, null, null, node);
                 return;
             }
             access().dispatchCommand(asPlayer ? player(ctx, "command") : null, ctx.resolve(command));
