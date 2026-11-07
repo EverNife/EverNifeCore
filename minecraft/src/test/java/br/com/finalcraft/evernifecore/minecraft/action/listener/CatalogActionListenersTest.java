@@ -27,6 +27,7 @@ import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -97,6 +98,14 @@ class CatalogActionListenersTest {
         return RegionServer.entity(Item.class, EntityType.ITEM, server.at(x, 5, 5)).returning("getItemStack", new ItemStack(type)).build();
     }
 
+    private static Item removableItem(RegionServer server, double x, Runnable onRemove) {
+        return RegionServer.entity(Item.class, EntityType.ITEM, server.at(x, 5, 5)).returning("getItemStack", new ItemStack(Material.DIAMOND))
+                .on("remove", args -> {
+                    onRemove.run();
+                    return null;
+                }).build();
+    }
+
     @Test
     void denyItemDropAndDenyItemPickupCancelTheirOwnEventOnly() {
         try (RegionServer server = RegionServer.open(tempDir)) {
@@ -111,6 +120,43 @@ class CatalogActionListenersTest {
                     "the market only denies drops");
             assertTrue(server.call(new EntityPickupItemEvent(trader, item(server, Material.DIAMOND, 25), 0)).isCancelled());
             assertFalse(server.call(new PlayerDropItemEvent(trader, item(server, Material.DIAMOND, 50))).isCancelled(), "outside every region");
+        }
+    }
+
+    @Test
+    void destroyDroppedItemsLetsTheDropThroughAndRemovesItsItemATickLater() {
+        try (RegionServer server = RegionServer.open(tempDir)) {
+            server.box("arena", 0, 0, 0, 10, 10, 10, server.flag(CoreFlags.DESTROY_DROPPED_ITEMS));
+            server.listen(new ItemActionListeners.Drop());
+            Player fighter = server.player("fighter", 5, 5, 5);
+            AtomicInteger removed = new AtomicInteger();
+            Item inside = removableItem(server, 5, removed::incrementAndGet);
+            Item outside = removableItem(server, 50, () -> removed.addAndGet(100));
+
+            assertFalse(server.call(new PlayerDropItemEvent(fighter, inside)).isCancelled(), "the drop itself is allowed");
+            assertFalse(server.call(new PlayerDropItemEvent(fighter, outside)).isCancelled());
+            assertEquals(0, removed.get(), "the server has not added the item yet: nothing is removed during the event");
+
+            server.server.runScheduledTasks();
+
+            assertEquals(1, removed.get(), "only the item dropped inside vanishes");
+        }
+    }
+
+    @Test
+    void aDropAnotherPluginCancelsKeepsItsItemUnderDestroyDroppedItems() {
+        try (RegionServer server = RegionServer.open(tempDir)) {
+            server.box("arena", 0, 0, 0, 10, 10, 10, server.flag(CoreFlags.DESTROY_DROPPED_ITEMS));
+            server.listen(new ItemActionListeners.Drop());
+            Player fighter = server.player("fighter", 5, 5, 5);
+            AtomicInteger removed = new AtomicInteger();
+            Item item = removableItem(server, 5, removed::incrementAndGet);
+
+            PlayerDropItemEvent drop = server.call(new PlayerDropItemEvent(fighter, item));
+            drop.setCancelled(true); //a later listener's word: the server gives the item back
+            server.server.runScheduledTasks();
+
+            assertEquals(0, removed.get());
         }
     }
 

@@ -54,8 +54,8 @@ class CoreFlagsTest {
                 "deny-block-break-environment", "deny-block-break-fake-players", "deny-block-place", "deny-block-place-fake-players",
                 "deny-explosion", "deny-explosion-mobs", "deny-interact", "deny-interact-blocks", "deny-interact-entities", "deny-entry", "deny-exit", "deny-teleport-in", "deny-teleport-out",
                 "deny-spawn", "deny-spawn-monster", "deny-spawn-animal", "track-changes", "deny-damage-from-mobs", "deny-block-place-environment",
-                "deny-fire-spread", "deny-fluid-flow", "deny-item-pickup", "deny-item-drop", "deny-vehicle", "deny-vehicle-place",
-                "deny-vehicle-break", "deny-vehicle-enter", "deny-friendly-fire")) {
+                "deny-fire-spread", "deny-fluid-flow", "deny-item-pickup", "deny-item-drop", "destroy-dropped-items", "deny-vehicle",
+                "deny-vehicle-place", "deny-vehicle-break", "deny-vehicle-enter", "deny-friendly-fire")) {
             CATALOG.put(name, "tristate-true");
         }
         CATALOG.put("deny-entry-with-message", "denied-true");
@@ -83,7 +83,7 @@ class CoreFlagsTest {
     void tearDown() {
         try {
             assertTrue(iterated >= 18, "the tie test must have run over the whole catalog, ran " + iterated);
-            assertEquals(61, iterated, "the catalog holds 61 flags");
+            assertEquals(62, iterated, "the catalog holds 62 flags");
         } finally {
             FlagRegistry.get().reset();
             Plugins.forget(CORE);
@@ -270,6 +270,7 @@ class CoreFlagsTest {
         assertEquals(Collections.singleton(EventSource.RESPAWN), CoreFlags.SPAWN_POINT.getNeeds());
         assertEquals(Collections.singleton(EventSource.ITEM_PICKUP), CoreFlags.DENY_ITEM_PICKUP.getNeeds());
         assertEquals(Collections.singleton(EventSource.ITEM_DROP), CoreFlags.DENY_ITEM_DROP.getNeeds());
+        assertEquals(Collections.singleton(EventSource.ITEM_DROP), CoreFlags.DESTROY_DROPPED_ITEMS.getNeeds());
         assertEquals(Collections.singleton(EventSource.FIRE_SPREAD), CoreFlags.DENY_FIRE_SPREAD.getNeeds());
         assertEquals(Collections.singleton(EventSource.FLUID), CoreFlags.DENY_FLUID_FLOW.getNeeds());
     }

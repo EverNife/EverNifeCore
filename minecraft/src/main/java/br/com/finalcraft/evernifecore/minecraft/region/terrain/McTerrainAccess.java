@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.minecraft.worldedit.clipboard.FCBlockArray
 import br.com.finalcraft.evernifecore.minecraft.worldedit.clipboard.format.IFCClipboardFormat;
 import br.com.finalcraft.evernifecore.minecraft.worldedit.clipboard.format.IFCClipboardManager;
 import br.com.finalcraft.evernifecore.minecraft.worldedit.region.IFCCuboidRegion;
+import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.terrain.TerrainContent;
 import br.com.finalcraft.evernifecore.region.terrain.TerrainPlacement;
@@ -25,6 +26,7 @@ import org.bukkit.block.BlockState;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Hanging;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 
 import java.io.File;
@@ -112,6 +114,19 @@ public final class McTerrainAccess implements ITerrainAccess {
             }
         }
         return inside;
+    }
+
+    @Override
+    public int removeItems(String world, Shape shape) {
+        int removed = 0;
+        for (Item item : world(world).getEntitiesByClass(Item.class)) {
+            Location at = item.getLocation();
+            if (shape.contains(at.getX(), at.getY(), at.getZ())) {
+                item.remove();
+                removed++;
+            }
+        }
+        return removed;
     }
 
     /** The entity as {@link #restoreEntity} spawns it again. */

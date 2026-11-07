@@ -7,6 +7,8 @@ import br.com.finalcraft.evernifecore.action.ItemContext;
 import br.com.finalcraft.evernifecore.action.event.DropActionEvent;
 import br.com.finalcraft.evernifecore.action.event.PickupActionEvent;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Item;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
@@ -20,7 +22,8 @@ import org.bukkit.inventory.ItemStack;
  * The item listeners, one class per event so that each registers alone: {@link EventSource#ITEM_DROP} is a player
  * throwing an item, {@link EventSource#ITEM_PICKUP} anyone picking one up - asked where the item lies; a denial, or a
  * cancelled {@code Pre}, cancels it, and one that went through posts its {@link DropActionEvent} / {@link PickupActionEvent}
- * Post. The pickup event fires every tick for every item next to someone, which is why it is a source of its own.
+ * Post; a drop let through that a flag marked ({@link ItemContext#isItemDestroyed()}) loses its item a tick later. The
+ * pickup event fires every tick for every item next to someone, which is why it is a source of its own.
  */
 public final class ItemActionListeners {
 
@@ -56,9 +59,20 @@ public final class ItemActionListeners {
         @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
         public void onDrop(PlayerDropItemEvent event) {
             Item item = event.getItemDrop();
-            if (!McActionContexts.isDisabled(item.getWorld()) && Actions.denied(context(EventSource.ITEM_DROP, item,
-                    McActionContexts.actor(event.getPlayer()), event), DropActionEvent.Pre.class, DropActionEvent.Pre::new)) {
+            if (McActionContexts.isDisabled(item.getWorld())) {
+                return;
+            }
+            ItemContext context = context(EventSource.ITEM_DROP, item, McActionContexts.actor(event.getPlayer()), event);
+            if (Actions.denied(context, DropActionEvent.Pre.class, DropActionEvent.Pre::new)) {
                 event.setCancelled(true);
+            } else if (context.isItemDestroyed()) {
+                //a tick later: the server adds the item to the world after this event, and an entity removed before that
+                //is refused with a warning (1.17+); the pickup delay of a thrown item outlasts the tick
+                Bukkit.getScheduler().runTaskLater(EverNifeCoreBukkitPlugin.instance, () -> {
+                    if (!event.isCancelled()) {
+                        item.remove();
+                    }
+                }, 1L);
             }
         }
 

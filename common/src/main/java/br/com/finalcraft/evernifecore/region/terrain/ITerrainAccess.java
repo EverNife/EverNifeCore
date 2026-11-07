@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.region.terrain;
 
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
+import br.com.finalcraft.evernifecore.region.shape.Shape;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,6 +36,11 @@ public interface ITerrainAccess {
         }
 
         @Override
+        public int removeItems(String world, Shape shape) {
+            throw unsupported();
+        }
+
+        @Override
         public String getGameVersion() {
             throw unsupported();
         }
@@ -56,7 +62,7 @@ public interface ITerrainAccess {
 
         private UnsupportedOperationException unsupported() {
             return new UnsupportedOperationException("This platform cannot read or write blocks by position, so region terrain"
-                    + " (track-changes, restore) does nothing here - run it on a platform whose IPlatform.getTerrainAccess() is not"
+                    + " (track-changes, restore, clearItems) does nothing here - run it on a platform whose IPlatform.getTerrainAccess() is not"
                     + " ITerrainAccess.UNSUPPORTED.");
         }
     };
@@ -72,6 +78,9 @@ public interface ITerrainAccess {
 
     /** Spawns again an entity a capture produced, where it stood. */
     void restoreEntity(String world, String state);
+
+    /** Removes every item entity lying on the ground inside {@code shape}; returns how many. */
+    int removeItems(String world, Shape shape);
 
     /** The game version this server runs; a snapshot carries it and restores only on the same one. */
     String getGameVersion();

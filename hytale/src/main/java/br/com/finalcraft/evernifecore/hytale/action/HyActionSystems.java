@@ -326,9 +326,30 @@ public final class HyActionSystems {
             return false;
         }
         String world = worldOf(store);
-        return judge(source, world, event, () -> new ItemContext(source, HyActionContexts.position(world, at),
+        Supplier<ItemContext> context = () -> new ItemContext(source, HyActionContexts.position(world, at),
                 HyActionContexts.actor(actor, store), event, key, item.getQuantity(), null,
-                () -> ItemSpec.of(key.toString(), item.getQuantity()).withNativeItem(new NativeItem(item))));
+                () -> ItemSpec.of(key.toString(), item.getQuantity()).withNativeItem(new NativeItem(item)));
+        return source == EventSource.ITEM_DROP ? judgeDrop(world, event, context) : judge(source, world, event, context);
+    }
+
+    /**
+     * Judges a drop like {@link #judge}; one let through that a flag marked ({@link ItemContext#isItemDestroyed()}) is
+     * cancelled after its {@code Post}: the server fires {@code DropItemEvent.Drop} once the stack has left the inventory,
+     * so a cancelled drop spawns no item and gives nothing back - the item vanishes.
+     */
+    static boolean judgeDrop(String world, ICancellableEcsEvent event, Supplier<ItemContext> context) {
+        ItemContext[] asked = new ItemContext[1];
+        boolean denied = judge(EventSource.ITEM_DROP, world, event, () -> {
+            ItemContext built = context.get();
+            if (asked[0] == null) {
+                asked[0] = built; //the one the regions decided on; a listened Post builds its own
+            }
+            return built;
+        });
+        if (!denied && asked[0] != null && asked[0].isItemDestroyed()) {
+            event.setCancelled(true);
+        }
+        return denied;
     }
 
     /** What spawns a creature nobody spawned on purpose: the world itself. */

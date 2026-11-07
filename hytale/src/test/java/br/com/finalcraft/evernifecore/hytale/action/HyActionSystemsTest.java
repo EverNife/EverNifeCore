@@ -360,6 +360,23 @@ class HyActionSystemsTest {
     }
 
     @Test
+    void aDropInsideDestroyDroppedItemsIsLetThroughThenCancelledSoTheItemNeverSpawns() {
+        FlagRegistry.get().register(core, CoreFlags.DESTROY_DROPPED_ITEMS);
+        vault(CoreFlags.DESTROY_DROPPED_ITEMS);
+        Actor player = HyActionContexts.actor(miner, null, null, null);
+        TypeKey stick = HyActionContexts.key("Ingredient_Stick");
+        DropItemEvent.Drop inside = new DropItemEvent.Drop(null, 0f);
+        DropItemEvent.Drop outside = new DropItemEvent.Drop(null, 0f);
+
+        assertFalse(HyActionSystems.judgeDrop(WORLD, inside, () -> new ItemContext(EventSource.ITEM_DROP,
+                HyActionContexts.position(WORLD, new Vector3i(5, 5, 5)), player, inside, stick, 1, null, null)), "the drop is not denied");
+        assertFalse(HyActionSystems.judgeDrop(WORLD, outside, () -> new ItemContext(EventSource.ITEM_DROP,
+                HyActionContexts.position(WORLD, new Vector3i(50, 5, 50)), player, outside, stick, 1, null, null)));
+        assertTrue(inside.isCancelled(), "the stack already left the inventory: a cancelled drop spawns nothing");
+        assertFalse(outside.isCancelled());
+    }
+
+    @Test
     void theNewFlagsOnTheSpawnDamageAndPlaceSystemsLeaveBeforeBuildingWhileUnneeded() {
         regions.cuboid("plain", WORLD, 0, 0, 0, 10, 10, 10);
         for (TristateFlag flag : Arrays.asList(CoreFlags.DENY_SPAWN, CoreFlags.DENY_SPAWN_MONSTER, CoreFlags.DENY_SPAWN_ANIMAL,

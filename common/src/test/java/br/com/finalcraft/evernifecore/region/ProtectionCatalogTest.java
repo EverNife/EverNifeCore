@@ -163,6 +163,50 @@ class ProtectionCatalogTest {
         assertEquals(Decision.PASS, item(EventSource.ITEM_PICKUP, "minecraft:dirt"));
     }
 
+    private ItemContext dropAt(WorldLocPos at, String key) {
+        return new ItemContext(EventSource.ITEM_DROP, at, Actors.player(player), null, TypeKey.parse(key), 1, null, null);
+    }
+
+    @Test
+    void destroyDroppedItemsLetsTheDropThroughAndMarksItsItem() {
+        region.setFlag(CoreFlags.DESTROY_DROPPED_ITEMS, Tristate.TRUE);
+        ItemContext inside = dropAt(AT, "minecraft:dirt");
+        ItemContext outside = dropAt(WorldLocPos.of(50, 5, 50, WORLD), "minecraft:dirt");
+        ItemContext pickup = new ItemContext(EventSource.ITEM_PICKUP, AT, Actors.player(player), null, TypeKey.parse("minecraft:dirt"), 1,
+                null, null);
+
+        assertEquals(Decision.PASS, lookup.decide(inside), "the drop itself is allowed");
+        assertTrue(inside.isItemDestroyed());
+        assertEquals(Decision.PASS, lookup.decide(outside));
+        assertFalse(outside.isItemDestroyed(), "outside the region the item stays");
+        assertEquals(Decision.PASS, lookup.decide(pickup));
+        assertFalse(pickup.isItemDestroyed(), "a pickup is no drop");
+    }
+
+    @Test
+    void destroyDroppedItemsNarrowedByOnlyLeavesTheOtherItems() {
+        region.setFlag(CoreFlags.DESTROY_DROPPED_ITEMS, Tristate.TRUE);
+        TypeFilterSettings onlyDirt = new TypeFilterSettings();
+        onlyDirt.setOnly(Collections.singletonList("minecraft:dirt"));
+        region.setFlagSettings(CoreFlags.DESTROY_DROPPED_ITEMS, onlyDirt);
+        ItemContext dirt = dropAt(AT, "minecraft:dirt");
+        ItemContext diamond = dropAt(AT, "minecraft:diamond");
+
+        lookup.decide(dirt);
+        lookup.decide(diamond);
+
+        assertTrue(dirt.isItemDestroyed());
+        assertFalse(diamond.isItemDestroyed(), "a diamond is outside 'only'");
+    }
+
+    @Test
+    void denyItemDropBeatsDestroyDroppedItemsTheItemStaysWithTheDropper() {
+        region.setFlag(CoreFlags.DESTROY_DROPPED_ITEMS, Tristate.TRUE);
+        region.setFlag(CoreFlags.DENY_ITEM_DROP, Tristate.TRUE);
+
+        assertEquals(Decision.DENY, lookup.decide(dropAt(AT, "minecraft:dirt")), "a denied drop never reaches the ground to vanish");
+    }
+
     @Test
     void denyDamageFromMobsStopsAMobAndNothingElse() {
         region.setFlag(CoreFlags.DENY_DAMAGE_FROM_MOBS, Tristate.TRUE);

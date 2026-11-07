@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.region;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.flag.Flag;
@@ -42,6 +43,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.Consumer;
@@ -270,6 +272,18 @@ public final class Region implements FlagHolder {
             }
         }
         return inside;
+    }
+
+    /**
+     * Removes the items lying on the ground inside the region (its shape, not its bounding box), on the world's thread -
+     * in place when the caller already is it. Completes with how many were removed; exceptionally on a platform whose
+     * terrain access is {@code ITerrainAccess.UNSUPPORTED}, or for a world that is not loaded.
+     */
+    public CompletableFuture<Integer> clearItems() {
+        IPlatform platform = EverNifeCore.getPlatform();
+        int[] removed = new int[1];
+        return platform.runOnWorldThread(world, () -> removed[0] = platform.getTerrainAccess().removeItems(world, getShape()))
+                .thenApply(ignored -> removed[0]);
     }
 
     // ---- flags ----

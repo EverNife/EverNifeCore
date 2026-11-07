@@ -28,6 +28,7 @@ public final class ItemContext extends ActionContext {
     private final @Nullable UUID itemEntity;
     private @Nullable Supplier<ItemSpec> itemSource;
     private @Nullable ItemSpec item;
+    private volatile boolean itemDestroyed;
 
     /**
      * @param source     one of {@link #SOURCES}
@@ -64,6 +65,18 @@ public final class ItemContext extends ActionContext {
     /** The item entity lying in the world; null when the action had none, as a craft or a meal. */
     public @Nullable UUID getItemEntityId() {
         return itemEntity;
+    }
+
+    /**
+     * Whether a flag asked for the dropped item to vanish once the drop goes through ({@code destroy-dropped-items}). The
+     * platform listener acts on it only when nothing denied the drop: a denied drop keeps the item with the dropper.
+     */
+    public boolean isItemDestroyed() {
+        return itemDestroyed;
+    }
+
+    public void setItemDestroyed(boolean itemDestroyed) {
+        this.itemDestroyed = itemDestroyed;
     }
 
     /**

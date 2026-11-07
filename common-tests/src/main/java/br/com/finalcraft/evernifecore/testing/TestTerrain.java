@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.testing;
 
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
+import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.terrain.TerrainContent;
 import br.com.finalcraft.evernifecore.region.terrain.TerrainPlacement;
@@ -35,6 +36,9 @@ public final class TestTerrain implements ITerrainAccess {
     private int restores;
     private int failAfterRestores = -1;
     private String gameVersion = DEFAULT_GAME_VERSION;
+
+    /** The entity name of an item lying on the ground: {@code spawn(world, ITEM, x, y, z)} drops one, {@link #removeItems} takes it. */
+    public static final String ITEM = "item";
 
     /** The game version a fresh terrain reports. */
     public static final String DEFAULT_GAME_VERSION = "test-1";
@@ -155,6 +159,20 @@ public final class TestTerrain implements ITerrainAccess {
     @Override
     public void restoreEntity(String world, String state) {
         entities.add(world + ":" + state);
+    }
+
+    /** Removes the entities named {@link #ITEM} whose block is inside {@code shape}. */
+    @Override
+    public int removeItems(String world, Shape shape) {
+        int before = entities.size();
+        entities.removeIf(entity -> {
+            if (!entity.startsWith(world + ":" + ITEM + "@")) {
+                return false;
+            }
+            String[] xyz = entity.substring(entity.indexOf('@') + 1).split(",");
+            return shape.contains(Integer.parseInt(xyz[0]), Integer.parseInt(xyz[1]), Integer.parseInt(xyz[2]));
+        });
+        return before - entities.size();
     }
 
     /** The server "upgraded": snapshots taken before carry the old version. */

@@ -267,6 +267,27 @@ class RegionTerrainTest extends ManagedRegionFixture {
     }
 
     @Test
+    void clearItemsRemovesOnlyTheItemsLyingInsideTheShapeOnTheWorldThread(TestPlatform platform) {
+        TestTerrain terrain = platform.getTestTerrain();
+        //a right triangle: (4,5,4) is in its box but not in it
+        Region region = created(manager().create("wedge", WORLD, PolygonShape.of(Arrays.asList(BlockPos.of(0, 0, 0), BlockPos.of(4, 0, 0),
+                BlockPos.of(0, 0, 4)), 5, 6)));
+        terrain.spawn(WORLD, TestTerrain.ITEM, 0, 5, 0);
+        terrain.spawn(WORLD, TestTerrain.ITEM, 1, 6, 1);
+        terrain.spawn(WORLD, TestTerrain.ITEM, 4, 5, 4);
+        terrain.spawn(WORLD, TestTerrain.ITEM, 50, 5, 50);
+        terrain.spawn(WORLD, "pig", 1, 5, 0);
+        int before = platform.getWorldThreadRuns().size();
+
+        int removed = region.clearItems().join();
+
+        assertEquals(2, removed);
+        assertEquals(1, platform.getWorldThreadRuns().size() - before, "one run on the world thread");
+        assertEquals(Arrays.asList("item@4,5,4", "item@50,5,50", "pig@1,5,0"), terrain.getEntities(WORLD),
+                "the corner of the box, the item outside and the pig stay");
+    }
+
+    @Test
     void aPolygonSnapshotPutsBackOnlyItsShapeNotTheCornersOfItsBox(TestPlatform platform) {
         TestTerrain terrain = platform.getTestTerrain();
         RegionManager manager = manager();

@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.hytale.region;
 
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
+import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.terrain.TerrainContent;
 import br.com.finalcraft.evernifecore.region.terrain.TerrainPlacement;
@@ -9,11 +10,14 @@ import com.hypixel.hytale.builtin.buildertools.BuilderToolsPlugin;
 import com.hypixel.hytale.component.AddReason;
 import com.hypixel.hytale.component.Holder;
 import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.component.RemoveReason;
 import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.math.util.ChunkUtil;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
 import com.hypixel.hytale.server.core.modules.block.BlockEntity;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
+import com.hypixel.hytale.server.core.modules.entity.item.ItemComponent;
 import com.hypixel.hytale.server.core.prefab.PrefabStore;
 import com.hypixel.hytale.server.core.prefab.selection.standard.BlockSelection;
 import com.hypixel.hytale.server.core.universe.Universe;
@@ -145,6 +149,23 @@ public final class HyTerrainAccess implements ITerrainAccess {
     @Override
     public void restoreEntity(String world, String state) {
         throw entitiesUnsupported();
+    }
+
+    /** Every entity carrying an {@link ItemComponent} - an item on the ground - whose position is inside {@code shape}. */
+    @Override
+    public int removeItems(String world, Shape shape) {
+        int[] removed = new int[1];
+        world(world).getEntityStore().getStore().forEachChunk(Query.and(ItemComponent.getComponentType(),
+                TransformComponent.getComponentType()), (chunk, buffer) -> {
+            for (int index = 0; index < chunk.size(); index++) {
+                Vector3d at = chunk.getComponent(index, TransformComponent.getComponentType()).getPosition();
+                if (shape.contains(at.x, at.y, at.z)) {
+                    buffer.removeEntity(chunk.getReferenceTo(index), RemoveReason.REMOVE);
+                    removed[0]++;
+                }
+            }
+        });
+        return removed[0];
     }
 
     private static UnsupportedOperationException entitiesUnsupported() {
