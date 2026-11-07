@@ -92,6 +92,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **The ranking marks the viewer's row with a core locale message**: the `{marker}` of `RankingLayout.ENTRY` was a fixed
   green arrow; it is now `RankingScreen.SELF_MARKER` (en_US, pt_BR, same arrow by default), in the viewer's language and
   editable in the core's language file.
+- **The confirmation's display item sits where `ConfirmLayout.DISPLAY` says**: it was placed at the computed centre;
+  `DISPLAY` (slot 13, the same centre on the 3-row default, written into an existing `ConfirmLayout.yml` by itself)
+  now holds the place, drawn only when the request has a display item, and a name or lore written on it replaces the
+  item's. A child layout with more rows now finds it at slot 13 too, until its file moves it.
 
 #### Dialogues
 

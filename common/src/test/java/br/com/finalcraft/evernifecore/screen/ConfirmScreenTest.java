@@ -1,11 +1,13 @@
 package br.com.finalcraft.evernifecore.screen;
 
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.logic.ConditionResult;
 import br.com.finalcraft.evernifecore.logic.Cost;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 import br.com.finalcraft.evernifecore.logic.Gate;
+import br.com.finalcraft.evernifecore.testing.RecordingSurface;
 import br.com.finalcraft.evernifecore.testing.ScreenWorld;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
@@ -14,8 +16,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -159,6 +165,44 @@ class ConfirmScreenTest {
         view.close();
         world.advanceTicks(2);
         assertTrue(answer.isCancelled());
+    }
+
+    @Test
+    void theLayoutsDisplayPlacesTheItemAndMayRewriteItsText() throws IOException {
+        ConfirmRequest request = ConfirmRequest.of("Sell it?").display(ItemSpec.of("minecraft:diamond", "§fShiny", Arrays.asList("§7one")));
+        Screens.confirm(alex, request);
+        ScreenView seeded = openView();
+        assertEquals("§fShiny", world.getRenderer().surfaceOf(seeded).getSlot(13).getItem().getDisplayName(), "an unwritten DISPLAY keeps the item's text");
+        seeded.close();
+        world.advanceTicks(2);
+
+        Path layout = ECPluginManager.getProvidingPlugin(ConfirmScreen.ConfirmLayout.class).getMetaInfo().getDataFolder().toPath()
+                .resolve("guis/ConfirmLayout.yml");
+        String content = new String(Files.readAllBytes(layout), StandardCharsets.UTF_8);
+        assertTrue(content.contains("DISPLAY:"), "the field reaches the file by itself: " + content);
+        Files.createDirectories(layout.getParent());
+        Files.write(layout, Arrays.asList("Layout:", "  DISPLAY:", "    Slot: \"[4]\"", "    DisplayItem:", "    - material:minecraft:paper",
+                "    - name:§bFor sale", "    - lore:§7as it is"), StandardCharsets.UTF_8);
+        Layouts.clear();
+
+        Screens.confirm(alex, request);
+        ScreenView moved = openView();
+        RecordingSurface surface = world.getRenderer().surfaceOf(moved);
+        assertEquals("minecraft:diamond", surface.getSlot(4).getItem().getMaterialId());
+        assertEquals("§bFor sale", surface.getSlot(4).getItem().getDisplayName());
+        assertEquals(Arrays.asList("§7as it is"), surface.getSlot(4).getItem().getLore());
+        assertEquals("minecraft:gray_stained_glass_pane", surface.getSlot(13).getItem().getMaterialId(), "the old place shows the background");
+        moved.close();
+        world.advanceTicks(2);
+    }
+
+    @Test
+    void aConfirmationWithoutADisplayDrawsTheBackgroundWhereDisplaySits() {
+        Screens.confirm(alex, ConfirmRequest.of("Sure?"));
+        ScreenView view = openView();
+        assertEquals("minecraft:gray_stained_glass_pane", world.getRenderer().surfaceOf(view).getSlot(13).getItem().getMaterialId());
+        view.close();
+        world.advanceTicks(2);
     }
 
     @Test

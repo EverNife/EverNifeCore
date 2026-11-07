@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.screen;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
@@ -18,8 +19,9 @@ import jakarta.annotation.Nonnull;
  * {@link Screens#confirm} from anywhere. Denying hands back {@code false} and the screen underneath; walking away
  * cancels the answer.
  *
- * <p>What it looks like is the admin's: {@code guis/ConfirmLayout.yml} restyles the buttons, the background and the
- * size, and the plugin keeps saying only what it asks. With a {@link ConfirmRequest#getGate() gate}, confirming pays it
+ * <p>What it looks like is the admin's: {@code guis/ConfirmLayout.yml} restyles the buttons, the background, the size
+ * and {@code DISPLAY} - where the request's display item sits and, when it has a name or lore, the text it is drawn
+ * with - and the plugin keeps saying only what it asks. With a {@link ConfirmRequest#getGate() gate}, confirming pays it
  * (a {@link ClickRule}) and the confirm button's lore reads {@code {cost}}.</p>
  *
  * <p>A plugin with a confirmation of its own extends it over a layout that extends {@link ConfirmLayout} - its extra
@@ -52,10 +54,7 @@ public class ConfirmScreen<L extends ConfirmScreen.ConfirmLayout> extends Screen
         title(request.getQuestion());
         icon(l -> l.CONFIRM).onClick(this::onConfirm);
         icon(l -> l.DENY).onClick(context -> context.back(Boolean.FALSE));
-        if (request.getDisplay() != null) {
-            Grid grid = getGrid();
-            icon(Slots.at(grid.getRows() / 2 + 1, grid.getWidth() / 2 + 1), Icon.of(request.getDisplay())).id("display");
-        }
+        icon(l -> l.DISPLAY).id("display").visibleWhen(() -> request.getDisplay() != null).render(this::drawDisplay);
         if (payment != null) {
             //the gate's costs as it writes them, for whoever looks: a cost that depends on the viewer reads its base here
             addReplacer(new RegexReplacer<ConfirmScreen<?>>(Closures.BRACKET).addParser("cost", screen -> screen.describeCost()), this);
@@ -71,6 +70,17 @@ public class ConfirmScreen<L extends ConfirmScreen.ConfirmLayout> extends Screen
     @Nonnull
     public ConfirmRequest getRequest() {
         return request;
+    }
+
+    //the request's item where DISPLAY sits; DISPLAY's own name and lore, when the admin wrote any, replace the item's
+    private void drawDisplay(Icon icon) {
+        ItemSpec display = request.getDisplay();
+        if (display == null) {
+            return;
+        }
+        ItemSpec template = icon.getItem();
+        boolean written = !template.getDisplayName().isEmpty() || !template.getLore().isEmpty();
+        icon.setItem(written ? display.withText(template.getDisplayName(), template.getLore()) : display);
     }
 
     private String describeCost() {
@@ -107,6 +117,10 @@ public class ConfirmScreen<L extends ConfirmScreen.ConfirmLayout> extends Screen
 
         @IconData(slot = {15})
         public Icon DENY = DefaultIcons.deny();
+
+        //where the request's display item sits, drawn only when the request has one; a name or lore here replaces the item's
+        @IconData(slot = {13})
+        public Icon DISPLAY = Icon.of("minecraft:paper");
 
         @IconData(slot = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14,
                 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26}, background = true)
