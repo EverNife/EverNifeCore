@@ -79,7 +79,7 @@ public final class QuestOfferScreen extends Screen<QuestOfferScreen.QuestOfferLa
 
     private void check(ScreenView view) {
         GateResult result = request.getEngine().checkStart(view.getViewer(), request.getQuest());
-        missing.set(result == null || result.isPassed() ? "" : "§8" + ClickRule.missingOf(result));
+        missing.set(result == null || result.isPassed() ? "" : ClickRule.missingOf(result));
     }
 
     private void accept(ClickContext click) {
@@ -140,8 +140,8 @@ public final class QuestOfferScreen extends Screen<QuestOfferScreen.QuestOfferLa
 
         @IconData(slot = {11})
         public Icon ACCEPT = Icon.of(DefaultIcons.wool(DefaultIcons.Color.LIME))
-                .addLocale(LocaleType.EN_US, "§a§lAccept", "{missing}")
-                .addLocale(LocaleType.PT_BR, "§a§lAceitar", "{missing}");
+                .addLocale(LocaleType.EN_US, "§a§lAccept", "§8{missing}")
+                .addLocale(LocaleType.PT_BR, "§a§lAceitar", "§8{missing}");
 
         @IconData(slot = {15})
         public Icon DECLINE = DefaultIcons.deny();

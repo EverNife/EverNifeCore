@@ -109,6 +109,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **The quest journal names statuses and its filter in the viewer's language**: `{status}` and `{filter}` printed the
   enum (`ACTIVE`, `ALL`); they are now the core locale messages `QuestJournalScreen.STATUS.<STATUS>` (one per
   `QuestStatus`) and `QuestJournalScreen.FILTER.ALL`, en_US and pt_BR.
+- **The quest offer's `{missing}` is plain text**: the grey it carried is now on `QuestOfferLayout.ACCEPT`'s lore
+  (`§8{missing}`), where the server restyles it.
 
 #### Menus and shops
 

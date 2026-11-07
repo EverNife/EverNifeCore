@@ -160,7 +160,10 @@ class QuestScreensTest {
     @Test
     void theOfferGreysWhatTheGateMissesAndAcceptStartsTheQuest() {
         ScreenView vip = open(ScreenKey.QUEST_OFFER, QuestOfferScreen.Request.of(engine, quests.id("vip")));
-        assertTrue(((QuestOfferScreen) vip.getScreen()).getMissing().contains("fq.vip"), ((QuestOfferScreen) vip.getScreen()).getMissing());
+        String missing = ((QuestOfferScreen) vip.getScreen()).getMissing();
+        assertTrue(missing.contains("fq.vip"), missing);
+        assertTrue(screens.getRenderer().surfaceOf(vip).getSlot(11).getItem().getLore().contains("§8" + missing),
+                "the grey is the layout's: " + screens.getRenderer().surfaceOf(vip).getSlot(11).getItem().getLore());
         vip.close();
         screens.advanceTicks(2);
 
