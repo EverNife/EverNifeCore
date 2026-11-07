@@ -83,6 +83,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   green arrow; it is now `RankingScreen.SELF_MARKER` (en_US, pt_BR, same arrow by default), in the viewer's language and
   editable in the core's language file.
 
+#### Quests
+
+- **The quest journal names statuses and its filter in the viewer's language**: `{status}` and `{filter}` printed the
+  enum (`ACTIVE`, `ALL`); they are now the core locale messages `QuestJournalScreen.STATUS.<STATUS>` (one per
+  `QuestStatus`) and `QuestJournalScreen.FILTER.ALL`, en_US and pt_BR.
+
 ### Fixed
 
 #### Regions

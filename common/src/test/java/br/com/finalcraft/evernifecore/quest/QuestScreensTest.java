@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.quest;
 
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.quest.screen.QuestJournalScreen;
 import br.com.finalcraft.evernifecore.quest.screen.QuestOfferScreen;
 import br.com.finalcraft.evernifecore.screen.ClickGesture;
@@ -8,7 +10,9 @@ import br.com.finalcraft.evernifecore.screen.ScreenKey;
 import br.com.finalcraft.evernifecore.screen.ScreenRequest;
 import br.com.finalcraft.evernifecore.screen.ScreenView;
 import br.com.finalcraft.evernifecore.screen.Screens;
+import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.QuestWorld;
+import br.com.finalcraft.evernifecore.testing.RecordingSurface;
 import br.com.finalcraft.evernifecore.testing.ScreenWorld;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
@@ -80,6 +84,35 @@ class QuestScreensTest {
         assertEquals(Collections.singletonList(quests.id("vip")), journal.getListed(), "walk is active, vip is the available one");
         view.close();
         screens.advanceTicks(2);
+    }
+
+    @Test
+    void theJournalNamesTheStatusAndTheFilterInTheViewersLanguage() {
+        ECPluginData core = screens.getCore();
+        String before = core.getPluginLanguage();
+        Plugins.setLanguage(core, LocaleType.PT_BR);
+        try {
+            assertTrue(await(engine.start(quests.owner(alex), quests.id("walk"), QuestParams.NONE)).isSuccess());
+            ScreenView view = open(ScreenKey.QUEST_JOURNAL, QuestJournalScreen.Request.of(engine, QuestStatus.ACTIVE));
+            RecordingSurface surface = screens.getRenderer().surfaceOf(view);
+
+            assertTrue(surface.getSlot(0).getItem().getLore().contains("§fAtiva §7- §a0%"), surface.getSlot(0).getItem().getLore().toString());
+            assertTrue(surface.getSlot(49).getItem().getDisplayName().endsWith("§fAtiva"), surface.getSlot(49).getItem().getDisplayName());
+
+            screens.click(view, "filter", ClickGesture.PRIMARY);
+            screens.advanceTicks(2);
+            assertTrue(surface.getSlot(49).getItem().getDisplayName().endsWith("§fDisponível"), surface.getSlot(49).getItem().getDisplayName());
+            view.close();
+            screens.advanceTicks(2);
+
+            ScreenView every = open(ScreenKey.QUEST_JOURNAL, QuestJournalScreen.Request.of(engine, null));
+            RecordingSurface everySurface = screens.getRenderer().surfaceOf(every);
+            assertTrue(everySurface.getSlot(49).getItem().getDisplayName().endsWith("§fTodas"), everySurface.getSlot(49).getItem().getDisplayName());
+            every.close();
+            screens.advanceTicks(2);
+        } finally {
+            Plugins.setLanguage(core, before);
+        }
     }
 
     @Test

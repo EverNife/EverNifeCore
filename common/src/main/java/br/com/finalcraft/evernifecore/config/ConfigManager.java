@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.config;
 
 import br.com.finalcraft.evernifecore.quest.command.ArgParserQuest;
 import br.com.finalcraft.evernifecore.quest.command.QuestCommandNode;
+import br.com.finalcraft.evernifecore.quest.screen.QuestJournalScreen;
 import br.com.finalcraft.evernifecore.quest.screen.QuestOfferScreen;
 import br.com.finalcraft.evernifecore.group.command.CoreGroupCommands;
 import br.com.finalcraft.evernifecore.dialogue.command.CoreDialogueCommands;
@@ -80,6 +81,7 @@ public class ConfigManager {
                 QuestCommandNode.class,
                 ArgParserQuest.class,
                 QuestOfferScreen.class,
+                QuestJournalScreen.class,
                 Transactions.class,
                 TransactionResult.class
         );

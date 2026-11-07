@@ -1,5 +1,8 @@
 package br.com.finalcraft.evernifecore.quest.screen;
 
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.logic.ProgressOwner;
 import br.com.finalcraft.evernifecore.placeholder.replacer.Closures;
@@ -38,25 +41,68 @@ import java.util.UUID;
  * {@code Screens.override(plugin, ScreenKey.QUEST_JOURNAL, ...)}.
  *
  * <p>The entry template reads {@code {id}}, {@code {name}}, {@code {description}}, {@code {status}} and
- * {@code {percent}} (of the current stage); the filter button reads {@code {filter}}.</p>
+ * {@code {percent}} (of the current stage); the filter button reads {@code {filter}}. A status and the filter read as
+ * the core locale messages {@code QuestJournalScreen.STATUS.<STATUS>} and {@code QuestJournalScreen.FILTER.ALL}, in the
+ * viewer's language.</p>
  */
 public final class QuestJournalScreen extends Screen<QuestJournalScreen.QuestJournalLayout> {
 
     private static final QuestStatus[] CYCLE = {QuestStatus.ACTIVE, QuestStatus.AVAILABLE, QuestStatus.COMPLETED, null};
 
+    @FCLocale(lang = LocaleType.EN_US, text = "Locked")
+    @FCLocale(lang = LocaleType.PT_BR, text = "Bloqueada")
+    private static LocaleMessage STATUS__LOCKED;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "Available")
+    @FCLocale(lang = LocaleType.PT_BR, text = "Disponível")
+    private static LocaleMessage STATUS__AVAILABLE;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "Offered")
+    @FCLocale(lang = LocaleType.PT_BR, text = "Oferecida")
+    private static LocaleMessage STATUS__OFFERED;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "Active")
+    @FCLocale(lang = LocaleType.PT_BR, text = "Ativa")
+    private static LocaleMessage STATUS__ACTIVE;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "Completed")
+    @FCLocale(lang = LocaleType.PT_BR, text = "Concluída")
+    private static LocaleMessage STATUS__COMPLETED;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "Failed")
+    @FCLocale(lang = LocaleType.PT_BR, text = "Falhou")
+    private static LocaleMessage STATUS__FAILED;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "Expired")
+    @FCLocale(lang = LocaleType.PT_BR, text = "Expirada")
+    private static LocaleMessage STATUS__EXPIRED;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "Abandoned")
+    @FCLocale(lang = LocaleType.PT_BR, text = "Abandonada")
+    private static LocaleMessage STATUS__ABANDONED;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "Cooldown")
+    @FCLocale(lang = LocaleType.PT_BR, text = "Em espera")
+    private static LocaleMessage STATUS__COOLDOWN;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "All")
+    @FCLocale(lang = LocaleType.PT_BR, text = "Todas")
+    private static LocaleMessage FILTER__ALL;
+
     private static final RegexReplacer<Row> ROW = new RegexReplacer<Row>(Closures.BRACKET)
             .addParser("id", row -> row.definition.getId().getName())
             .addParser("name", row -> row.definition.getName())
             .addParser("description", row -> row.definition.getDescription())
-            .addParser("status", row -> row.status.name())
+            .addParser("status", row -> row.statusText)
             .addParser("percent", row -> row.percent);
 
     private static final RegexReplacer<QuestJournalScreen> FILTER = new RegexReplacer<QuestJournalScreen>(Closures.BRACKET)
-            .addParser("filter", screen -> screen.filter.get() == null ? "ALL" : screen.filter.get().name());
+            .addParser("filter", screen -> textOf(screen.filter.get(), screen.viewer));
 
     private final Request request;
     private final MutableState<QuestStatus> filter;
     private final MutableState<List<Row>> rows = new MutableState<>(Collections.<Row>emptyList());
+    private volatile @Nullable FPlayer viewer;
 
     private QuestJournalScreen(QuestJournalLayout layout, Request request) {
         super(layout.getRows(), layout);
@@ -73,7 +119,7 @@ public final class QuestJournalScreen extends Screen<QuestJournalScreen.QuestJou
                 .dependsOn(rows)
                 .render((row, icon) -> drawnAs(icon.addScope(ROW, row), row.definition))
                 .onClick((click, row) -> row.engine.track(click.getViewer(), row.definition.getId()));
-        icon(l -> l.FILTER).id("filter").dependsOn(filter).onClick(click -> {
+        icon(l -> l.FILTER).id("filter").dependsOn(filter, rows).onClick(click -> {
             filter.set(next(filter.get()));
             reload(click.getView());
         });
@@ -111,6 +157,32 @@ public final class QuestJournalScreen extends Screen<QuestJournalScreen.QuestJou
         return icon;
     }
 
+    private static @Nullable LocaleMessage messageOf(@Nullable QuestStatus status) {
+        if (status == null) {
+            return FILTER__ALL;
+        }
+        switch (status) {
+            case LOCKED: return STATUS__LOCKED;
+            case AVAILABLE: return STATUS__AVAILABLE;
+            case OFFERED: return STATUS__OFFERED;
+            case ACTIVE: return STATUS__ACTIVE;
+            case COMPLETED: return STATUS__COMPLETED;
+            case FAILED: return STATUS__FAILED;
+            case EXPIRED: return STATUS__EXPIRED;
+            case ABANDONED: return STATUS__ABANDONED;
+            default: return STATUS__COOLDOWN;
+        }
+    }
+
+    //the enum's own name when the core locales were never loaded (a screen built outside the boot)
+    private static String textOf(@Nullable QuestStatus status, @Nullable FPlayer viewer) {
+        LocaleMessage message = messageOf(status);
+        if (message == null) {
+            return status == null ? "ALL" : status.name();
+        }
+        return message.getFancyText(viewer).getText();
+    }
+
     private static @Nullable QuestStatus next(@Nullable QuestStatus current) {
         for (int i = 0; i < CYCLE.length; i++) {
             if (CYCLE[i] == current) {
@@ -125,13 +197,15 @@ public final class QuestJournalScreen extends Screen<QuestJournalScreen.QuestJou
         Collection<QuestEngine> engines = request.getEngine() == null ? QuestEngine.all() : Collections.singletonList(request.getEngine());
         List<Row> found = new ArrayList<>();
         QuestStatus wanted = filter.get();
+        this.viewer = view.getViewer();
         for (QuestEngine engine : engines) {
             for (QuestDefinition definition : engine.getAll()) {
                 ProgressOwner owner = engine.getOwnerFor(viewer, definition.getId());
                 QuestStatus status = owner == null ? QuestStatus.LOCKED : engine.getStatus(owner, definition.getId(), view.getViewer());
                 if ((wanted == null || wanted == status) && definition.getMeta().getVisibility().lists(status)) {
                     QuestState state = owner == null ? null : engine.getState(owner, definition.getId()).orElse(null);
-                    found.add(new Row(engine, definition, status, state == null ? 0 : (int) Math.floor(definition.getStageProgress(state) * 100)));
+                    found.add(new Row(engine, definition, textOf(status, view.getViewer()),
+                            state == null ? 0 : (int) Math.floor(definition.getStageProgress(state) * 100)));
                 }
             }
         }
@@ -143,13 +217,13 @@ public final class QuestJournalScreen extends Screen<QuestJournalScreen.QuestJou
 
         private final QuestEngine engine;
         private final QuestDefinition definition;
-        private final QuestStatus status;
+        private final String statusText;
         private final int percent;
 
-        private Row(QuestEngine engine, QuestDefinition definition, QuestStatus status, int percent) {
+        private Row(QuestEngine engine, QuestDefinition definition, String statusText, int percent) {
             this.engine = engine;
             this.definition = definition;
-            this.status = status;
+            this.statusText = statusText;
             this.percent = percent;
         }
     }
