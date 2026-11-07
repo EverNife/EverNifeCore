@@ -49,6 +49,7 @@ import com.hypixel.hytale.component.Holder;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.RemoveReason;
 import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.EcsEvent;
 import com.hypixel.hytale.component.system.ICancellableEcsEvent;
 import com.hypixel.hytale.math.util.ChunkUtil;
@@ -64,12 +65,17 @@ import com.hypixel.hytale.server.core.entity.InteractionManager;
 import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent;
 import com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.DamageBlockEvent;
-import com.hypixel.hytale.server.core.event.events.ecs.DropItemEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.EnvironmentBreakBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.InteractivelyPickupItemEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.RespawnEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.UseBlockEvent;
+import com.hypixel.hytale.protocol.ToServerPacket;
+import com.hypixel.hytale.protocol.packets.inventory.DropItemStack;
+import com.hypixel.hytale.server.core.io.handlers.IPacketHandler;
+import com.hypixel.hytale.server.core.io.handlers.game.InventoryPacketHandler;
 import com.hypixel.hytale.server.core.inventory.InventoryComponent;
+import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
+import com.hypixel.hytale.server.core.modules.entity.item.ItemComponent;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.inventory.container.ItemContainer;
 import com.hypixel.hytale.server.core.modules.block.components.ItemContainerBlock;
@@ -143,8 +149,8 @@ public final class HyRegionsSuite implements ConformanceSuite {
                 withPlayer("outline-is-sent", ctx, this::outlineIsSent),
                 withPlayer("effects-on-enter-runs-message", ctx, this::effectsOnEnterRunsMessage),
                 withPlayer("damage-multiplier-scales-damage", ctx, this::damageMultiplierScalesDamage),
-                withPlayer("deny-item-drop-inside-only", ctx, player -> itemDeniedInsideOnly(player, "ecc-item-drop", CoreFlags.DENY_ITEM_DROP,
-                        () -> new DropItemEvent.Drop(new ItemStack(SOLID), 1F))),
+                withPlayer("deny-item-drop-inside-only", ctx, this::dropDeniedKeepsTheItem),
+                withPlayer("destroy-dropped-items-vanishes", ctx, this::destroyedDropVanishes),
                 withPlayer("deny-item-pickup-inside-only", ctx, player -> itemDeniedInsideOnly(player, "ecc-item-pickup", CoreFlags.DENY_ITEM_PICKUP,
                         () -> new InteractivelyPickupItemEvent(new ItemStack(SOLID)))),
                 withPlayer("terrain-journal-restores", ctx, this::terrainJournalRestores),
@@ -256,8 +262,8 @@ public final class HyRegionsSuite implements ConformanceSuite {
     }
 
     /**
-     * The player drops or picks up an item (the game's own event, fired at the player): with {@code flag} on a region
-     * 20 blocks off it goes through, with it on a region around the player it is cancelled.
+     * The player picks up an item (the game's own event, fired at the player): with {@code flag} on a region 20 blocks off
+     * it goes through, with it on a region around the player it is cancelled.
      */
     private CompletableFuture<Verdict> itemDeniedInsideOnly(FPlayer fplayer, String name, Flag<Tristate> flag, Supplier<EcsEvent> event) {
         PlayerRef player = HyWorld.player(fplayer);
@@ -278,6 +284,132 @@ public final class HyRegionsSuite implements ConformanceSuite {
                         return Verdict.of(inside && !outside[0], "insideCancelled=" + inside + " outsideCancelled=" + outside[0]);
                     })));
         });
+    }
+
+    /**
+     * The player throws a stack out of a hotbar slot through the server's own drop handler: with {@code deny-item-drop} on
+     * a region around the player the stack is still in its slot afterwards; with the flag on a region 20 blocks off it
+     * left. The slot, not the event: a drop denied once the stack had left the slot would be cancelled and lose the item.
+     */
+    private CompletableFuture<Verdict> dropDeniedKeepsTheItem(FPlayer fplayer) {
+        PlayerRef player = HyWorld.player(fplayer);
+        World world = HyWorld.worldOf(player);
+        return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(at -> {
+            Vector3i feet = block(at, 0, 0, 0);
+            Vector3i away = block(at, 20, 0, 0);
+            String[] inside = new String[1];
+            return inRegion(regions, "ecc-item-drop", world.getName(), pos(feet).add(-2, -2, -2), pos(feet).add(2, 3, 2),
+                    region -> region.setFlag(CoreFlags.DENY_ITEM_DROP, Tristate.TRUE),
+                    region -> throwFromHotbar(fplayer, world).thenApply(slot -> {
+                        inside[0] = slot;
+                        return Verdict.pass("");
+                    })).thenCompose(ignored -> inRegion(regions, "ecc-item-drop-away", world.getName(), pos(away).add(-2, -2, -2),
+                    pos(away).add(2, 3, 2), region -> region.setFlag(CoreFlags.DENY_ITEM_DROP, Tristate.TRUE),
+                    region -> throwFromHotbar(fplayer, world).thenApply(outside -> Verdict.of(KEPT.equals(inside[0]) && LEFT.equals(outside),
+                            "insideSlot=" + inside[0] + " outsideSlot=" + outside))))
+                    .thenCompose(verdict -> sweepItems(world, feet).thenApply(swept -> verdict));
+        });
+    }
+
+    /** The player throws a stack inside {@code destroy-dropped-items}: the drop goes through - the slot empties - and no item lands. */
+    private CompletableFuture<Verdict> destroyedDropVanishes(FPlayer fplayer) {
+        PlayerRef player = HyWorld.player(fplayer);
+        World world = HyWorld.worldOf(player);
+        return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(at -> {
+            Vector3i feet = block(at, 0, 0, 0);
+            int[] before = new int[1];
+            return HyWorld.on(world, () -> before[0] = itemsAround(world, feet)).thenCompose(counted -> inRegion(regions, "ecc-item-destroy",
+                    world.getName(), pos(feet).add(-2, -2, -2), pos(feet).add(2, 3, 2),
+                    region -> region.setFlag(CoreFlags.DESTROY_DROPPED_ITEMS, Tristate.TRUE),
+                    region -> throwFromHotbar(fplayer, world).thenCompose(slot -> HyWorld.on(world, () -> {
+                        int after = itemsAround(world, feet);
+                        return Verdict.of(LEFT.equals(slot) && after == before[0], "slot=" + slot + " itemsAround=" + before[0] + "->" + after);
+                    })))).thenCompose(verdict -> sweepItems(world, feet).thenApply(swept -> verdict));
+        });
+    }
+
+    /** What {@link #throwFromHotbar} reads in the slot: the stack still there, or the slot emptied. */
+    private static final String KEPT = "kept";
+    private static final String LEFT = "left";
+    /** How many of {@link #SOLID} a drop case throws. */
+    private static final int THROWN = 3;
+    /** How far from the player {@link #sweepItems} and {@link #itemsAround} look, each way. */
+    private static final int SWEEP = 8;
+
+    /**
+     * Puts {@link #THROWN} of {@link #SOLID} in an empty hotbar slot and hands the server's own drop handler the packet a
+     * client sends to throw it; five ticks later answers what the slot holds - {@link #KEPT}, {@link #LEFT} or what else -
+     * and empties it.
+     */
+    private static CompletableFuture<String> throwFromHotbar(FPlayer fplayer, World world) {
+        PlayerRef player = HyWorld.player(fplayer);
+        short[] slot = {-1};
+        return HyWorld.on(world, () -> {
+            ItemContainer hotbar = ((HytaleFPlayer) fplayer).getInventorySection(InventoryComponent.HOTBAR_SECTION_ID);
+            for (short index = 0; hotbar != null && index < hotbar.getCapacity() && slot[0] < 0; index++) {
+                if (ItemStack.isEmpty(hotbar.getItemStack(index))) {
+                    slot[0] = index;
+                }
+            }
+            if (slot[0] < 0) {
+                return false;
+            }
+            hotbar.setItemStackForSlot(slot[0], new ItemStack(SOLID, THROWN));
+            new InventoryPacketHandler(new DropSender(player)).handle(new DropItemStack(InventoryComponent.HOTBAR_SECTION_ID, slot[0], THROWN));
+            return true;
+        }).thenCompose(sent -> !sent ? CompletableFuture.completedFuture("no empty hotbar slot")
+                : HyWorld.ticks(world, 5).thenCompose(waited -> HyWorld.on(world, () -> {
+                    ItemContainer hotbar = ((HytaleFPlayer) fplayer).getInventorySection(InventoryComponent.HOTBAR_SECTION_ID);
+                    ItemStack now = hotbar.getItemStack(slot[0]);
+                    hotbar.removeItemStackFromSlot(slot[0]);
+                    if (ItemStack.isEmpty(now)) {
+                        return LEFT;
+                    }
+                    return SOLID.equals(now.getItemId()) && now.getQuantity() == THROWN ? KEPT : now.getItemId() + " x" + now.getQuantity();
+                })));
+    }
+
+    /** The connection the drop handler reads the player from; it registers nothing. */
+    private record DropSender(PlayerRef player) implements IPacketHandler {
+        @Override
+        public void registerHandler(int packetId, Consumer<ToServerPacket> handler) {
+        }
+
+        @Override
+        public void registerNoOpHandlers(int... packetIds) {
+        }
+
+        @Override
+        public PlayerRef getPlayerRef() {
+            return player;
+        }
+
+        @Override
+        public String getIdentifier() {
+            return "ecc-drop";
+        }
+    }
+
+    /** The item entities within {@link #SWEEP} blocks of {@code center}; on the world's thread. */
+    private static int itemsAround(World world, Vector3i center) {
+        int[] found = new int[1];
+        world.getEntityStore().getStore().forEachChunk(Query.and(ItemComponent.getComponentType(), TransformComponent.getComponentType()),
+                (chunk, buffer) -> {
+                    for (int index = 0; index < chunk.size(); index++) {
+                        Vector3d at = chunk.getComponent(index, TransformComponent.getComponentType()).getPosition();
+                        if (Math.abs(at.x - center.x) <= SWEEP && Math.abs(at.y - center.y) <= SWEEP && Math.abs(at.z - center.z) <= SWEEP) {
+                            found[0]++;
+                        }
+                    }
+                });
+        return found[0];
+    }
+
+    /** Takes every item within {@link #SWEEP} blocks of {@code center} off the ground through {@link Region#clearItems()}, so no case meets another's. */
+    private CompletableFuture<Verdict> sweepItems(World world, Vector3i center) {
+        return inRegion(regions, "ecc-item-sweep", world.getName(), pos(center).add(-SWEEP, -SWEEP, -SWEEP), pos(center).add(SWEEP, SWEEP, SWEEP),
+                region -> {
+                }, region -> region.clearItems().thenApply(cleared -> Verdict.pass(cleared.toString())));
     }
 
     private CompletableFuture<Verdict> breakByNpc(FPlayer fplayer) {

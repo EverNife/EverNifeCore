@@ -348,15 +348,42 @@ class HyActionSystemsTest {
         vault.setFlag(CoreFlags.DENY_ITEM_PICKUP, Tristate.TRUE);
         Actor player = HyActionContexts.actor(miner, null, null, null);
         TypeKey stick = HyActionContexts.key("Ingredient_Stick");
-        DropItemEvent.Drop drop = new DropItemEvent.Drop(null, 0f);
+        DropItemEvent.PlayerRequest request = new DropItemEvent.PlayerRequest(0, (short) 0);
         InteractivelyPickupItemEvent pickup = new InteractivelyPickupItemEvent(null);
 
-        assertTrue(HyActionSystems.judge(EventSource.ITEM_DROP, WORLD, drop, () -> new ItemContext(EventSource.ITEM_DROP,
-                HyActionContexts.position(WORLD, new Vector3i(5, 5, 5)), player, drop, stick, 1, null, null)));
+        assertTrue(HyActionSystems.judgeDropRequest(WORLD, request, () -> new ItemContext(EventSource.ITEM_DROP,
+                HyActionContexts.position(WORLD, new Vector3i(5, 5, 5)), player, request, stick, 1, null, null)));
         assertTrue(HyActionSystems.judge(EventSource.ITEM_PICKUP, WORLD, pickup, () -> new ItemContext(EventSource.ITEM_PICKUP,
                 HyActionContexts.position(WORLD, new Vector3i(5, 5, 5)), player, pickup, stick, 1, null, null)));
-        assertTrue(drop.isCancelled());
+        assertTrue(request.isCancelled(), "the request is denied while the stack is still in its slot");
         assertTrue(pickup.isCancelled());
+    }
+
+    @Test
+    void aStackThatAlreadyLeftTheInventoryIsNeverDeniedSoADenyingRegionCannotEatIt() {
+        FlagRegistry.get().register(core, CoreFlags.DENY_ITEM_DROP);
+        vault(CoreFlags.DENY_ITEM_DROP);
+        Actor player = HyActionContexts.actor(miner, null, null, null);
+        TypeKey stick = HyActionContexts.key("Ingredient_Stick");
+        DropItemEvent.Drop drop = new DropItemEvent.Drop(null, 0f);
+
+        HyActionSystems.judgeDrop(WORLD, drop, () -> new ItemContext(EventSource.ITEM_DROP,
+                HyActionContexts.position(WORLD, new Vector3i(5, 5, 5)), player, drop, stick, 1, null, null));
+
+        assertFalse(drop.isCancelled(), "a cancelled Drop spawns nothing and gives nothing back: the item would be lost");
+    }
+
+    @Test
+    void aRequestInsideDestroyDroppedItemsIsLetThroughSoTheStackCanLeave() {
+        FlagRegistry.get().register(core, CoreFlags.DESTROY_DROPPED_ITEMS);
+        vault(CoreFlags.DESTROY_DROPPED_ITEMS);
+        Actor player = HyActionContexts.actor(miner, null, null, null);
+        DropItemEvent.PlayerRequest request = new DropItemEvent.PlayerRequest(0, (short) 0);
+
+        assertFalse(HyActionSystems.judgeDropRequest(WORLD, request, () -> new ItemContext(EventSource.ITEM_DROP,
+                HyActionContexts.position(WORLD, new Vector3i(5, 5, 5)), player, request, HyActionContexts.key("Ingredient_Stick"), 1,
+                null, null)));
+        assertFalse(request.isCancelled(), "the item vanishes on its Drop, not by staying in the slot");
     }
 
     @Test
@@ -368,10 +395,10 @@ class HyActionSystemsTest {
         DropItemEvent.Drop inside = new DropItemEvent.Drop(null, 0f);
         DropItemEvent.Drop outside = new DropItemEvent.Drop(null, 0f);
 
-        assertFalse(HyActionSystems.judgeDrop(WORLD, inside, () -> new ItemContext(EventSource.ITEM_DROP,
-                HyActionContexts.position(WORLD, new Vector3i(5, 5, 5)), player, inside, stick, 1, null, null)), "the drop is not denied");
-        assertFalse(HyActionSystems.judgeDrop(WORLD, outside, () -> new ItemContext(EventSource.ITEM_DROP,
-                HyActionContexts.position(WORLD, new Vector3i(50, 5, 50)), player, outside, stick, 1, null, null)));
+        HyActionSystems.judgeDrop(WORLD, inside, () -> new ItemContext(EventSource.ITEM_DROP,
+                HyActionContexts.position(WORLD, new Vector3i(5, 5, 5)), player, inside, stick, 1, null, null));
+        HyActionSystems.judgeDrop(WORLD, outside, () -> new ItemContext(EventSource.ITEM_DROP,
+                HyActionContexts.position(WORLD, new Vector3i(50, 5, 50)), player, outside, stick, 1, null, null));
         assertTrue(inside.isCancelled(), "the stack already left the inventory: a cancelled drop spawns nothing");
         assertFalse(outside.isCancelled());
     }

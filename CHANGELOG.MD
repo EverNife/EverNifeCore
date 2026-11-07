@@ -74,6 +74,14 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+#### Regions
+
+- **`deny-item-drop` on Hytale keeps the item with the dropper**: it denied `DropItemEvent.Drop`, which the server fires
+  once the stack has left the slot, so the cancelled drop spawned nothing and gave nothing back. It now denies
+  `DropItemEvent.PlayerRequest`, while the stack is still in its slot (the request names no quantity: its context
+  carries the whole stack in the slot); the `Drop` is never denied and only posts the `Post` and destroys what
+  `destroy-dropped-items` marked.
+
 #### Quests
 
 - **The quest journal and the quest offer draw a quest with its `meta.icon`**: `QuestMeta.getIcon()` promised "the item

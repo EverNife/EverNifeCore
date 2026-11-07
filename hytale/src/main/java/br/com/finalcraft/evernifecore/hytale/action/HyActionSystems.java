@@ -18,6 +18,7 @@ import br.com.finalcraft.evernifecore.action.SimpleContext;
 import br.com.finalcraft.evernifecore.action.SpawnContext;
 import br.com.finalcraft.evernifecore.action.TypeKey;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.flag.Decision;
 import br.com.finalcraft.evernifecore.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.hytale.loader.imp.HyPlatform;
@@ -77,6 +78,8 @@ import com.hypixel.hytale.server.core.event.events.ecs.UseBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.UseEntityEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
+import com.hypixel.hytale.server.core.inventory.InventoryUtils;
+import com.hypixel.hytale.server.core.inventory.container.ItemContainer;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.modules.entity.damage.Damage;
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageCause;
@@ -178,6 +181,7 @@ public final class HyActionSystems {
         registry.registerSystem(new InteractionStartSystem());
         registry.registerSystem(new DamageSystem());
         registry.registerSystem(new SpawnSystem());
+        registry.registerSystem(new ItemDropRequestSystem());
         registry.registerSystem(new ItemDropSystem());
         registry.registerSystem(new ItemPickupSystem());
         registry.registerSystem(new TerrainBreakSystem());
@@ -329,27 +333,42 @@ public final class HyActionSystems {
         Supplier<ItemContext> context = () -> new ItemContext(source, HyActionContexts.position(world, at),
                 HyActionContexts.actor(actor, store), event, key, item.getQuantity(), null,
                 () -> ItemSpec.of(key.toString(), item.getQuantity()).withNativeItem(new NativeItem(item)));
-        return source == EventSource.ITEM_DROP ? judgeDrop(world, event, context) : judge(source, world, event, context);
+        if (source != EventSource.ITEM_DROP) {
+            return judge(source, world, event, context);
+        }
+        if (event instanceof DropItemEvent.PlayerRequest) {
+            return judgeDropRequest(world, event, context);
+        }
+        judgeDrop(world, event, context);
+        return false;
     }
 
     /**
-     * Judges a drop like {@link #judge}; one let through that a flag marked ({@link ItemContext#isItemDestroyed()}) is
-     * cancelled after its {@code Post}: the server fires {@code DropItemEvent.Drop} once the stack has left the inventory,
-     * so a cancelled drop spawns no item and gives nothing back - the item vanishes.
+     * The player asks to drop a stack, still in its slot: the regions decide and the {@code Pre} is posted like
+     * {@link #judge}, and a denied request leaves the item where it is. Not the outcome - {@link #judgeDrop} posts the
+     * {@code Post} once the stack leaves.
+     *
+     * @return whether the request was denied here
      */
-    static boolean judgeDrop(String world, ICancellableEcsEvent event, Supplier<ItemContext> context) {
-        ItemContext[] asked = new ItemContext[1];
-        boolean denied = judge(EventSource.ITEM_DROP, world, event, () -> {
-            ItemContext built = context.get();
-            if (asked[0] == null) {
-                asked[0] = built; //the one the regions decided on; a listened Post builds its own
-            }
-            return built;
-        });
-        if (!denied && asked[0] != null && asked[0].isItemDestroyed()) {
+    static boolean judgeDropRequest(String world, ICancellableEcsEvent request, Supplier<ItemContext> context) {
+        return judge(EventSource.ITEM_DROP, world, request, context, false);
+    }
+
+    /**
+     * The stack has left the inventory ({@code DropItemEvent.Drop}): it is never denied here - a cancelled drop spawns no
+     * item and gives nothing back, so the denial belongs to {@link #judgeDropRequest}. The {@code Post} is posted, and a drop
+     * a flag marked ({@link ItemContext#isItemDestroyed()}) with nothing denying it is cancelled after it: the item vanishes.
+     */
+    static void judgeDrop(String world, ICancellableEcsEvent event, Supplier<ItemContext> context) {
+        if (!EventSourceUsage.get().isNeeded(EventSource.ITEM_DROP) || event.isCancelled() || HyActionContexts.isDisabled(world)) {
+            return;
+        }
+        ItemContext asked = context.get();
+        boolean destroyed = RegionLookup.get().decide(asked) != Decision.DENY && asked.isItemDestroyed();
+        Actions.post(EventSource.ITEM_DROP, context);
+        if (destroyed) {
             event.setCancelled(true);
         }
-        return denied;
     }
 
     /** What spawns a creature nobody spawned on purpose: the world itself. */
@@ -706,6 +725,32 @@ public final class HyActionSystems {
         InteractionChainData data = event.getChain().getChainData();
         BlockPosition block = data == null ? null : data.blockPosition;
         return block == null ? null : new Vector3i(block.x, block.y, block.z);
+    }
+
+    /**
+     * The drop the player asks for, judged while the stack is still in the slot it names. The request carries no
+     * quantity: its context names the whole stack in the slot, even when the player throws one.
+     */
+    private static final class ItemDropRequestSystem extends ByActor<DropItemEvent.PlayerRequest> {
+        ItemDropRequestSystem() {
+            super(DropItemEvent.PlayerRequest.class);
+        }
+
+        @Override
+        public void handle(int index, ArchetypeChunk<EntityStore> chunk, Store<EntityStore> store, CommandBuffer<EntityStore> buffer,
+                           DropItemEvent.PlayerRequest event) {
+            if (!EventSourceUsage.get().isNeeded(EventSource.ITEM_DROP)) {
+                return;
+            }
+            Ref<EntityStore> player = chunk.getReferenceTo(index);
+            onItem(EventSource.ITEM_DROP, player, store, event, slotItem(player, store, event.getInventorySectionId(), event.getSlotId()));
+        }
+    }
+
+    /** The stack in a slot the client named; null for an empty slot, or a section or slot that does not exist. */
+    static @Nullable ItemStack slotItem(Ref<EntityStore> entity, Store<EntityStore> store, int sectionId, short slot) {
+        ItemContainer section = InventoryUtils.getSectionById(entity, sectionId, store);
+        return section == null || slot < 0 || slot >= section.getCapacity() ? null : section.getItemStack(slot);
     }
 
     private static final class ItemDropSystem extends ByActor<DropItemEvent.Drop> {
