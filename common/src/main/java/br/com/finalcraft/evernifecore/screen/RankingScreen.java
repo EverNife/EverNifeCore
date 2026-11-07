@@ -1,6 +1,9 @@
 package br.com.finalcraft.evernifecore.screen;
 
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
+import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.placeholder.replacer.Closures;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
@@ -13,7 +16,6 @@ import jakarta.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * The entries of a {@link RankedList} - the core's default for {@link ScreenKey#RANKING}, built from a
@@ -21,17 +23,20 @@ import java.util.UUID;
  * theirs. The snapshot is read when the window opens, so the list fills a moment after it.
  *
  * <p>The entry template reads {@code {position}}, {@code {subject}}, {@code {value}} and {@code {marker}} (the
- * viewer's own row only); the bar reads {@code {percent}} and {@code {next}}.</p>
+ * viewer's own row only, the core locale message {@code RankingScreen.SELF_MARKER} in the viewer's language); the bar reads
+ * {@code {percent}} and {@code {next}}.</p>
  */
 public final class RankingScreen extends Screen<RankingScreen.RankingLayout> {
 
-    private static final String SELF_MARKER = "§a» ";
+    @FCLocale(lang = LocaleType.EN_US, text = "§a» ")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§a» ")
+    private static LocaleMessage SELF_MARKER;
 
     private static final RegexReplacer<Row> ROW = new RegexReplacer<Row>(Closures.BRACKET)
             .addParser("position", row -> row.position)
             .addParser("subject", row -> row.subject)
             .addParser("value", row -> row.value)
-            .addParser("marker", row -> row.self ? SELF_MARKER : "");
+            .addParser("marker", row -> row.marker);
 
     private static final RegexReplacer<RankingScreen> BAR = new RegexReplacer<RankingScreen>(Closures.BRACKET)
             .addParser("percent", screen -> Math.round(screen.ratio.get() * 100))
@@ -86,13 +91,15 @@ public final class RankingScreen extends Screen<RankingScreen.RankingLayout> {
     }
 
     private void load(ScreenView view) {
-        request.getList().snapshot().thenAccept(snapshot -> view.getScheduler().run(() -> show(view.getViewerId(), snapshot)));
+        request.getList().snapshot().thenAccept(snapshot -> view.getScheduler().run(() -> show(view.getViewer(), snapshot)));
     }
 
-    private <T> void show(UUID viewer, RankedSnapshot<T> snapshot) {
+    private <T> void show(FPlayer viewer, RankedSnapshot<T> snapshot) {
         @SuppressWarnings("unchecked")
         RankedList<T> list = (RankedList<T>) request.getList();
-        Integer mine = snapshot.positionOf(viewer);
+        Integer mine = snapshot.positionOf(viewer.getUniqueId());
+        //nothing marks the row when the core locales were never loaded (a screen built outside the boot)
+        String marker = SELF_MARKER == null ? "" : SELF_MARKER.getFancyText(viewer).getText();
         List<Row> built = new ArrayList<>();
         Object mineValue = null;
         Object aboveValue = null;
@@ -101,7 +108,7 @@ public final class RankingScreen extends Screen<RankingScreen.RankingLayout> {
             Object subject = list.isAboutPlayers() ? list.valueOf(entry, RankedList.PLAYER_KEY) : entry.getObject();
             Object value = list.valueOf(entry, RankedList.VALUE_KEY);
             ItemSpec item = request.getIcon() == null ? null : request.getIcon().apply(entry);
-            built.add(new Row(entry.getPosition(), String.valueOf(subject), String.valueOf(value), self, item));
+            built.add(new Row(entry.getPosition(), String.valueOf(subject), String.valueOf(value), self ? marker : "", item));
             if (self) {
                 mineValue = entry.getOrderValue();
             } else if (mine != null && entry.getPosition() == mine - 1) {
@@ -136,14 +143,14 @@ public final class RankingScreen extends Screen<RankingScreen.RankingLayout> {
         private final int position;
         private final String subject;
         private final String value;
-        private final boolean self;
+        private final String marker;
         private final @Nullable ItemSpec item;
 
-        private Row(int position, String subject, String value, boolean self, @Nullable ItemSpec item) {
+        private Row(int position, String subject, String value, String marker, @Nullable ItemSpec item) {
             this.position = position;
             this.subject = subject;
             this.value = value;
-            this.self = self;
+            this.marker = marker;
             this.item = item;
         }
 

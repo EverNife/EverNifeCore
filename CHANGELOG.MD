@@ -71,6 +71,17 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **A broadcast is observable in tests**: `Platforms.neutralChatAdapter()` broadcasts to the online players and the new
   `TestPlatform.getBroadcastConsole()` instead of nobody, and `TestLocaleMessage.broadcast()` sends to that audience
   instead of throwing.
+- **`Locales.retext(plugin, key, lang, text)`**: gives a registered locale message another text in one language, as an
+  admin edit of the lang file would, until the returned `Retext` closes. `ScreenWorld` now loads the core locale
+  messages its core screens draw.
+
+### Changed
+
+#### Screens
+
+- **The ranking marks the viewer's row with a core locale message**: the `{marker}` of `RankingLayout.ENTRY` was a fixed
+  green arrow; it is now `RankingScreen.SELF_MARKER` (en_US, pt_BR, same arrow by default), in the viewer's language and
+  editable in the core's language file.
 
 ### Fixed
 

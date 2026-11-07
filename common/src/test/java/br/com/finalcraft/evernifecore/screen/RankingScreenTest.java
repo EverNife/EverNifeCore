@@ -2,7 +2,9 @@ package br.com.finalcraft.evernifecore.screen;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
+import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.ranking.RankedList;
+import br.com.finalcraft.evernifecore.testing.Locales;
 import br.com.finalcraft.evernifecore.testing.RecordingSurface;
 import br.com.finalcraft.evernifecore.testing.ScreenWorld;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
@@ -98,6 +100,17 @@ class RankingScreenTest {
         assertEquals("minecraft:iron_block", surface(view).getSlot(1).getItem().getMaterialId());
         assertEquals("§a» §e#2 §fAlex", surface(view).getSlot(1).getItem().getDisplayName());
         close(view);
+    }
+
+    @Test
+    void theViewersMarkerIsTheCoreLocaleMessage() {
+        try (Locales.Retext edited = Locales.retext(world.getCore(), "RankingScreen.SELF_MARKER", LocaleType.EN_US, "§b(you) ")) {
+            ScreenView view = open(alex);
+
+            assertEquals("§b(you) §e#2 §fAlex", surface(view).getSlot(1).getItem().getDisplayName());
+            assertEquals("§e#1 §fBob", surface(view).getSlot(0).getItem().getDisplayName());
+            close(view);
+        }
     }
 
     @Test

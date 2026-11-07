@@ -9,8 +9,10 @@ import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
+import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.screen.ClickGesture;
 import br.com.finalcraft.evernifecore.screen.ClickKind;
+import br.com.finalcraft.evernifecore.screen.RankingScreen;
 import br.com.finalcraft.evernifecore.screen.RendererCapability;
 import br.com.finalcraft.evernifecore.screen.Screen;
 import br.com.finalcraft.evernifecore.screen.ScreenRenderer;
@@ -74,6 +76,8 @@ public final class ScreenWorld implements AutoCloseable {
         this.prompts = new FakePromptChannels(owner, renderer);
         prompts.register(PromptKind.CHAT, true);
         this.answerer = prompts::type;
+        //the texts the core's own screens draw are core locale messages, which only the real boot loads
+        FCLocaleManager.loadLocale(EverNifeCore.getEcPluginData(), true, RankingScreen.class);
     }
 
     /** A world whose recording renderer has {@code capabilities}; none by default. */

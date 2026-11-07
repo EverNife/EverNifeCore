@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.testing;
 
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
@@ -11,6 +12,7 @@ import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 
 import java.nio.file.Path;
+import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -67,6 +69,36 @@ public final class Locales implements AutoCloseable {
     public void close() {
         ECSettings.PER_PLAYER_LOCALE = previousPerPlayerLocale;
         world.close();
+    }
+
+    /**
+     * Gives the message {@code plugin} registered under {@code key} the text {@code text} in {@code lang}, the way an
+     * admin's edit of the lang file does, until the returned handle closes and puts the old text back.
+     *
+     * @throws IllegalArgumentException when {@code plugin} registered no message under {@code key}
+     */
+    public static Retext retext(ECPluginData plugin, String key, String lang, String text) {
+        LocaleMessageImp message = ECPluginManager.getOrCreateECorePluginData(plugin).getLocalizedMessages().get(key);
+        if (message == null) {
+            throw new IllegalArgumentException(plugin.getMetaInfo().getName() + " registered no locale message '" + key + "'. Load the"
+                    + " class that declares it first: FCLocaleManager.loadLocale(plugin, true, TheClass.class).");
+        }
+        String normalized = LocaleType.normalize(lang);
+        FancyText previous = message.getFancyText(normalized);
+        message.addLocale(normalized, FancyText.of(text));
+        return () -> {
+            if (previous == null) {
+                message.getFancyTextMap().remove(normalized.toUpperCase(Locale.ROOT));
+            } else {
+                message.addLocale(normalized, previous);
+            }
+        };
+    }
+
+    /** What {@link #retext} hands back: closing it puts the text it replaced back. */
+    public interface Retext extends AutoCloseable {
+        @Override
+        void close();
     }
 
     /**

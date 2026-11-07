@@ -31,6 +31,7 @@ import br.com.finalcraft.evernifecore.pageviewer.theme.ClassicPageTheme;
 import br.com.finalcraft.evernifecore.screen.ConfirmScreen;
 import br.com.finalcraft.evernifecore.screen.DefaultIcons;
 import br.com.finalcraft.evernifecore.screen.DeliveriesScreen;
+import br.com.finalcraft.evernifecore.screen.RankingScreen;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 
@@ -75,6 +76,7 @@ public class ConfigManager {
                 DefaultIcons.class,
                 ConfirmScreen.class,
                 DeliveriesScreen.class,
+                RankingScreen.class,
                 QuestCommandNode.class,
                 ArgParserQuest.class,
                 QuestOfferScreen.class,
