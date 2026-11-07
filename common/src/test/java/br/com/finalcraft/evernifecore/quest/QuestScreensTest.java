@@ -17,6 +17,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -99,6 +101,26 @@ class QuestScreensTest {
         listed = ((QuestJournalScreen) after.getScreen()).getListed();
         assertTrue(listed.contains(quests.id("vault")) && listed.contains(quests.id("cellar")), listed.toString());
         after.close();
+        screens.advanceTicks(2);
+    }
+
+    @Test
+    void bothScreensDrawAQuestWithTheIconOfItsMeta() {
+        engine.register(quests.parse("{id: ore, name: Ore, meta: {icon: 'minecraft:iron_ore'}, stages: [{id: s, objectives: [{id: o, type: kill}]}]}"));
+
+        ScreenView journal = open(ScreenKey.QUEST_JOURNAL, QuestJournalScreen.Request.of(engine, null));
+        List<String> materials = new ArrayList<>();
+        for (int slot = 0; slot < 3; slot++) {
+            materials.add(screens.getRenderer().surfaceOf(journal).getSlot(slot).getItem().getMaterialId());
+        }
+        assertEquals(Arrays.asList("minecraft:book", "minecraft:book", "minecraft:iron_ore"), materials, "a quest without one keeps the layout's");
+        assertEquals("§eOre", screens.getRenderer().surfaceOf(journal).getSlot(2).getItem().getDisplayName(), "the layout's text stays");
+        journal.close();
+        screens.advanceTicks(2);
+
+        ScreenView offer = open(ScreenKey.QUEST_OFFER, QuestOfferScreen.Request.of(engine, quests.id("ore")));
+        assertEquals("minecraft:iron_ore", screens.getRenderer().surfaceOf(offer).getSlot(4).getItem().getMaterialId());
+        offer.close();
         screens.advanceTicks(2);
     }
 

@@ -58,7 +58,7 @@ public final class QuestOfferScreen extends Screen<QuestOfferScreen.QuestOfferLa
                 () -> "Quest '" + request.getQuest() + "' is not registered in " + request.getEngine() + ": register it before offering it.");
         key(ScreenKey.QUEST_OFFER);
         owner(request.getEngine().getOwner());
-        icon(l -> l.QUEST).id("quest");
+        icon(l -> l.QUEST).id("quest").render(icon -> QuestJournalScreen.drawnAs(icon, definition));
         icon(l -> l.ACCEPT).id("accept").dependsOn(missing).onClick(this::accept);
         icon(l -> l.DECLINE).id("decline").onClick(ClickContext::close);
         addReplacer(TEXT, this);

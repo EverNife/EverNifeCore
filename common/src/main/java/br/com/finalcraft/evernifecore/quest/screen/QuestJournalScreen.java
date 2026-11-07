@@ -4,9 +4,11 @@ import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.logic.ProgressOwner;
 import br.com.finalcraft.evernifecore.placeholder.replacer.Closures;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
+import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.quest.QuestDefinition;
 import br.com.finalcraft.evernifecore.quest.QuestEngine;
 import br.com.finalcraft.evernifecore.quest.QuestId;
+import br.com.finalcraft.evernifecore.quest.QuestMeta;
 import br.com.finalcraft.evernifecore.quest.QuestState;
 import br.com.finalcraft.evernifecore.quest.QuestStatus;
 import br.com.finalcraft.evernifecore.screen.DefaultIcons;
@@ -69,7 +71,7 @@ public final class QuestJournalScreen extends Screen<QuestJournalScreen.QuestJou
                 .into(l -> l.ENTRY)
                 .pagedBy(l -> l.PREVIOUS, l -> l.NEXT)
                 .dependsOn(rows)
-                .render((row, icon) -> icon.addScope(ROW, row))
+                .render((row, icon) -> drawnAs(icon.addScope(ROW, row), row.definition))
                 .onClick((click, row) -> row.engine.track(click.getViewer(), row.definition.getId()));
         icon(l -> l.FILTER).id("filter").dependsOn(filter).onClick(click -> {
             filter.set(next(filter.get()));
@@ -97,6 +99,16 @@ public final class QuestJournalScreen extends Screen<QuestJournalScreen.QuestJou
 
     public @Nullable QuestStatus getFilter() {
         return filter.get();
+    }
+
+    /** {@code icon} as the item of {@code definition}'s {@link QuestMeta#getIcon() meta icon}, the layout's text kept; untouched without one. */
+    static Icon drawnAs(Icon icon, QuestDefinition definition) {
+        String material = definition.getMeta().getIcon();
+        if (material != null) {
+            ItemSpec layout = icon.getItem();
+            icon.setItem(ItemSpec.of(material, layout.getAmount()).withText(layout.getDisplayName(), layout.getLore()));
+        }
+        return icon;
     }
 
     private static @Nullable QuestStatus next(@Nullable QuestStatus current) {

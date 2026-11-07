@@ -69,6 +69,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+#### Quests
+
+- **The quest journal and the quest offer draw a quest with its `meta.icon`**: `QuestMeta.getIcon()` promised "the item
+  a screen draws the quest with", and both core screens drew the layout's book for every quest. The layout's text and
+  amount stay; a quest without an icon keeps the layout's item.
+
 #### Logic
 
 - **A `command` effect for an offline member waits for the login**: with `Absence.deliver()` it ran at once with
