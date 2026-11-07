@@ -50,22 +50,25 @@ final class OfferButtons {
         return rules;
     }
 
-    /** {@code given}, or the first offer's goods, with the price placeholders of {@code offers} scoped on it. */
+    /** {@code given}, or the first offer's icon, with the price placeholders of {@code offers} scoped on it. */
     static Icon icon(Menu menu, String offerId, List<Offer> offers, @Nullable Icon given) {
-        Icon icon = given != null ? given : Icon.of(offers.get(0).getGoods().getIcon());
+        Icon icon = given != null ? given : dress(Icon.empty(), offers.get(0));
         return scoped(icon, menu, offerId, offers);
     }
 
-    /** A paged list of offers on {@code screen}: each entry drawn as its goods, each click through the same rules. */
+    /** A paged list of offers on {@code screen}: each entry drawn as its icon, each click through the same rules. */
     static PagedList<Offer, ?> list(Menu menu, Screen<?> screen, SlotSet region, Supplier<List<Offer>> source) {
         return screen.list(source).into(region).id("offers")
-                .render((offer, icon) -> {
-                    if (offer.getGoods().getIcon() != null) {
-                        icon.from(offer.getGoods().getIcon());
-                    }
-                    scoped(icon, menu, "offers", Collections.singletonList(offer));
-                })
+                .render((offer, icon) -> scoped(dress(icon, offer), menu, "offers", Collections.singletonList(offer)))
                 .onClick((click, offer) -> ClickRule.dispatch(rules(menu, "offers", Collections.singletonList(offer)), click));
+    }
+
+    /** {@code icon} drawn as {@code offer}'s icon, asked per viewer when the offer has a per-viewer one. */
+    private static Icon dress(Icon icon, Offer offer) {
+        if (offer.getIcon() != null) {
+            icon.from(offer.getIcon());
+        }
+        return offer.hasViewerIcon() ? icon.itemFor(offer::getIcon) : icon;
     }
 
     private static Icon scoped(Icon icon, Menu menu, String offerId, List<Offer> offers) {
@@ -156,7 +159,7 @@ final class OfferButtons {
         private void confirm(ClickContext click, ExecutionContext trading, int units) {
             String question = (offer.getType() == Offer.Type.BUY ? "Buy " : "Sell ") + offer.getGoods().describe(trading, units).toLegacyString()
                     + " for " + offer.getPrice().quote(trading, units).describe(trading).toLegacyString() + "?";
-            ConfirmRequest request = ConfirmRequest.of(question).owner(menu.getOwner()).display(offer.getGoods().getIcon());
+            ConfirmRequest request = ConfirmRequest.of(question).owner(menu.getOwner()).display(offer.getIcon(trading.getPlayer()));
             click.open(ScreenKey.CONFIRM, ScreenRequest.of(menu.getOwner()).payload(request)).whenComplete((answer, failed) -> {
                 if (failed == null && Boolean.TRUE.equals(answer)) {
                     trade(click, trading, Quantity.of(units));

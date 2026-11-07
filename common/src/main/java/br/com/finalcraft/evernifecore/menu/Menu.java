@@ -171,12 +171,12 @@ public final class Menu {
             return this;
         }
 
-        /** One button at {@code slot} trading {@code offers} - at most one BUY and one SELL - drawn as the first one's goods. */
+        /** One button at {@code slot} trading {@code offers} - at most one BUY and one SELL - drawn as the first one's icon, per viewer. */
         public Builder offer(String offerId, int slot, Offer... offers) {
             return offer(offerId, Slots.of(slot), null, offers);
         }
 
-        /** {@link #offer(String, int, Offer...)} on {@code slots}, drawn as {@code icon} (null: the goods' own). */
+        /** {@link #offer(String, int, Offer...)} on {@code slots}, drawn as {@code icon} (null: the first offer's own). */
         public Builder offer(String offerId, SlotSet slots, @Nullable Icon icon, Offer... offers) {
             Objects.requireNonNull(offerId, "offerId");
             if (this.offers.containsKey(offerId)) {
@@ -260,9 +260,11 @@ public final class Menu {
                 throw new IllegalArgumentException("The offer button '" + offerId + "' of " + id + " has two " + slot.offers.get(0).getType()
                         + " offers: a button holds at most one of each type - give the second its own button.");
             }
-            if (slot.icon == null && slot.offers.get(0).getGoods().getIcon() == null) {
-                throw new IllegalArgumentException("The offer button '" + offerId + "' of " + id + " sells " + slot.offers.get(0).getGoods()
-                        + ", which has no item to draw: pass an Icon to offer(id, slots, icon, offers...).");
+            Offer first = slot.offers.get(0);
+            if (slot.icon == null && first.getIcon() == null && !first.hasViewerIcon()) {
+                throw new IllegalArgumentException("The offer button '" + offerId + "' of " + id + " sells " + first.getGoods()
+                        + ", which has no item to draw: give the offer an icon (Offer.Builder#icon) or pass an Icon to"
+                        + " offer(id, slots, icon, offers...).");
             }
         }
     }

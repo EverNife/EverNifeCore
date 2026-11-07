@@ -18,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
@@ -55,6 +56,7 @@ public class Icon {
     private String uncolouredNameColour;
     //the icon a copy was taken from, so the copy a screen drew still answers to the one the plugin declared
     private Icon origin;
+    private Function<FPlayer, ItemSpec> itemFor;
 
     public Icon(@Nonnull ItemSpec item) {
         this.look = new Look(requireItem(item), Collections.<ItemSpec>emptyList(), Collections.<String>emptyList());
@@ -139,6 +141,16 @@ public class Icon {
     @Nonnull
     public List<ItemSpec> getFallbacks() {
         return look.fallbacks;
+    }
+
+    /**
+     * The item each viewer sees in place of {@link #getItem()}, asked at every render; a null answer draws the icon's
+     * own. Text, placeholders and data lines still apply over it; a named state on screen draws the state's item.
+     */
+    @Nonnull
+    public Icon itemFor(@Nullable Function<FPlayer, ItemSpec> perViewer) {
+        this.itemFor = perViewer;
+        return this;
     }
 
     /** Replaces the items drawn when this server does not know {@link #getItem()}, first known wins. */
@@ -512,7 +524,8 @@ public class Icon {
                                   @Nullable UnaryOperator<String> arguments) {
         Look state = stateName == null ? null : states.get(stateName);
         Look drawn = state == null ? look : state;
-        ItemSpec item = drawn.item;
+        ItemSpec perViewer = state == null && itemFor != null && viewer != null ? itemFor.apply(viewer) : null;
+        ItemSpec item = perViewer != null ? perViewer : drawn.item;
         IconLocale spoken = state == null ? locale : stateLocales.get(stateName);
         if (spoken != null) {
             List<String> lines = linesFor(spoken, languageOf(viewer));
@@ -643,6 +656,7 @@ public class Icon {
         copy.trailingLore = this.trailingLore;
         copy.uncolouredNameColour = this.uncolouredNameColour;
         copy.origin = getOrigin();
+        copy.itemFor = this.itemFor;
         return copy;
     }
 

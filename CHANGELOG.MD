@@ -48,6 +48,19 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   read and write it as the platform's own encoding (the JSON of its `FCPlayerInventory`, extra inventories included); the
   empty string is an empty inventory. Bukkit and Hytale have it.
 
+#### Menus and shops
+
+- **An offer draws its own icon**: `Offer.Builder.icon(ItemSpec)` replaces the goods' item, and
+  `icon(Function<FPlayer, ItemSpec>)` asks each viewer at every redraw (a party slot drawn as the Pokemon in it; a null
+  answer falls back to the fixed icon, then the goods'). Read back with `Offer.getIcon()`/`getIcon(viewer)`/`hasViewerIcon()`.
+  It draws on `offer(id, slot, ...)` buttons, in the paged `offers(...)` list and on the confirmation; an `Icon` passed to
+  `offer(id, slots, icon, ...)` still wins. An effect offer with a per-viewer icon no longer needs a button `Icon`.
+
+#### Screens
+
+- **`Icon.itemFor(Function<FPlayer, ItemSpec>)`**: the item each viewer sees in place of the icon's own, asked at every
+  render (null answer = the icon's own item); text, placeholders and data lines still apply over it.
+
 #### Testing
 
 - **A broadcast is observable in tests**: `Platforms.neutralChatAdapter()` broadcasts to the online players and the new

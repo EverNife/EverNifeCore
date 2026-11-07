@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -318,6 +319,57 @@ class OfferButtonTest extends MenuTestWorlds {
 
         assertEquals(5, swords.getHeld(), "a button with only a BUY offer has no rule for the sell gesture");
         assertAmount("1000", menus.balance(menus.coins(), alex));
+        close(view);
+    }
+
+    @Test
+    void anOfferDrawsItsOwnIconOverItsGoods() {
+        Menu menu = Menu.of(shop.getOwner(), "own").offer("sword", 13, menus.buy(swords, 10).icon(ItemSpec.of("minecraft:diamond", 1)).build()).build();
+
+        ScreenView view = open(menu);
+
+        assertEquals("minecraft:diamond", screens.getRenderer().surfaceOf(view).getSlot(13).getItem().getMaterialId());
+        close(view);
+    }
+
+    @Test
+    void aPagedOfferDrawsItsOwnIconOverItsGoods() {
+        Offer offer = menus.buy(Goods.ofItem(ItemSpec.of("minecraft:iron_sword", 1)), 10).icon(ItemSpec.of("minecraft:diamond", 1)).build();
+        Menu menu = Menu.of(shop.getOwner(), "paged").offers(Slots.row(1), () -> Collections.singletonList(offer)).build();
+
+        ScreenView view = open(menu);
+
+        assertEquals("minecraft:diamond", screens.getRenderer().surfaceOf(view).getSlot(0).getItem().getMaterialId());
+        close(view);
+    }
+
+    @Test
+    void anEffectOfferWithAPerViewerIconBuildsAndEachViewerSeesTheirOwn() {
+        TestFPlayerSender bob = menus.player("Bob", 0);
+        Goods shiny = Goods.ofEffects("Shiny", Collections.singletonList(ctx -> { }));
+        Menu menu = Menu.of(shop.getOwner(), "shiny").offer("slot1", 13, menus.buy(shiny, 10)
+                .icon(viewer -> ItemSpec.of(viewer.getName().equals("Alex") ? "minecraft:emerald" : "minecraft:gold_ingot", 1)).build()).build();
+
+        ScreenView alexView = open(menu);
+        ScreenView bobView = screens.open(menu.getScreen(), bob);
+        screens.advanceTicks(1);
+
+        assertEquals("minecraft:emerald", screens.getRenderer().surfaceOf(alexView).getSlot(13).getItem().getMaterialId());
+        assertEquals("minecraft:gold_ingot", screens.getRenderer().surfaceOf(bobView).getSlot(13).getItem().getMaterialId());
+        close(bobView);
+        close(alexView);
+    }
+
+    @Test
+    void theConfirmationShowsTheOffersIcon() {
+        ScreenView view = open(Menu.of(shop.getOwner(), "own").offer("sword", 13, menus.buy(swords, 10).confirm()
+                .icon(ItemSpec.of("minecraft:diamond", 1)).build()).build());
+
+        menus.clickOffer(view, "sword", ClickGesture.PRIMARY);
+
+        ConfirmScreen confirm = (ConfirmScreen) Screens.getOpenView(alex).getScreen();
+        assertEquals("minecraft:diamond", confirm.getRequest().getDisplay().getMaterialId());
+        menus.confirm(alex, false);
         close(view);
     }
 
