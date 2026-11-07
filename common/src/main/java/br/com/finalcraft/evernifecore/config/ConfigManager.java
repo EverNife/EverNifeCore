@@ -11,6 +11,7 @@ import br.com.finalcraft.evernifecore.logic.audit.command.AuditCommandNode;
 import br.com.finalcraft.evernifecore.logic.command.CoreLogicCommands;
 import br.com.finalcraft.evernifecore.logic.delivery.command.CoreDeliveriesCommands;
 import br.com.finalcraft.evernifecore.logic.delivery.command.DeliveriesCommandNode;
+import br.com.finalcraft.evernifecore.menu.MenuCommandNode;
 import br.com.finalcraft.evernifecore.menu.TransactionResult;
 import br.com.finalcraft.evernifecore.menu.Transactions;
 import br.com.finalcraft.evernifecore.region.command.CoreRegionCommands;
@@ -82,6 +83,7 @@ public class ConfigManager {
                 ArgParserQuest.class,
                 QuestOfferScreen.class,
                 QuestJournalScreen.class,
+                MenuCommandNode.class,
                 Transactions.class,
                 TransactionResult.class
         );

@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.menu;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
+import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.screen.ScreenView;
 import br.com.finalcraft.evernifecore.screen.Screens;
 import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
@@ -102,6 +103,22 @@ class MenuCommandNodeTest extends MenuTestWorlds {
 
         assertNull(Screens.getOpenView(alex));
         assertTrue(alex.anyMessageContains("No menu 'othershop:kits' of"), alex.getMessages().toString());
+    }
+
+    @Test
+    void eachVerbAnswersWithItsLocaleMessage() {
+        Plugins.setLanguage(harness.ecPluginData, LocaleType.PT_BR);
+        TestFPlayerSender alex = menus.player("Alex", 0).grant("fakeshop.menu");
+
+        harness.dispatch(command, alex, "menu openfor Bia vip");
+        harness.dispatch(command, alex, "menu open othershop:kits");
+        harness.dispatch(command, alex, "menu list");
+        screens.advanceTicks(2);
+
+        assertTrue(alex.anyMessageContains("Você precisa de fakeshop.menu.others"), alex.getMessages().toString());
+        assertTrue(alex.anyMessageContains("Nenhum menu 'othershop:kits' de"), alex.getMessages().toString());
+        assertTrue(alex.anyMessageContains("§7Menus de §e"), alex.getMessages().toString());
+        assertNull(Screens.getOpenView(alex));
     }
 
     @Test

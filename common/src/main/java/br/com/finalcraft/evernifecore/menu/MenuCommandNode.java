@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 
 import java.util.ArrayList;
@@ -23,9 +24,38 @@ import java.util.Objects;
  * }</pre>
  * {@code open <menu> [args...]} opens one for the sender, {@code openfor <player> <menu> [args...]} for someone else
  * ({@code <permissionBase>.others}), {@code list} lists them. A bare menu name means this plugin's. There is no
- * {@code reload}: reading menu files is the plugin's own business.
+ * {@code reload}: reading menu files is the plugin's own business. What the verbs answer is locale messages of this
+ * class.
  */
 public class MenuCommandNode {
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§cOnly a player can open a menu for themselves: use openfor <player> <menu>.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§cSó um jogador abre um menu para si mesmo: use openfor <jogador> <menu>.")
+    private static LocaleMessage NOT_A_PLAYER;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§cYou need ${permission} to open a menu for another player.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§cVocê precisa de ${permission} para abrir um menu para outro jogador.")
+    private static LocaleMessage NO_PERMISSION_FOR_OTHERS;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§c${player} is not online.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§c${player} não está online.")
+    private static LocaleMessage NOT_ONLINE;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§c${reason}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§c${reason}")
+    private static LocaleMessage MALFORMED_ID;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§cNo menu '${menu}' of ${plugin}. Its menus: ${menus}.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§cNenhum menu '${menu}' de ${plugin}. Os menus dele: ${menus}.")
+    private static LocaleMessage NO_SUCH_MENU;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§e${plugin}§7 menus (${count}):")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7Menus de §e${plugin}§7 (${count}):")
+    private static LocaleMessage LIST_HEADER;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§7 - §e${menu}§7 ${title}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7 - §e${menu}§7 ${title}")
+    private static LocaleMessage LIST_LINE;
 
     private final ECPluginData owner;
     private final String permissionBase;
@@ -49,7 +79,7 @@ public class MenuCommandNode {
     })
     public void open(FCommandSender sender, @Arg("<menu>") String menu, @Arg("[args...]") String args) {
         if (!(sender instanceof FPlayer)) {
-            sender.sendMessage("§cOnly a player can open a menu for themselves: use openfor <player> <menu>.");
+            NOT_A_PLAYER.send(sender);
             return;
         }
         openFor(sender, (FPlayer) sender, menu, args);
@@ -61,12 +91,12 @@ public class MenuCommandNode {
     })
     public void openFor(FCommandSender sender, @Arg("<player>") String playerName, @Arg("<menu>") String menu, @Arg("[args...]") String args) {
         if (!sender.hasPermission(permissionBase + ".others")) {
-            sender.sendMessage("§cYou need " + permissionBase + ".others to open a menu for another player.");
+            NO_PERMISSION_FOR_OTHERS.addPlaceholder("permission", permissionBase + ".others").send(sender);
             return;
         }
         FPlayer target = EverNifeCore.getPlatform().getPlayer(playerName);
         if (target == null) {
-            sender.sendMessage("§c" + playerName + " is not online.");
+            NOT_ONLINE.addPlaceholder("player", playerName).send(sender);
             return;
         }
         openFor(sender, target, menu, args);
@@ -77,12 +107,13 @@ public class MenuCommandNode {
         try {
             id = MenuId.parse(menu, owner.getMetaInfo().getName());
         } catch (IllegalArgumentException malformed) {
-            sender.sendMessage("§c" + malformed.getMessage());
+            MALFORMED_ID.addPlaceholder("reason", malformed.getMessage()).send(sender);
             return;
         }
         Menu found = MenuRegistry.get().find(id.toString());
         if (found == null || found.getOwner() != owner) {
-            sender.sendMessage("§cNo menu '" + id + "' of " + owner.getMetaInfo().getName() + ". Its menus: " + idsOf(owner) + ".");
+            NO_SUCH_MENU.addPlaceholder("menu", id).addPlaceholder("plugin", owner.getMetaInfo().getName())
+                    .addPlaceholder("menus", idsOf(owner)).send(sender);
             return;
         }
         MenuRegistry.get().open(target, id.toString(), split(args));
@@ -95,9 +126,9 @@ public class MenuCommandNode {
     public void list(FCommandSender sender) {
         List<Menu> menus = new ArrayList<>(MenuRegistry.get().getOwnedBy(owner));
         menus.sort((left, right) -> left.getId().toString().compareTo(right.getId().toString()));
-        sender.sendMessage("§e" + owner.getMetaInfo().getName() + "§7 menus (" + menus.size() + "):");
+        LIST_HEADER.addPlaceholder("plugin", owner.getMetaInfo().getName()).addPlaceholder("count", menus.size()).send(sender);
         for (Menu menu : menus) {
-            sender.sendMessage("§7 - §e" + menu.getId() + (menu.getTitle().isEmpty() ? "" : "§7 " + menu.getTitle()));
+            LIST_LINE.addPlaceholder("menu", menu.getId()).addPlaceholder("title", menu.getTitle()).send(sender);
         }
     }
 

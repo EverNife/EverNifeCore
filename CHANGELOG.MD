@@ -89,6 +89,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   enum (`ACTIVE`, `ALL`); they are now the core locale messages `QuestJournalScreen.STATUS.<STATUS>` (one per
   `QuestStatus`) and `QuestJournalScreen.FILTER.ALL`, en_US and pt_BR.
 
+#### Menus and shops
+
+- **`MenuCommandNode` answers with locale messages**: the seven fixed English answers of `open`, `openfor` and `list`
+  (not a player, no `.others` permission, player offline, malformed id, no such menu, the list header and line) are
+  locale messages of `MenuCommandNode` (en_US, pt_BR), registered under the plugin that mounts the node.
+
 ### Fixed
 
 #### Regions
