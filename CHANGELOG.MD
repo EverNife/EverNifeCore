@@ -93,6 +93,13 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   green arrow; it is now `RankingScreen.SELF_MARKER` (en_US, pt_BR, same arrow by default), in the viewer's language and
   editable in the core's language file.
 
+#### Dialogues
+
+- **The dialogue speaker is drawn in the layout's format**: `DialogueScreen` coloured the speaker and the line itself;
+  `DialogueLayout.SPEAKER` now carries the format (`§e{speaker}`, lore `{text}` by default) and the screen only fills
+  `{speaker}` (`...` when the dialogue names none, which was grey before and is now the layout's colour) and `{text}`
+  (a lore line citing it repeats once per line of the text).
+
 #### Quests
 
 - **The quest journal names statuses and its filter in the viewer's language**: `{status}` and `{filter}` printed the

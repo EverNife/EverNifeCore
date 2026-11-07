@@ -15,6 +15,7 @@ import br.com.finalcraft.evernifecore.screen.ScreenKey;
 import br.com.finalcraft.evernifecore.screen.ScreenLayout;
 import br.com.finalcraft.evernifecore.screen.Slots;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -24,7 +25,9 @@ import java.util.List;
  * renderer that draws by element); a {@link DialogueOption#isHidden() hidden} one is not drawn until its gate passes.
  * Clicking an option is {@link DialogueSession#choose}. A plugin replaces it with
  * {@code Screens.override(plugin, ScreenKey.DIALOGUE, ScreenScope.ownedBy(plugin), ctx -> ...)}, reading the session from
- * {@code ctx.getRequest(DialogueSession.class)}; the admin restyles it in {@code guis/DialogueLayout.yml}.
+ * {@code ctx.getRequest(DialogueSession.class)}; the admin restyles it in {@code guis/DialogueLayout.yml}, whose
+ * {@code SPEAKER} reads {@code {speaker}} (the speaker, or {@code ...} when the dialogue names none) and {@code {text}}
+ * (the node's line; a lore line citing it repeats once per line of the text).
  */
 public final class DialogueScreen extends Screen<DialogueScreen.DialogueLayout> {
 
@@ -43,7 +46,11 @@ public final class DialogueScreen extends Screen<DialogueScreen.DialogueLayout> 
             title(speaker);
         }
         List<String> line = Arrays.asList(dialogue.getText(node, ctx).split("\n"));
-        label(l -> l.SPEAKER).render(icon -> icon.displayName(speaker.isEmpty() ? "§7..." : "§e" + speaker).lore(line));
+        String named = speaker.isEmpty() ? "..." : speaker;
+        label(l -> l.SPEAKER).render(icon -> {
+            ItemSpec template = icon.getItem();
+            icon.displayName(template.getDisplayName().replace("{speaker}", named)).lore(expand(template.getLore(), named, line));
+        });
 
         Layout.PlacedIcon placed = takeOver(l -> l.OPTION);
         int[] slots = placed.getSlots().resolve(getGrid()).toArray();
@@ -66,6 +73,21 @@ public final class DialogueScreen extends Screen<DialogueScreen.DialogueLayout> 
         }
     }
 
+    private static List<String> expand(List<String> template, String speaker, List<String> line) {
+        List<String> lore = new ArrayList<>();
+        for (String written : template) {
+            String named = written.replace("{speaker}", speaker);
+            if (!named.contains("{text}")) {
+                lore.add(named);
+                continue;
+            }
+            for (String piece : line) {
+                lore.add(named.replace("{text}", piece));
+            }
+        }
+        return lore;
+    }
+
     /** The node {@code session} is on, drawn on the admin's {@code DialogueLayout}. */
     public static DialogueScreen of(DialogueSession session) {
         return new DialogueScreen(Layouts.of(DialogueLayout.class), session);
@@ -80,7 +102,7 @@ public final class DialogueScreen extends Screen<DialogueScreen.DialogueLayout> 
     public static class DialogueLayout extends Layout {
 
         @IconData(slot = {4})
-        public Icon SPEAKER = Icon.of(ItemSpec.of("minecraft:paper", 1));
+        public Icon SPEAKER = Icon.of(ItemSpec.of("minecraft:paper", 1)).displayName("§e{speaker}").lore("{text}");
 
         @IconData(slot = {19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34})
         public Icon OPTION = Icon.of(ItemSpec.of("minecraft:book", 1));

@@ -1,10 +1,12 @@
 package br.com.finalcraft.evernifecore.dialogue;
 
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.logic.Condition;
 import br.com.finalcraft.evernifecore.logic.Cost;
 import br.com.finalcraft.evernifecore.logic.Gate;
 import br.com.finalcraft.evernifecore.logic.audit.GateCheckEvent;
 import br.com.finalcraft.evernifecore.screen.ClickGesture;
+import br.com.finalcraft.evernifecore.screen.Layouts;
 import br.com.finalcraft.evernifecore.screen.ScreenKey;
 import br.com.finalcraft.evernifecore.testing.DialogueTrees;
 import br.com.finalcraft.evernifecore.testing.DialogueTrees.DrawnChoice;
@@ -13,6 +15,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
@@ -67,6 +72,30 @@ class DialogueScreenTest {
         assertEquals("§aThe sword", drawn.get(0).getName());
         assertEquals("Smith", world.view().getCurrentTitle());
         assertEquals(ScreenKey.DIALOGUE, world.view().getScreen().getKey());
+    }
+
+    @Test
+    void theSpeakerAndTheLineAreDrawnInTheLayoutsFormat() throws IOException {
+        DialogueTrees.openDialogueScreen(world.screens, world.alex, shop(Gate.open()));
+        assertEquals("§eSmith", world.surface().getSlot(4).getItem().getDisplayName(), "the default is the yellow speaker of before");
+        assertEquals(Collections.singletonList("What will it be?"), world.surface().getSlot(4).getItem().getLore());
+        world.view().close();
+        world.screens.advanceTicks(2);
+
+        Path layout = ECPluginManager.getProvidingPlugin(DialogueScreen.DialogueLayout.class).getMetaInfo().getDataFolder().toPath()
+                .resolve("guis/DialogueLayout.yml");
+        Files.createDirectories(layout.getParent());
+        Files.write(layout, Arrays.asList("Layout:", "  SPEAKER:", "    Slot: \"[4]\"", "    DisplayItem:", "    - material:minecraft:paper",
+                "    - name:§b{speaker} says", "    - lore:§f> {text}"), StandardCharsets.UTF_8);
+        Layouts.clear();
+        Dialogue twoLines = Dialogue.builder(world.owner(), "talk").speaker("Smith")
+                .node(DialogueNode.builder("start").text("Hello.\nGoodbye.").option(DialogueOption.builder("bye").text("Bye").end())).build();
+
+        DialogueTrees.openDialogueScreen(world.screens, world.alex, twoLines);
+
+        assertEquals("§bSmith says", world.surface().getSlot(4).getItem().getDisplayName());
+        assertEquals(Arrays.asList("§f> Hello.", "§f> Goodbye."), world.surface().getSlot(4).getItem().getLore());
+        Layouts.clear();
     }
 
     @Test
