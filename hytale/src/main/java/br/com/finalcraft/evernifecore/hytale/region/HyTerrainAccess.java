@@ -1,5 +1,10 @@
 package br.com.finalcraft.evernifecore.hytale.region;
 
+import br.com.finalcraft.evernifecore.action.TypeKey;
+import br.com.finalcraft.evernifecore.api.platoverride.item.NativeItem;
+import br.com.finalcraft.evernifecore.hytale.action.HyActionContexts;
+import br.com.finalcraft.evernifecore.item.GroundItem;
+import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
@@ -15,6 +20,8 @@ import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.math.util.ChunkUtil;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
+import com.hypixel.hytale.server.core.entity.UUIDComponent;
+import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.modules.block.BlockEntity;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.modules.entity.item.ItemComponent;
@@ -40,6 +47,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
@@ -153,19 +161,28 @@ public final class HyTerrainAccess implements ITerrainAccess {
 
     /** Every entity carrying an {@link ItemComponent} - an item on the ground - whose position is inside {@code shape}. */
     @Override
-    public int removeItems(String world, Shape shape) {
-        int[] removed = new int[1];
+    public List<GroundItem> removeItems(String world, Shape shape, Predicate<? super GroundItem> remove) {
+        List<GroundItem> removed = new ArrayList<>();
         world(world).getEntityStore().getStore().forEachChunk(Query.and(ItemComponent.getComponentType(),
                 TransformComponent.getComponentType()), (chunk, buffer) -> {
             for (int index = 0; index < chunk.size(); index++) {
                 Vector3d at = chunk.getComponent(index, TransformComponent.getComponentType()).getPosition();
-                if (shape.contains(at.x, at.y, at.z)) {
+                ItemStack stack = chunk.getComponent(index, ItemComponent.getComponentType()).getItemStack();
+                TypeKey key = shape.contains(at.x, at.y, at.z) ? HyActionContexts.itemKey(stack) : null;
+                if (key == null) {
+                    continue;
+                }
+                UUIDComponent uuid = chunk.getComponent(index, UUIDComponent.getComponentType());
+                GroundItem ground = new GroundItem(key, stack.getQuantity(),
+                        ItemSpec.of(key.toString(), stack.getQuantity()).withNativeItem(new NativeItem(stack)),
+                        HyActionContexts.position(world, at), uuid == null ? null : uuid.getUuid());
+                if (remove.test(ground)) {
                     buffer.removeEntity(chunk.getReferenceTo(index), RemoveReason.REMOVE);
-                    removed[0]++;
+                    removed.add(ground);
                 }
             }
         });
-        return removed[0];
+        return removed;
     }
 
     private static UnsupportedOperationException entitiesUnsupported() {

@@ -1,12 +1,15 @@
 package br.com.finalcraft.evernifecore.region;
 
+import br.com.finalcraft.evernifecore.action.TypeKey;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.flag.core.TrackChangesSettings;
+import br.com.finalcraft.evernifecore.item.GroundItem;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.event.RegionTerrainEvent;
 import br.com.finalcraft.evernifecore.region.shape.PolygonShape;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
@@ -35,6 +38,7 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -279,12 +283,53 @@ class RegionTerrainTest extends ManagedRegionFixture {
         terrain.spawn(WORLD, "pig", 1, 5, 0);
         int before = platform.getWorldThreadRuns().size();
 
-        int removed = region.clearItems().join();
+        int removed = region.clearItems().join().getEntityCount();
 
         assertEquals(2, removed);
         assertEquals(1, platform.getWorldThreadRuns().size() - before, "one run on the world thread");
         assertEquals(Arrays.asList("item@4,5,4", "item@50,5,50", "pig@1,5,0"), terrain.getEntities(WORLD),
                 "the corner of the box, the item outside and the pig stay");
+    }
+
+    @Test
+    void clearItemsCompletesWithEveryItemItRemovedAndTheTotals(TestPlatform platform) {
+        TestTerrain terrain = platform.getTestTerrain();
+        Region region = created(manager().create("floor", WORLD, box(0, 0, 4, 4)));
+        terrain.spawnItem(WORLD, "minecraft:diamond", 3, 1, 5, 1);
+        terrain.spawnItem(WORLD, "minecraft:stick", 1, 2, 5, 2);
+        terrain.spawnItem(WORLD, "minecraft:diamond", 64, 50, 5, 50);
+
+        ItemClearance cleared = region.clearItems().join();
+
+        assertEquals(2, cleared.getEntityCount());
+        assertEquals(4, cleared.getUnitCount(), "3 diamonds and a stick");
+        GroundItem diamonds = cleared.getItems().get(0);
+        assertEquals(TypeKey.parse("minecraft:diamond"), diamonds.getItemKey());
+        assertEquals(3, diamonds.getAmount());
+        assertEquals(3, diamonds.getItem().getAmount());
+        assertEquals(WorldLocPos.of(1, 5, 1, WORLD), diamonds.getPosition());
+        assertNotNull(diamonds.getEntityId());
+        assertEquals(TypeKey.parse("minecraft:stick"), cleared.getItems().get(1).getItemKey());
+        assertEquals(Collections.singletonList("item[minecraft:diamond x64]@50,5,50"), terrain.getEntities(WORLD), "the stack outside stays");
+    }
+
+    @Test
+    void aClearItemsFilterLeavesOnTheGroundWhatItRefuses(TestPlatform platform) {
+        TestTerrain terrain = platform.getTestTerrain();
+        Region region = created(manager().create("floor", WORLD, box(0, 0, 4, 4)));
+        terrain.spawnItem(WORLD, "minecraft:diamond", 3, 1, 5, 1);
+        terrain.spawnItem(WORLD, "minecraft:stick", 1, 2, 5, 2);
+        List<GroundItem> asked = new ArrayList<>();
+
+        ItemClearance cleared = region.clearItems(item -> {
+            asked.add(item);
+            return !item.getItemKey().equals(TypeKey.parse("minecraft:diamond"));
+        }).join();
+
+        assertEquals(2, asked.size(), "the filter sees every item inside, one at a time");
+        assertEquals(1, cleared.getEntityCount());
+        assertEquals(TypeKey.parse("minecraft:stick"), cleared.getItems().get(0).getItemKey(), "a refused item is not in the result");
+        assertEquals(Collections.singletonList("item[minecraft:diamond x3]@1,5,1"), terrain.getEntities(WORLD), "the diamonds stay");
     }
 
     @Test

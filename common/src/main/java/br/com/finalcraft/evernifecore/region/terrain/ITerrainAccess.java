@@ -1,11 +1,13 @@
 package br.com.finalcraft.evernifecore.region.terrain;
 
+import br.com.finalcraft.evernifecore.item.GroundItem;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * How a platform reads and writes the world by position, for {@link RegionTerrain}. Every state is an opaque text the
@@ -36,7 +38,7 @@ public interface ITerrainAccess {
         }
 
         @Override
-        public int removeItems(String world, Shape shape) {
+        public List<GroundItem> removeItems(String world, Shape shape, Predicate<? super GroundItem> remove) {
             throw unsupported();
         }
 
@@ -79,8 +81,11 @@ public interface ITerrainAccess {
     /** Spawns again an entity a capture produced, where it stood. */
     void restoreEntity(String world, String state);
 
-    /** Removes every item entity lying on the ground inside {@code shape}; returns how many. */
-    int removeItems(String world, Shape shape);
+    /**
+     * Removes every item entity lying on the ground inside {@code shape} that {@code remove} accepts, asked once per item;
+     * returns those removed, in the order found. An entity that holds no item is left alone.
+     */
+    List<GroundItem> removeItems(String world, Shape shape, Predicate<? super GroundItem> remove);
 
     /** The game version this server runs; a snapshot carries it and restores only on the same one. */
     String getGameVersion();

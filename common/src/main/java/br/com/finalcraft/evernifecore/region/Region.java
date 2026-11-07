@@ -15,6 +15,7 @@ import br.com.finalcraft.evernifecore.flag.FlagHolder;
 import br.com.finalcraft.evernifecore.flag.FlagScope;
 import br.com.finalcraft.evernifecore.flag.FlagStore;
 import br.com.finalcraft.evernifecore.flag.FlagValue;
+import br.com.finalcraft.evernifecore.item.GroundItem;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.event.RegionChangedEvent;
@@ -47,6 +48,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /**
  * A named area of one world, owned by the plugin whose {@link RegionManager} created it. Not the {@code .mca}
@@ -274,16 +276,25 @@ public final class Region implements FlagHolder {
         return inside;
     }
 
+    /** {@link #clearItems(Predicate)} that removes every item lying inside. */
+    public CompletableFuture<ItemClearance> clearItems() {
+        return clearItems(item -> true);
+    }
+
     /**
-     * Removes the items lying on the ground inside the region (its shape, not its bounding box), on the world's thread -
-     * in place when the caller already is it. Completes with how many were removed; exceptionally on a platform whose
-     * terrain access is {@code ITerrainAccess.UNSUPPORTED}, or for a world that is not loaded.
+     * Removes the items lying on the ground inside the region (its shape, not its bounding box) that {@code remove}
+     * accepts, on the world's thread - in place when the caller already is it; {@code remove} runs there too, once per
+     * item. Completes with what was removed; exceptionally on a platform whose terrain access is
+     * {@code ITerrainAccess.UNSUPPORTED}, or for a world that is not loaded.
+     *
+     * @param remove true for an item to take off the ground; one refused stays and is left out of the result
      */
-    public CompletableFuture<Integer> clearItems() {
+    public CompletableFuture<ItemClearance> clearItems(Predicate<? super GroundItem> remove) {
+        Objects.requireNonNull(remove, "remove");
         IPlatform platform = EverNifeCore.getPlatform();
-        int[] removed = new int[1];
-        return platform.runOnWorldThread(world, () -> removed[0] = platform.getTerrainAccess().removeItems(world, getShape()))
-                .thenApply(ignored -> removed[0]);
+        List<GroundItem> removed = new ArrayList<>();
+        return platform.runOnWorldThread(world, () -> removed.addAll(platform.getTerrainAccess().removeItems(world, getShape(), remove)))
+                .thenApply(ignored -> new ItemClearance(removed));
     }
 
     // ---- flags ----

@@ -1,6 +1,10 @@
 package br.com.finalcraft.evernifecore.testing;
 
+import br.com.finalcraft.evernifecore.action.TypeKey;
+import br.com.finalcraft.evernifecore.item.GroundItem;
+import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.terrain.TerrainContent;
@@ -14,6 +18,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.function.Predicate;
 
 /**
  * A world of blocks and entities in memory, as {@link Platforms#terrain()} answers {@code getTerrainAccess()}. A block
@@ -37,8 +43,14 @@ public final class TestTerrain implements ITerrainAccess {
     private int failAfterRestores = -1;
     private String gameVersion = DEFAULT_GAME_VERSION;
 
-    /** The entity name of an item lying on the ground: {@code spawn(world, ITEM, x, y, z)} drops one, {@link #removeItems} takes it. */
+    /**
+     * The entity name of an item lying on the ground: {@code spawn(world, ITEM, x, y, z)} drops one {@link #DEFAULT_ITEM},
+     * {@link #spawnItem} a stack of its own; {@link #removeItems} takes them.
+     */
     public static final String ITEM = "item";
+
+    /** What a plain {@link #ITEM} entity holds, one of. */
+    public static final String DEFAULT_ITEM = "test:item";
 
     /** The game version a fresh terrain reports. */
     public static final String DEFAULT_GAME_VERSION = "test-1";
@@ -69,6 +81,11 @@ public final class TestTerrain implements ITerrainAccess {
     /** Puts an entity in the world, as {@code name@x,y,z}. */
     public void spawn(String world, String name, int x, int y, int z) {
         entities.add(world + ":" + name + "@" + x + "," + y + "," + z);
+    }
+
+    /** Drops {@code amount} of {@code itemId} on the ground, as the entity {@code item[itemId xamount]@x,y,z}. */
+    public void spawnItem(String world, String itemId, int amount, int x, int y, int z) {
+        spawn(world, ITEM + "[" + itemId + " x" + amount + "]", x, y, z);
     }
 
     /** Takes an entity out, as a kill does; false when it was not there. */
@@ -161,18 +178,41 @@ public final class TestTerrain implements ITerrainAccess {
         entities.add(world + ":" + state);
     }
 
-    /** Removes the entities named {@link #ITEM} whose block is inside {@code shape}. */
+    /** Removes the item entities ({@link #ITEM}, {@link #spawnItem}) whose block is inside {@code shape} and {@code remove} accepts. */
     @Override
-    public int removeItems(String world, Shape shape) {
-        int before = entities.size();
+    public List<GroundItem> removeItems(String world, Shape shape, Predicate<? super GroundItem> remove) {
+        List<GroundItem> removed = new ArrayList<>();
         entities.removeIf(entity -> {
-            if (!entity.startsWith(world + ":" + ITEM + "@")) {
+            if (!entity.startsWith(world + ":")) {
+                return false;
+            }
+            String name = entity.substring(world.length() + 1, entity.indexOf('@'));
+            if (!name.equals(ITEM) && !name.startsWith(ITEM + "[")) {
                 return false;
             }
             String[] xyz = entity.substring(entity.indexOf('@') + 1).split(",");
-            return shape.contains(Integer.parseInt(xyz[0]), Integer.parseInt(xyz[1]), Integer.parseInt(xyz[2]));
+            int x = Integer.parseInt(xyz[0]);
+            int y = Integer.parseInt(xyz[1]);
+            int z = Integer.parseInt(xyz[2]);
+            if (!shape.contains(x, y, z)) {
+                return false;
+            }
+            String id = DEFAULT_ITEM;
+            int amount = 1;
+            if (!name.equals(ITEM)) {
+                String stack = name.substring(ITEM.length() + 1, name.length() - 1);
+                id = stack.substring(0, stack.lastIndexOf(" x"));
+                amount = Integer.parseInt(stack.substring(stack.lastIndexOf(" x") + 2));
+            }
+            GroundItem item = new GroundItem(TypeKey.parse(id), amount, ItemSpec.of(id, amount), WorldLocPos.of(x, y, z, world),
+                    UUID.nameUUIDFromBytes(entity.getBytes(StandardCharsets.UTF_8)));
+            if (!remove.test(item)) {
+                return false;
+            }
+            removed.add(item);
+            return true;
         });
-        return before - entities.size();
+        return removed;
     }
 
     /** The server "upgraded": snapshots taken before carry the old version. */

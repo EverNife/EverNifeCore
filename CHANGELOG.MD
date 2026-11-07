@@ -34,9 +34,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   it to some items. The flag marks the drop (`ItemContext.isItemDestroyed()`); Bukkit removes the item a tick after
   the drop event (the server adds it to the world after the event), Hytale cancels `DropItemEvent.Drop`, which fires
   once the stack has left the inventory. 62 core flags.
-- **`Region.clearItems()`**: removes the items lying on the ground inside the region's shape on the world's thread and
-  completes with how many. Backed by the new `ITerrainAccess.removeItems(world, shape)` (Bukkit and Hytale;
-  `TestTerrain` takes the entities named `TestTerrain.ITEM`).
+- **`Region.clearItems()` / `clearItems(Predicate<GroundItem>)`**: removes the items lying on the ground inside the
+  region's shape on the world's thread - with the filter, only those it accepts; the rest stay - and completes with an
+  `ItemClearance`: every `GroundItem` removed (`TypeKey`, amount, `ItemSpec` carrying the native stack, position,
+  entity id) plus `getEntityCount()` and `getUnitCount()`. Backed by the new
+  `ITerrainAccess.removeItems(world, shape, filter)` (Bukkit and Hytale; `TestTerrain` takes the entities named
+  `TestTerrain.ITEM` and the stacks of `TestTerrain.spawnItem`).
 - **`Region.removeTemporaryFlag(flag)`** (and `Group.removeTemporaryFlag`, `FlagStore.removeTemporary`): drops only the
   temporary value set with a `Duration`, so the permanent value underneath reads again; `removeFlag` still drops both.
 

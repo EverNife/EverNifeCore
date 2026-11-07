@@ -1,6 +1,10 @@
 package br.com.finalcraft.evernifecore.minecraft.region.terrain;
 
+import br.com.finalcraft.evernifecore.item.GroundItem;
+import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
+import br.com.finalcraft.evernifecore.minecraft.action.listener.McActionContexts;
+import br.com.finalcraft.evernifecore.minecraft.screen.ChestItems;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.minecraft.worldedit.WEPlatform;
@@ -43,6 +47,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.IntConsumer;
+import java.util.function.Predicate;
 
 /**
  * Block and entity access by position on Bukkit. A block is its {@code BlockData} text from 1.13 on and
@@ -117,13 +122,19 @@ public final class McTerrainAccess implements ITerrainAccess {
     }
 
     @Override
-    public int removeItems(String world, Shape shape) {
-        int removed = 0;
+    public List<GroundItem> removeItems(String world, Shape shape, Predicate<? super GroundItem> remove) {
+        List<GroundItem> removed = new ArrayList<>();
         for (Item item : world(world).getEntitiesByClass(Item.class)) {
             Location at = item.getLocation();
-            if (shape.contains(at.getX(), at.getY(), at.getZ())) {
+            ItemSpec spec = shape.contains(at.getX(), at.getY(), at.getZ()) ? ChestItems.specOf(item.getItemStack()) : null;
+            if (spec == null) {
+                continue;
+            }
+            GroundItem ground = new GroundItem(McActionContexts.key(item.getItemStack()), spec.getAmount(), spec,
+                    McActionContexts.position(at), item.getUniqueId());
+            if (remove.test(ground)) {
                 item.remove();
-                removed++;
+                removed.add(ground);
             }
         }
         return removed;
