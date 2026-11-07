@@ -5,12 +5,15 @@ import com.hypixel.hytale.server.core.modules.entity.damage.DamageCause;
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageSystems;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.config.factory.ConfigFactoryCodec;
 import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
+import br.com.finalcraft.evernifecore.hytale.inventory.player.FCPlayerInventory;
 import br.com.finalcraft.evernifecore.player.state.ActiveEffect;
 import br.com.finalcraft.evernifecore.player.state.ECGameMode;
 import br.com.finalcraft.evernifecore.player.state.EffectLevel;
 import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.player.state.PlayerTime;
+import br.com.finalcraft.everydatabase.codec.CodecException;
 import com.hypixel.hytale.component.Component;
 import com.hypixel.hytale.component.ComponentType;
 import com.hypixel.hytale.component.Ref;
@@ -37,6 +40,7 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import jakarta.annotation.Nullable;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -53,7 +57,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 /**
- * Clock, flight, game mode ({@code ADVENTURE}, {@code CREATIVE}), entity effects, health and commands. Hytale has no
+ * Clock, flight, game mode ({@code ADVENTURE}, {@code CREATIVE}), entity effects, health, commands and the inventory (the
+ * JSON of an {@link FCPlayerInventory}: its six sections and the extra inventories). Hytale has no
  * per-player weather the server can clear again and no food, and its API exposes no experience and no statistics, so
  * those four capabilities are missing. The clock is the
  * client's time override - the packet the server's own player-only time effect sends: a fixed time is a paused
@@ -66,7 +71,7 @@ public final class HyPlayerStateAccess implements IPlayerStateAccess {
     private static final long TICKS_PER_DAY = 24000;
     private static final long TICKS_AT_MIDNIGHT = 18000;   //Minecraft's day starts at 06:00
     private static final Set<Capability> SUPPORTED = EnumSet.of(Capability.TIME, Capability.FLIGHT, Capability.GAME_MODE,
-            Capability.EFFECTS, Capability.HEALTH, Capability.COMMAND);
+            Capability.EFFECTS, Capability.HEALTH, Capability.COMMAND, Capability.INVENTORY);
 
     /** What one call asks of the server; apart so the mapping above it is testable without a running world. */
     interface Ops {
@@ -106,6 +111,10 @@ public final class HyPlayerStateAccess implements IPlayerStateAccess {
         void damage(FPlayer player, float amount);
 
         boolean command(@Nullable FPlayer asPlayer, String command);
+
+        FCPlayerInventory inventory(FPlayer player);
+
+        void setInventory(FPlayer player, FCPlayerInventory inventory);
     }
 
     private final Ops ops;
@@ -311,6 +320,29 @@ public final class HyPlayerStateAccess implements IPlayerStateAccess {
         }
     }
 
+    // ---- INVENTORY ----
+
+    @Override
+    public String getInventory(FPlayer player) {
+        try {
+            return new String(ConfigFactoryCodec.json(FCPlayerInventory.class).encode(ops.inventory(player)), StandardCharsets.UTF_8);
+        } catch (CodecException e) {
+            throw new IllegalStateException("Could not encode " + player.getName() + "'s inventory: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void setInventory(FPlayer player, String inventory) {
+        FCPlayerInventory picture;
+        try {
+            picture = inventory.isEmpty() ? new FCPlayerInventory()
+                    : ConfigFactoryCodec.json(FCPlayerInventory.class).decode(inventory.getBytes(StandardCharsets.UTF_8));
+        } catch (CodecException e) {
+            throw new IllegalStateException("Could not read back " + player.getName() + "'s inventory, so it was left as it is: " + e.getMessage(), e);
+        }
+        ops.setInventory(player, picture);
+    }
+
     // ---- COMMAND ----
 
     @Override
@@ -452,6 +484,16 @@ public final class HyPlayerStateAccess implements IPlayerStateAccess {
         public boolean command(@Nullable FPlayer asPlayer, String command) {
             return asPlayer == null ? EverNifeCore.getPlatform().makeConsoleExecuteCommand(command)
                     : EverNifeCore.getPlatform().makePlayerExecuteCommand(asPlayer, command);
+        }
+
+        @Override
+        public FCPlayerInventory inventory(FPlayer player) {
+            return new FCPlayerInventory(player);
+        }
+
+        @Override
+        public void setInventory(FPlayer player, FCPlayerInventory inventory) {
+            inventory.restoreTo(player);
         }
     }
 }

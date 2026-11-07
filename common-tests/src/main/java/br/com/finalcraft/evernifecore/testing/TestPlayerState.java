@@ -26,7 +26,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 /**
  * Players in memory, as {@link Platforms#playerState()} answers {@code getPlayerState()}: every capability by default,
  * each player starting in survival, on the world's clock and weather, not allowed to fly, with 20 health of 20, 20
- * food of 20, level 0 with no experience and no statistics. Weathers are {@code clear}, {@code rain} and {@code thunder}; any non-blank effect id exists. Commands are
+ * food of 20, level 0 with no experience, no statistics and an empty inventory ({@code ""}). Weathers are {@code clear}, {@code rain} and {@code thunder}; any non-blank effect id exists. Commands are
  * kept, in order, as {@code console: <command>} or {@code <player name>: <command>}.
  */
 public final class TestPlayerState implements IPlayerStateAccess {
@@ -50,6 +50,8 @@ public final class TestPlayerState implements IPlayerStateAccess {
         public volatile int exp;
         /** Statistics by native name; one absent here does not exist. */
         public final Map<String, BigDecimal> statistics = new ConcurrentHashMap<>();
+        /** The whole inventory as {@link IPlayerStateAccess#getInventory} encodes it; any text stands for one here. */
+        public volatile String inventory = "";
     }
 
     private static final List<String> WEATHERS = Arrays.asList(CLEAR, RAIN, "thunder");
@@ -249,6 +251,16 @@ public final class TestPlayerState implements IPlayerStateAccess {
     @Override
     public @Nullable BigDecimal getStatistic(FPlayer player, String nativeName) {
         return require(Capability.STATISTICS, player).statistics.get(nativeName);
+    }
+
+    @Override
+    public String getInventory(FPlayer player) {
+        return require(Capability.INVENTORY, player).inventory;
+    }
+
+    @Override
+    public void setInventory(FPlayer player, String inventory) {
+        require(Capability.INVENTORY, player).inventory = inventory;
     }
 
     @Override

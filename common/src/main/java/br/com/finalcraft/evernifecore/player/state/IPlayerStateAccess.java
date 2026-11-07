@@ -11,13 +11,13 @@ import java.util.List;
 
 /**
  * What a platform can read and change on one player, for the session flags and the logic engine: clock, weather,
- * flight, game mode, effects, health, food, commands, experience and statistics. A platform declares each {@link Capability} it has through {@link #supports}; every call of
+ * flight, game mode, effects, health, food, commands, experience, statistics and the whole inventory. A platform declares each {@link Capability} it has through {@link #supports}; every call of
  * one it lacks throws, and a flag that needs it is reported at boot as having no effect there. Calls run on the
  * player's world thread.
  */
 public interface IPlayerStateAccess {
 
-    enum Capability { TIME, WEATHER, FLIGHT, GAME_MODE, EFFECTS, HEALTH, FOOD, COMMAND, EXPERIENCE, STATISTICS }
+    enum Capability { TIME, WEATHER, FLIGHT, GAME_MODE, EFFECTS, HEALTH, FOOD, COMMAND, EXPERIENCE, STATISTICS, INVENTORY }
 
     /** The weather that stops rain and storms, on every platform that has {@link Capability#WEATHER}. */
     String CLEAR = "clear";
@@ -190,6 +190,21 @@ public interface IPlayerStateAccess {
     /** Runs {@code command} (no leading {@code /}) as {@code asPlayer}, or as the console when it is null. */
     default boolean dispatchCommand(@Nullable FPlayer asPlayer, String command) {
         throw unsupported(Capability.COMMAND);
+    }
+
+    // ---- INVENTORY ----
+
+    /**
+     * Everything {@code player} carries - armor, storage, hotbar, off-hand and every extra inventory this platform knows -
+     * encoded as only this platform reads it back; the empty string is an empty inventory.
+     */
+    default String getInventory(FPlayer player) {
+        throw unsupported(Capability.INVENTORY);
+    }
+
+    /** Replaces all {@code player} carries with {@code inventory}, what {@link #getInventory} gave; the empty string empties it. */
+    default void setInventory(FPlayer player, String inventory) {
+        throw unsupported(Capability.INVENTORY);
     }
 
     /** The capabilities this platform lacks, in declaration order. */

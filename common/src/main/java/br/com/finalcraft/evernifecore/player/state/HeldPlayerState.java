@@ -29,7 +29,7 @@ import java.util.function.Consumer;
  * shared, the latest holder's value is the one on the player; when it lets go, the holder now latest puts its own back.
  * A slot held with
  * {@code persistent} also lands in the player's {@link PlayerStateBackup}: a player who was inside when the server
- * stopped gets it back on the next join ({@link #restoreLeftovers}). One per player while online ({@link #of}); on quit
+ * stopped, or whose give-back the platform refused, gets it back on the next join ({@link #restoreLeftovers}). One per player while online ({@link #of}); on quit
  * every slot still held is given back ({@link #forget}). Calls run on the player's world thread.
  */
 public final class HeldPlayerState {
@@ -39,6 +39,12 @@ public final class HeldPlayerState {
     /** Allowed to fly, and flying: the slot {@code allow-fly} and {@code force-fly} share. */
     public static final String FLIGHT = "flight";
     public static final String GAME_MODE = "game-mode";
+    /**
+     * Everything the player carries, as {@link IPlayerStateAccess#getInventory} encodes it: the holder empties it or
+     * hands a kit, the last to let go gives the player's own back. A death while held drops what the player carries
+     * then; a holder that leaves the own inventory in place clears those drops, or they come back twice.
+     */
+    public static final String INVENTORY = "inventory";
     private static final String EFFECT = "effect:";
 
     private static final Map<UUID, HeldPlayerState> PLAYERS = new ConcurrentHashMap<>();
@@ -204,7 +210,9 @@ public final class HeldPlayerState {
         try {
             write(access(), online, slot, before);
         } catch (RuntimeException refused) {
+            //the backup keeps it: the next join tries again instead of losing it for good
             ECDebugModule.REGIONS.debug("Could not give {} back their {} ({}): {}", online.getName(), slot, before, refused.toString());
+            return;
         }
         PlayerStateBackup backup = backup();
         if (backup != null) {
@@ -238,6 +246,8 @@ public final class HeldPlayerState {
                 return access.getAllowFlight(online) + "|" + access.isFlying(online);
             case GAME_MODE:
                 return access.getGameMode(online).name();
+            case INVENTORY:
+                return access.getInventory(online);
             default:
                 ActiveEffect effect = access.getEffect(online, effectId(slot));
                 return effect == null ? "" : effect.getEffect().getLevel() + "|" + effect.getRemaining().toMillis();
@@ -264,6 +274,9 @@ public final class HeldPlayerState {
             case GAME_MODE:
                 access.setGameMode(online, ECGameMode.valueOf(before));
                 return;
+            case INVENTORY:
+                access.setInventory(online, before);
+                return;
             default:
                 String id = effectId(slot);
                 access.removeEffect(online, id);
@@ -276,7 +289,7 @@ public final class HeldPlayerState {
 
     private static String effectId(String slot) {
         if (!slot.startsWith(EFFECT)) {
-            throw new IllegalArgumentException("Unknown player-state slot '" + slot + "': it is time, weather, flight, game-mode or effect:<id>.");
+            throw new IllegalArgumentException("Unknown player-state slot '" + slot + "': it is time, weather, flight, game-mode, inventory or effect:<id>.");
         }
         return slot.substring(EFFECT.length());
     }

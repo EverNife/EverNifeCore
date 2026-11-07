@@ -1,10 +1,14 @@
 package br.com.finalcraft.evernifecore.hytale.region;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.hytale.inventory.GenericInventory;
+import br.com.finalcraft.evernifecore.hytale.inventory.player.FCPlayerInventory;
 import br.com.finalcraft.evernifecore.player.state.ECGameMode;
 import br.com.finalcraft.evernifecore.player.state.EffectLevel;
 import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess.Capability;
 import br.com.finalcraft.evernifecore.player.state.PlayerTime;
+import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
+import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.Senders;
 import com.hypixel.hytale.protocol.FlyMode;
 import com.hypixel.hytale.protocol.GameMode;
@@ -134,6 +138,19 @@ class HyPlayerStateAccessTest {
             commands.add((asPlayer == null ? "console" : asPlayer.getName()) + ": " + command);
             return true;
         }
+
+        FCPlayerInventory inventory = new FCPlayerInventory();
+        final List<FCPlayerInventory> restored = new ArrayList<>();
+
+        @Override
+        public FCPlayerInventory inventory(FPlayer player) {
+            return inventory;
+        }
+
+        @Override
+        public void setInventory(FPlayer player, FCPlayerInventory inventory) {
+            restored.add(inventory);
+        }
     }
 
     private final RecordingOps ops = new RecordingOps();
@@ -148,6 +165,25 @@ class HyPlayerStateAccessTest {
         assertThrows(UnsupportedOperationException.class, () -> access.getLevel(player));
         assertThrows(UnsupportedOperationException.class, () -> access.setFood(player, 5));
         assertNull(access.toWeatherId("clear"));
+    }
+
+    @Test
+    void theInventoryIsWrittenAsJsonAndReadBackIntoTheSixSectionsAndTheEmptyStringEmptiesThem() {
+        try (ECoreTestWorld ignored = Platforms.lenient().install()) { //the config codecs ask the platform
+            String encoded = access.getInventory(player);
+            assertTrue(encoded.contains("\"backpack\""), encoded);
+
+            access.setInventory(player, encoded);
+            access.setInventory(player, "");
+            //an item in a slot reads back only with the server's asset store, which a unit test has not
+            assertEquals(2, ops.restored.size());
+            for (FCPlayerInventory restored : ops.restored) {
+                for (GenericInventory section : Arrays.asList(restored.getStorage(), restored.getArmor(), restored.getHotbar(),
+                        restored.getUtility(), restored.getTools(), restored.getBackpack())) {
+                    assertTrue(section.getItems().isEmpty());
+                }
+            }
+        }
     }
 
     @Test

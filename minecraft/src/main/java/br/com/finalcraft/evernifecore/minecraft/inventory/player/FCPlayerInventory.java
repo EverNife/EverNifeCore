@@ -21,8 +21,8 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * Persists as {@code {helmet, chestplate, leggings, boots, inventory, extra.<id>}}. The four armor pieces and
- * the main {@link GenericInventory} are bound as ordinary fields ({@link JsonAutoDetect} exposes them since the
+ * Persists as {@code {helmet, chestplate, leggings, boots, offHand, inventory, extra.<id>}}. The armor pieces, the
+ * off-hand (null on a server without one) and the main {@link GenericInventory} are bound as ordinary fields ({@link JsonAutoDetect} exposes them since the
  * class has getters but no setters); the factory-driven {@code extra.<id>} map is handled in the
  * {@link ConfigLifecycle} hooks, where each factory's own {@link IExtraInvFactory#onConfigLoad} stays
  * polymorphic.
@@ -34,9 +34,15 @@ public class FCPlayerInventory implements ConfigLifecycle {
     protected ItemStack chestplate;
     protected ItemStack leggings;
     protected ItemStack boots;
+    protected ItemStack offHand;
     protected GenericInventory inventory = new GenericInventory(); //0-35
     @JsonIgnore
     protected List<ExtraInv> extraInvs = new ArrayList<>();
+
+    /** The storage and hotbar slots, 0 to 35. */
+    private static final int MAIN_SLOTS = 36;
+    /** The off-hand's index from 1.9 on, after the 36 main slots and the four armor ones. */
+    private static final int OFF_HAND = 40;
 
     public FCPlayerInventory() {
         this(null, null, null, null, new GenericInventory());
@@ -65,7 +71,7 @@ public class FCPlayerInventory implements ConfigLifecycle {
 
     public FCPlayerInventory(Player player, @Nullable Collection<IExtraInvFactory<?>> inventoryFactories) {
         PlayerInventory playerInventory = player.getInventory();
-        for (int index = 0; index < 36; index++){
+        for (int index = 0; index < MAIN_SLOTS; index++){
             ItemStack itemStack = playerInventory.getItem(index);
             if (itemStack != null){
                 inventory.setItem(index, itemStack.clone());
@@ -76,6 +82,10 @@ public class FCPlayerInventory implements ConfigLifecycle {
         this.chestplate = playerInventory.getChestplate() != null ? playerInventory.getChestplate().clone() : null;
         this.leggings = playerInventory.getLeggings() != null ? playerInventory.getLeggings().clone() : null;
         this.boots = playerInventory.getBoots() != null ? playerInventory.getBoots().clone() : null;
+        if (hasOffHand(playerInventory)) {
+            ItemStack held = playerInventory.getItem(OFF_HAND);
+            this.offHand = held != null ? held.clone() : null;
+        }
 
         if (inventoryFactories != null){
             for (IExtraInvFactory<?> factory : inventoryFactories) {
@@ -107,6 +117,11 @@ public class FCPlayerInventory implements ConfigLifecycle {
         return boots;
     }
 
+    /** The off-hand item; null when empty or on a server without an off-hand. */
+    public ItemStack getOffHand() {
+        return offHand;
+    }
+
     public GenericInventory getInventory() {
         return inventory;
     }
@@ -130,11 +145,17 @@ public class FCPlayerInventory implements ConfigLifecycle {
     public void restoreTo(Player player, @Nullable Collection<IExtraInvFactory<?>> inventoryFactories) {
         PlayerInventory playerInventory = player.getInventory();
 
-        ItemStack[] inventoryContent = new ItemStack[36];
+        //slot by slot: setContents with fewer slots than the inventory has blanks the rest - the off-hand from 1.9 on
+        ItemStack[] inventoryContent = new ItemStack[MAIN_SLOTS];
         for (ItemInSlot itemInSlot : inventory.getItems()) {
             inventoryContent[itemInSlot.getSlot()] = itemInSlot.getItemStack().clone();
         }
-        playerInventory.setContents(inventoryContent);
+        for (int index = 0; index < MAIN_SLOTS; index++) {
+            playerInventory.setItem(index, inventoryContent[index]);
+        }
+        if (hasOffHand(playerInventory)) {
+            playerInventory.setItem(OFF_HAND, offHand == null ? null : offHand.clone());
+        }
 
         if (inventoryFactories != null) {
             for (IExtraInvFactory factory : inventoryFactories) {
@@ -158,6 +179,11 @@ public class FCPlayerInventory implements ConfigLifecycle {
         playerInventory.setChestplate(this.getChestplate() == null ?  null : this.getChestplate().clone());
         playerInventory.setLeggings(this.getLeggings() == null ?  null : this.getLeggings().clone());
         playerInventory.setBoots(this.getBoots() == null ?  null : this.getBoots().clone());
+    }
+
+    //read by index, not getItemInOffHand: that method does not exist before 1.9
+    private static boolean hasOffHand(PlayerInventory playerInventory) {
+        return playerInventory.getSize() > OFF_HAND;
     }
 
     // ==================== config lifecycle ====================

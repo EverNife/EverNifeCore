@@ -1,13 +1,16 @@
 package br.com.finalcraft.evernifecore.minecraft.region;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.config.factory.ConfigFactoryCodec;
 import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFPlayer;
+import br.com.finalcraft.evernifecore.minecraft.inventory.player.FCPlayerInventory;
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
 import br.com.finalcraft.evernifecore.player.state.ActiveEffect;
 import br.com.finalcraft.evernifecore.player.state.ECGameMode;
 import br.com.finalcraft.evernifecore.player.state.EffectLevel;
 import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.player.state.PlayerTime;
+import br.com.finalcraft.everydatabase.codec.CodecException;
 import jakarta.annotation.Nullable;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -20,6 +23,7 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.Map;
@@ -30,7 +34,8 @@ import java.util.function.BiPredicate;
 /**
  * Every capability, through the Bukkit player: {@code setPlayerTime} (ramped one step per tick), {@code setPlayerWeather},
  * flight, {@link GameMode} (only the modes this server version has), potion effects by their Bukkit name, health, food,
- * experience, untyped {@link Statistic}s and {@code Bukkit.dispatchCommand}.
+ * experience, untyped {@link Statistic}s, {@code Bukkit.dispatchCommand} and the inventory as the JSON of an
+ * {@link FCPlayerInventory}.
  */
 public final class McPlayerStateAccess implements IPlayerStateAccess {
 
@@ -313,6 +318,30 @@ public final class McPlayerStateAccess implements IPlayerStateAccess {
             return null;
         }
         return BigDecimal.valueOf(bukkit(player).getStatistic(statistic));
+    }
+
+    // ---- INVENTORY ----
+
+    @Override
+    public String getInventory(FPlayer player) {
+        try {
+            return new String(ConfigFactoryCodec.json(FCPlayerInventory.class).encode(new FCPlayerInventory(bukkit(player))), StandardCharsets.UTF_8);
+        } catch (CodecException e) {
+            throw new IllegalStateException("Could not encode " + player.getName() + "'s inventory: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void setInventory(FPlayer player, String inventory) {
+        Player bukkit = bukkit(player);
+        FCPlayerInventory picture;
+        try {
+            picture = inventory.isEmpty() ? new FCPlayerInventory()
+                    : ConfigFactoryCodec.json(FCPlayerInventory.class).decode(inventory.getBytes(StandardCharsets.UTF_8));
+        } catch (CodecException e) {
+            throw new IllegalStateException("Could not read back " + player.getName() + "'s inventory, so it was left as it is: " + e.getMessage(), e);
+        }
+        picture.restoreTo(bukkit);
     }
 
     // ---- COMMAND ----

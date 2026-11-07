@@ -22,12 +22,29 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 - **`PlaceholderArgs.bareWordsAsTrue(flags...)`**: a copy where a bare word naming a flag reads as `flag=true`
   (`[shiny]` equals `[shiny=true]`, cache key included); a bare word that is none of the flags is refused with the list.
-- **`Region.removeTemporaryFlag(flag)`** (and `Group.removeTemporaryFlag`, `FlagStore.removeTemporary`): drops only the
-  temporary value set with a `Duration`, so the permanent value underneath reads again; `removeFlag` still drops both.
 - **Manipulators can be listed**: `addManipulator(template, description, parser)` (both overloads),
   `RegexReplacer.describeManipulators()` (template -> description, registration order),
   `ManipulatedParser.getDescription()` and `Manipulator.bareForm()` (`battle_win_[filters?]` -> `battle_win`, null
   when a gap or a mandatory block has no bare form).
+
+#### Regions
+
+- **`Region.removeTemporaryFlag(flag)`** (and `Group.removeTemporaryFlag`, `FlagStore.removeTemporary`): drops only the
+  temporary value set with a `Duration`, so the permanent value underneath reads again; `removeFlag` still drops both.
+
+#### Player state
+
+- **`IPlayerStateAccess.Capability.INVENTORY`** and the `HeldPlayerState.INVENTORY` slot: a plugin holds a player's whole
+  inventory aside (a duel kit, an arena), and the last holder to let go gives the own one back - on the release, on the
+  quit, or with `persistent` on the next join after a server stop. `getInventory(player)` / `setInventory(player, text)`
+  read and write it as the platform's own encoding (the JSON of its `FCPlayerInventory`, extra inventories included); the
+  empty string is an empty inventory. Bukkit and Hytale have it.
+
+#### Testing
+
+- **A broadcast is observable in tests**: `Platforms.neutralChatAdapter()` broadcasts to the online players and the new
+  `TestPlatform.getBroadcastConsole()` instead of nobody, and `TestLocaleMessage.broadcast()` sends to that audience
+  instead of throwing.
 
 ### Fixed
 
@@ -41,11 +58,15 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **A `GroupManager` without storage closes at once**: `flush()` and `close()` no longer hop to the async scheduler
   with nothing to write, so the owner's shutdown under a `TestClock` nobody pumps stops waiting the real 30 s.
 
-#### Testing
+#### Player state
 
-- **A broadcast is observable in tests**: `Platforms.neutralChatAdapter()` broadcasts to the online players and the new
-  `TestPlatform.getBroadcastConsole()` instead of nobody, and `TestLocaleMessage.broadcast()` sends to that audience
-  instead of throwing.
+- A held slot whose give-back the platform refused stays in `PlayerStateBackup` and is tried again on the next join; it
+  used to be dropped from the backup and lost.
+
+#### Items
+
+- `FCPlayerInventory` (Bukkit) keeps the off-hand (`offHand`, null before 1.9) and `restoreTo` no longer blanks it: the
+  36-slot `setContents` emptied every slot after the main ones.
 
 ### Changed
 

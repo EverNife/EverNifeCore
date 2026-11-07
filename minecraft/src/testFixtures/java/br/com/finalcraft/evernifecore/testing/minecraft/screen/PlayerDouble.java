@@ -272,7 +272,8 @@ public final class PlayerDouble {
 
     /**
      * The player's own inventory, laid out as on 1.9+: the 36 main slots, then armor (36-39) and the
-     * off-hand (40), all of them read and written by index and answered together by {@code getContents}.
+     * off-hand (40), all of them read and written by index and answered together by {@code getContents};
+     * the armor also by piece ({@code getHelmet}, {@code setBoots}, ...).
      * {@code addItem}, which is how the framework gives an item back, only ever fills the main slots.
      *
      * <p>{@code addItem} tops up the stacks already there before filling an empty slot and answers
@@ -311,6 +312,14 @@ public final class PlayerDouble {
                         return null;
                     })
                     .on("getArmorContents", args -> armor.clone())
+                    .on("getBoots", args -> armor[0])
+                    .on("getLeggings", args -> armor[1])
+                    .on("getChestplate", args -> armor[2])
+                    .on("getHelmet", args -> armor[3])
+                    .on("setBoots", args -> armor[0] = (ItemStack) args[0])
+                    .on("setLeggings", args -> armor[1] = (ItemStack) args[0])
+                    .on("setChestplate", args -> armor[2] = (ItemStack) args[0])
+                    .on("setHelmet", args -> armor[3] = (ItemStack) args[0])
                     .on("getItemInOffHand", args -> offHand)
                     .on("addItem", args -> addItems((ItemStack[]) args[0]))
                     .build();
