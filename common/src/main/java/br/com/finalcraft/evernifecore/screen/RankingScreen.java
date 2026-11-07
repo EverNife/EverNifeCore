@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.screen;
 
+import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.placeholder.replacer.Closures;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
@@ -56,7 +57,13 @@ public final class RankingScreen extends Screen<RankingScreen.RankingLayout> {
                 .into(l -> l.ENTRY)
                 .pagedBy(l -> l.PREVIOUS, l -> l.NEXT)
                 .dependsOn(rows)
-                .render((row, icon) -> icon.addScope(ROW, row));
+                .render((row, icon) -> {
+                    if (row.item != null) {
+                        ItemSpec template = icon.getItem();
+                        icon.setItem(row.item.withText(template.getDisplayName(), template.getLore()));
+                    }
+                    icon.addScope(ROW, row);
+                });
         progress(l -> l.PROGRESS, ratio).dependsOn(ratio);
         addReplacer(BAR, this);
         addComponent(component -> load(component.getView()));
@@ -93,7 +100,8 @@ public final class RankingScreen extends Screen<RankingScreen.RankingLayout> {
             boolean self = mine != null && entry.getPosition() == mine;
             Object subject = list.isAboutPlayers() ? list.valueOf(entry, RankedList.PLAYER_KEY) : entry.getObject();
             Object value = list.valueOf(entry, RankedList.VALUE_KEY);
-            built.add(new Row(entry.getPosition(), String.valueOf(subject), String.valueOf(value), self));
+            ItemSpec item = request.getIcon() == null ? null : request.getIcon().apply(entry);
+            built.add(new Row(entry.getPosition(), String.valueOf(subject), String.valueOf(value), self, item));
             if (self) {
                 mineValue = entry.getOrderValue();
             } else if (mine != null && entry.getPosition() == mine - 1) {
@@ -129,12 +137,14 @@ public final class RankingScreen extends Screen<RankingScreen.RankingLayout> {
         private final String subject;
         private final String value;
         private final boolean self;
+        private final @Nullable ItemSpec item;
 
-        private Row(int position, String subject, String value, boolean self) {
+        private Row(int position, String subject, String value, boolean self, @Nullable ItemSpec item) {
             this.position = position;
             this.subject = subject;
             this.value = value;
             this.self = self;
+            this.item = item;
         }
 
     }

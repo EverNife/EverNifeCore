@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.screen;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.ranking.RankedList;
 import br.com.finalcraft.evernifecore.testing.RecordingSurface;
 import br.com.finalcraft.evernifecore.testing.ScreenWorld;
@@ -83,6 +84,19 @@ class RankingScreenTest {
         assertEquals("§a» §e#2 §fAlex", surface(view).getSlot(1).getItem().getDisplayName());
         assertEquals("§e#3 §fCarl", surface(view).getSlot(2).getItem().getDisplayName());
         assertTrue(surface(view).getSlot(1).getItem().getLore().contains("§750"), surface(view).getSlot(1).getItem().getLore().toString());
+        close(view);
+    }
+
+    @Test
+    void eachEntryDrawsTheItemTheRequestGivesItUnderTheLayoutsText() {
+        RankingRequest request = RankingRequest.of(kills)
+                .icon(entry -> ItemSpec.of(entry.getPosition() == 1 ? "minecraft:gold_block" : "minecraft:iron_block", 1));
+        ScreenView view = Screens.open(alex, ScreenKey.RANKING, ScreenRequest.of(null).payload(request)).join();
+        world.advanceTicks(2);
+
+        assertEquals("minecraft:gold_block", surface(view).getSlot(0).getItem().getMaterialId());
+        assertEquals("minecraft:iron_block", surface(view).getSlot(1).getItem().getMaterialId());
+        assertEquals("§a» §e#2 §fAlex", surface(view).getSlot(1).getItem().getDisplayName());
         close(view);
     }
 

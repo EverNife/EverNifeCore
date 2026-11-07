@@ -60,6 +60,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 - **`Icon.itemFor(Function<FPlayer, ItemSpec>)`**: the item each viewer sees in place of the icon's own, asked at every
   render (null answer = the icon's own item); text, placeholders and data lines still apply over it.
+- **`RankingRequest.icon(Function<RankedEntry<?>, ItemSpec>)`**: each ranking entry drawn as the item it answers (a
+  player's head, the ranked thing's own item) under the layout's `ENTRY` text; a null answer keeps the layout's item.
 
 #### Testing
 
