@@ -120,8 +120,8 @@ import java.util.function.Supplier;
  *
  * <p>0.7.2 fires no explosion event: an explosion reaches the regions only block by block, as a
  * {@link DamageBlockEvent} with no actor, decided as a BREAK by the environment. {@code deny-explosion} has no effect
- * here. {@link #SERVED_SOURCES} are the core sources a System here raises; every flag that needs another one says in
- * the boot log that it has no effect on Hytale.</p>
+ * here. {@link #SERVED_SOURCES} are the core sources a System here raises; {@code FlagRegistry.isSupported} derives from
+ * them which flags exist on Hytale at all.</p>
  */
 public final class HyActionSystems {
 
@@ -198,7 +198,7 @@ public final class HyActionSystems {
         return true;
     }
 
-    /** Tells the core what this platform raises and lacks; each flag that cannot act in full here then says so in the boot log. */
+    /** Tells the core what this platform raises and lacks; each flag that acts in part here then says so in the boot log. */
     static void declareSupport(String platform) {
         ActionSupport.declare(platform, SERVED_SOURCES, PRE_SOURCES, false, NEVER_CLASSIFIED);
         FlagRegistry.get().setMissingCapabilities(HyPlatform.PLAYER_STATE.getUnsupported());
@@ -765,7 +765,39 @@ public final class HyActionSystems {
         }
     }
 
-    /** The pickup the player asks for; 0.7.2 raises no event for an item picked up by walking over it (PlayerItemEntityPickupSystem). */
+    /*
+     * owner-only-pickup stays off here until the server has an official event for it: PlayerItemEntityPickupSystem hands a
+     * walked-over item straight to Player.giveItem with no cancellable event, and the one native block, PreventPickup, stops
+     * everyone, the owner included. Once such an event exists the flow is the block below, deciding as on Bukkit: keep the
+     * owner the flag marks on the drop, hand it to the context of the new System, register that System in register(), and
+     * take ITEM_HOPPER_PICKUP out of the flag's getRequiredSources() (Hytale has no hopper to raise it).
+     *
+     * private static final Map<UUID, UUID> OWNERS = new ConcurrentHashMap<>(); // item entity -> who dropped it
+     *
+     * // in the drop flow, once the item entity exists (DropItemEvent.Drop fires before that):
+     * if (context.getItemOwner() != null) {
+     *     OWNERS.put(itemEntity, context.getItemOwner());
+     * }
+     *
+     * private static final class WalkedOverPickupSystem extends ByActor<TheOfficialPickupEvent> {
+     *     WalkedOverPickupSystem() {
+     *         super(TheOfficialPickupEvent.class);
+     *     }
+     *
+     *     @Override
+     *     void handle(int index, ArchetypeChunk<EntityStore> chunk, Store<EntityStore> store, CommandBuffer<EntityStore> buffer,
+     *                 TheOfficialPickupEvent event) {
+     *         UUID item = event.getItemEntityId();
+     *         judge(EventSource.ITEM_PICKUP, worldOf(store), event, () -> {
+     *             ItemContext context = new ItemContext(EventSource.ITEM_PICKUP, position, actor, event, key, amount, item, stack);
+     *             context.setItemOwner(OWNERS.get(item));
+     *             return context;
+     *         });
+     *     }
+     * }
+     */
+
+    /** The pickup the player asks for; the server raises no event for an item picked up by walking over it (PlayerItemEntityPickupSystem). */
     private static final class ItemPickupSystem extends ByActor<InteractivelyPickupItemEvent> {
         ItemPickupSystem() {
             super(InteractivelyPickupItemEvent.class);

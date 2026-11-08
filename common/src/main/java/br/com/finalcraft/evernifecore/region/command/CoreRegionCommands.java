@@ -92,7 +92,7 @@ public class CoreRegionCommands {
             sender.sendMessage(regionLine(region));
         }
         HERE_FLAGS_HEADER.addPlaceholder("player", target.getName()).send(sender);
-        for (Flag<?> flag : FlagRegistry.get().getAll()) {
+        for (Flag<?> flag : FlagRegistry.get().getSupported()) {
             sendExplanation(sender, flag, pos, target);
         }
     }
@@ -155,8 +155,9 @@ public class CoreRegionCommands {
                 + (expiresAt == null ? "never" : expiresAt + " (" + remaining(Duration.between(ECClock.now(), expiresAt)) + ")"));
         sender.sendMessage("§7foreign edits: §f" + (region.getManager().isForeignAccessAllowed() ? "accepted" : "refused by the owner"));
 
-        sender.sendMessage("§7flags: §f" + region.getFlags().size());
-        for (Map.Entry<FlagKey, FlagValue<?>> entry : region.getFlags().entrySet()) {
+        Map<FlagKey, FlagValue<?>> listed = FlagRegistry.get().supportedOf(region.getFlags());
+        sender.sendMessage("§7flags: §f" + listed.size());
+        for (Map.Entry<FlagKey, FlagValue<?>> entry : listed.entrySet()) {
             Flag<?> flag = FlagRegistry.get().get(entry.getKey());
             StringBuilder line = new StringBuilder(" §7- §f" + entry.getKey() + " §7= §e" + valueText(flag, entry.getValue()));
             String envelope = entry.getValue().describeEnvelope();
@@ -187,7 +188,7 @@ public class CoreRegionCommands {
                 }
             }
         }
-        for (Flag<?> flag : FlagRegistry.get().getAll()) {
+        for (Flag<?> flag : FlagRegistry.get().getSupported()) {
             if (region.getFlagValue(flag) == null && (region.getFlagSettings(flag) != null || region.getFlagHandlerOwner(flag) != null)) {
                 ECPluginData handlerOwner = region.getFlagHandlerOwner(flag);
                 sender.sendMessage(" §7- §f" + flag.getKey() + " §7(no value)"
@@ -208,7 +209,7 @@ public class CoreRegionCommands {
                 Duration left = member.getRemaining();
                 sender.sendMessage("    §7member §f" + member.getUuid() + (left == null ? "" : " §7(" + remaining(left) + ")"));
             }
-            for (Map.Entry<FlagKey, FlagValue<?>> entry : group.getFlags().entrySet()) {
+            for (Map.Entry<FlagKey, FlagValue<?>> entry : FlagRegistry.get().supportedOf(group.getFlags()).entrySet()) {
                 sender.sendMessage("    §7flag §f" + entry.getKey() + " §7= §e" + valueText(FlagRegistry.get().get(entry.getKey()), entry.getValue()));
             }
         }
@@ -249,7 +250,7 @@ public class CoreRegionCommands {
     private static String summary(Region region) {
         return "§6" + region.getId()
                 + "\n§7shape: §f" + describe(region.getWorld(), region.getShape())
-                + "\n§7flags: §f" + region.getFlags().size() + " §7groups: §f" + region.getGroups().size()
+                + "\n§7flags: §f" + FlagRegistry.get().supportedOf(region.getFlags()).size() + " §7groups: §f" + region.getGroups().size()
                 + "\n§7tags: §f" + (region.getTags().isEmpty() ? "-" : String.join(", ", region.getTags()));
     }
 

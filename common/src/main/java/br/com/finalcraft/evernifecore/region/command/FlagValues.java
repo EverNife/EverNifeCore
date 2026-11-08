@@ -52,7 +52,7 @@ public final class FlagValues {
                     ? Arrays.<Flag<?>>asList(CoreFlags.DENY_BLOCK_BREAK, CoreFlags.DENY_BLOCK_PLACE)
                     : Collections.<Flag<?>>emptyList();
         }
-        return FlagRegistry.get().find(text).map(Collections::<Flag<?>>singletonList).orElse(Collections.<Flag<?>>emptyList());
+        return FlagRegistry.get().findSupported(text).map(Collections::<Flag<?>>singletonList).orElse(Collections.<Flag<?>>emptyList());
     }
 
     /**

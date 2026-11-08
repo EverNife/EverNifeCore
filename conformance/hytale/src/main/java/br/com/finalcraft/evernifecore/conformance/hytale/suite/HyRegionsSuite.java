@@ -15,6 +15,7 @@ import br.com.finalcraft.evernifecore.conformance.hytale.HyWorld;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.flag.Flag;
+import br.com.finalcraft.evernifecore.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.flag.Tristate;
 import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.flag.core.EntryDenySettings;
@@ -151,6 +152,8 @@ public final class HyRegionsSuite implements ConformanceSuite {
                 withPlayer("damage-multiplier-scales-damage", ctx, this::damageMultiplierScalesDamage),
                 withPlayer("deny-item-drop-inside-only", ctx, this::dropDeniedKeepsTheItem),
                 withPlayer("destroy-dropped-items-vanishes", ctx, this::destroyedDropVanishes),
+                ConformanceCase.of("owner-only-pickup-is-not-supported", () -> Verdict.of(!FlagRegistry.get().isSupported(CoreFlags.OWNER_ONLY_PICKUP)
+                        && CoreFlags.OWNER_ONLY_PICKUP.isRegistered(), "supported=" + FlagRegistry.get().isSupported(CoreFlags.OWNER_ONLY_PICKUP))),
                 withPlayer("deny-item-pickup-inside-only", ctx, player -> itemDeniedInsideOnly(player, "ecc-item-pickup", CoreFlags.DENY_ITEM_PICKUP,
                         () -> new InteractivelyPickupItemEvent(new ItemStack(SOLID)))),
                 withPlayer("terrain-journal-restores", ctx, this::terrainJournalRestores),

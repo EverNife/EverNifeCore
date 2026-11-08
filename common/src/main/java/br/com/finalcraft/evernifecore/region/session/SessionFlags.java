@@ -65,7 +65,7 @@ final class SessionFlags {
         boolean all = invalidated || trigger == Trigger.BOUNDARY;
         //a crossing applies what changed; a check that was asked for - by policy or by an invalidation - revalidates even an unchanged value
         boolean asked = invalidated || trigger != Trigger.BOUNDARY;
-        for (Flag<?> flag : FlagRegistry.get().getAll()) {
+        for (Flag<?> flag : FlagRegistry.get().getSupported()) {
             if (flag.getCategory() != FlagCategory.SESSION) {
                 continue;
             }

@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.flag.FlagKey;
+import br.com.finalcraft.evernifecore.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.flag.FlagValue;
 import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.group.Group;
@@ -68,7 +69,7 @@ public final class CoreGroupCommands {
             sender.sendMessage(" §7roles §f" + (roles.isEmpty() ? "-" : roles) + " §7member since §f" + member.getJoinedAt()
                     + " §7expires §f" + expiry(member.getExpiresAt()));
         }
-        for (Map.Entry<FlagKey, FlagValue<?>> entry : group.getFlags().entrySet()) {
+        for (Map.Entry<FlagKey, FlagValue<?>> entry : FlagRegistry.get().supportedOf(group.getFlags()).entrySet()) {
             FlagValue<?> value = entry.getValue();
             String line = " §7flag §f" + entry.getKey() + " §7= §e" + value.getValue() + " §7<- " + group.getId()
                     + (value.getExpiresAt() == null ? "" : " §7(" + expiry(value.getExpiresAt()) + ")");

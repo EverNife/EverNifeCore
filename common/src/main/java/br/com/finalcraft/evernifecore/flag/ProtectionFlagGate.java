@@ -282,7 +282,7 @@ public final class ProtectionFlagGate {
 
     private static boolean isRefinedFor(Flag<?> flag, ActionContext context) {
         for (Flag<?> child : FlagRegistry.get().getChildren(flag)) {
-            if (child.applies(context) || isRefinedFor(child, context)) {
+            if ((child.applies(context) && FlagRegistry.get().isSupported(child)) || isRefinedFor(child, context)) {
                 return true;
             }
         }

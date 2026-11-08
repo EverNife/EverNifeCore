@@ -215,7 +215,7 @@ public final class EventSourceUsage {
     private static void collect(Set<FlagKey> keys, Set<EventSource> into) {
         for (FlagKey key : keys) {
             Flag<?> flag = FlagRegistry.get().get(key);
-            if (flag != null) {
+            if (flag != null && FlagRegistry.get().isSupported(flag)) { //a value nothing will ask keeps no listener on the server
                 into.addAll(flag.getNeeds());
             }
         }

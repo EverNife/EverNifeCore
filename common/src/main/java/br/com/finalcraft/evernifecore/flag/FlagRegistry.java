@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -134,7 +135,7 @@ public final class FlagRegistry {
                 unreadable.add(holder.getHolderId());
             }
         }
-        warnIfWithoutEffect(flag);
+        warnIfActingInPart(flag);
         if (!unreadable.isEmpty()) {
             owner.getLog().warning("Flag " + flag.getKey() + ": the stored value in " + unreadable.size() + " region(s) or group(s) " + unreadable
                     + " does not read as a " + flag.getType().getId() + " value. It is kept raw, nothing was deleted - fix it in storage"
@@ -179,26 +180,24 @@ public final class FlagRegistry {
     }
 
     /**
-     * Internal: after the platform declared what it raises ({@link ActionSupport#declare}), each flag that needs a core
-     * source outside it says in its owner's log that it has no effect here, one line per flag; a flag registering later
-     * says so on registering. A flag whose line has not changed since it last logged it stays quiet.
+     * Internal: after the platform declared what it raises ({@link ActionSupport#declare}), each flag that acts in part
+     * here says so in its owner's log, one line per flag; a flag registering later says so on registering. A flag whose
+     * line has not changed since it last logged it stays quiet. A flag with no effect at all logs nothing
+     * ({@link #isSupported}).
      */
-    public synchronized void warnFlagsWithoutEffect() {
+    public synchronized void warnFlagsActingInPart() {
         for (Flag<?> flag : flags.values()) {
-            warnIfWithoutEffect(flag);
+            warnIfActingInPart(flag);
         }
     }
 
     /**
      * Platform: the player-state capabilities this platform lacks ({@link IPlayerStateAccess#getUnsupported()}). From now on
-     * each flag that needs one of them has no effect here, and its owner's log says so, one line per flag. Empty takes
-     * it back.
+     * each flag that needs one of them is not supported here ({@link #isSupported}). Empty takes it back.
      */
     public synchronized void setMissingCapabilities(Collection<IPlayerStateAccess.Capability> missing) {
         missingCapabilities = missing.isEmpty() ? Collections.emptySet() : Collections.unmodifiableSet(EnumSet.copyOf(missing));
-        for (Flag<?> flag : flags.values()) {
-            warnIfWithoutEffect(flag);
-        }
+        warnFlagsActingInPart();
     }
 
     /** The capabilities {@code flag} needs that this platform lacks, in declaration order; empty when it has them all. */
@@ -225,32 +224,37 @@ public final class FlagRegistry {
     }
 
     /**
-     * The line a flag that cannot act in full on this platform logs: it has no effect (no source it needs is raised, or a
-     * capability is missing), acts in part (some of its sources are raised), or never matches (it refines another flag
-     * only for actors the platform never classifies); null for a flag that has its whole effect.
+     * Whether {@code flag} can do anything on this platform, all derived from what the platform declared. An unsupported
+     * flag is silent and inert: no boot log, out of the completions and the flag listings of the verbs, which refuse its
+     * name; a region may hold its value, and nothing asks it. It is unsupported when a source of
+     * {@link Flag#getRequiredSources()} is not raised, when no source it needs is, when a capability it needs is missing,
+     * or when it refines another flag only for actors the platform never classifies.
      */
-    public @Nullable String describeWithoutEffect(Flag<?> flag) {
+    public boolean isSupported(Flag<?> flag) {
         List<EventSource> unserved = getUnservedSources(flag);
         if (!unserved.isEmpty()) {
-            boolean someServed = flag.getNeeds().stream().anyMatch(source -> !source.equals(EventSource.NONE) && !unserved.contains(source));
-            return someServed
-                    ? "Flag " + flag.getKey() + " acts in part on this platform: it needs " + unserved + ", which this server never raises;"
-                    + " the rest applies."
-                    : "Flag " + flag.getKey() + " has no effect on this platform: it needs " + unserved
-                    + ", which this server never raises. A region may hold it; nothing will enforce it here.";
+            if (flag.getNeeds().stream().allMatch(source -> source.equals(EventSource.NONE) || unserved.contains(source))) {
+                return false;
+            }
+            for (EventSource required : flag.getRequiredSources()) {
+                if (unserved.contains(required)) {
+                    return false;
+                }
+            }
         }
-        if (flag instanceof ActorDenyFlag && ((ActorDenyFlag) flag).getActorEntries().stream().allMatch(ActionSupport::neverClassifies)) {
-            ActorDenyFlag refinement = (ActorDenyFlag) flag;
-            return "Flag " + flag.getKey() + " never matches on this platform: it refines " + refinement.getParent().getKey() + " for "
-                    + refinement.getActorEntries() + ", and this server has none.";
-        }
-        List<IPlayerStateAccess.Capability> lacking = getMissingCapabilities(flag);
-        return lacking.isEmpty() ? null : "Flag " + flag.getKey() + " has no effect on this platform: it changes " + lacking
-                + " on a player, which this server cannot. A region may hold it; nothing will apply it here.";
+        return getMissingCapabilities(flag).isEmpty()
+                && !(flag instanceof ActorDenyFlag && ((ActorDenyFlag) flag).getActorEntries().stream().allMatch(ActionSupport::neverClassifies));
     }
 
-    private void warnIfWithoutEffect(Flag<?> flag) {
-        String line = describeWithoutEffect(flag);
+    /** The line a flag that is supported but misses some of its sources logs; null for one that has its whole effect, or none. */
+    public @Nullable String describePartialEffect(Flag<?> flag) {
+        List<EventSource> unserved = getUnservedSources(flag);
+        return unserved.isEmpty() || !isSupported(flag) ? null : "Flag " + flag.getKey() + " acts in part on this platform: it needs " + unserved
+                + ", which this server never raises; the rest applies.";
+    }
+
+    private void warnIfActingInPart(Flag<?> flag) {
+        String line = describePartialEffect(flag);
         String before = line == null ? warned.remove(flag.getKey()) : warned.put(flag.getKey(), line);
         if (line != null && !line.equals(before)) {
             flag.getOwner().getLog().warning(line);
@@ -305,6 +309,34 @@ public final class FlagRegistry {
         return Collections.unmodifiableList(new ArrayList<>(flags.values()));
     }
 
+    /** The flags {@link #isSupported supported} here: what a verb lists, completes or accepts by name. */
+    public Collection<Flag<?>> getSupported() {
+        List<Flag<?>> found = new ArrayList<>();
+        for (Flag<?> flag : flags.values()) {
+            if (isSupported(flag)) {
+                found.add(flag);
+            }
+        }
+        return Collections.unmodifiableList(found);
+    }
+
+    /** {@link #find}, for a name typed on a verb: a flag not {@link #isSupported supported} here does not exist for it. */
+    public Optional<Flag<?>> findSupported(String text) {
+        return find(text).filter(this::isSupported);
+    }
+
+    /** {@code values} without those of the flags not {@link #isSupported supported} here, for a verb to list. */
+    public Map<FlagKey, FlagValue<?>> supportedOf(Map<FlagKey, FlagValue<?>> values) {
+        Map<FlagKey, FlagValue<?>> found = new LinkedHashMap<>();
+        values.forEach((key, value) -> {
+            Flag<?> flag = flags.get(key);
+            if (flag == null || isSupported(flag)) {
+                found.put(key, value);
+            }
+        });
+        return found;
+    }
+
     public Collection<Flag<?>> getByOwner(ECPluginData owner) {
         List<Flag<?>> found = new ArrayList<>();
         for (Flag<?> flag : flags.values()) {
@@ -333,11 +365,11 @@ public final class FlagRegistry {
         childrenByParent = index;
     }
 
-    /** The flags that need events of {@code source}. */
+    /** The {@link #isSupported supported} flags that need events of {@code source}: the ones to ask about such an event. */
     public Collection<Flag<?>> getBySource(EventSource source) {
         List<Flag<?>> found = new ArrayList<>();
         for (Flag<?> flag : flags.values()) {
-            if (flag.getNeeds().contains(source)) {
+            if (flag.getNeeds().contains(source) && isSupported(flag)) {
                 found.add(flag);
             }
         }

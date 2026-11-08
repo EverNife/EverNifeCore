@@ -33,7 +33,7 @@ public class ArgParserRegionFlag extends ArgParser<Flag> {
     @Override
     public @Nonnull ParseResult<Flag> parse(@Nonnull ParseCall call) {
         String text = call.getArgumento().toString();
-        Optional<Flag<?>> flag = FlagRegistry.get().find(text);
+        Optional<Flag<?>> flag = FlagRegistry.get().findSupported(text);
         return flag.isPresent() ? ParseResult.<Flag>of(flag.get()) : unrecognized(noFlagCalled(text));
     }
 
@@ -45,7 +45,7 @@ public class ArgParserRegionFlag extends ArgParser<Flag> {
     static ILocaleMessageBase noFlagCalled(String text) {
         List<String> close = new ArrayList<>();
         String lower = text.toLowerCase(Locale.ROOT);
-        for (Flag<?> flag : FlagRegistry.get().getAll()) {
+        for (Flag<?> flag : FlagRegistry.get().getSupported()) {
             String name = flag.getKey().getName();
             if (name.contains(lower) || lower.contains(name)) {
                 close.add(flag.getKey().toString());
@@ -56,12 +56,12 @@ public class ArgParserRegionFlag extends ArgParser<Flag> {
                 .addPlaceholder("close_matches", close.isEmpty() ? "" : " §7- did you mean: " + String.join(", ", close));
     }
 
-    /** Every registered key, plus each name only one flag has. */
+    /** Every supported key, plus each name only one flag has. */
     static List<String> completeKeys(String partial) {
         List<String> keys = new ArrayList<>();
-        for (Flag<?> flag : FlagRegistry.get().getAll()) {
+        for (Flag<?> flag : FlagRegistry.get().getSupported()) {
             keys.add(flag.getKey().toString());
-            if (FlagRegistry.get().find(flag.getKey().getName()).isPresent()) {
+            if (FlagRegistry.get().findSupported(flag.getKey().getName()).isPresent()) {
                 keys.add(flag.getKey().getName());
             }
         }

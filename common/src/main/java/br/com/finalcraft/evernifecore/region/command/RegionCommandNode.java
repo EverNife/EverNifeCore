@@ -739,7 +739,7 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
                 Duration left = member.getRemaining();
                 sender.sendMessage(" §7member §f" + member.getUuid() + (left == null ? "" : " §7(" + CoreRegionCommands.remaining(left) + ")"));
             }
-            for (Flag<?> flag : FlagRegistry.get().getAll()) {
+            for (Flag<?> flag : FlagRegistry.get().getSupported()) {
                 Object value = group.getFlag(flag);
                 if (value != null) {
                     sender.sendMessage(" §7flag §f" + flag.getKey() + " §7= §e" + FlagValues.format(flag, value));

@@ -25,8 +25,8 @@ public final class ActionSupport {
     }
 
     /**
-     * Platform: what it raises. Every flag that needs a core source outside {@code post} then says in its owner's log
-     * that it has no effect here.
+     * Platform: what it raises. Every flag then answers {@link br.com.finalcraft.evernifecore.flag.FlagRegistry#isSupported}
+     * by it, and one that needs a core source outside {@code post} but still acts in part says so in its owner's log.
      *
      * @param platform            how a message names this server, e.g. {@code "Paper 1.21.1"} or {@code "Hytale 0.7.2"}
      * @param post                the core sources raised; null for every one
@@ -34,13 +34,13 @@ public final class ActionSupport {
      * @param nativeCommandSource whether the platform raises the command source from its own command event, so the
      *                            core's command framework must not raise it a second time
      * @param neverClassified     the actor kinds no context of this platform ever carries (Hytale has no fake players): a
-     *                            flag only about them says in the boot log that it never matches; null for none
+     *                            flag only about them is not supported; null for none
      */
     public static void declare(String platform, @Nullable Collection<EventSource> post, @Nullable Collection<EventSource> pre,
                                boolean nativeCommandSource, @Nullable Collection<ECEntityType> neverClassified) {
         declared = new Declaration(Objects.requireNonNull(platform, "platform"), copy(post), copy(pre), nativeCommandSource,
                 neverClassified == null || neverClassified.isEmpty() ? Collections.emptySet() : Collections.unmodifiableSet(EnumSet.copyOf(neverClassified)));
-        FlagRegistry.get().warnFlagsWithoutEffect();
+        FlagRegistry.get().warnFlagsActingInPart();
     }
 
     private static @Nullable Set<EventSource> copy(@Nullable Collection<EventSource> sources) {

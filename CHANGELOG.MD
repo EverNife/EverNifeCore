@@ -89,6 +89,16 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+#### Regions
+
+- **A flag the platform cannot serve is silent and out of sight** (`FlagRegistry.isSupported`, derived from what the
+  platform declared: no source it needs is raised, one of `getRequiredSources()` is not, a capability is missing, or it
+  refines another flag only for actors never classified). It logs nothing at boot, leaves the completions and the flag
+  listings of `/ecore region`, `RegionCommandNode` and the group verbs, which refuse its name, and nothing asks it nor
+  keeps a listener for it; a value set by API is kept and does nothing. `describeWithoutEffect` became
+  `describePartialEffect`: only a flag acting in part still logs a line. `getBySource` answers with supported flags;
+  `getSupported()`, `findSupported(text)` and `supportedOf(values)` are new.
+
 #### Deliveries
 
 - **`Deliveries.enqueue(recipient, origin, policy, ttl, icon, effects)` and `keepFor(ctx, policy, ttl, icon, node)`**

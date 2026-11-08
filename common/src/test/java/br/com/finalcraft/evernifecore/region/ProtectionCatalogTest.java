@@ -267,16 +267,14 @@ class ProtectionCatalogTest {
     }
 
     @Test
-    void aFlagWhoseCoreSourceThePlatformNeverRaisesSaysSoOneLineEach() {
-        assertNull(FlagRegistry.get().describeWithoutEffect(CoreFlags.DENY_FLUID_FLOW), "nothing declared: every source is raised");
+    void aFlagWhoseCoreSourceThePlatformNeverRaisesIsNotSupported() {
+        assertTrue(FlagRegistry.get().isSupported(CoreFlags.DENY_FLUID_FLOW), "nothing declared: every source is raised");
 
         ActionSupport.declare("Hytale 0.7.2", Arrays.asList(EventSource.BREAK, EventSource.PLACE), null, false, null);
 
-        String fluid = FlagRegistry.get().describeWithoutEffect(CoreFlags.DENY_FLUID_FLOW);
-        assertNotNull(fluid);
-        assertTrue(fluid.contains("evernifecore:deny-fluid-flow") && fluid.contains("evernifecore:fluid"), fluid);
-        assertNull(FlagRegistry.get().describeWithoutEffect(CoreFlags.DENY_BLOCK_BREAK));
-        assertNull(FlagRegistry.get().describeWithoutEffect(CoreFlags.TELEPORT_POINT), "a value-only flag needs no event");
+        assertFalse(FlagRegistry.get().isSupported(CoreFlags.DENY_FLUID_FLOW));
+        assertTrue(FlagRegistry.get().isSupported(CoreFlags.DENY_BLOCK_BREAK));
+        assertTrue(FlagRegistry.get().isSupported(CoreFlags.TELEPORT_POINT), "a value-only flag needs no event");
         assertFalse(FlagRegistry.get().getUnservedSources(CoreFlags.DENY_VEHICLE_ENTER).isEmpty());
     }
 }

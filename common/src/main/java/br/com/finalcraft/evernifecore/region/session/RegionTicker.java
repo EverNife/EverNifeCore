@@ -139,7 +139,7 @@ public final class RegionTicker {
         if (player == null || lookup.getSessionIfPresent(session.getPlayer()) != session) {
             return; //left between the collection and the world thread
         }
-        for (Flag<?> flag : FlagRegistry.get().getAll()) {
+        for (Flag<?> flag : FlagRegistry.get().getSupported()) {
             if (flag instanceof TickingFlag) {
                 tickFlag(player, session, flag);
             }

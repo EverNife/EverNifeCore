@@ -219,21 +219,18 @@ class FlagRegistryTest {
         TristateFlag plain = newFlag("plain");
         FlagRegistry.get().register(flagOwner, feeds);
         FlagRegistry.get().register(flagOwner, plain);
-        assertNull(FlagRegistry.get().describeWithoutEffect(feeds), "every capability is there until a platform says otherwise");
+        assertTrue(FlagRegistry.get().isSupported(feeds), "every capability is there until a platform says otherwise");
         try {
             List<String> logged = Logs.capture(() -> FlagRegistry.get().setMissingCapabilities(EnumSet.of(IPlayerStateAccess.Capability.FOOD,
                     IPlayerStateAccess.Capability.WEATHER)));
 
-            String line = FlagRegistry.get().describeWithoutEffect(feeds);
-            assertEquals("Flag flagregistryflagowner:feeds has no effect on this platform: it changes [FOOD] on a player, which this"
-                    + " server cannot. A region may hold it; nothing will apply it here.", line);
-            assertNull(FlagRegistry.get().describeWithoutEffect(plain));
-            assertTrue(logged.stream().anyMatch(logLine -> logLine.contains("flagregistryflagowner:feeds has no effect")), logged.toString());
-            assertTrue(logged.stream().noneMatch(logLine -> logLine.contains("flagregistryflagowner:plain")), logged.toString());
+            assertFalse(FlagRegistry.get().isSupported(feeds));
+            assertTrue(FlagRegistry.get().isSupported(plain));
+            assertTrue(logged.stream().noneMatch(logLine -> logLine.contains("flagregistryflagowner:")), logged.toString());
         } finally {
             FlagRegistry.get().setMissingCapabilities(Collections.emptySet());
         }
-        assertNull(FlagRegistry.get().describeWithoutEffect(feeds));
+        assertTrue(FlagRegistry.get().isSupported(feeds));
     }
 
     @Test
@@ -244,8 +241,10 @@ class FlagRegistryTest {
         ActionSupport.declare("Hytale 0.7.5", Collections.singleton(EventSource.BREAK), null, false, null);
         try {
             assertEquals("Flag flagregistryflagowner:tracks acts in part on this platform: it needs [evernifecore:explosion], which this server never"
-                    + " raises; the rest applies.", FlagRegistry.get().describeWithoutEffect(tracks));
-            assertTrue(FlagRegistry.get().describeWithoutEffect(blasts).contains("has no effect"), "none of its sources is raised");
+                    + " raises; the rest applies.", FlagRegistry.get().describePartialEffect(tracks));
+            assertTrue(FlagRegistry.get().isSupported(tracks));
+            assertFalse(FlagRegistry.get().isSupported(blasts), "none of its sources is raised");
+            assertNull(FlagRegistry.get().describePartialEffect(blasts), "it stays silent");
         } finally {
             ActionSupport.declare("an undeclared platform", null, null, true, null);
         }
@@ -256,12 +255,11 @@ class FlagRegistryTest {
         ActorDenyFlag robots = new ActorDenyFlag(FlagKey.of(flagOwner, "deny-break-robots"), CoreFlags.DENY_BLOCK_BREAK, "robots", "fake-player");
         ActorDenyFlag robotsAndMobs = new ActorDenyFlag(FlagKey.of(flagOwner, "deny-break-robots-and-mobs"), CoreFlags.DENY_BLOCK_BREAK,
                 "robots and mobs", "fake-player", "monster");
-        assertNull(FlagRegistry.get().describeWithoutEffect(robots), "every actor kind is classified until a platform says otherwise");
+        assertTrue(FlagRegistry.get().isSupported(robots), "every actor kind is classified until a platform says otherwise");
         ActionSupport.declare("Hytale 0.7.5", null, null, false, Collections.singleton(ECEntityType.FAKE_PLAYER));
         try {
-            assertEquals("Flag flagregistryflagowner:deny-break-robots never matches on this platform: it refines evernifecore:deny-block-break"
-                    + " for [fake-player], and this server has none.", FlagRegistry.get().describeWithoutEffect(robots));
-            assertNull(FlagRegistry.get().describeWithoutEffect(robotsAndMobs), "a monster still matches");
+            assertFalse(FlagRegistry.get().isSupported(robots));
+            assertTrue(FlagRegistry.get().isSupported(robotsAndMobs), "a monster still matches");
         } finally {
             ActionSupport.declare("an undeclared platform", null, null, true, null);
         }

@@ -341,6 +341,19 @@ class HyActionSystemsTest {
     }
 
     @Test
+    void ownerOnlyPickupIsUnsupportedHereAndAsksNothingOfADropOrAPickup() {
+        ActionSupport.declare("Hytale", HyActionSystems.SERVED_SOURCES, HyActionSystems.PRE_SOURCES, false, HyActionSystems.NEVER_CLASSIFIED);
+        try {
+            assertFalse(FlagRegistry.get().isSupported(CoreFlags.OWNER_ONLY_PICKUP), "the server raises no event a walked-over pickup could be denied on");
+            assertFalse(HyActionSystems.SERVED_SOURCES.contains(EventSource.ITEM_HOPPER_PICKUP));
+            assertTrue(HyActionSystems.SERVED_SOURCES.contains(EventSource.ITEM_PICKUP), "its interactive half alone would let the walked-over one through");
+            assertFalse(FlagRegistry.get().getBySource(EventSource.ITEM_PICKUP).contains(CoreFlags.OWNER_ONLY_PICKUP));
+        } finally {
+            ActionSupport.declare("an undeclared platform", null, null, true, null);
+        }
+    }
+
+    @Test
     void anItemDroppedOrPickedUpInsideItsDenyFlagIsCancelled() {
         FlagRegistry.get().register(core, CoreFlags.DENY_ITEM_DROP);
         FlagRegistry.get().register(core, CoreFlags.DENY_ITEM_PICKUP);
@@ -432,7 +445,7 @@ class HyActionSystemsTest {
     }
 
     @Test
-    void theBootWarnsOncePerFlagWithoutEffectOnHytaleAndNeverForOneWithASystem() {
+    void theFlagsThatCannotActHereAreUnsupportedAndOnlyThoseActingInPartSpeak() {
         for (Flag<?> flag : CoreFlags.all()) {
             if (!flag.isRegistered()) {
                 FlagRegistry.get().register(core, flag);
@@ -441,36 +454,26 @@ class HyActionSystemsTest {
         try {
             HyActionSystems.declareSupport("Hytale");
             List<String> lines = new ArrayList<>();
-            Set<String> lackingCapability = new TreeSet<>();
+            Set<String> unsupported = new TreeSet<>();
             for (Flag<?> flag : CoreFlags.all()) {
-                String line = FlagRegistry.get().describeWithoutEffect(flag);
+                String line = FlagRegistry.get().describePartialEffect(flag);
+                if (!FlagRegistry.get().isSupported(flag)) {
+                    assertNull(line, flag.getKey() + " has no effect here and must stay silent");
+                    unsupported.add(flag.getKey().getName());
+                    continue;
+                }
                 boolean served = HyActionSystems.SERVED_SOURCES.containsAll(flag.getNeeds()) || flag.getNeeds().equals(Collections.singleton(EventSource.NONE));
-                boolean partly = !served && flag.getNeeds().stream().anyMatch(HyActionSystems.SERVED_SOURCES::contains);
-                boolean capable = FlagRegistry.get().getMissingCapabilities(flag).isEmpty();
-                boolean neverMatches = flag instanceof ActorDenyFlag && ((ActorDenyFlag) flag).getActorEntries().equals(Collections.singletonList("fake-player"));
                 if (line == null) {
-                    assertTrue(served && capable && !neverMatches, flag.getKey() + " cannot act in full here and must say so");
+                    assertTrue(served, flag.getKey() + " misses a source here and must say so");
                     continue;
                 }
-                if (neverMatches) {
-                    assertTrue(line.contains(" never matches "), line);
-                    continue;
-                }
-                assertFalse(served && capable, flag.getKey() + " has its effect here and must stay silent: " + line);
-                if (served) {
-                    lackingCapability.add(flag.getKey().getName());
-                    assertTrue(line.contains("which this server cannot"), line);
-                }
-                assertTrue(line.startsWith("Flag " + flag.getKey() + (partly ? " acts in part" : " has no effect")), line);
+                assertFalse(served, flag.getKey() + " has its effect here and must stay silent: " + line);
+                assertTrue(line.startsWith("Flag " + flag.getKey() + " acts in part"), line);
                 lines.add(line);
             }
-            assertFalse(lines.isEmpty());
-            for (String key : Arrays.asList("deny-vehicle", "deny-vehicle-enter", "deny-fire-spread", "deny-fluid-flow",
-                    "deny-explosion")) {
-                assertTrue(lines.stream().anyMatch(line -> line.startsWith("Flag evernifecore:" + key + " ")), key + " in " + lines);
-            }
-            assertEquals(new TreeSet<>(Arrays.asList("weather-lock", "feed", "hunger-over-time")), lackingCapability,
-                    "Hytale has no player weather it can give back and no food");
+            assertEquals(new TreeSet<>(Arrays.asList("deny-block-break-fake-players", "deny-block-place-fake-players", "deny-explosion",
+                    "deny-explosion-mobs", "deny-fire-spread", "deny-fluid-flow", "deny-vehicle", "deny-vehicle-break", "deny-vehicle-enter",
+                    "deny-vehicle-place", "feed", "hunger-over-time", "owner-only-pickup", "weather-lock")), unsupported);
             assertTrue(lines.stream().anyMatch(line -> line.startsWith("Flag evernifecore:force-fly ") && line.contains("flight-toggle")),
                     "force-fly cannot keep a player from landing here: " + lines);
         } finally {
@@ -653,16 +656,13 @@ class HyActionSystemsTest {
                     + " which this server never raises; the rest applies.");
             expected.put("track-changes", "Flag evernifecore:track-changes acts in part on this platform: it needs [evernifecore:explosion],"
                     + " which this server never raises; the rest applies.");
-            expected.put("deny-block-break-fake-players", "Flag evernifecore:deny-block-break-fake-players never matches on this platform:"
-                    + " it refines evernifecore:deny-block-break for [fake-player], and this server has none.");
-            expected.put("deny-block-place-fake-players", "Flag evernifecore:deny-block-place-fake-players never matches on this platform:"
-                    + " it refines evernifecore:deny-block-place for [fake-player], and this server has none.");
             for (Map.Entry<String, String> flag : expected.entrySet()) {
                 assertEquals(1, logged.stream().filter(flag.getValue()::equals).count(), flag.getKey() + " in " + logged);
             }
             Map<String, Long> perFlag = logged.stream().filter(line -> line.startsWith("Flag evernifecore:"))
                     .collect(Collectors.groupingBy(line -> line, Collectors.counting()));
             perFlag.forEach((line, times) -> assertEquals(1L, times, "sources and capabilities are declared apart, the line once: " + line));
+            assertEquals(expected.size(), perFlag.size(), "an unsupported flag logs nothing: " + perFlag.keySet());
         } finally {
             ActionSupport.declare("an undeclared platform", null, null, true, null);
             FlagRegistry.get().setMissingCapabilities(Collections.emptyList());

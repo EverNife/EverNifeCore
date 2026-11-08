@@ -254,7 +254,7 @@ public class GroupCommandNode implements VerbPermissionBase {
         }
         group.getInvites().forEach(invite -> sender.sendMessage(" §7invite §f" + nameOf(invite.getPlayer()) + " §7(until "
                 + invite.getExpiresAt() + ")"));
-        for (Map.Entry<?, FlagValue<?>> entry : group.getFlags().entrySet()) {
+        for (Map.Entry<?, FlagValue<?>> entry : FlagRegistry.get().supportedOf(group.getFlags()).entrySet()) {
             sender.sendMessage(" §7flag §f" + entry.getKey() + " §7= §e" + entry.getValue().getValue());
         }
     }
@@ -281,7 +281,7 @@ public class GroupCommandNode implements VerbPermissionBase {
         if (group == null) {
             return;
         }
-        Flag<?> flag = FlagRegistry.get().find(flagName).orElse(null);
+        Flag<?> flag = FlagRegistry.get().findSupported(flagName).orElse(null);
         if (flag == null) {
             refuse(sender, "No flag is called '" + flagName + "' - /ecore region here lists the flags of this server.");
             return;

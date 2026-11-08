@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * What a platform can read and change on one player, for the session flags and the logic engine: clock, weather,
  * flight, game mode, effects, health, food, commands, experience, statistics and the whole inventory. A platform declares each {@link Capability} it has through {@link #supports}; every call of
- * one it lacks throws, and a flag that needs it is reported at boot as having no effect there. Calls run on the
+ * one it lacks throws, and a flag that needs it is not supported there. Calls run on the
  * player's world thread.
  */
 public interface IPlayerStateAccess {
@@ -220,6 +220,6 @@ public interface IPlayerStateAccess {
 
     static UnsupportedOperationException unsupported(Capability capability) {
         return new UnsupportedOperationException("This platform has no " + capability + " capability, so a flag that needs it does nothing"
-                + " here - the boot log lists such flags. Ask IPlayerStateAccess.supports(" + capability + ") before calling.");
+                + " here. Ask IPlayerStateAccess.supports(" + capability + ") before calling.");
     }
 }
