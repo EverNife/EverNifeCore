@@ -118,12 +118,18 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   now holds the place, drawn only when the request has a display item, and a name or lore written on it replaces the
   item's. A child layout with more rows now finds it at slot 13 too, until its file moves it.
 
+- **`/ecore screen` speaks the core locale**: `CoreScreenCommands` moved to en_US and pt_BR messages and joined the boot's
+  list; `LayoutDiff`'s own details and warnings stay as the diff writes them.
+
 #### Dialogues
 
 - **The dialogue speaker is drawn in the layout's format**: `DialogueScreen` coloured the speaker and the line itself;
   `DialogueLayout.SPEAKER` now carries the format (`§e{speaker}`, lore `{text}` by default) and the screen only fills
   `{speaker}` (`...` when the dialogue names none, which was grey before and is now the layout's colour) and `{text}`
   (a lore line citing it repeats once per line of the text).
+
+- **`/ecore dialogue <player>` speaks the core locale**: the lines of the player's state are `CoreDialogueCommands`
+  messages (en_US, pt_BR).
 
 #### Quests
 

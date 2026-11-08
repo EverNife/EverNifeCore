@@ -6,7 +6,9 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
+import br.com.finalcraft.evernifecore.locale.SendCustom;
 import br.com.finalcraft.evernifecore.screen.Layout;
 import br.com.finalcraft.evernifecore.screen.LayoutDiff;
 import br.com.finalcraft.evernifecore.screen.LayoutScanner;
@@ -28,6 +30,102 @@ import java.util.Map;
  */
 public class CoreScreenCommands {
 
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §a[${plugin}] ${layouts} layout(s) reloaded. ${redrawn} open screen(s) redrawn.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §a[${plugin}] ${layouts} layout(s) recarregado(s). ${redrawn} tela(s) aberta(s) redesenhada(s).")
+    private static LocaleMessage RELOADED_ALL;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §a[${plugin}] ${layout} reloaded. ${redrawn} open screen(s) redrawn.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §a[${plugin}] ${layout} recarregado. ${redrawn} tela(s) aberta(s) redesenhada(s).")
+    private static LocaleMessage RELOADED_ONE;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§f${layout}  §7->  §fplugins/${plugin}/${file}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§f${layout}  §7->  §fplugins/${plugin}/${file}")
+    private static LocaleMessage DIFF_HEADER;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§f${layout}  §7->  §fplugins/${plugin}/${file} §7+ overlay ${language}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§f${layout}  §7->  §fplugins/${plugin}/${file} §7+ overlay ${language}")
+    private static LocaleMessage DIFF_HEADER_OVERLAY;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§7  no overlay for ${language}: every key below is the base file's. Write plugins/${plugin}/${overlay} by hand to change this screen for that language alone - the framework never creates it.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7  sem overlay para ${language}: toda chave abaixo é do arquivo base. Escreva plugins/${plugin}/${overlay} à mão para mudar esta tela só nesse idioma - o framework nunca o cria.")
+    private static LocaleMessage NO_OVERLAY;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§7  §aMATCHED (${count})")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7  §aIGUAIS (${count})")
+    private static LocaleMessage MATCHED;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§7  §eNEW (${count})§7 - declared by the plugin, will be seeded on the next save")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7  §eNOVAS (${count})§7 - declaradas pelo plugin, entram no arquivo no próximo save")
+    private static LocaleMessage NEW;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§7  §6ORPHAN (${count})§7 - in the file, the plugin does not use it anymore")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7  §6ÓRFÃS (${count})§7 - no arquivo, o plugin não as usa mais")
+    private static LocaleMessage ORPHAN;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§7  §cSILENCED (${count})§7 - in the file, but nowhere on the screen")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7  §cSILENCIADAS (${count})§7 - no arquivo, mas em lugar nenhum da tela")
+    private static LocaleMessage SILENCED;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§c  WARNINGS (${count})")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§c  AVISOS (${count})")
+    private static LocaleMessage WARNINGS;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§7    ${warning}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7    ${warning}")
+    private static LocaleMessage WARNING_LINE;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§7    §f${key}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7    §f${key}")
+    private static LocaleMessage ENTRY_KEY;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "   §7Slot ${slots}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "   §7Slot ${slots}")
+    private static LocaleMessage ENTRY_SLOT;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "   §7group ${group}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "   §7grupo ${group}")
+    private static LocaleMessage ENTRY_GROUP;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "   §7${detail}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "   §7${detail}")
+    private static LocaleMessage ENTRY_DETAIL;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "   §7from overlay")
+    @FCLocale(lang = LocaleType.PT_BR, text = "   §7do overlay")
+    private static LocaleMessage ENTRY_FROM_OVERLAY;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §c${reason}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §c${reason}")
+    private static LocaleMessage INVALID_KEY;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cNothing answers ${key}: no override registered it and the core has no default under that key.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cNada responde a ${key}: nenhum override a registrou e o core não tem padrão nessa chave.")
+    private static LocaleMessage NOTHING_ANSWERS;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cNothing answers ${key} for the content of ${plugin}: no override registered it and the core has no default under that key.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cNada responde a ${key} para o conteúdo de ${plugin}: nenhum override a registrou e o core não tem padrão nessa chave.")
+    private static LocaleMessage NOTHING_ANSWERS_CONTENT;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §a${answer}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §a${answer}")
+    private static LocaleMessage ANSWERED_BY;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §a${answer} §7(content of ${plugin})")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §a${answer} §7(conteúdo de ${plugin})")
+    private static LocaleMessage ANSWERED_BY_CONTENT;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cNo plugin named '${plugin}' is registered on EverNifeCore. Known: ${known}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cNenhum plugin chamado '${plugin}' está registrado no EverNifeCore. Conhecidos: ${known}")
+    private static LocaleMessage NO_PLUGIN;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §c${plugin} has no layout named '${layout}' loaded. A layout registers itself the first time a screen asks for it, so one nobody opened yet is not listed here. Loaded: ${loaded}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §c${plugin} não tem layout chamado '${layout}' carregado. Um layout se registra na primeira vez que uma tela o pede, então um que ninguém abriu ainda não aparece aqui. Carregados: ${loaded}")
+    private static LocaleMessage NO_LAYOUT;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §c${plugin} has no layout named '${layout}' loaded. A layout registers itself the first time a screen asks for it, so one nobody opened yet is not listed here. None is loaded yet.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §c${plugin} não tem layout chamado '${layout}' carregado. Um layout se registra na primeira vez que uma tela o pede, então um que ninguém abriu ainda não aparece aqui. Nenhum carregado ainda.")
+    private static LocaleMessage NO_LAYOUT_NONE_LOADED;
+
     @FinalCMD.SubCMD(
             subcmd = "reload",
             locales = {
@@ -43,9 +141,9 @@ public class CoreScreenCommands {
 
         if (layoutName == null) {
             int refreshed = Layouts.reloadAll(plugin);
-            sender.sendMessage("§e§l ▶ §a[" + plugin.getMetaInfo().getName() + "] "
-                    + Layouts.getRegistered(plugin).size() + " layout(s) reloaded. "
-                    + refreshed + " open screen(s) redrawn.");
+            RELOADED_ALL.custom().addPlaceholder("plugin", plugin.getMetaInfo().getName())
+                    .addPlaceholder("layouts", Layouts.getRegistered(plugin).size())
+                    .addPlaceholder("redrawn", refreshed).send(sender);
             return;
         }
 
@@ -54,8 +152,9 @@ public class CoreScreenCommands {
             return;
         }
         int refreshed = Layouts.reload(type);
-        sender.sendMessage("§e§l ▶ §a[" + plugin.getMetaInfo().getName() + "] " + type.getSimpleName()
-                + " reloaded. " + refreshed + " open screen(s) redrawn.");
+        RELOADED_ONE.custom().addPlaceholder("plugin", plugin.getMetaInfo().getName())
+                .addPlaceholder("layout", type.getSimpleName())
+                .addPlaceholder("redrawn", refreshed).send(sender);
     }
 
     @FinalCMD.SubCMD(
@@ -76,28 +175,26 @@ public class CoreScreenCommands {
             return;
         }
 
+        String name = plugin.getMetaInfo().getName();
         LayoutDiff diff = LayoutDiff.of(plugin, type, language);
-        sender.sendMessage("§f" + diff.getLayoutName() + "  §7->  §fplugins/" + plugin.getMetaInfo().getName()
-                + "/" + diff.getFileName() + (diff.hasOverlay() ? " §7+ overlay " + language : ""));
+        (diff.hasOverlay() ? DIFF_HEADER_OVERLAY : DIFF_HEADER).custom().addPlaceholder("layout", diff.getLayoutName())
+                .addPlaceholder("plugin", name).addPlaceholder("file", diff.getFileName())
+                .addPlaceholder("language", String.valueOf(language)).send(sender);
         if (language != null && !diff.hasOverlay()) {
-            sender.sendMessage("§7  no overlay for " + LocaleType.normalize(language) + ": every key below "
-                    + "is the base file's. Write plugins/" + plugin.getMetaInfo().getName() + "/"
-                    + LayoutScanner.overlayFileNameOf(type, LocaleType.normalize(language)) + " by hand to "
-                    + "change this screen for that language alone - the framework never creates it.");
+            String normalized = LocaleType.normalize(language);
+            NO_OVERLAY.custom().addPlaceholder("language", normalized).addPlaceholder("plugin", name)
+                    .addPlaceholder("overlay", LayoutScanner.overlayFileNameOf(type, normalized)).send(sender);
         }
 
-        report(sender, diff, LayoutDiff.Verdict.MATCHED, "§aMATCHED", "");
-        report(sender, diff, LayoutDiff.Verdict.NEW, "§eNEW",
-                "§7 - declared by the plugin, will be seeded on the next save");
-        report(sender, diff, LayoutDiff.Verdict.ORPHAN, "§6ORPHAN",
-                "§7 - in the file, the plugin does not use it anymore");
-        report(sender, diff, LayoutDiff.Verdict.SILENCED, "§cSILENCED",
-                "§7 - in the file, but nowhere on the screen");
+        report(sender, diff, LayoutDiff.Verdict.MATCHED, MATCHED);
+        report(sender, diff, LayoutDiff.Verdict.NEW, NEW);
+        report(sender, diff, LayoutDiff.Verdict.ORPHAN, ORPHAN);
+        report(sender, diff, LayoutDiff.Verdict.SILENCED, SILENCED);
 
         if (!diff.getWarnings().isEmpty()) {
-            sender.sendMessage("§c  WARNINGS (" + diff.getWarnings().size() + ")");
+            WARNINGS.addPlaceholder("count", diff.getWarnings().size()).send(sender);
             for (String warning : diff.getWarnings()) {
-                sender.sendMessage("§7    " + warning);
+                WARNING_LINE.addPlaceholder("warning", warning).send(sender);
             }
         }
     }
@@ -114,7 +211,7 @@ public class CoreScreenCommands {
         try {
             key = ScreenKey.parse(screenKey);
         } catch (IllegalArgumentException invalid) {
-            sender.sendMessage("§e§l ▶ §c" + invalid.getMessage());
+            INVALID_KEY.addPlaceholder("reason", String.valueOf(invalid.getMessage())).send(sender);
             return;
         }
         ECPluginData owner = null;
@@ -130,36 +227,36 @@ public class CoreScreenCommands {
         } catch (IllegalStateException refused) {
             answer = null;
         }
-        sender.sendMessage(answer == null
-                ? "§e§l ▶ §cNothing answers " + key + (owner == null ? "" : " for the content of " + owner.getMetaInfo().getName())
-                + ": no override registered it and the core has no default under that key."
-                : "§e§l ▶ §a" + answer + (owner == null ? "" : " §7(content of " + owner.getMetaInfo().getName() + ")"));
+        String content = owner == null ? "" : owner.getMetaInfo().getName();
+        LocaleMessage message = answer == null
+                ? (owner == null ? NOTHING_ANSWERS : NOTHING_ANSWERS_CONTENT)
+                : (owner == null ? ANSWERED_BY : ANSWERED_BY_CONTENT);
+        message.custom().addPlaceholder("key", key.toString()).addPlaceholder("answer", String.valueOf(answer))
+                .addPlaceholder("plugin", content).send(sender);
     }
 
-    private void report(FCommandSender sender, LayoutDiff diff, LayoutDiff.Verdict verdict, String title,
-                        String explanation) {
+    private void report(FCommandSender sender, LayoutDiff diff, LayoutDiff.Verdict verdict, LocaleMessage title) {
         List<LayoutDiff.Entry> entries = diff.getEntries(verdict);
         if (entries.isEmpty()) {
             return;
         }
-        sender.sendMessage("§7  " + title + " (" + entries.size() + ")" + explanation);
+        title.addPlaceholder("count", entries.size()).send(sender);
         for (LayoutDiff.Entry entry : entries) {
-            List<String> columns = new ArrayList<>();
-            columns.add(entry.getKey());
+            SendCustom line = ENTRY_KEY.custom().addPlaceholder("key", entry.getKey());
             if (entry.getSlots() != null) {
-                columns.add("Slot " + entry.getSlots().serialize());
+                line = line.append(ENTRY_SLOT.custom().addPlaceholder("slots", entry.getSlots().serialize()));
             }
             if (!entry.getGroup().isEmpty()) {
                 //three icons over one slot read as a defect until the report says they share it on purpose
-                columns.add("group " + entry.getGroup());
+                line = line.append(ENTRY_GROUP.custom().addPlaceholder("group", entry.getGroup()));
             }
             if (!entry.getDetail().isEmpty()) {
-                columns.add(entry.getDetail());
+                line = line.append(ENTRY_DETAIL.custom().addPlaceholder("detail", entry.getDetail()));
             }
             if (entry.isFromOverlay()) {
-                columns.add("from overlay");
+                line = line.append(ENTRY_FROM_OVERLAY);
             }
-            sender.sendMessage("§7    §f" + String.join("   §7", columns));
+            line.send(sender);
         }
     }
 
@@ -169,8 +266,8 @@ public class CoreScreenCommands {
                 return entry.getValue();
             }
         }
-        sender.sendMessage("§e§l ▶ §cNo plugin named '" + pluginName + "' is registered on EverNifeCore. "
-                + "Known: " + String.join(", ", ECPluginManager.getECPluginsMap().keySet()));
+        NO_PLUGIN.custom().addPlaceholder("plugin", pluginName)
+                .addPlaceholder("known", String.join(", ", ECPluginManager.getECPluginsMap().keySet())).send(sender);
         return null;
     }
 
@@ -183,10 +280,8 @@ public class CoreScreenCommands {
         for (Class<? extends Layout> registered : Layouts.getRegistered(plugin)) {
             known.add(registered.getSimpleName());
         }
-        sender.sendMessage("§e§l ▶ §c" + plugin.getMetaInfo().getName() + " has no layout named '"
-                + layoutName + "' loaded. A layout registers itself the first time a screen asks for it, so "
-                + "one nobody opened yet is not listed here. Loaded: "
-                + (known.isEmpty() ? "none" : String.join(", ", known)));
+        (known.isEmpty() ? NO_LAYOUT_NONE_LOADED : NO_LAYOUT).custom().addPlaceholder("plugin", plugin.getMetaInfo().getName())
+                .addPlaceholder("layout", layoutName).addPlaceholder("loaded", String.join(", ", known)).send(sender);
         return null;
     }
 

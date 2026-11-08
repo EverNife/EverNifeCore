@@ -26,6 +26,22 @@ public final class CoreDialogueCommands {
     @FCLocale(lang = LocaleType.PT_BR, text = "§7${player} não está em nenhum diálogo.")
     public static LocaleMessage NO_DIALOGUE;
 
+    @FCLocale(lang = LocaleType.EN_US, text = "§6Dialogue of §e${player}§6: §e${dialogue}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§6Diálogo de §e${player}§6: §e${dialogue}")
+    private static LocaleMessage HEADER;
+
+    @FCLocale(lang = LocaleType.EN_US, text = " §7node §f${node} §7for §f${seconds}s §7(since ${since})")
+    @FCLocale(lang = LocaleType.PT_BR, text = " §7nó §f${node} §7há §f${seconds}s §7(desde ${since})")
+    private static LocaleMessage NODE_LINE;
+
+    @FCLocale(lang = LocaleType.EN_US, text = " §7started by §f${caller}")
+    @FCLocale(lang = LocaleType.PT_BR, text = " §7iniciado por §f${caller}")
+    private static LocaleMessage STARTED_BY;
+
+    @FCLocale(lang = LocaleType.EN_US, text = " §7started by §f${caller} §7with §f${npc}")
+    @FCLocale(lang = LocaleType.PT_BR, text = " §7iniciado por §f${caller} §7com §f${npc}")
+    private static LocaleMessage STARTED_BY_WITH_NPC;
+
     private CoreDialogueCommands() {
     }
 
@@ -38,9 +54,10 @@ public final class CoreDialogueCommands {
         }
         Duration since = Duration.between(session.getStartedAt(), ECClock.now());
         NpcRef npc = session.getContext().getNpc();
-        sender.sendMessage("§6Dialogue of §e" + target.getName() + "§6: §e" + session.getDialogue().getId());
-        sender.sendMessage(" §7node §f" + session.getNode().getId() + " §7for §f" + since.getSeconds() + "s §7(since "
-                + session.getStartedAt() + ")");
-        sender.sendMessage(" §7started by §f" + session.getCaller() + (npc == null ? "" : " §7with §f" + npc));
+        HEADER.custom().addPlaceholder("player", target.getName()).addPlaceholder("dialogue", session.getDialogue().getId().toString()).send(sender);
+        NODE_LINE.custom().addPlaceholder("node", session.getNode().getId()).addPlaceholder("seconds", since.getSeconds())
+                .addPlaceholder("since", session.getStartedAt().toString()).send(sender);
+        (npc == null ? STARTED_BY : STARTED_BY_WITH_NPC).custom().addPlaceholder("caller", session.getCaller().toString())
+                .addPlaceholder("npc", String.valueOf(npc)).send(sender);
     }
 }
