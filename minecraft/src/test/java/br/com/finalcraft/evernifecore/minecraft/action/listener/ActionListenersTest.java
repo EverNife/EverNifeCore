@@ -42,6 +42,7 @@ import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerToggleFlightEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.vehicle.VehicleEnterEvent;
 import org.bukkit.event.entity.EntityPlaceEvent;
 import br.com.finalcraft.evernifecore.flag.Flag;
@@ -258,7 +259,10 @@ class ActionListenersTest {
                 server.flag(CoreFlags.DENY_ITEM_DROP);
                 server.flag(CoreFlags.DENY_ITEM_PICKUP);
                 server.flag(CoreFlags.DENY_VEHICLE);
+                server.flag(CoreFlags.OWNER_ONLY_PICKUP);
 
+                assertFollows(server, InventoryPickupItemEvent.getHandlerList(), ItemActionListeners.HopperPickup.class, CoreFlags.OWNER_ONLY_PICKUP,
+                        denying(CoreFlags.OWNER_ONLY_PICKUP));
                 assertFollows(server, BlockSpreadEvent.getHandlerList(), FireSpreadActionListener.class, CoreFlags.DENY_FIRE_SPREAD,
                         denying(CoreFlags.DENY_FIRE_SPREAD));
                 assertFollows(server, PlayerRespawnEvent.getHandlerList(), RespawnActionListener.class, CoreFlags.SPAWN_POINT,

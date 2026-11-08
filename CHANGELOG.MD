@@ -33,7 +33,14 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   instead of lying there; `deny-item-drop` still wins and keeps the item with the dropper, and `only`/`except` narrow
   it to some items. The flag marks the drop (`ItemContext.isItemDestroyed()`); Bukkit removes the item a tick after
   the drop event (the server adds it to the world after the event), Hytale cancels `DropItemEvent.Drop`, which fires
-  once the stack has left the inventory. 62 core flags.
+  once the stack has left the inventory.
+- **`owner-only-pickup`** (core flag; `ITEM_DROP`, `ITEM_PICKUP` and the new `ITEM_HOPPER_PICKUP`): an item dropped in the
+  region can be picked up there only by whoever dropped it, and no hopper or hopper minecart pulls it; `only`/`except`
+  narrow it to some items, and it rules where the item lies now. The drop marks the owner (`ItemContext.getItemOwner()`),
+  which Bukkit keeps in memory, so a restart or a chunk unload frees the item. Piles of different owners do not merge
+  (`ItemMergeEvent`, 1.8+; on 1.7.10 the server merges them with no event). Bukkit only: Hytale hands a walked-over item
+  straight to the player with no event to deny it on. `Flag.getRequiredSources()` names the sources a flag cannot work
+  without. 63 core flags.
 - **`Region.clearItems()` / `clearItems(Predicate<GroundItem>)`**: removes the items lying on the ground inside the
   region's shape on the world's thread - with the filter, only those it accepts; the rest stay - and completes with an
   `ItemClearance`: every `GroundItem` removed (`TypeKey`, amount, `ItemSpec` carrying the native stack, position,

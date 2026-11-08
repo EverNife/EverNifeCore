@@ -39,11 +39,17 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.inventory.InventoryPickupItemEvent;
+import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.permissions.PermissionAttachment;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredListener;
@@ -136,6 +142,7 @@ public final class RegionsSuite implements ConformanceSuite {
                 ConformanceCase.of("item-pickup-listener-follows-need", () -> listenerFollowsNeed(CoreFlags.DENY_ITEM_PICKUP,
                         region -> region.setFlag(CoreFlags.DENY_ITEM_PICKUP, Tristate.TRUE),
                         MCVersion.isHigherEquals(MCDetailedVersion.v1_12_R1) ? "ItemActionListeners$Pickup" : "ItemActionListeners$LegacyPickup")),
+                PlayerCases.later("owner-only-pickup-refuses-the-hopper", ctx, this::ownerOnlyPickupRefusesTheHopper),
                 ConformanceCase.of("vehicle-listener-follows-need", () -> listenerFollowsNeed(CoreFlags.DENY_VEHICLE,
                         region -> region.setFlag(CoreFlags.DENY_VEHICLE, Tristate.TRUE), "VehicleActionListeners$BreakAndEnter"))));
         cases.addAll(new TerrainCases(regions).cases(ctx));
@@ -245,6 +252,48 @@ public final class RegionsSuite implements ConformanceSuite {
             } catch (Throwable thrown) {
                 answer.complete(Verdict.fail(Verdict.describe(thrown)));
             } finally {
+                player.removeAttachment(noBypass);
+                regions.remove(region);
+            }
+        }, 2L);
+        return PlayerCases.within(answer, TIMEOUT_MILLIS);
+    }
+
+    /**
+     * The bot throws an item inside {@code owner-only-pickup}. The matrix has one bot, so a hopper stands for the second
+     * player: it is refused the bot's item and takes one nobody dropped.
+     */
+    private CompletableFuture<Verdict> ownerOnlyPickupRefusesTheHopper(Player player) {
+        Location at = player.getLocation();
+        World world = player.getWorld();
+        int x = at.getBlockX(), y = at.getBlockY(), z = at.getBlockZ();
+        CreationResult created = regions.create("ecc-owned", world.getName(), CuboidShape.of(BlockPos.of(x - 2, y - 2, z - 2), BlockPos.of(x + 2, y + 2, z + 2)));
+        Region region = created.getRegion();
+        if (region == null) {
+            return CompletableFuture.completedFuture(Verdict.fail("ecc-owned refused: " + created.getRefusal()));
+        }
+        region.setFlag(CoreFlags.OWNER_ONLY_PICKUP, Tristate.TRUE);
+        CompletableFuture<Verdict> answer = new CompletableFuture<>();
+        //a tick later: the core's listeners come up through the main thread once the region needs them
+        Bukkit.getScheduler().runTaskLater(plugin(), () -> {
+            PermissionAttachment noBypass = player.addAttachment(plugin());
+            BYPASS_NODES.forEach(node -> noBypass.setPermission(node, false));
+            Item owned = world.dropItem(at, new ItemStack(Material.STONE));
+            Item free = world.dropItem(at, new ItemStack(Material.DIRT));
+            try {
+                Bukkit.getPluginManager().callEvent(new PlayerDropItemEvent(player, owned));
+                Inventory hopper = Bukkit.createInventory(null, InventoryType.HOPPER);
+                InventoryPickupItemEvent pullOwned = new InventoryPickupItemEvent(hopper, owned);
+                InventoryPickupItemEvent pullFree = new InventoryPickupItemEvent(hopper, free);
+                Bukkit.getPluginManager().callEvent(pullOwned);
+                Bukkit.getPluginManager().callEvent(pullFree);
+                answer.complete(Verdict.of(pullOwned.isCancelled() && !pullFree.isCancelled(),
+                        "ownedRefused=" + pullOwned.isCancelled() + " freeRefused=" + pullFree.isCancelled()));
+            } catch (Throwable thrown) {
+                answer.complete(Verdict.fail(Verdict.describe(thrown)));
+            } finally {
+                owned.remove();
+                free.remove();
                 player.removeAttachment(noBypass);
                 regions.remove(region);
             }

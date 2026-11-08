@@ -28,6 +28,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -205,6 +206,51 @@ class ProtectionCatalogTest {
         region.setFlag(CoreFlags.DENY_ITEM_DROP, Tristate.TRUE);
 
         assertEquals(Decision.DENY, lookup.decide(dropAt(AT, "minecraft:dirt")), "a denied drop never reaches the ground to vanish");
+    }
+
+    private ItemContext pickupBy(TestFPlayerSender who, UUID itemOwner, String item) {
+        ItemContext pickup = new ItemContext(EventSource.ITEM_PICKUP, AT, Actors.player(who), null, TypeKey.parse(item), 1, null, null);
+        pickup.setItemOwner(itemOwner);
+        return pickup;
+    }
+
+    @Test
+    void ownerOnlyPickupMarksTheDropAndDeniesEveryoneButTheOwner() {
+        region.setFlag(CoreFlags.OWNER_ONLY_PICKUP, Tristate.TRUE);
+        ItemContext drop = dropAt(AT, "minecraft:dirt");
+        ItemContext dropOutside = dropAt(WorldLocPos.of(50, 5, 50, WORLD), "minecraft:dirt");
+
+        assertEquals(Decision.PASS, lookup.decide(drop));
+        assertEquals(Decision.PASS, lookup.decide(dropOutside));
+
+        UUID owner = player.getUniqueId();
+        assertEquals(owner, drop.getItemOwner());
+        assertNull(dropOutside.getItemOwner(), "outside the region the item stays nobody's");
+        assertEquals(Decision.PASS, lookup.decide(pickupBy(player, owner, "minecraft:dirt")));
+        assertEquals(Decision.DENY, lookup.decide(pickupBy(new TestFPlayerSender("other"), owner, "minecraft:dirt")));
+        assertEquals(Decision.PASS, lookup.decide(pickupBy(new TestFPlayerSender("other"), null, "minecraft:dirt")), "an item nobody dropped here");
+        assertEquals(Decision.DENY, lookup.decide(hopperPull(owner)));
+        assertEquals(Decision.PASS, lookup.decide(hopperPull(null)));
+    }
+
+    private ItemContext hopperPull(UUID itemOwner) {
+        ItemContext pull = new ItemContext(EventSource.ITEM_HOPPER_PICKUP, AT, Actors.environment("hopper"), null, TypeKey.parse("minecraft:dirt"), 1, null, null);
+        pull.setItemOwner(itemOwner);
+        return pull;
+    }
+
+    @Test
+    void ownerOnlyPickupNarrowedByExceptLeavesTheOtherItems() {
+        region.setFlag(CoreFlags.OWNER_ONLY_PICKUP, Tristate.TRUE);
+        TypeFilterSettings notDirt = new TypeFilterSettings();
+        notDirt.setExcept(Collections.singletonList("minecraft:dirt"));
+        region.setFlagSettings(CoreFlags.OWNER_ONLY_PICKUP, notDirt);
+        ItemContext dirt = dropAt(AT, "minecraft:dirt");
+
+        lookup.decide(dirt);
+
+        assertNull(dirt.getItemOwner());
+        assertEquals(Decision.PASS, lookup.decide(pickupBy(new TestFPlayerSender("other"), player.getUniqueId(), "minecraft:dirt")));
     }
 
     @Test

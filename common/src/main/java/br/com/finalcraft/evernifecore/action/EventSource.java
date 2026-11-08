@@ -41,6 +41,8 @@ public final class EventSource {
     public static final EventSource ITEM_PICKUP = core("item-pickup");
     /** An item a player throws on the ground. */
     public static final EventSource ITEM_DROP = core("item-drop");
+    /** An item a hopper or a hopper minecart pulls off the ground; nobody picks it up, so the actor is the environment. */
+    public static final EventSource ITEM_HOPPER_PICKUP = core("item-hopper-pickup");
     /** A vehicle - minecart, boat - placed, broken or entered. */
     public static final EventSource VEHICLE = core("vehicle");
     /** Fire spreading to a block on its own, apart from {@link #PLACE}: fire lit by someone or by lava is a PLACE. */

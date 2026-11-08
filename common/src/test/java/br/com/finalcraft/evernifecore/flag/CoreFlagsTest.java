@@ -54,7 +54,7 @@ class CoreFlagsTest {
                 "deny-block-break-environment", "deny-block-break-fake-players", "deny-block-place", "deny-block-place-fake-players",
                 "deny-explosion", "deny-explosion-mobs", "deny-interact", "deny-interact-blocks", "deny-interact-entities", "deny-entry", "deny-exit", "deny-teleport-in", "deny-teleport-out",
                 "deny-spawn", "deny-spawn-monster", "deny-spawn-animal", "track-changes", "deny-damage-from-mobs", "deny-block-place-environment",
-                "deny-fire-spread", "deny-fluid-flow", "deny-item-pickup", "deny-item-drop", "destroy-dropped-items", "deny-vehicle",
+                "deny-fire-spread", "deny-fluid-flow", "deny-item-pickup", "deny-item-drop", "destroy-dropped-items", "owner-only-pickup", "deny-vehicle",
                 "deny-vehicle-place", "deny-vehicle-break", "deny-vehicle-enter", "deny-friendly-fire")) {
             CATALOG.put(name, "tristate-true");
         }
@@ -83,7 +83,7 @@ class CoreFlagsTest {
     void tearDown() {
         try {
             assertTrue(iterated >= 18, "the tie test must have run over the whole catalog, ran " + iterated);
-            assertEquals(62, iterated, "the catalog holds 62 flags");
+            assertEquals(63, iterated, "the catalog holds 63 flags");
         } finally {
             FlagRegistry.get().reset();
             Plugins.forget(CORE);

@@ -97,6 +97,10 @@ public final class ActionListeners {
         bridge.watches.add(follow(owner, EventSource.ITEM_DROP, bridge.own(new ItemActionListeners.Drop()), null));
         bridge.watches.add(follow(owner, EventSource.ITEM_PICKUP, bridge.own(MCVersion.isHigherEquals(MCDetailedVersion.v1_12_R1)
                 ? new ItemActionListeners.Pickup() : new ItemActionListeners.LegacyPickup()), null));
+        bridge.watches.add(follow(owner, EventSource.ITEM_HOPPER_PICKUP, bridge.own(new ItemActionListeners.HopperPickup()), null));
+        if (MCVersion.isHigherEquals(MCDetailedVersion.v1_8_R1)) {   //ItemMergeEvent: only an owned item can refuse a merge, and a drop is what owns it
+            bridge.watches.add(follow(owner, EventSource.ITEM_DROP, bridge.own(new ItemActionListeners.Merge()), null));
+        }
         bridge.watches.add(follow(owner, EventSource.VEHICLE, bridge.own(new VehicleActionListeners.BreakAndEnter()), null));
         bridge.watches.add(follow(owner, EventSource.VEHICLE, bridge.own(MCVersion.isHigherEquals(MCDetailedVersion.v1_13_R1)
                 ? new VehicleActionListeners.Place() : new VehicleActionListeners.LegacyPlace()), null));

@@ -34,14 +34,14 @@ class ActionEventsTest {
     }
 
     @Test
-    void theCatalogCoversEveryCoreSourceButMoveTickAndNone() {
+    void theCatalogCoversEveryCoreSourceButMoveHopperPickupTickAndNone() {
         Set<EventSource> expected = new HashSet<>();
         for (EventSource source : EventSource.all()) {
             if (source.getOwner().equals(CoreFlags.OWNER)) {
                 expected.add(source);
             }
         }
-        expected.removeAll(Arrays.asList(EventSource.MOVE, EventSource.TICK, EventSource.NONE));
+        expected.removeAll(Arrays.asList(EventSource.MOVE, EventSource.ITEM_HOPPER_PICKUP, EventSource.TICK, EventSource.NONE));
 
         assertEquals(expected, new HashSet<>(ActionEvents.all()));
         assertNull(ActionEvents.of(EventSource.MOVE));

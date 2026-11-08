@@ -13,15 +13,15 @@ import java.util.UUID;
 import java.util.function.Supplier;
 
 /**
- * An item that changed hands: picked up from the ground ({@link EventSource#ITEM_PICKUP}), thrown on it
- * ({@link EventSource#ITEM_DROP}), crafted ({@link EventSource#CRAFT}), taken out of a furnace ({@link EventSource#SMELT}),
+ * An item that changed hands: picked up from the ground ({@link EventSource#ITEM_PICKUP}), pulled off it by a hopper
+ * ({@link EventSource#ITEM_HOPPER_PICKUP}), thrown on it ({@link EventSource#ITEM_DROP}), crafted ({@link EventSource#CRAFT}), taken out of a furnace ({@link EventSource#SMELT}),
  * fished ({@link EventSource#FISH}), eaten or drunk ({@link EventSource#CONSUME}) or enchanted ({@link EventSource#ENCHANT}).
  */
 public final class ItemContext extends ActionContext {
 
     /** The sources an item context serves. */
     public static final Set<EventSource> SOURCES = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(EventSource.ITEM_PICKUP,
-            EventSource.ITEM_DROP, EventSource.CRAFT, EventSource.SMELT, EventSource.FISH, EventSource.CONSUME, EventSource.ENCHANT)));
+            EventSource.ITEM_HOPPER_PICKUP, EventSource.ITEM_DROP, EventSource.CRAFT, EventSource.SMELT, EventSource.FISH, EventSource.CONSUME, EventSource.ENCHANT)));
 
     private final TypeKey itemKey;
     private final int amount;
@@ -29,6 +29,7 @@ public final class ItemContext extends ActionContext {
     private @Nullable Supplier<ItemSpec> itemSource;
     private @Nullable ItemSpec item;
     private volatile boolean itemDestroyed;
+    private volatile @Nullable UUID itemOwner;
 
     /**
      * @param source     one of {@link #SOURCES}
@@ -77,6 +78,18 @@ public final class ItemContext extends ActionContext {
 
     public void setItemDestroyed(boolean itemDestroyed) {
         this.itemDestroyed = itemDestroyed;
+    }
+
+    /**
+     * Who the item on the ground belongs to ({@code owner-only-pickup}): a flag sets it on a drop, for the platform listener
+     * to keep once nothing denied the drop; on a pickup the listener sets what it kept. Null for an item nobody owns.
+     */
+    public @Nullable UUID getItemOwner() {
+        return itemOwner;
+    }
+
+    public void setItemOwner(@Nullable UUID itemOwner) {
+        this.itemOwner = itemOwner;
     }
 
     /**

@@ -112,8 +112,17 @@ public abstract class Flag<T> implements StateHolder {
     }
 
     /**
-     * What the flag changes on a player, so a platform that cannot ({@link IPlayerStateAccess#supports}) reports it at
-     * boot as having no effect there; empty for a flag that changes nothing on a player.
+     * The sources of {@link #getNeeds()} the flag cannot work without: a platform that does not raise one of them leaves
+     * the flag {@link FlagRegistry#isSupported unsupported}, even if it raises the others. Default: none, so missing some
+     * needs only makes the flag act in part. Override it where a hole at any stage would defeat the whole flag.
+     */
+    public Set<EventSource> getRequiredSources() {
+        return Collections.emptySet();
+    }
+
+    /**
+     * What the flag changes on a player; on a platform that cannot ({@link IPlayerStateAccess#supports}) the flag is
+     * {@link FlagRegistry#isSupported unsupported}. Empty for a flag that changes nothing on a player.
      */
     public Set<IPlayerStateAccess.Capability> getNeededCapabilities() {
         return Collections.emptySet();

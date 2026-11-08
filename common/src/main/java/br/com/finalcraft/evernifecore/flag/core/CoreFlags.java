@@ -71,6 +71,7 @@ public final class CoreFlags {
     public static DenyItemFlag DENY_ITEM_DROP = new DenyItemFlag("deny-item-drop", EventSource.ITEM_DROP,
             "TRUE: items cannot be dropped in the region; only/except in the settings narrow it to some items.");
     public static DestroyDroppedItemsFlag DESTROY_DROPPED_ITEMS = new DestroyDroppedItemsFlag();
+    public static OwnerOnlyPickupFlag OWNER_ONLY_PICKUP = new OwnerOnlyPickupFlag();
     public static DenyVehicleFlag DENY_VEHICLE = new DenyVehicleFlag();
     public static DenyVehicleFlag DENY_VEHICLE_PLACE = new DenyVehicleFlag("deny-vehicle-place", DENY_VEHICLE, VehicleContext.Action.PLACE,
             "TRUE: vehicles cannot be placed in the region. Where it is not set, deny-vehicle decides.");
@@ -129,7 +130,8 @@ public final class CoreFlags {
                 DENY_BLOCK_BREAK_ENVIRONMENT, DENY_BLOCK_BREAK_FAKE_PLAYERS, DENY_BLOCK_PLACE, DENY_BLOCK_PLACE_ENVIRONMENT,
                 DENY_BLOCK_PLACE_FAKE_PLAYERS, DENY_FIRE_SPREAD, DENY_FLUID_FLOW, DENY_EXPLOSION, DENY_EXPLOSION_MOBS, DENY_INTERACT,
                 DENY_INTERACT_BLOCKS, DENY_INTERACT_ENTITIES, DENY_ENTRY, DENY_EXIT, DENY_TELEPORT_IN, DENY_TELEPORT_OUT,
-                DENY_SPAWN, DENY_SPAWN_MONSTER, DENY_SPAWN_ANIMAL, DENY_ITEM_PICKUP, DENY_ITEM_DROP, DESTROY_DROPPED_ITEMS, DENY_VEHICLE,
+                DENY_SPAWN, DENY_SPAWN_MONSTER, DENY_SPAWN_ANIMAL, DENY_ITEM_PICKUP, DENY_ITEM_DROP, DESTROY_DROPPED_ITEMS, OWNER_ONLY_PICKUP,
+                DENY_VEHICLE,
                 DENY_VEHICLE_PLACE, DENY_VEHICLE_BREAK, DENY_VEHICLE_ENTER, DENY_ENTRY_WITH_MESSAGE, GREETING, FAREWELL, DENY_MESSAGE, TELEPORT_POINT,
                 SPAWN_POINT, TRACK_CHANGES, TIME_LOCK, WEATHER_LOCK, GAME_MODE, ALLOW_FLY, FORCE_FLY, POTION_EFFECTS, COMMAND_ON_ENTER,
                 COMMAND_ON_EXIT, HEAL, FEED, DAMAGE_OVER_TIME, HUNGER_OVER_TIME, EFFECTS_ON_ENTER, EFFECTS_ON_EXIT, EFFECTS_WHILE_INSIDE,

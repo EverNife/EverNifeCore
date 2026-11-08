@@ -47,7 +47,7 @@ class EventSourceTest {
 
     private static final List<EventSource> CORE = Arrays.asList(EventSource.MOVE, EventSource.BREAK, EventSource.PLACE,
             EventSource.INTERACT, EventSource.DAMAGE, EventSource.SPAWN, EventSource.EXPLOSION, EventSource.FLUID, EventSource.RESPAWN,
-            EventSource.ITEM_PICKUP, EventSource.ITEM_DROP, EventSource.VEHICLE, EventSource.FIRE_SPREAD, EventSource.TICK, EventSource.NONE);
+            EventSource.ITEM_PICKUP, EventSource.ITEM_HOPPER_PICKUP, EventSource.ITEM_DROP, EventSource.VEHICLE, EventSource.FIRE_SPREAD, EventSource.TICK, EventSource.NONE);
 
     @Test
     void theCoreSourcesBelongToTheCore() {

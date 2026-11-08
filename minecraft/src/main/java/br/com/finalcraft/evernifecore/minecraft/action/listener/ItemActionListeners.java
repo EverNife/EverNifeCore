@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.action.Actions;
 import br.com.finalcraft.evernifecore.action.Actor;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.ItemContext;
+import br.com.finalcraft.evernifecore.action.TypeKey;
 import br.com.finalcraft.evernifecore.action.event.DropActionEvent;
 import br.com.finalcraft.evernifecore.action.event.PickupActionEvent;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
@@ -14,26 +15,40 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.entity.ItemMergeEvent;
+import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.inventory.ItemStack;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.WeakHashMap;
 
 /**
  * The item listeners, one class per event so that each registers alone: {@link EventSource#ITEM_DROP} is a player
  * throwing an item, {@link EventSource#ITEM_PICKUP} anyone picking one up - asked where the item lies; a denial, or a
  * cancelled {@code Pre}, cancels it, and one that went through posts its {@link DropActionEvent} / {@link PickupActionEvent}
- * Post; a drop let through that a flag marked ({@link ItemContext#isItemDestroyed()}) loses its item a tick later. The
- * pickup event fires every tick for every item next to someone, which is why it is a source of its own.
+ * Post; a drop let through that a flag marked ({@link ItemContext#isItemDestroyed()}) loses its item a tick later, or
+ * keeps its owner ({@link ItemContext#getItemOwner()}) for the pickups, hoppers and merges of that item. The pickup event fires every tick for every item next to someone, which is why it is a source of its own.
  */
 public final class ItemActionListeners {
+
+    // ponytail: in memory, so a restart or a chunk unload frees the item; Item#setOwner would survive both, but vanilla then
+    // refuses by itself, outside the region and past the bypass, and it exists only on the newer eras
+    private static final Map<Item, UUID> OWNERS = Collections.synchronizedMap(new WeakHashMap<>()); //an entity gone from the world frees its key
 
     private ItemActionListeners() {
     }
 
     static ItemContext context(EventSource source, Item item, Actor actor, Cancellable event) {
         ItemStack stack = item.getItemStack();
-        return new ItemContext(source, McActionContexts.position(item.getLocation()), actor, event, McActionContexts.key(stack),
+        ItemContext context = new ItemContext(source, McActionContexts.position(item.getLocation()), actor, event, McActionContexts.key(stack),
                 stack.getAmount(), item.getUniqueId(), McActionContexts.item(stack));
+        context.setItemOwner(OWNERS.get(item));
+        return context;
     }
 
     static void pickup(Item item, Actor actor, Cancellable event) {
@@ -65,7 +80,12 @@ public final class ItemActionListeners {
             ItemContext context = context(EventSource.ITEM_DROP, item, McActionContexts.actor(event.getPlayer()), event);
             if (Actions.denied(context, DropActionEvent.Pre.class, DropActionEvent.Pre::new)) {
                 event.setCancelled(true);
-            } else if (context.isItemDestroyed()) {
+                return;
+            }
+            if (context.getItemOwner() != null) {
+                OWNERS.put(item, context.getItemOwner());
+            }
+            if (context.isItemDestroyed()) {
                 //a tick later: the server adds the item to the world after this event, and an entity removed before that
                 //is refused with a warning (1.17+); the pickup delay of a thrown item outlasts the tick
                 Bukkit.getScheduler().runTaskLater(EverNifeCoreBukkitPlugin.instance, () -> {
@@ -82,6 +102,42 @@ public final class ItemActionListeners {
             if (!McActionContexts.isDisabled(item.getWorld())) {
                 Actions.post(DropActionEvent.Post.class, () -> new DropActionEvent.Post(context(EventSource.ITEM_DROP, item,
                         McActionContexts.actor(event.getPlayer()), event)));
+            }
+        }
+    }
+
+    /** Keeps two piles of different owners apart, from 1.8; before that the server merges them with no event, and the pile left keeps its own owner. */
+    public static final class Merge implements ECListener {
+
+        @Override
+        public boolean silentRegistration() {
+            return true;
+        }
+
+        @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+        public void onMerge(ItemMergeEvent event) {
+            if (!Objects.equals(OWNERS.get(event.getEntity()), OWNERS.get(event.getTarget()))) {
+                event.setCancelled(true);
+            }
+        }
+    }
+
+    /** A hopper or a hopper minecart pulling an item off the ground; it has no action event, only the regions are asked. */
+    public static final class HopperPickup implements ECListener {
+
+        private static final TypeKey HOPPER = TypeKey.of("environment", "hopper");
+
+        @Override
+        public boolean silentRegistration() {
+            return true;
+        }
+
+        @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+        public void onPickup(InventoryPickupItemEvent event) {
+            Item item = event.getItem();
+            if (!McActionContexts.isDisabled(item.getWorld())
+                    && Actions.denied(context(EventSource.ITEM_HOPPER_PICKUP, item, Actor.environment(HOPPER), event))) {
+                event.setCancelled(true);
             }
         }
     }
