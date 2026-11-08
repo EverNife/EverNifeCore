@@ -302,6 +302,12 @@ class GroupFlagsTest {
     // ---- glow-members ----
 
     @Test
+    void aPlatformThatServesThemKeepsGlowAndSharedXpSupported() {
+        assertTrue(FlagRegistry.get().isSupported(CoreFlags.GLOW_MEMBERS));
+        assertTrue(FlagRegistry.get().isSupported(CoreFlags.SHARE_XP));
+    }
+
+    @Test
     void glowMembersGlowsTheOnlineMembersThroughTheProviderAndStopsWithTheirLeaveAndTheValue() {
         TestGlow glow = world.platform().getTestGlow();
         Group alpha = alphaWith(alice, bob);

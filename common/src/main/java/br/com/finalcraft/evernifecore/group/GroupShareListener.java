@@ -1,8 +1,6 @@
 package br.com.finalcraft.evernifecore.group;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.action.ActionSupport;
-import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.event.XpGainActionEvent;
 import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
@@ -43,7 +41,6 @@ final class GroupShareListener {
     private static final Set<Group> MONEY = ConcurrentHashMap.newKeySet();
     private static @Nullable ECEventSubscription<XpGainActionEvent.Post> xpSubscription;
     private static @Nullable ECEventSubscription<BalanceChangeEvent> moneySubscription;
-    private static volatile boolean warnedNoXp;
 
     private GroupShareListener() {
     }
@@ -60,12 +57,10 @@ final class GroupShareListener {
 
     private static synchronized void update(Group group, boolean alive) {
         boolean xp = alive && sharing(group, CoreFlags.SHARE_XP);
-        if (xp ? XP.add(group) : XP.remove(group)) {
-            if (xp && !warnedNoXp && !ActionSupport.isServed(EventSource.XP_GAIN)) {
-                warnedNoXp = true;
-                EverNifeCore.getLog().warning("share-xp is set on group " + group.getId() + ", but there is no XP source on this platform ("
-                        + ActionSupport.getPlatform() + "): the flag has no effect here.");
-            }
+        if (xp) {
+            XP.add(group);
+        } else {
+            XP.remove(group);
         }
         if (alive && sharing(group, CoreFlags.SHARE_MONEY)) {
             MONEY.add(group);

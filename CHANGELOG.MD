@@ -99,6 +99,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `describePartialEffect`: only a flag acting in part still logs a line. `getBySource` answers with supported flags;
   `getSupported()`, `findSupported(text)` and `supportedOf(values)` are new.
 
+- **`glow-members` and `share-xp` follow the same rule**: where nothing glows (no `IGroupGlowProvider`, Hytale, Bukkit
+  before 1.9) or no `XP_GAIN` is raised (Hytale) each one is not supported, so it logs nothing, leaves the group listings
+  and the verbs refuse its name; the marker `(glow-members: unsupported on this platform)` of `/ecore group` went with it.
+  `Flag.isAvailableOnPlatform()` is new: the answer of a flag that no source or capability describes.
+
 #### Deliveries
 
 - **`Deliveries.enqueue(recipient, origin, policy, ttl, icon, effects)` and `keepFor(ctx, policy, ttl, icon, node)`**

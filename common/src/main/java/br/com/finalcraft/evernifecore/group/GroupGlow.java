@@ -31,7 +31,6 @@ final class GroupGlow {
     private static final Set<Group> WANTED = ConcurrentHashMap.newKeySet();
     private static @Nullable ECEventSubscription<ECPlayerFullyLoggedInEvent> loginSubscription;
     private static @Nullable ECEventSubscription<ECPlayerQuitEvent> quitSubscription;
-    private static volatile boolean warnedUnsupported;
 
     private GroupGlow() {
     }
@@ -64,11 +63,6 @@ final class GroupGlow {
         if (provider == null) {
             WANTED.remove(group);
             listenWhileWanted();
-            if (wanted && !warnedUnsupported) {
-                warnedUnsupported = true;
-                EverNifeCore.getLog().warning("glow-members is TRUE on group " + group.getId() + ", but this platform cannot make"
-                        + " players glow (Bukkit 1.9+ only): the flag has no effect here.");
-            }
             GLOWING.remove(group);
             return;
         }

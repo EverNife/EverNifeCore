@@ -228,9 +228,13 @@ public final class FlagRegistry {
      * flag is silent and inert: no boot log, out of the completions and the flag listings of the verbs, which refuse its
      * name; a region may hold its value, and nothing asks it. It is unsupported when a source of
      * {@link Flag#getRequiredSources()} is not raised, when no source it needs is, when a capability it needs is missing,
-     * or when it refines another flag only for actors the platform never classifies.
+     * when it refines another flag only for actors the platform never classifies, or when it says so itself
+     * ({@link Flag#isAvailableOnPlatform()}).
      */
     public boolean isSupported(Flag<?> flag) {
+        if (!flag.isAvailableOnPlatform()) {
+            return false;
+        }
         List<EventSource> unserved = getUnservedSources(flag);
         if (!unserved.isEmpty()) {
             if (flag.getNeeds().stream().allMatch(source -> source.equals(EventSource.NONE) || unserved.contains(source))) {

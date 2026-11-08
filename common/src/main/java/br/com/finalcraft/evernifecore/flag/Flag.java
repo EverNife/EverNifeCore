@@ -121,6 +121,14 @@ public abstract class Flag<T> implements StateHolder {
     }
 
     /**
+     * Whether this platform has what the flag acts through, for a flag no source or capability describes (a provider the
+     * platform registers, say); false leaves it {@link FlagRegistry#isSupported unsupported}. Default: true.
+     */
+    public boolean isAvailableOnPlatform() {
+        return true;
+    }
+
+    /**
      * What the flag changes on a player; on a platform that cannot ({@link IPlayerStateAccess#supports}) the flag is
      * {@link FlagRegistry#isSupported unsupported}. Empty for a flag that changes nothing on a player.
      */

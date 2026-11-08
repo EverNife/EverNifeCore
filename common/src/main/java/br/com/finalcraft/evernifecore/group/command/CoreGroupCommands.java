@@ -6,13 +6,11 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.flag.FlagKey;
 import br.com.finalcraft.evernifecore.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.flag.FlagValue;
-import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.group.Group;
 import br.com.finalcraft.evernifecore.group.GroupId;
 import br.com.finalcraft.evernifecore.group.GroupLookup;
 import br.com.finalcraft.evernifecore.group.GroupMember;
 import br.com.finalcraft.evernifecore.group.GroupRole;
-import br.com.finalcraft.evernifecore.group.IGroupGlowProvider;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
@@ -71,13 +69,8 @@ public final class CoreGroupCommands {
         }
         for (Map.Entry<FlagKey, FlagValue<?>> entry : FlagRegistry.get().supportedOf(group.getFlags()).entrySet()) {
             FlagValue<?> value = entry.getValue();
-            String line = " §7flag §f" + entry.getKey() + " §7= §e" + value.getValue() + " §7<- " + group.getId()
-                    + (value.getExpiresAt() == null ? "" : " §7(" + expiry(value.getExpiresAt()) + ")");
-            if (entry.getKey().equals(CoreFlags.GLOW_MEMBERS.getKey())
-                    && EverNifeCore.getProviders().getBaseProvider().provideOrNull(IGroupGlowProvider.class) == null) {
-                line += " §c(glow-members: unsupported on this platform)";
-            }
-            sender.sendMessage(line);
+            sender.sendMessage(" §7flag §f" + entry.getKey() + " §7= §e" + value.getValue() + " §7<- " + group.getId()
+                    + (value.getExpiresAt() == null ? "" : " §7(" + expiry(value.getExpiresAt()) + ")"));
         }
     }
 

@@ -473,7 +473,7 @@ class HyActionSystemsTest {
             }
             assertEquals(new TreeSet<>(Arrays.asList("deny-block-break-fake-players", "deny-block-place-fake-players", "deny-explosion",
                     "deny-explosion-mobs", "deny-fire-spread", "deny-fluid-flow", "deny-vehicle", "deny-vehicle-break", "deny-vehicle-enter",
-                    "deny-vehicle-place", "feed", "hunger-over-time", "owner-only-pickup", "weather-lock")), unsupported);
+                    "deny-vehicle-place", "feed", "glow-members", "hunger-over-time", "owner-only-pickup", "share-xp", "weather-lock")), unsupported);
             assertTrue(lines.stream().anyMatch(line -> line.startsWith("Flag evernifecore:force-fly ") && line.contains("flight-toggle")),
                     "force-fly cannot keep a player from landing here: " + lines);
         } finally {
