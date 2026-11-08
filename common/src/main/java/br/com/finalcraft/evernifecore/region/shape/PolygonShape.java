@@ -99,7 +99,7 @@ public final class PolygonShape implements Shape {
     /** The chunks of the bounding box whose cell the polygon actually reaches - a concave notch leaves its chunks out. */
     @Override
     public Iterable<ChunkPos> getChunks() {
-        // ponytail: tests every chunk of the bounding box; a huge polygon pays O(bbox chunks) here, fine for an index built once per change
+        // reason-detre: tests every chunk of the bounding box; a huge polygon pays O(bbox chunks) here, fine for an index built once per change
         List<ChunkPos> touched = new ArrayList<>();
         for (ChunkPos chunk : bounds.getChunks()) {
             if (reachesCell(chunk.getXStart(), chunk.getZStart(), chunk.getXEnd(), chunk.getZEnd())) {

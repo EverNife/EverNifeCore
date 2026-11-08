@@ -94,7 +94,7 @@ public final class ProvenanceFilter {
             return tracker.getOrigin(entity);
         }
         if (context instanceof BlockContext && context.getPosition() != null) {
-            // ponytail: peek only (no I/O on the action's thread) - a block whose chunk the tracker has not cached reads natural
+            // reason-detre: peek only (no I/O on the action's thread) - a block whose chunk the tracker has not cached reads natural
             Provenance cached = tracker.peekOrigin(WorldBlockPos.from(context.getPosition(), context.getWorld()));
             return cached == null ? Provenance.NATURAL : cached;
         }

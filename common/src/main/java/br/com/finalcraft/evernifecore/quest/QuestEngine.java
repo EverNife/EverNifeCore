@@ -1929,7 +1929,7 @@ public final class QuestEngine {
                 return id;
             }
             Group managed = GroupLookup.get().byId(id);
-            //ponytail: a provider's own group carries no kind here, so only the core's managed groups match a named kind
+            //reason-detre: a provider's own group carries no kind here, so only the core's managed groups match a named kind
             if (managed != null && managed.getKind().getKey().toString().equalsIgnoreCase(provider)) {
                 return id;
             }

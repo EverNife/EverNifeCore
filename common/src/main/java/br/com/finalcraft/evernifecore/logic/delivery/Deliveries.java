@@ -333,7 +333,7 @@ public final class Deliveries {
                 addFrom(found, loaded.getUniqueId(), section, plugin);
             }
         }
-        // ponytail: reads every stored deliveries row; an index on the origin plugin when servers grow past a quick scan
+        // reason-detre: reads every stored deliveries row; an index on the origin plugin when servers grow past a quick scan
         return PlayerController.querySections(DeliveriesSection.class, Query.all(), QueryOptions.none())
                 .handle((rows, failure) -> {
                     if (failure != null) {

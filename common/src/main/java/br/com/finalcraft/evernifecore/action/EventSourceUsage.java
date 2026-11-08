@@ -48,7 +48,7 @@ public final class EventSourceUsage {
     private static volatile @Nullable EventSourceUsage global;
 
     private final RegionLookup lookup;
-    // ponytail: the Count of a source its plugin unregistered stays here at zero - harmless; dropping it would tie
+    // reason-detre: the Count of a source its plugin unregistered stays here at zero - harmless; dropping it would tie
     // EventSource.unregisterAll to this singleton
     private final ConcurrentHashMap<EventSource, Count> counts = new ConcurrentHashMap<>();
     private final List<UsageWatch> watches = new CopyOnWriteArrayList<>();
@@ -188,7 +188,7 @@ public final class EventSourceUsage {
      * change and flag registration.
      */
     public void recount() {
-        // ponytail: a full recount per change is O(regions x flags); count per region incrementally if a profiler ever asks
+        // reason-detre: a full recount per change is O(regions x flags); count per region incrementally if a profiler ever asks
         Map<EventSource, Integer> counted = new HashMap<>();
         Set<EventSource> seen = new HashSet<>();
         for (Region region : lookup.all()) {

@@ -375,7 +375,7 @@ public abstract class Window {
             return dom || dow;
         }
 
-        // ponytail: walks minute by minute (skipping whole days and hours that cannot match) for up to a year;
+        // reason-detre: walks minute by minute (skipping whole days and hours that cannot match) for up to a year;
         // a yearly-or-rarer cron answers null - jump field by field if one ever needs to look further
         @Override
         public @Nullable Instant currentStart(Instant now) {

@@ -285,7 +285,7 @@ public final class TypeRegistry<T> {
             }
             PendingDefinition<T> waiting = new PendingDefinition<>(caller, node, zone, written.toLowerCase(Locale.ROOT),
                     absent + " The definition is kept pending and resolves when that plugin registers it.", null);
-            // ponytail: a pending entry lives until its caller unregisters, so a reload that re-reads keeps the old one too
+            // reason-detre: a pending entry lives until its caller unregisters, so a reload that re-reads keeps the old one too
             synchronized (this) {
                 pending.add(waiting);
             }

@@ -26,7 +26,7 @@ final class ProvenanceStore implements AutoCloseable {
 
     private final SVWorldDataManager<Provenance> blocks;
     private final Supplier<Duration> retention;
-    // ponytail: in-memory only - a mob that outlives a restart reads as NATURAL; a native tag (NBT-API on Bukkit, a
+    // reason-detre: in-memory only - a mob that outlives a restart reads as NATURAL; a native tag (NBT-API on Bukkit, a
     // component on Hytale) is the upgrade if a product needs it to survive
     private final Map<UUID, Provenance> entities = new LinkedHashMap<UUID, Provenance>(16, 0.75f, true) {
         @Override

@@ -36,7 +36,7 @@ import java.util.WeakHashMap;
  */
 public final class ItemActionListeners {
 
-    // ponytail: in memory, so a restart or a chunk unload frees the item; Item#setOwner would survive both, but vanilla then
+    // reason-detre: in memory, so a restart or a chunk unload frees the item; Item#setOwner would survive both, but vanilla then
     // refuses by itself, outside the region and past the bypass, and it exists only on the newer eras
     private static final Map<Item, UUID> OWNERS = Collections.synchronizedMap(new WeakHashMap<>()); //an entity gone from the world frees its key
 

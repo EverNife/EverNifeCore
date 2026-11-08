@@ -111,7 +111,7 @@ public final class StayInRegionObjectiveType implements RegionObjectiveType<Stay
      * null when they do not meet it (nobody to measure included).
      */
     private static @Nullable Duration stayOf(Collection<UUID> players, Filter filter) {
-        //ponytail: any = the longest current stay, so a hand-off between members starts a continuous stay over; keep the
+        //reason-detre: any = the longest current stay, so a hand-off between members starts a continuous stay over; keep the
         //start in the objective's data if a hand-off ever has to count
         Duration met = null;
         for (UUID player : players) {

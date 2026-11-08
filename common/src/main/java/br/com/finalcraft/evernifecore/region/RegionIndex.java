@@ -50,7 +50,7 @@ public final class RegionIndex {
      * Every writer holds it - a manager around its mutation and the publish that follows, and every write here -
      * so a sort key (priority, depth) never changes under a running publish.
      */
-    static final Object WRITE_LOCK = new Object();   // ponytail: one write lock for every manager; per-world locks if region writes ever contend
+    static final Object WRITE_LOCK = new Object();   // reason-detre: one write lock for every manager; per-world locks if region writes ever contend
 
     private volatile int hugeChunks;
     //compute() on this map is the per-world write lock; get() is the lock-free read

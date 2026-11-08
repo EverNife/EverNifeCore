@@ -281,7 +281,7 @@ public final class HyObjectivesBridge extends TickingSystem<EntityStore> {
         }
         for (Map.Entry<String, Mirror> held : mirrors.entrySet()) {
             if (world.getName().equals(held.getValue().world) && !present.contains(held.getKey())) {
-                //ponytail: a native objective that left the store is read as completed; one cancelled natively completes ours too
+                //reason-detre: a native objective that left the store is read as completed; one cancelled natively completes ours too
                 close(held.getValue(), Integer.MAX_VALUE);
                 mirrors.remove(held.getKey());
             }

@@ -56,7 +56,7 @@ public final class TerrainJournalListener implements ECListener {
         recordInWorld(event.getBlock());
     }
 
-    //ponytail: two getState() per right click on a block while any region needs PLACE, not only over tracked positions
+    //reason-detre: two getState() per right click on a block while any region needs PLACE, not only over tracked positions
     @EventHandler(priority = EventPriority.MONITOR)
     public void onInteract(PlayerInteractEvent event) {
         Block clicked = event.getClickedBlock();

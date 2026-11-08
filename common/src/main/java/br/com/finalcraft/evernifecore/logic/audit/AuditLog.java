@@ -362,7 +362,7 @@ public final class AuditLog {
     }
 
     private CompletableFuture<Integer> sweepFrom(long cutoff, int deletedSoFar) {
-        // ponytail: no deleteWhere in EveryDatabase, so a slice is read and deleted by key
+        // reason-detre: no deleteWhere in EveryDatabase, so a slice is read and deleted by key
         return repository.query(Query.range("at", 0L, cutoff), QueryOptions.builder().limit(SWEEP_SLICE).build()).thenCompose(rows -> {
             List<CompletableFuture<Boolean>> deletes = new ArrayList<>();
             for (Row row : rows) {

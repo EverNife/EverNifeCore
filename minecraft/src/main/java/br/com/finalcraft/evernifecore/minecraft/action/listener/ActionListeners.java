@@ -118,7 +118,7 @@ public final class ActionListeners {
         bridge.watches.add(follow(owner, EventSource.SHEAR, bridge.own(new ShearActionListener()), null));
         bridge.watches.add(follow(owner, EventSource.COMMAND, bridge.own(new CommandActionListener()), null));
         bridge.watches.add(follow(owner, EventSource.EXPLORE, bridge.own(new ExploreActionListener()), null));
-        //ponytail: the journal hears every BREAK/PLACE/EXPLOSION while any region needs one, not only track-changes regions
+        //reason-detre: the journal hears every BREAK/PLACE/EXPLOSION while any region needs one, not only track-changes regions
         List<EventSource> terrainSources = Arrays.asList(EventSource.BREAK, EventSource.PLACE, EventSource.EXPLOSION);
         bridge.watches.addAll(follow(owner, terrainSources, bridge.own(new TerrainJournalListener()), null));
         if (MCVersion.isHigherEquals(MCDetailedVersion.v1_8_R1)) {
