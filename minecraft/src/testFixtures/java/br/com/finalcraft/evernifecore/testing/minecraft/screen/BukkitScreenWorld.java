@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.testing.minecraft.screen;
 import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
+import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemProbe;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRuntime;
@@ -10,6 +11,7 @@ import br.com.finalcraft.evernifecore.minecraft.screen.ChestScreenRenderer;
 import br.com.finalcraft.evernifecore.minecraft.screen.prompt.BukkitChatPromptChannel;
 import br.com.finalcraft.evernifecore.screen.prompt.PromptRegistry;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
+import br.com.finalcraft.evernifecore.screen.Choice;
 import br.com.finalcraft.evernifecore.screen.Screen;
 import br.com.finalcraft.evernifecore.screen.ScreenView;
 import br.com.finalcraft.evernifecore.screen.Screens;
@@ -141,6 +143,8 @@ public final class BukkitScreenWorld implements AutoCloseable {
         ItemWorld.registerConfigTypes();
         Screens.registerRenderer(ecPluginData, renderer);
         PromptRegistry.get().register(ecPluginData, new BukkitChatPromptChannel());
+        //what a choice draws and a prompt refuses with are core locale messages, which only the real boot loads
+        FCLocaleManager.loadLocale(ecPluginData, true, Choice.class, PromptRegistry.class);
     }
 
     /** A chest over items that remember a name, a lore and a flag - the text a screen draws can be read back. */

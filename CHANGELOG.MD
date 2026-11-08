@@ -121,6 +121,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **`/ecore screen` speaks the core locale**: `CoreScreenCommands` moved to en_US and pt_BR messages and joined the boot's
   list; `LayoutDiff`'s own details and warnings stay as the diff writes them.
 
+- **A prompt's refusal without a reason and the colours of a `Choice` live in the core's language file**:
+  `PromptRegistry.REFUSED_WITHOUT_REASON`, `Choice.ENABLED_NAME_COLOUR`, `DISABLED_NAME_COLOUR` and `COST_LINE`
+  (`${costs}`), with the same green, grey and grey by default. `ScreenWorld` and `BukkitScreenWorld` load them.
+
 #### Dialogues
 
 - **The dialogue speaker is drawn in the layout's format**: `DialogueScreen` coloured the speaker and the line itself;

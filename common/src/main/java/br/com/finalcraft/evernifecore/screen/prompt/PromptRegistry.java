@@ -2,6 +2,9 @@ package br.com.finalcraft.evernifecore.screen.prompt;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.LocaleMessage;
+import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.screen.Cancellable;
 import br.com.finalcraft.evernifecore.screen.ScreenNavigation;
@@ -30,7 +33,12 @@ public final class PromptRegistry {
     private static final PromptRegistry INSTANCE = new PromptRegistry();
 
     /** The registry's own refusal text when a parser threw without a message: a blank refusal looks like a frozen window. */
-    static final String REFUSED_WITHOUT_REASON = "§cThat answer was not accepted - try again.";
+    @FCLocale(lang = LocaleType.EN_US, text = "§cThat answer was not accepted - try again.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§cEssa resposta não foi aceita - tente de novo.")
+    private static LocaleMessage REFUSED_WITHOUT_REASON;
+
+    //what the refusal reads when nothing loaded the core locales above (the boot does, in ConfigManager.initialize)
+    private static final String NOT_LOADED = "[prompt refusal text not loaded]";
 
     private final Map<PromptKind, Registered> channels = new EnumMap<>(PromptKind.class);
     private final Map<ScreenView, Session<?>> pending = new ConcurrentHashMap<>();
@@ -353,7 +361,8 @@ public final class PromptRegistry {
                 parsed = spec.getParser().parse(text);
             } catch (Throwable refused) {
                 String why = refused.getMessage();
-                return PromptReply.refused(why == null || why.trim().isEmpty() ? REFUSED_WITHOUT_REASON : why);
+                return PromptReply.refused(why != null && !why.trim().isEmpty() ? why
+                        : REFUSED_WITHOUT_REASON == null ? NOT_LOADED : REFUSED_WITHOUT_REASON.getFancyText(player).getText());
             }
             settleLater(PromptResult.value(parsed));
             return PromptReply.accepted();

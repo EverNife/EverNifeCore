@@ -9,6 +9,7 @@ import br.com.finalcraft.evernifecore.screen.ScreenNavigation;
 import br.com.finalcraft.evernifecore.screen.ScreenView;
 import br.com.finalcraft.evernifecore.screen.Screens;
 import br.com.finalcraft.evernifecore.testing.FakePromptChannels.FakePromptChannel;
+import br.com.finalcraft.evernifecore.testing.Locales;
 import br.com.finalcraft.evernifecore.testing.Logs;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.ScreenWorld;
@@ -133,12 +134,34 @@ class PromptRegistryTest {
     @Test
     void aParserThatThrowsWithoutAMessageStillRefusesWithText() {
         ScreenView view = openScreen();
-        CompletableFuture<PromptResult<Integer>> asked = ask(view, PromptSpec.of("How many?").parse(Integer::valueOf));
+        CompletableFuture<PromptResult<Integer>> asked = ask(view, PromptSpec.of("How many?").parse(PromptRegistryTest::refuseWithoutAMessage));
 
         PromptReply reply = world.prompts().type("");
 
         assertFalse(reply.isAccepted());
-        assertFalse(reply.getMessage().trim().isEmpty(), "a blank refusal looks like a frozen window");
+        assertEquals("§cThat answer was not accepted - try again.", reply.getMessage(), "a blank refusal looks like a frozen window");
+        world.prompts().closeWindow();
+        world.advanceTicks(1);
+        assertEquals(PromptResult.Kind.CANCELLED, asked.getNow(null).getKind());
+        closeScreen(view);
+    }
+
+    private static Integer refuseWithoutAMessage(String text) {
+        throw new IllegalArgumentException();
+    }
+
+    @Test
+    void theRefusalWithoutAReasonIsTheCoreLocaleMessage() {
+        ScreenView view = openScreen();
+        CompletableFuture<PromptResult<Integer>> asked = ask(view, PromptSpec.of("How many?").parse(PromptRegistryTest::refuseWithoutAMessage));
+        ECPluginData core = world.getCore();
+
+        PromptReply reply;
+        try (Locales.Retext edited = Locales.retext(core, "PromptRegistry.REFUSED_WITHOUT_REASON", core.getPluginLanguage(), "§6Once more.")) {
+            reply = world.prompts().type("");
+        }
+
+        assertEquals("§6Once more.", reply.getMessage());
         world.prompts().closeWindow();
         world.advanceTicks(1);
         assertEquals(PromptResult.Kind.CANCELLED, asked.getNow(null).getKind());
