@@ -175,6 +175,7 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **Test temp files stay in the build**: every `Test` task sets `java.io.tmpdir` to its own `build/tmp/<task>` and empties
   it before each run; the suite used to leave `junit*` and `ecore-test-*` directories in the system temp for good. A
   plugin using `@TempDirNobodyCleans` does the same in its own `Test` tasks (the annotation's javadoc says how).
+- **Hytale Server 0.7.6** (`hytale-server` in the catalog). No code change; a walked-over pickup still raises no event.
 
 ## [3.0.1-alpha.71] - 2026-11-02
 
