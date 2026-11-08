@@ -13,8 +13,12 @@ import java.lang.annotation.Target;
  *
  * <p>Some writers of a plugin's data folder finish off the test's thread by design, such as the
  * cooldown file saved asynchronously, and on Windows a file still being written cannot be
- * removed: the default cleanup then fails the test that just passed, over a directory the operating
- * system will clear anyway. A test that drives such a writer takes this form of temp dir.</p>
+ * removed: the default cleanup then fails the test that just passed. A test that drives such a writer
+ * takes this form of temp dir.</p>
+ *
+ * <p>Nothing deletes it afterwards, the operating system included. It lives under {@code java.io.tmpdir},
+ * so a build that uses this points that property of its {@code Test} tasks at a build directory it
+ * empties before each run, as this repository's root build does.</p>
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD, ElementType.PARAMETER})

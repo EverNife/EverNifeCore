@@ -67,6 +67,13 @@ subprojects {
     tasks.withType(Test).configureEach {
         // a deadlocked suite fails the build instead of hanging it: about 3x a full :common:test on the owner's machine
         timeout = Duration.ofMinutes(5)
+        // Temp dirs some tests must leave behind (a writer still holds a file on Windows) stay inside this task's own
+        // build dir, emptied before each run; left to the JVM's default they pile up in the system temp for good.
+        systemProperty 'java.io.tmpdir', temporaryDir.absolutePath
+        doFirst {
+            temporaryDir.deleteDir()
+            temporaryDir.mkdirs()
+        }
         testLogging {
             events = [TestLogEvent.PASSED, TestLogEvent.FAILED, TestLogEvent.SKIPPED]
             exceptionFormat = TestExceptionFormat.FULL

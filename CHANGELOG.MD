@@ -170,6 +170,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **Unregistering a plugin's own command logs at debug**, not WARN: every stop takes each command and alias off the
   map, which broke any "WARN = 0" check over a whole log. Removing another plugin's or the server's command still warns.
 
+#### Build and dependencies
+
+- **Test temp files stay in the build**: every `Test` task sets `java.io.tmpdir` to its own `build/tmp/<task>` and empties
+  it before each run; the suite used to leave `junit*` and `ecore-test-*` directories in the system temp for good. A
+  plugin using `@TempDirNobodyCleans` does the same in its own `Test` tasks (the annotation's javadoc says how).
+
 ## [3.0.1-alpha.71] - 2026-11-02
 
 ### Added
