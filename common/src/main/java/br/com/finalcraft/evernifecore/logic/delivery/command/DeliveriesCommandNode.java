@@ -4,7 +4,9 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
+import br.com.finalcraft.evernifecore.locale.SendCustom;
 import br.com.finalcraft.evernifecore.logic.delivery.ClaimResult;
 import br.com.finalcraft.evernifecore.logic.delivery.Deliveries;
 import br.com.finalcraft.evernifecore.logic.delivery.Delivery;
@@ -27,6 +29,54 @@ import java.util.Locale;
  */
 public class DeliveriesCommandNode {
 
+    @FCLocale(lang = LocaleType.EN_US, text = "§cYour deliveries could not be read: ${reason}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§cSuas entregas não puderam ser lidas: ${reason}")
+    private static LocaleMessage READ_FAILED;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§7You have no pending delivery.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7Você não tem entrega pendente.")
+    private static LocaleMessage NONE_PENDING;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§6Pending deliveries (§e${count}§6):")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§6Entregas pendentes (§e${count}§6):")
+    private static LocaleMessage LIST_HEADER;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§cNo pending delivery of yours starts with §e${id}§c. §7See them with list, or claim all.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§cNenhuma entrega pendente sua começa com §e${id}§c. §7Veja-as com list, ou resgate todas com claim all.")
+    private static LocaleMessage NO_MATCH;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§c${count} of your deliveries start with §e${id}§c - write more of the id. §7See them with list, or claim all.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§c${count} das suas entregas começam com §e${id}§c - escreva mais do id. §7Veja-as com list, ou resgate todas com claim all.")
+    private static LocaleMessage AMBIGUOUS;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§cThe claim did not go through: ${reason}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§cO resgate não foi concluído: ${reason}")
+    private static LocaleMessage CLAIM_FAILED;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§aClaimed §e${delivered}§a; still pending §e${kept}§a.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§aResgatadas §e${delivered}§a; ainda pendentes §e${kept}§a.")
+    private static LocaleMessage CLAIMED;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§aClaimed §e${delivered}§a; still pending §e${kept}§a; expired §e${expired}§a.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§aResgatadas §e${delivered}§a; ainda pendentes §e${kept}§a; expiradas §e${expired}§a.")
+    private static LocaleMessage CLAIMED_SOME_EXPIRED;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§e${id} §7from §f${plugin} §8${age} ago")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e${id} §7de §f${plugin} §8há ${age}")
+    private static LocaleMessage LINE;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§e${id} §7from §f${plugin} §7(${reason}) §8${age} ago")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e${id} §7de §f${plugin} §7(${reason}) §8há ${age}")
+    private static LocaleMessage LINE_WITH_REASON;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§e${id} §7from §f${plugin} §8${age} ago §7- may wait for ${plugin}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e${id} §7de §f${plugin} §8há ${age} §7- pode esperar por ${plugin}")
+    private static LocaleMessage LINE_MAY_WAIT;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§e${id} §7from §f${plugin} §7(${reason}) §8${age} ago §7- may wait for ${plugin}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e${id} §7de §f${plugin} §7(${reason}) §8há ${age} §7- pode esperar por ${plugin}")
+    private static LocaleMessage LINE_WITH_REASON_MAY_WAIT;
+
     @FinalCMD.SubCMD(subcmd = "list", locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "Your pending deliveries, with where they come from"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Suas entregas pendentes, com a origem")
@@ -34,16 +84,16 @@ public class DeliveriesCommandNode {
     public void list(FPlayer player) {
         Deliveries.get().listOf(player.getUniqueId()).whenComplete((deliveries, failure) -> {
             if (failure != null) {
-                player.sendMessage("§cYour deliveries could not be read: " + failure.getMessage());
+                READ_FAILED.addPlaceholder("reason", String.valueOf(failure.getMessage())).send(player);
                 return;
             }
             if (deliveries.isEmpty()) {
-                player.sendMessage("§7You have no pending delivery.");
+                NONE_PENDING.send(player);
                 return;
             }
-            player.sendMessage("§6Pending deliveries (§e" + deliveries.size() + "§6):");
+            LIST_HEADER.addPlaceholder("count", deliveries.size()).send(player);
             for (Delivery delivery : deliveries) {
-                player.sendMessage(line(delivery));
+                line(delivery).send(player);
             }
         });
     }
@@ -52,14 +102,14 @@ public class DeliveriesCommandNode {
             @FCLocale(lang = LocaleType.EN_US, text = "Claim one pending delivery by its id, or all of them"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Resgata uma entrega pendente pelo id, ou todas")
     })
-    public void claim(FPlayer player, @Arg("<id|all>") String which) {
+    public void claim(FPlayer player, @Arg("<id>") String which) {
         if (which.equalsIgnoreCase("all")) {
             Deliveries.get().claimAll(player).whenComplete((result, failure) -> report(player, result, failure));
             return;
         }
         Deliveries.get().listOf(player.getUniqueId()).whenComplete((deliveries, failure) -> {
             if (failure != null) {
-                player.sendMessage("§cYour deliveries could not be read: " + failure.getMessage());
+                READ_FAILED.addPlaceholder("reason", String.valueOf(failure.getMessage())).send(player);
                 return;
             }
             List<Delivery> matching = new ArrayList<>();
@@ -68,10 +118,12 @@ public class DeliveriesCommandNode {
                     matching.add(delivery);
                 }
             }
-            if (matching.size() != 1) {
-                player.sendMessage("§c" + (matching.isEmpty() ? "No pending delivery of yours starts with §e" + which
-                        : matching.size() + " of your deliveries start with §e" + which + "§c - write more of the id")
-                        + "§c. §7See them with list, or claim all.");
+            if (matching.isEmpty()) {
+                NO_MATCH.addPlaceholder("id", which).send(player);
+                return;
+            }
+            if (matching.size() > 1) {
+                AMBIGUOUS.custom().addPlaceholder("count", matching.size()).addPlaceholder("id", which).send(player);
                 return;
             }
             Deliveries.get().claim(player, matching.get(0).getId()).whenComplete((result, error) -> report(player, result, error));
@@ -80,23 +132,29 @@ public class DeliveriesCommandNode {
 
     private static void report(FPlayer player, @Nullable ClaimResult result, @Nullable Throwable failure) {
         if (failure != null) {
-            player.sendMessage("§cThe claim did not go through: " + failure.getMessage());
+            CLAIM_FAILED.addPlaceholder("reason", String.valueOf(failure.getMessage())).send(player);
             return;
         }
-        player.sendMessage("§aClaimed §e" + result.getDelivered().size() + "§a; still pending §e" + result.getKept().size()
-                + (result.getExpired().isEmpty() ? "" : "§a; expired §e" + result.getExpired().size()) + "§a.");
+        (result.getExpired().isEmpty() ? CLAIMED : CLAIMED_SOME_EXPIRED).custom()
+                .addPlaceholder("delivered", result.getDelivered().size())
+                .addPlaceholder("kept", result.getKept().size())
+                .addPlaceholder("expired", result.getExpired().size())
+                .send(player);
         for (Delivery kept : result.getKept()) {
-            player.sendMessage(line(kept));
+            line(kept).send(player);
         }
     }
 
-    /** {@code <id> from <plugin> (<reason>) <age> ago [waits for <plugin>]}. */
-    public static String line(Delivery delivery) {
-        String id = delivery.getId().toString().substring(0, 8);
-        Duration age = Duration.between(delivery.getCreatedAt(), ECClock.now());
+    private static SendCustom line(Delivery delivery) {
         String reason = delivery.getOrigin().getReason();
-        return "§e" + id + " §7from §f" + delivery.getOrigin().getPlugin() + (reason.isEmpty() ? "" : " §7(" + reason + ")")
-                + " §8" + age(age) + " ago" + (delivery.isSelfContained() ? "" : " §7- may wait for " + delivery.getOrigin().getPlugin());
+        LocaleMessage message = reason.isEmpty()
+                ? (delivery.isSelfContained() ? LINE : LINE_MAY_WAIT)
+                : (delivery.isSelfContained() ? LINE_WITH_REASON : LINE_WITH_REASON_MAY_WAIT);
+        return message.custom()
+                .addPlaceholder("id", delivery.getId().toString().substring(0, 8))
+                .addPlaceholder("plugin", delivery.getOrigin().getPlugin())
+                .addPlaceholder("reason", reason)
+                .addPlaceholder("age", age(Duration.between(delivery.getCreatedAt(), ECClock.now())));
     }
 
     private static String age(Duration age) {

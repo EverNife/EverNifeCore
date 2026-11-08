@@ -104,6 +104,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **`Deliveries.enqueue(recipient, origin, policy, ttl, icon, effects)` and `keepFor(ctx, policy, ttl, icon, node)`**
   take the `@Nullable DeliveryIcon` the delivery is drawn with; the core's own leftovers pass none.
 
+- **Everything the deliveries commands say is a core locale message**: `DeliveriesCommandNode` and
+  `CoreDeliveriesCommands` (en_US, pt_BR), one message per sentence. `DeliveriesCommandNode.line(Delivery)` left the
+  public API: a line now depends on who reads it.
+
 #### Screens
 
 - **The ranking marks the viewer's row with a core locale message**: the `{marker}` of `RankingLayout.ENTRY` was a fixed
@@ -159,6 +163,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **The confirmation of a confirmed offer speaks the core locale**: "Buy/Sell `<goods>` for `<price>`?" was hardcoded
   English; it is now `Transactions`' `CONFIRM_BUY`/`CONFIRM_SELL` (en_US, pt_BR), in the trading context's language and
   editable in the core's language file like the other trade texts.
+
+#### Deliveries
+
+- **`claim <id>` of `DeliveriesCommandNode` takes an id**: `@Arg("<id|all>")` read as a closed list of the two words, so
+  the parser refused every id and only `claim all` ever ran. It is `<id>` now, and `all` still claims everything.
 
 #### Screens
 
