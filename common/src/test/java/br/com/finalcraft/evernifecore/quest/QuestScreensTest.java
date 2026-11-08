@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.quest;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.quest.screen.QuestJournalScreen;
 import br.com.finalcraft.evernifecore.quest.screen.QuestOfferScreen;
@@ -174,5 +175,20 @@ class QuestScreensTest {
 
         assertEquals(QuestStatus.ACTIVE, engine.getStatus(quests.owner(alex), quests.id("walk")));
         assertEquals(QuestStatus.LOCKED, engine.getStatus(quests.owner(alex), quests.id("vip")), "its gate still fails");
+    }
+
+    @Test
+    void aRefusedStartNamesWhyInTheChat() {
+        FCLocaleManager.loadLocale(screens.getCore(), true, QuestOfferScreen.class);
+        ScreenView vip = open(ScreenKey.QUEST_OFFER, QuestOfferScreen.Request.of(engine, quests.id("vip")));
+
+        screens.click(vip, "accept", ClickGesture.PRIMARY);
+        screens.advanceTicks(2);
+
+        assertTrue(alex.getMessages().stream().anyMatch(line -> line.startsWith("§cThe quest did not start: ") && line.contains("fq.vip")),
+                alex.getMessages().toString());
+        assertTrue(alex.getMessages().stream().noneMatch(line -> line.contains("%")), alex.getMessages().toString());
+        vip.close();
+        screens.advanceTicks(2);
     }
 }

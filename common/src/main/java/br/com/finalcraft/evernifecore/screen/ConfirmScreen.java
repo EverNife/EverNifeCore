@@ -34,8 +34,8 @@ public class ConfirmScreen<L extends ConfirmScreen.ConfirmLayout> extends Screen
     @FCLocale(lang = LocaleType.PT_BR, text = "§cEssa é séria - segure SHIFT e clique para confirmar.")
     private static LocaleMessage HOLD_SHIFT_TO_CONFIRM;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§cYou cannot confirm yet: %missing%")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§cVocê ainda não pode confirmar: %missing%")
+    @FCLocale(lang = LocaleType.EN_US, text = "§cYou cannot confirm yet: ${missing}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§cVocê ainda não pode confirmar: ${missing}")
     private static LocaleMessage CANNOT_CONFIRM;
 
     private final ConfirmRequest request;
@@ -99,7 +99,7 @@ public class ConfirmScreen<L extends ConfirmScreen.ConfirmLayout> extends Screen
             ExecutionContext ctx = context.newExecutionContext().build();
             if (payment.run(ctx) != ClickRule.Outcome.SUCCESS) {
                 if (CANNOT_CONFIRM != null) {
-                    CANNOT_CONFIRM.custom().addPlaceholder("%missing%", ClickRule.missingOf(request.getGate().check(ctx)))
+                    CANNOT_CONFIRM.custom().addPlaceholder("missing", ClickRule.missingOf(request.getGate().check(ctx)))
                             .send(context.getViewer());
                 }
                 return;

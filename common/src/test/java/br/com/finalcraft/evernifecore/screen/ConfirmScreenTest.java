@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.screen;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
+import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.logic.ConditionResult;
 import br.com.finalcraft.evernifecore.logic.Cost;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
@@ -277,4 +278,20 @@ class ConfirmScreenTest {
         world.advanceTicks(2);
     }
 
+    @Test
+    void aConfirmationItCannotPayNamesWhatIsMissing() {
+        FCLocaleManager.loadLocale(world.getCore(), true, ConfirmScreen.class);
+        Gate gate = Gate.builder().cost(gold(false)).build();
+        Screens.confirm(alex, ConfirmRequest.of("Buy it?", gate, ctx -> log.add("bought")));
+        ScreenView view = openView();
+
+        world.click(view, "CONFIRM", ClickGesture.PRIMARY);
+        world.advanceTicks(2);
+
+        assertTrue(alex.getMessages().stream().anyMatch(line -> line.startsWith("§cYou cannot confirm yet: ") && line.contains("not enough gold")),
+                alex.getMessages().toString());
+        assertTrue(alex.getMessages().stream().noneMatch(line -> line.contains("%")), alex.getMessages().toString());
+        view.close();
+        world.advanceTicks(2);
+    }
 }

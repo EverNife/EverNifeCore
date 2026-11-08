@@ -29,8 +29,8 @@ import java.util.concurrent.CompletableFuture;
  */
 public final class DeliveriesScreen extends Screen<DeliveriesScreen.DeliveriesLayout> {
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§aClaimed %delivered% delivery(ies); %kept% still wait for room.")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§aResgatou %delivered% entrega(s); %kept% ainda esperam espaço.")
+    @FCLocale(lang = LocaleType.EN_US, text = "§aClaimed ${delivered} delivery(ies); ${kept} still wait for room.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§aResgatou ${delivered} entrega(s); ${kept} ainda esperam espaço.")
     private static LocaleMessage CLAIMED;
 
     private static final RegexReplacer<Delivery> ENTRY = new RegexReplacer<Delivery>(Closures.BRACKET)
@@ -94,8 +94,8 @@ public final class DeliveriesScreen extends Screen<DeliveriesScreen.DeliveriesLa
     private void claim(ScreenView view, CompletableFuture<ClaimResult> claim) {
         claim.whenComplete((result, failed) -> {
             if (result != null && CLAIMED != null) {
-                CLAIMED.custom().addPlaceholder("%delivered%", result.getDelivered().size())
-                        .addPlaceholder("%kept%", result.getKept().size())
+                CLAIMED.custom().addPlaceholder("delivered", result.getDelivered().size())
+                        .addPlaceholder("kept", result.getKept().size())
                         .send(view.getViewer());
             }
             reload(view);

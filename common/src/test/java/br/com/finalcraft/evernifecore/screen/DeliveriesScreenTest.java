@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.screen;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
+import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.logic.Effect;
 import br.com.finalcraft.evernifecore.logic.Effects;
 import br.com.finalcraft.evernifecore.logic.delivery.Deliveries;
@@ -190,4 +191,18 @@ class DeliveriesScreenTest {
         close(view);
     }
 
+    @Test
+    void theClaimMessageReadsTheCounts() {
+        FCLocaleManager.loadLocale(world.getCore(), true, DeliveriesScreen.class);
+        enqueue("sword", "refund");
+        ScreenView view = open();
+        settle(view, 1);
+
+        world.click(view, "deliveries#0", ClickGesture.PRIMARY);
+        settle(view, 0);
+
+        assertTrue(alex.getMessages().contains("§aClaimed 1 delivery(ies); 0 still wait for room."), alex.getMessages().toString());
+        assertTrue(alex.getMessages().stream().noneMatch(line -> line.contains("%")), alex.getMessages().toString());
+        close(view);
+    }
 }

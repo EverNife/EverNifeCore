@@ -38,8 +38,8 @@ import java.util.Objects;
  */
 public final class QuestOfferScreen extends Screen<QuestOfferScreen.QuestOfferLayout> {
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§cThe quest did not start: %why%")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§cA quest não começou: %why%")
+    @FCLocale(lang = LocaleType.EN_US, text = "§cThe quest did not start: ${why}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§cA quest não começou: ${why}")
     private static LocaleMessage NOT_STARTED;
 
     private static final RegexReplacer<QuestOfferScreen> TEXT = new RegexReplacer<QuestOfferScreen>(Closures.BRACKET)
@@ -96,7 +96,7 @@ public final class QuestOfferScreen extends Screen<QuestOfferScreen.QuestOfferLa
             } else if (NOT_STARTED != null) {
                 String why = failure != null ? failure.toString() : result.getWhy() != null ? result.getWhy()
                         : result.getGate() != null ? ClickRule.missingOf(result.getGate()) : result.toString();
-                NOT_STARTED.custom().addPlaceholder("%why%", why).send(click.getViewer());
+                NOT_STARTED.custom().addPlaceholder("why", why).send(click.getViewer());
             }
             check(click.getView());
         }));

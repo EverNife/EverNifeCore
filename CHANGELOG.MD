@@ -160,6 +160,13 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   English; it is now `Transactions`' `CONFIRM_BUY`/`CONFIRM_SELL` (en_US, pt_BR), in the trading context's language and
   editable in the core's language file like the other trade texts.
 
+#### Screens
+
+- **The claim, confirm and quest offer messages show their values**: `DeliveriesScreen.CLAIMED`,
+  `ConfirmScreen.CANNOT_CONFIRM` and `QuestOfferScreen.NOT_STARTED` declared `%x%` keys, which never match, so the player
+  read the `%delivered%` raw. The texts now read `${delivered}`, `${kept}`, `${missing}` and `${why}`; a language file
+  written before this keeps the old text until it is edited.
+
 #### Logic
 
 - **A `command` effect for an offline member waits for the login**: with `Absence.deliver()` it ran at once with
