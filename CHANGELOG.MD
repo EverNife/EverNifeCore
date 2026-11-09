@@ -279,6 +279,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 #### Hytale
 
+- **A session that skipped setup-connect loads its login sections.** `PlayerConnectEvent` took a `PlayerData` cached by a lookup
+  for a finished login, so an injected player never had `PlayerStateBackup` or any other login section in memory: what a
+  persistent hold kept through a restart was not given back. New `PlayerController.hasLoginSectionsLoaded(uuid)`.
 - **Restoring an inventory now empties the armor slots.** `GenericInventory.restoreTo` went through the slot's add filter, which
   refuses the empty stack: a held inventory never took the armor off, and a restore kept a piece the snapshot did not have.
 

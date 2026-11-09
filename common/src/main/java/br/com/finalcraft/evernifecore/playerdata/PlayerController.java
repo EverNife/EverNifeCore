@@ -1318,6 +1318,20 @@ public class PlayerController {
     }
 
     /**
+     * Whether every section a login loads is in memory for that player (never touches storage). A cached
+     * {@link PlayerData} does not answer this: a lookup caches it and loads none of them.
+     */
+    public static boolean hasLoginSectionsLoaded(UUID uuid){
+        Objects.requireNonNull(uuid, "UUID can't be null");
+        PlayerController controller = INSTANCE;
+        if (controller == null) return false;
+        for (PDSectionBinding<? extends PDSection> binding : controller.bindings.values()){
+            if (binding.getLifecycle().loadsOnLogin() && !binding.getManager().peek(uuid).isPresent()) return false;
+        }
+        return true;
+    }
+
+    /**
      * That player's cached section, or null when it isn't loaded (never touches storage).
      *
      * <p>Throws when {@code pdSectionClass} was never registered: {@code null} here means "not in

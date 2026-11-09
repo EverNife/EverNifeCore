@@ -46,7 +46,7 @@ public class PlayerLoginListener implements ECListener {
             FPlayer fPlayer = FCHytaleUtil.adapt(playerRef);
             PlayerData playerData = PlayerController.getLoaded(fPlayer);
 
-            if (playerData != null){
+            if (playerData != null && PlayerController.hasLoginSectionsLoaded(fPlayer.getUniqueId())){
                 //[Holding onto a Player.class instance] is bad practice, but on hytale, what isn't :D
                 playerData.setPlayer(fPlayer);
                 //connected AND the data is attached - that is what "fully logged in" means here
@@ -55,8 +55,10 @@ public class PlayerLoginListener implements ECListener {
                 //Setup-connect fails closed now, so a connected player normally has data. Reaching
                 //here without it is the odd case - a session that skipped setup-connect (an injected/
                 //fake player) or a race - so retry the load defensively rather than leave it data-less.
+                //A PlayerData cached by a lookup is no login: what the login sections keep, such as a
+                //held inventory to give back, would be missed.
                 EverNifeCore.getLog().warning("Player " + fPlayer.getName() + " connected WITHOUT"
-                        + " PlayerData - retrying the load now.");
+                        + " his login's PlayerData - retrying the load now.");
                 PlayerController.handleLogin(fPlayer.getUniqueId(), fPlayer.getName())
                         .whenComplete((loaded, retryError) -> {
                             if (loaded != null && fPlayer.isOnline()){

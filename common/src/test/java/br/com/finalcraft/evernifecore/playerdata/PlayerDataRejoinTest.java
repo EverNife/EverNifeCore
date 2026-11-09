@@ -12,8 +12,10 @@ import java.time.Duration;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A login hands out every section that loads on login, also for a player whose PlayerData is already in memory: one
@@ -104,8 +106,10 @@ class PlayerDataRejoinTest {
             assertNotNull(PlayerController.getPlayerData(uuid).join(), "the player is still in storage");
             assertNull(PlayerController.getLoadedSection(uuid, OnlineSection.class),
                     "a lookup before the login loads none of his sections");
+            assertFalse(PlayerController.hasLoginSectionsLoaded(uuid), "the cached PlayerData is not a login");
 
             PlayerController.handleLogin(uuid, "Reboot").join();
+            assertTrue(PlayerController.hasLoginSectionsLoaded(uuid));
             OnlineSection online = PlayerController.getLoadedSection(uuid, OnlineSection.class);
             assertNotNull(online, "the first login after a restart loads the ONLINE section");
             assertEquals(42L, online.value, "read back from storage");
