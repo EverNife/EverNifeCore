@@ -325,14 +325,15 @@ final class TerrainCases {
      */
     private CompletableFuture<Verdict> clearItemsInsideTheShape(Player player) {
         World world = player.getWorld();
-        Block c = anchor(player, 96);
+        Block c = anchor(player, 8); //beside the bot: on arclight-1.21.1 a far chunk once listed no item at all, entities=0 with all three alive
         PolygonShape triangle = PolygonShape.ofUnboundedY(Arrays.asList(pos(c), pos(c).add(6, 0, 0), pos(c).add(0, 0, 6)));
         Item[] items = new Item[3];
-        return inRegion("ecc-clear-items", world, triangle, TIMEOUT_MILLIS, region -> {
+        return inRegion("ecc-clear-items", world, triangle, TIMEOUT_MILLIS, region -> { }, region -> region.clearItems().thenCompose(earlier -> { //what other cases left in the column
             items[0] = world.dropItem(c.getRelative(1, 0, 1).getLocation().add(0.5, 0.5, 0.5), new ItemStack(Material.STONE, 3));
             items[1] = world.dropItem(c.getRelative(2, 0, 1).getLocation().add(0.5, 0.5, 0.5), new ItemStack(Material.DIRT, 2));
             items[2] = world.dropItem(c.getRelative(6, 0, 6).getLocation().add(0.5, 0.5, 0.5), new ItemStack(Material.COBBLESTONE, 4));
-        }, region -> region.clearItems(item -> !items[1].getUniqueId().equals(item.getEntityId())).thenApply(cleared -> {
+            return region.clearItems(item -> !items[1].getUniqueId().equals(item.getEntityId()));
+        }).thenApply(cleared -> {
             boolean onlyTheFirst = cleared.getEntityCount() == 1 && cleared.getUnitCount() == 3
                     && items[0].getUniqueId().equals(cleared.getItems().get(0).getEntityId());
             return Verdict.of(onlyTheFirst && items[0].isDead() && !items[1].isDead() && !items[2].isDead(), "cleared=" + cleared
