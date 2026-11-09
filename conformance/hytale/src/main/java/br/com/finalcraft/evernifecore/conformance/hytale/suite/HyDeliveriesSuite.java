@@ -1,5 +1,21 @@
 package br.com.finalcraft.evernifecore.conformance.hytale.suite;
 
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
+import br.com.finalcraft.evernifecore.logic.delivery.DeliveryIcon;
+import br.com.finalcraft.evernifecore.screen.DeliveriesScreen;
+import br.com.finalcraft.evernifecore.screen.Icon;
+import com.hypixel.hytale.server.core.asset.type.item.config.Item;
+import com.hypixel.hytale.server.core.universe.world.World;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import br.com.finalcraft.evernifecore.item.ItemMatcher;
+import br.com.finalcraft.evernifecore.logic.Caller;
+import br.com.finalcraft.evernifecore.logic.delivery.DeliveryPolicy;
+import br.com.finalcraft.evernifecore.logic.delivery.DeliveryOrigin;
+import br.com.finalcraft.evernifecore.logic.delivery.Deliveries;
+import br.com.finalcraft.evernifecore.logic.delivery.Delivery;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.conformance.ConformanceCase;
 import br.com.finalcraft.evernifecore.conformance.ConformanceContext;
@@ -36,6 +52,10 @@ public final class HyDeliveriesSuite implements ConformanceSuite {
     /** More than every slot holds, so adding it leaves each slot full. */
     private static final int OVERFLOW = 100_000;
     private static final String PROBE = "ecc command-probe";
+    private static final String LOGIN_ITEM = "hytale:Ingredient_Bar_Iron";
+    private static final int LOGIN_AMOUNT = 4;
+    private static final String LOGIN_EMITTER = "conformance/login-claim";
+    private static final int LOGIN_WAIT_SECONDS = 15;
 
     private final ECPluginData plugin;
 
@@ -56,7 +76,55 @@ public final class HyDeliveriesSuite implements ConformanceSuite {
                         inventoryOf(player))),
                 onWorld("inventory-readers", ctx, player -> () -> CompletableFuture.completedFuture(inventoryReaders(player))),
                 onWorld("command-offline-runs-now", ctx, player -> () -> DeliveryCases.commandOfflineRunsNow(plugin, player, PROBE)),
-                onWorld("command-offline-on-login-waits", ctx, player -> () -> DeliveryCases.commandOfflineOnLoginWaits(plugin, player, PROBE)));
+                onWorld("command-offline-on-login-waits", ctx, player -> () -> DeliveryCases.commandOfflineOnLoginWaits(plugin, player, PROBE)),
+                HyRegionsSuite.withPlayer("claimed-on-a-real-login", ctx, this::claimedOnARealLogin),
+                ConformanceCase.of("delivery-theme-items-exist", HyDeliveriesSuite::themeItemsExist));
+    }
+
+    /** The {@code hytale:} candidate of every theme's icon, asked of the server's own item assets: no other jar carries them. */
+    private static Verdict themeItemsExist() throws Exception {
+        DeliveriesScreen.DeliveriesLayout layout = new DeliveriesScreen.DeliveriesLayout();
+        Map<String, Boolean> items = new TreeMap<>();
+        for (DeliveryIcon.Theme theme : DeliveryIcon.Theme.values()) {
+            Icon icon = (Icon) DeliveriesScreen.DeliveriesLayout.class.getField("THEME_" + theme.name()).get(layout);
+            Stream.concat(Stream.of(icon.getItem()), icon.getFallbacks().stream()).map(ItemSpec::getMaterialId).filter(id -> id.startsWith("hytale:"))
+                    .forEach(id -> items.put(id, Item.getAssetMap().getAsset(id.substring("hytale:".length())) != null));
+        }
+        return Verdict.of(!items.isEmpty() && !items.containsValue(false), "items=" + items);
+    }
+
+    private static volatile CompletableFuture<String> loginProbe;
+    private static volatile int loginCountBefore;
+
+    /** A delivery of {@link #LOGIN_ITEM} and a {@code command} for the online player, who then leaves: it is the next login that claims them. */
+    public CompletableFuture<Delivery> armLoginClaim(FPlayer player) throws Exception {
+        ObjectMapper json = new ObjectMapper();
+        loginProbe = DeliveryCases.expectCommandProbe();
+        loginCountBefore = HyWorld.on(HyWorld.worldOf(HyWorld.player(player)), () -> DeliveryDestinations.requireInventory().count(player, ItemMatcher.of(LOGIN_ITEM))).get();
+        return Deliveries.get().enqueue(player.getUniqueId(), DeliveryOrigin.of(Caller.of(plugin, LOGIN_EMITTER), ""), DeliveryPolicy.KEEP_SELF_CONTAINED, null, null,
+                Arrays.asList(json.readTree("{\"type\": \"give-item\", \"item\": \"" + LOGIN_ITEM + "\", \"amount\": " + LOGIN_AMOUNT + "}"),
+                        json.readTree("{\"type\": \"command\", \"command\": \"" + PROBE + " {player}\"}")));
+    }
+
+    /**
+     * {@code ECPlayerFullyLoggedInEvent} comes before the entity: a claim done there has no inventory to write. Read after the player is
+     * in the world, the delivery is gone, the item landed and the command ran with the player's name.
+     */
+    private CompletableFuture<Verdict> claimedOnARealLogin(FPlayer player) {
+        CompletableFuture<String> reached = loginProbe;
+        if (reached == null) {
+            return CompletableFuture.completedFuture(Verdict.fail("no delivery waited for a login: /ecc login-claim <player>, player_leave, player_join,"
+                    + " as the matrix driver does"));
+        }
+        World world = HyWorld.worldOf(HyWorld.player(player));
+        return reached.orTimeout(LOGIN_WAIT_SECONDS, TimeUnit.SECONDS).handle((name, late) -> late == null ? name : "never: " + Verdict.describe(late))
+                .thenCompose(name -> Deliveries.get().listOf(player.getUniqueId()).thenCompose(pending -> HyWorld.on(world, () -> {
+                    long mine = pending.stream().filter(delivery -> LOGIN_EMITTER.equals(delivery.getOrigin().getEmitter())).count();
+                    int count = DeliveryDestinations.requireInventory().count(player, ItemMatcher.of(LOGIN_ITEM));
+                    DeliveryDestinations.requireInventory().take(player, ItemMatcher.of(LOGIN_ITEM), Math.max(0, count - loginCountBefore));
+                    return Verdict.of(player.getName().equals(name) && mine == 0 && count == loginCountBefore + LOGIN_AMOUNT,
+                            "reached-with=" + name + " pending=" + mine + " item=" + loginCountBefore + "->" + count);
+                })));
     }
 
     /**

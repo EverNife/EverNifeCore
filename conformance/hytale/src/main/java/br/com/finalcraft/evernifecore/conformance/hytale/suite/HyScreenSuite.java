@@ -1,5 +1,10 @@
 package br.com.finalcraft.evernifecore.conformance.hytale.suite;
 
+import br.com.finalcraft.evernifecore.menu.Price;
+import br.com.finalcraft.evernifecore.menu.Goods;
+import br.com.finalcraft.evernifecore.menu.Offer;
+import br.com.finalcraft.evernifecore.menu.Menu;
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.conformance.ConformanceCase;
 import br.com.finalcraft.evernifecore.conformance.ConformanceContext;
@@ -67,7 +72,8 @@ public final class HyScreenSuite implements ConformanceSuite {
                 withScreen("server-close-clears-page", ctx, this::serverCloseClearsPage),
                 withScreen("replace-closes-previous", ctx, this::replaceClosesPrevious),
                 withScreen("storage-slots-unsupported", ctx, this::storageSlotsUnsupported),
-                withScreen("prompt-asks-on-a-page", ctx, this::promptAsksOnAPage));
+                withScreen("prompt-asks-on-a-page", ctx, this::promptAsksOnAPage),
+                withScreen("offer-icon-per-viewer", ctx, this::offerIconPerViewer));
     }
 
     /** Opens the screen {@code id} of {@link #SCREEN_IDS} for {@code player} and leaves it open. */
@@ -85,6 +91,19 @@ public final class HyScreenSuite implements ConformanceSuite {
     // -----------------------------------------------------------------------------------------------------------------
     //  Cases
     // -----------------------------------------------------------------------------------------------------------------
+
+    /** An offer drawn as what its icon function answers for the viewer, on the page the viewer really opened. */
+    private CompletableFuture<Verdict> offerIconPerViewer(Visit visit) {
+        Menu menu = Menu.of(EverNifeCore.getEcPluginData(), "ecc-viewer-icon")
+                .offer("mine", 4, Offer.buy(Goods.ofEffects("Nothing", Collections.singletonList(ctx -> { })), Price.free())
+                        .icon(viewer -> ItemSpec.of("hytale:Ingredient_Bar_Iron", 1).withText(viewer.getName(), Collections.emptyList())).build())
+                .build();
+        return visit.open(menu.getScreen()).thenCompose(view -> visit.onWorld(pages -> {
+            ItemSpec drawn = view.getIconAt(4).renderFor(visit.player).getItem();
+            return Verdict.of("hytale:Ingredient_Bar_Iron".equalsIgnoreCase(drawn.getMaterialId()) && visit.player.getName().equals(drawn.getDisplayName()),
+                    "drawn=" + drawn);
+        }));
+    }
 
     private CompletableFuture<Verdict> pageOpens(Visit visit) {
         return visit.open(Screen.of(1)).thenCompose(view -> visit.onWorld(pages -> {

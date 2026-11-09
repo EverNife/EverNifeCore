@@ -110,6 +110,13 @@ public final class DeliveryCases {
         commandProbe.complete(name);
     }
 
+    /** A probe with no deadline yet, for a command that runs only after something the case does not drive. */
+    public static CompletableFuture<String> expectCommandProbe() {
+        CompletableFuture<String> probe = new CompletableFuture<>();
+        commandProbe = probe;
+        return probe;
+    }
+
     /**
      * A {@code command} for an owner the context has no player of runs now and leaves nothing pending. The owner is the
      * live player, so the name the server saw is a real one; {@code probe} is the command that ends in

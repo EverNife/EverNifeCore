@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.conformance.hytale.suite;
 
+import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.action.ActionSupport;
 import br.com.finalcraft.evernifecore.action.EventSource;
@@ -17,7 +18,10 @@ import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
 import br.com.finalcraft.evernifecore.economy.EcoResponse;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
+import br.com.finalcraft.evernifecore.api.events.player.ECPlayerQuitEvent;
 import br.com.finalcraft.evernifecore.hytale.action.HyActionSystems;
+import br.com.finalcraft.evernifecore.hytale.loader.EverNifeCoreHytalePlugin;
+import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
 import br.com.finalcraft.evernifecore.hytale.itemdatapart.datapart.ItemDataPartMetadata;
 import br.com.finalcraft.evernifecore.hytale.itemstack.ComparableItemComplex;
 import br.com.finalcraft.evernifecore.hytale.region.HyPlayerStateAccess;
@@ -67,6 +71,8 @@ public final class HyPlatformSuite implements ConformanceSuite {
 
     private static final String ITEM = "Rock_Stone";
     private static final String METADATA = "{\"enc_conformance\": {\"mark\": 7}}";
+    private static final String ARMOR_ITEM = "Armor_Iron_Chest";
+    private static final short ARMOR_SLOT = 1;
 
     /** The callers of {@code /ecc whoami <token>}, by token, for the case that runs it through {@code sudo}. */
     private static final Map<String, CompletableFuture<FPlayer>> WHOAMI = new ConcurrentHashMap<>();
@@ -151,6 +157,9 @@ public final class HyPlatformSuite implements ConformanceSuite {
                 //the server dispatches a player's command (chat or sudo) with the PlayerRef as its sender
                 HyRegionsSuite.withPlayer("player-verb-by-sudo", ctx, this::playerVerbBySudo),
                 HyRegionsSuite.withPlayer("held-inventory-comes-back-on-disconnect", ctx, HyPlatformSuite::heldInventoryComesBackOnDisconnect),
+                ConformanceCase.later("held-inventory-real-disconnect", () -> realDisconnect != null ? realDisconnect
+                        : CompletableFuture.completedFuture(Verdict.fail("the player never left: /ecc hold-quit arm, player_leave, player_join,"
+                        + " /ecc hold-quit read, as the matrix driver does"))),
                 //no command event on this server: the core posts COMMAND from its own executor, for its own commands
                 HyRegionsSuite.withPlayer("command-source-via-finalcmd", ctx, this::commandSourceViaFinalCmd),
                 ConformanceCase.of("fish-source-not-served", () -> {
@@ -191,8 +200,7 @@ public final class HyPlatformSuite implements ConformanceSuite {
         return HyWorld.on(world, () -> {
             String before = access.getInventory(player);
             Ref<EntityStore> entity = ref.getReference();
-            InventoryComponent.Hotbar hotbar = entity.getStore().getComponent(entity, InventoryComponent.Hotbar.getComponentType());
-            hotbar.getInventory().addItemStack(new ItemStack(ITEM, 3));
+            giveRealItems(player);
             String own = access.getInventory(player);
             held.hold(HeldPlayerState.INVENTORY, holder, "", p -> access.setInventory(p, ""), HoldOptions.memory(), player);
             access.setInventory(player, "");
@@ -209,6 +217,73 @@ public final class HyPlatformSuite implements ConformanceSuite {
                 });
             });
             return answer;
+        });
+    }
+
+    /** A stack with metadata in the hotbar and a piece of armor: what a held inventory has to bring back whole. */
+    private static void giveRealItems(FPlayer player) {
+        HytaleFPlayer body = (HytaleFPlayer) player;
+        body.getInventorySection(InventoryComponent.HOTBAR_SECTION_ID).addItemStack(new ItemStack(ITEM, 3).withMetadata(BsonDocument.parse(METADATA)));
+        body.getInventorySection(InventoryComponent.ARMOR_SECTION_ID).setItemStackForSlot(ARMOR_SLOT, new ItemStack(ARMOR_ITEM, 1));
+    }
+
+    /** What the real disconnect of the player left to read when they are back; null until {@code /ecc hold-quit read}. */
+    private static volatile CompletableFuture<Verdict> realDisconnect;
+    private static volatile HeldQuit heldQuit;
+
+    /** The inventories around one real disconnect, and the threads the two quit events came in. */
+    private static final class HeldQuit {
+        private String before;
+        private String own;
+        private volatile String disconnectThread;
+        private volatile String quitThread;
+        private volatile boolean quitOnWorld;
+        private ECEventSubscription<ECPlayerQuitEvent> quit;
+    }
+
+    /** The player holds their inventory on a quit policy of giving it back, and the quit is watched: the next thing they do is really leave. */
+    public static CompletableFuture<Void> armRealDisconnect(FPlayer player) {
+        PlayerRef ref = HyWorld.player(player);
+        World world = HyWorld.worldOf(ref);
+        IPlayerStateAccess access = EverNifeCore.getPlatform().getPlayerState();
+        HeldQuit armed = new HeldQuit();
+        heldQuit = armed;
+        EverNifeCoreHytalePlugin.instance.getEventRegistry().registerGlobal(PlayerDisconnectEvent.class, event -> {
+            if (heldQuit == armed && armed.disconnectThread == null) {
+                armed.disconnectThread = Thread.currentThread().getName();
+            }
+        });
+        armed.quit = ECEventBus.global().subscribe(ECPlayerQuitEvent.class, event -> {
+            armed.quitThread = Thread.currentThread().getName();
+            armed.quitOnWorld = world.isInThread();
+        });
+        return HyWorld.on(world, () -> {
+            armed.before = access.getInventory(player);
+            giveRealItems(player);
+            armed.own = access.getInventory(player);
+            HeldPlayerState.of(player.getUniqueId()).hold(HeldPlayerState.INVENTORY, StateHolder.of("evernifecore:conformance-real-disconnect"), "",
+                    p -> access.setInventory(p, ""), HoldOptions.memory(), player);
+            access.setInventory(player, "");
+            return null;
+        });
+    }
+
+    /** The player is back: what they hold is what they had before the hold, and the quit took the world thread. */
+    public static void readRealDisconnect(FPlayer player) {
+        HeldQuit armed = heldQuit;
+        if (armed == null) {
+            realDisconnect = CompletableFuture.completedFuture(Verdict.fail("hold-quit read with nothing armed"));
+            return;
+        }
+        armed.quit.unsubscribe();
+        IPlayerStateAccess access = EverNifeCore.getPlatform().getPlayerState();
+        World world = HyWorld.worldOf(HyWorld.player(player));
+        realDisconnect = HyWorld.on(world, () -> {
+            String after = access.getInventory(player);
+            access.setInventory(player, armed.before);
+            return Verdict.of(armed.disconnectThread != null && armed.quitOnWorld && after.equals(armed.own),
+                    "PlayerDisconnectEvent on " + armed.disconnectThread + ", ECPlayerQuitEvent on " + armed.quitThread + " onWorld=" + armed.quitOnWorld
+                            + " own-came-back=" + after.equals(armed.own) + (after.equals(armed.own) ? "" : " own=" + armed.own + " after=" + after));
         });
     }
 

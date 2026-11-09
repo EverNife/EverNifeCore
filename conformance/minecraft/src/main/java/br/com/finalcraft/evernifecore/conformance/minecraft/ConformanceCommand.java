@@ -13,6 +13,7 @@ import br.com.finalcraft.evernifecore.conformance.RunIds;
 import br.com.finalcraft.evernifecore.conformance.SuiteRunner;
 import br.com.finalcraft.evernifecore.conformance.Verdict;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ActionsSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.RealDropCases;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ScreenSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.SelectionClickSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.TextMetricsSuite;
@@ -137,6 +138,14 @@ public class ConformanceCommand {
         Player reader = online(sender, player, "text");
         if (reader == null) return;
         sender.sendMessage(SuiteRunner.HUMAN_PREFIX + "text sent to " + reader.getName() + ": " + TextMetricsSuite.sendLines(reader));
+    }
+
+    /** One step of a real drop of the {@code regions} suite: {@code arm}, {@code sample} after each throw, {@code finish}. */
+    @FinalCMD.SubCMD(subcmd = "drop")
+    public void drop(FCommandSender sender, @Arg("<step>") String step, @Arg("<scenario>") String scenario, @Arg("<player>") FPlayer player) {
+        Player thrower = online(sender, player, "drop");
+        if (thrower == null) return;
+        sender.sendMessage(SuiteRunner.HUMAN_PREFIX + RealDropCases.step(step, scenario, thrower));
     }
 
     private static Player online(FCommandSender sender, FPlayer player, String subcommand) {

@@ -117,6 +117,7 @@ public final class RegionsSuite implements ConformanceSuite {
     public RegionsSuite(RegionManager regions, CompletableFuture<Void> loaded) {
         this.regions = regions;
         this.loaded = loaded;
+        RealDropCases.use(regions);
     }
 
     @Override
@@ -149,11 +150,9 @@ public final class RegionsSuite implements ConformanceSuite {
                         region -> region.setFlag(CoreFlags.DENY_ITEM_PICKUP, Tristate.TRUE),
                         MCVersion.isHigherEquals(MCDetailedVersion.v1_12_R1) ? "ItemActionListeners$Pickup" : "ItemActionListeners$LegacyPickup")),
                 PlayerCases.later("owner-only-pickup-refuses-the-hopper", ctx, this::ownerOnlyPickupRefusesTheHopper),
-                PlayerCases.later("destroy-dropped-items-never-spawns", ctx, this::destroyedDropNeverSpawns),
-                PlayerCases.later("destroy-dropped-items-lowest-cancel-keeps-the-item", ctx, this::lowestCancelKeepsTheItem),
-                PlayerCases.later("destroy-dropped-items-normal-uncancel-duplicates-nothing", ctx, this::normalUncancelDuplicatesNothing),
                 ConformanceCase.of("vehicle-listener-follows-need", () -> listenerFollowsNeed(CoreFlags.DENY_VEHICLE,
                         region -> region.setFlag(CoreFlags.DENY_VEHICLE, Tristate.TRUE), "VehicleActionListeners$BreakAndEnter"))));
+        cases.addAll(RealDropCases.cases(ctx));
         cases.addAll(new TerrainCases(regions).cases(ctx));
         cases.addAll(new FlagValueCases(regions).cases(ctx));
         return cases;
@@ -308,122 +307,6 @@ public final class RegionsSuite implements ConformanceSuite {
             }
         }, 2L);
         return PlayerCases.within(answer, TIMEOUT_MILLIS);
-    }
-
-    /** The bot throws with Q and Ctrl+Q inside {@code destroy-dropped-items}: the hand empties, nothing spawns, no ghost stays in the slot. */
-    private CompletableFuture<Verdict> destroyedDropNeverSpawns(Player player) {
-        List<Item> spawned = new ArrayList<>();
-        return droppingCobblestone(player, "ecc-destroy-spawn", new Listener() {
-            @EventHandler(priority = EventPriority.MONITOR)
-            public void onSpawn(ItemSpawnEvent event) {
-                spawned.add(event.getEntity());
-            }
-        }, () -> {
-            boolean one = player.dropItem(false);
-            int afterOne = count(player);
-            boolean all = player.dropItem(true);
-            int afterAll = count(player);
-            ItemStack slot = player.getInventory().getItem(0);
-            boolean ghost = slot != null && slot.getType() != Material.AIR;
-            return Verdict.of(afterOne == DROP_STACK - 1 && afterAll == 0 && spawned.isEmpty() && onTheGround(player) == 0 && !ghost,
-                    "q=" + one + " afterOne=" + afterOne + " ctrlQ=" + all + " afterAll=" + afterAll + " spawned=" + spawned.size()
-                            + " ground=" + onTheGround(player) + " ghost=" + ghost);
-        });
-    }
-
-    /** A plugin that cancels at {@code LOWEST} comes before the flag: the item stays with the bot. */
-    private CompletableFuture<Verdict> lowestCancelKeepsTheItem(Player player) {
-        return droppingCobblestone(player, "ecc-destroy-cancel", new Listener() {
-            @EventHandler(priority = EventPriority.LOWEST)
-            public void onDrop(PlayerDropItemEvent event) {
-                event.setCancelled(true);
-            }
-        }, () -> {
-            boolean one = player.dropItem(false);
-            return Verdict.of(count(player) == DROP_STACK && onTheGround(player) == 0,
-                    "q=" + one + " inventory=" + count(player) + " ground=" + onTheGround(player));
-        });
-    }
-
-    /** A plugin that uncancels at {@code NORMAL} after the flag emptied the entity: what happens is recorded, and only a duplicated item fails. */
-    private CompletableFuture<Verdict> normalUncancelDuplicatesNothing(Player player) {
-        int[] posts = new int[1];
-        return droppingCobblestone(player, "ecc-destroy-uncancel", new Listener() {
-            @EventHandler(priority = EventPriority.NORMAL)
-            public void onDrop(PlayerDropItemEvent event) {
-                event.setCancelled(false);
-            }
-        }, () -> {
-            ECEventSubscription<DropActionEvent.Post> heard = ECEventBus.global().subscribe(DropActionEvent.Post.class, post -> posts[0]++);
-            try {
-                boolean one = player.dropItem(false);
-                int inventory = count(player), ground = onTheGround(player);
-                return Verdict.of(inventory + ground <= DROP_STACK, "q=" + one + " inventory=" + inventory + " ground=" + ground + " posts=" + posts[0]);
-            } finally {
-                heard.unsubscribe();
-            }
-        });
-    }
-
-    /** How much cobblestone the drop cases hand the bot. */
-    private static final int DROP_STACK = 5;
-
-    /**
-     * The bot stands in a {@code destroy-dropped-items} region, with {@link #DROP_STACK} cobblestone in its selected slot and
-     * {@code other} listening beside the core; {@code body} throws and answers. Below 1.16 the server has no
-     * {@code HumanEntity#dropItem(boolean)}, and the throw is the real client's Q, which this plugin cannot press.
-     */
-    private CompletableFuture<Verdict> droppingCobblestone(Player player, String name, Listener other, Supplier<Verdict> body) {
-        if (MCVersion.isLower(MCDetailedVersion.v1_16_R1)) {
-            return CompletableFuture.completedFuture(Verdict.skipped("HumanEntity#dropItem(boolean) arrives in 1.16: below it the matrix's bot presses Q"));
-        }
-        Location at = player.getLocation();
-        int x = at.getBlockX(), y = at.getBlockY(), z = at.getBlockZ();
-        CreationResult created = regions.create(name, player.getWorld().getName(), CuboidShape.of(BlockPos.of(x - 6, y - 6, z - 6), BlockPos.of(x + 6, y + 6, z + 6)));
-        Region region = created.getRegion();
-        if (region == null) {
-            return CompletableFuture.completedFuture(Verdict.fail(name + " refused: " + created.getRefusal()));
-        }
-        region.setFlag(CoreFlags.DESTROY_DROPPED_ITEMS, Tristate.TRUE);
-        CompletableFuture<Verdict> answer = new CompletableFuture<>();
-        //a tick later: the core's listeners come up through the main thread once the region needs them
-        Bukkit.getScheduler().runTaskLater(plugin(), () -> {
-            PermissionAttachment noBypass = player.addAttachment(plugin());
-            DROP_BYPASS_NODES.forEach(node -> noBypass.setPermission(node, false));
-            ItemStack[] kept = player.getInventory().getContents();
-            int selected = player.getInventory().getHeldItemSlot();
-            Bukkit.getPluginManager().registerEvents(other, plugin());
-            try {
-                player.getInventory().clear();
-                player.getInventory().setHeldItemSlot(0);
-                player.getInventory().setItem(0, new ItemStack(Material.COBBLESTONE, DROP_STACK));
-                answer.complete(body.get());
-            } catch (Throwable thrown) {
-                answer.complete(Verdict.fail(Verdict.describe(thrown)));
-            } finally {
-                HandlerList.unregisterAll(other);
-                player.getNearbyEntities(8, 8, 8).stream().filter(entity -> entity instanceof Item).forEach(Entity::remove);
-                player.getInventory().setContents(kept);
-                player.getInventory().setHeldItemSlot(selected);
-                player.removeAttachment(noBypass);
-                regions.remove(region);
-            }
-        }, 2L);
-        return PlayerCases.within(answer, TIMEOUT_MILLIS);
-    }
-
-    /** The two nodes {@code RegionLookup} reads as a bypass of the drop flags. */
-    private static final List<String> DROP_BYPASS_NODES = Arrays.asList("evernifecore.region.bypass.*",
-            "evernifecore.region.bypass.evernifecore.destroy-dropped-items");
-
-    private static int count(Player player) {
-        return Arrays.stream(player.getInventory().getContents()).filter(stack -> stack != null && stack.getType() == Material.COBBLESTONE)
-                .mapToInt(ItemStack::getAmount).sum();
-    }
-
-    private static int onTheGround(Player player) {
-        return player.getNearbyEntities(8, 8, 8).stream().filter(entity -> entity instanceof Item).map(entity -> ((Item) entity).getItemStack())
-                .filter(stack -> stack.getType() == Material.COBBLESTONE).mapToInt(ItemStack::getAmount).sum();
     }
 
     /**

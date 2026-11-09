@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.conformance.hytale.suite;
 
+import com.hypixel.hytale.component.AddReason;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.EventSourceUsage;
@@ -153,6 +154,8 @@ public final class HyRegionsSuite implements ConformanceSuite {
                 withPlayer("damage-multiplier-scales-damage", ctx, this::damageMultiplierScalesDamage),
                 withPlayer("deny-item-drop-inside-only", ctx, this::dropDeniedKeepsTheItem),
                 withPlayer("destroy-dropped-items-vanishes", ctx, this::destroyedDropVanishes),
+                withPlayer("destroy-dropped-items-deny-item-drop-wins", ctx, this::denyBeatsDestroy),
+                withPlayer("clear-items-inside-the-shape", ctx, this::clearItemsInsideTheShape),
                 withPlayer("destroy-dropped-items-keeps-an-unrequested-drop", ctx, this::unrequestedDropLands),
                 ConformanceCase.of("owner-only-pickup-is-not-supported", () -> Verdict.of(!FlagRegistry.get().isSupported(CoreFlags.OWNER_ONLY_PICKUP)
                         && CoreFlags.OWNER_ONLY_PICKUP.isRegistered(), "supported=" + FlagRegistry.get().isSupported(CoreFlags.OWNER_ONLY_PICKUP))),
@@ -331,6 +334,51 @@ public final class HyRegionsSuite implements ConformanceSuite {
                         return Verdict.of(LEFT.equals(slot) && after == before[0], "slot=" + slot + " itemsAround=" + before[0] + "->" + after);
                     })))).thenCompose(verdict -> sweepItems(world, feet).thenApply(swept -> verdict));
         });
+    }
+
+    /** {@code deny-item-drop} on the same region as {@code destroy-dropped-items}: the stack stays in its slot. */
+    private CompletableFuture<Verdict> denyBeatsDestroy(FPlayer fplayer) {
+        PlayerRef player = HyWorld.player(fplayer);
+        World world = HyWorld.worldOf(player);
+        return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(at -> {
+            Vector3i feet = block(at, 0, 0, 0);
+            return inRegion(regions, "ecc-item-deny-destroy", world.getName(), pos(feet).add(-2, -2, -2), pos(feet).add(2, 3, 2), region -> {
+                region.setFlag(CoreFlags.DESTROY_DROPPED_ITEMS, Tristate.TRUE);
+                region.setFlag(CoreFlags.DENY_ITEM_DROP, Tristate.TRUE);
+            }, region -> throwFromHotbar(fplayer, world).thenApply(slot -> Verdict.of(KEPT.equals(slot), "slot=" + slot)))
+                    .thenCompose(verdict -> sweepItems(world, feet).thenApply(swept -> verdict));
+        });
+    }
+
+    /**
+     * A right-triangle region with one item inside, one the filter refuses inside, and one on the corner of its bounding box outside the
+     * triangle: only the first leaves, and it is what the clearance answers; a sweep over the box then finds the other two.
+     */
+    private CompletableFuture<Verdict> clearItemsInsideTheShape(FPlayer fplayer) {
+        PlayerRef player = HyWorld.player(fplayer);
+        World world = HyWorld.worldOf(player);
+        return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(at -> {
+            Vector3i feet = block(at, 0, 0, 0);
+            Vector3i c = block(at, 3, 1, 3);
+            PolygonShape triangle = PolygonShape.ofUnboundedY(Arrays.asList(pos(c), pos(c).add(6, 0, 0), pos(c).add(0, 0, 6)));
+            return sweepItems(world, feet).thenCompose(swept -> HyWorld.on(world, () -> {
+                spawnItem(world, c.x + 1, c.y, c.z + 1, "Rock_Stone", 3);
+                spawnItem(world, c.x + 2, c.y, c.z + 1, "Ingredient_Bar_Iron", 2);
+                spawnItem(world, c.x + 6, c.y, c.z + 6, "Rock_Stone", 4);
+                return null;
+            })).thenCompose(spawned -> HyWorld.ticks(world, 2)).thenCompose(waited -> inRegion(regions, "ecc-clear-items", world.getName(), triangle, region -> { },
+                    region -> region.clearItems(item -> item.getAmount() != 2).thenCompose(cleared -> inRegion(regions, "ecc-clear-items-box", world.getName(),
+                            pos(c).add(-1, -8, -1), pos(c).add(7, 8, 7), box -> { }, box -> box.clearItems().thenApply(left ->
+                                    Verdict.of(cleared.getEntityCount() == 1 && cleared.getUnitCount() == 3 && left.getEntityCount() == 2 && left.getUnitCount() == 6,
+                                            "cleared=" + cleared + " left=" + left))))))
+                    .thenCompose(verdict -> sweepItems(world, feet).thenApply(swept -> verdict));
+        });
+    }
+
+    /** An item entity lying still at the middle of a block; on the world's thread. */
+    private static void spawnItem(World world, int x, int y, int z, String id, int amount) {
+        Store<EntityStore> store = world.getEntityStore().getStore();
+        store.addEntity(ItemComponent.generateItemDrop(store, new ItemStack(id, amount), new Vector3d(x + 0.5, y + 0.5, z + 0.5), new Rotation3f(), 0F, 0F, 0F), AddReason.SPAWN);
     }
 
     /** A stack thrown with no request from the player, as a full inventory overflows, lands inside {@code destroy-dropped-items}: only a request vanishes. */

@@ -43,6 +43,7 @@ public final class LogicSuite implements ConformanceSuite {
                 PlayerCases.of("console-command", ctx, player -> LogicCases.consoleCommand(plugin, ctx.getPlayerOrNull(),
                         "say ENCTEST-logic " + UUID.randomUUID().toString().substring(0, 8))),
                 PlayerCases.of("held-gamemode-given-back", ctx, player -> LogicCases.heldGameMode(plugin, ctx.getPlayerOrNull())),
+                HeldInventoryCases.givenBack(ctx),
                 ConformanceCase.of("daily-window-in-server-zone", LogicCases::dailyWindowInTheServerZone));
     }
 }

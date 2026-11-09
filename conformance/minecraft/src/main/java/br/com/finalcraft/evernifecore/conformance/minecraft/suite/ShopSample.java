@@ -28,6 +28,7 @@ import br.com.finalcraft.everylibs.util.numberwrapper.NumericSpec;
 import jakarta.annotation.Nullable;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -44,6 +45,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 final class ShopSample {
 
     static final String NAME = "shop";
+    private static final int VIEWER_ICON_SLOT = 15;
     private static final ItemSpec DIAMOND = ItemSpec.of("minecraft:diamond", 1);
     private static final ItemMatcher ANY_DIAMOND = ItemMatcher.of("minecraft:diamond");
     private static volatile Tokens tokens;
@@ -74,6 +76,8 @@ final class ShopSample {
                 .offer("diamond", 13,
                         Offer.buy(Goods.ofItem(DIAMOND, ANY_DIAMOND.plainOnly()), Price.of(currency, 10)).build(),
                         Offer.sell(Goods.ofItem(DIAMOND, ANY_DIAMOND.plainOnly()), Price.of(currency, 4)).build())
+                .offer("viewer-icon", VIEWER_ICON_SLOT, Offer.buy(Goods.ofItem(DIAMOND, ANY_DIAMOND.plainOnly()), Price.of(currency, 10))
+                        .icon(viewer -> ItemSpec.of("minecraft:emerald", 1).withText(viewer.getName(), Collections.emptyList())).build())
                 .build();
         MenuRegistry.get().register(plugin, menu);
         return menu.getScreen().debounce(0);
@@ -81,6 +85,8 @@ final class ShopSample {
 
     /** Left buys one (tokens 100 -> 90, a diamond more), right sells it back (+4 times the player's boosters, the diamond gone): two TransactionEvents. */
     static String exercise(ECPluginData plugin, FPlayer viewer, ScreenView view, List<String> problems) {
+        check(problems, viewer.getName().equals(ScreenSuite.drawnName(view, VIEWER_ICON_SLOT)),
+                "the per-viewer offer drew " + ScreenSuite.drawnName(view, VIEWER_ICON_SLOT) + ", not its viewer's " + viewer.getName());
         CurrencyOwner wallet = CurrencyOwner.player(viewer.getUniqueId());
         tokens.set(wallet, new BigDecimal("100"));
         List<TransactionEvent> seen = new CopyOnWriteArrayList<>();

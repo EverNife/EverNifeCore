@@ -215,7 +215,11 @@ class CliTest(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         tools = re.findall(r"^\[dry-run\] mctf (\S+)", proc.stdout, re.M)
         self.assertNotIn("mc_hmc_start", tools)
-        self.assertEqual(proc.stdout.count('"op": "player_join"'), 1, "the bot joins first, no warm-up player before it")
+        # the bot comes back twice for the real quit cases, but nobody ever warms the server up before it
+        joins = re.findall(r'"name": "([^"]+)", "op": "player_join"', proc.stdout)
+        self.assertEqual(joins, [cm.BOT] * 3, "only the bot joins")
+        self.assertLess(proc.stdout.index('"op": "player_join"'), proc.stdout.index("ecc hold-quit arm"), "the bot is in before anything asks for it")
+        self.assertEqual(proc.stdout.count('"op": "player_leave"'), 3, "two real quits, then the end of the run")
         start_line = next(l for l in proc.stdout.splitlines() if l.startswith("[dry-run] mctf mc_start "))
         self.assertNotIn('"to": "plugins"', start_line)
 

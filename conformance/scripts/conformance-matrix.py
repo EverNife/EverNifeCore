@@ -80,6 +80,12 @@ AWAIT_CHUNK = 60
 # A screen opens a tick or two after the command; the driver looks again this often until both sides show it
 GUI_POLL = 0.5
 GUI_WAIT = 5
+# The throws of the real-drop cases of the regions suite: the server is read after each, and judged at the end. "1" is Q, "" is Ctrl+Q.
+DROP_SCENARIOS = (("destroy", ("1", "")), ("lowest-cancel", ("1",)), ("normal-uncancel", ("1",)), ("deny-wins", ("1",)))
+# The region's listeners come up a tick after the arm, which is when the bot gets the stack: until then its hand is empty
+DROP_RETRIES = 20
+# What the core logs if a plugin's own command is still registered when it registers or leaves
+COMMAND_REMOVAL = "Removing existent"
 
 
 class FlavorFailed(Exception):
@@ -437,6 +443,62 @@ def act_on_the_server(mctf: Mctf, client_id: str, r: FlavorResult):
         r.problems.append("the bot could not break the block under its feet: %s" % broke)
 
 
+def throw_real_drops(mctf: Mctf, server_id: str, client_id: str, r: FlavorResult):
+    """Q and Ctrl+Q of the real client inside each scenario; the regions suite reads the verdicts /ecc drop leaves."""
+    for scenario, throws in DROP_SCENARIOS:
+        console(mctf, server_id, "ecc drop arm %s %s" % (scenario, BOT))
+        bot(mctf, client_id, "/mctf slot 0")
+        for amount in throws:
+            for attempt in range(DROP_RETRIES):
+                reply = bot(mctf, client_id, ("/mctf drop %s" % amount).strip()).get("reply") or {}
+                if reply.get("reason") != "empty_hand":
+                    break
+                mctf.sleep(0.25)
+            r.notes.append("drop %s /mctf drop %s: client %s" % (scenario, amount or "(Ctrl+Q)", json.dumps(reply, sort_keys=True)))
+            console(mctf, server_id, "ecc drop sample %s %s" % (scenario, BOT))
+        console(mctf, server_id, "ecc drop finish %s %s" % (scenario, BOT))
+
+
+def count_command_removals(logs_dir: Optional[str]) -> Optional[int]:
+    """Lines of COMMAND_REMOVAL in the logs a stop copied out, the rolled ones of the restart included; None when none was copied."""
+    logs = [p for p in Path(logs_dir).rglob("*") if p.is_file() and ".log" in p.name] if logs_dir else []
+    if not logs:
+        return None
+    return sum(line.count(COMMAND_REMOVAL) for log in logs for line in read_log(log).splitlines())
+
+
+def note_stop(r: FlavorResult, stop: dict):
+    removals = count_command_removals(stop.get("logs_dir"))
+    r.notes.append("'%s' lines in the logs (boot, restart, stop): %s (logs_dir=%s)" % (COMMAND_REMOVAL, removals, stop.get("logs_dir")))
+    if removals:
+        r.problems.append("%d '%s' line(s): a plugin's command outlived its stop" % (removals, COMMAND_REMOVAL))
+
+
+def real_quit_and_login(mctf: Mctf, server_id: str, r: FlavorResult):
+    """The synthetic player really leaves and comes straight back, twice: once holding an inventory, once with a delivery waiting."""
+    def await_armed(what: str):
+        armed = mctf("mc_await", server_id=server_id, pattern="ecc-armed %s" % what, timeout_seconds=15)
+        if not armed.get("ok"):
+            raise FlavorFailed("%s never armed: %s" % (what, _err(armed)))
+
+    def reconnect() -> float:
+        begun = time.monotonic()
+        left = mctf("mc_exec", server_id=server_id, ops=[{"op": "player_leave", "name": BOT}])
+        if not left.get("ok"):
+            raise FlavorFailed("player_leave: " + _err(left))
+        join_synthetic(mctf, server_id)
+        return time.monotonic() - begun
+
+    console(mctf, server_id, "ecc hold-quit arm " + BOT)
+    await_armed("hold-quit")
+    r.notes.append("leave + rejoin holding an inventory: %.1fs" % reconnect())
+    console(mctf, server_id, "ecc hold-quit read " + BOT)
+    await_armed("hold-quit-read")
+    console(mctf, server_id, "ecc login-claim " + BOT)
+    await_armed("login-claim")
+    r.notes.append("leave + rejoin with a delivery waiting: %.1fs" % reconnect())
+
+
 def screen_shown(snapshot: dict, render: dict) -> bool:
     """The server has the container open and the client either drew it or answered why it cannot."""
     opened = (snapshot.get("snapshot") or {}).get("container_type")
@@ -536,6 +598,7 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
         click_a_block(mctf, client_id, r)
         console(mctf, server_id, "ecc actions " + BOT)
         act_on_the_server(mctf, client_id, r)
+        throw_real_drops(mctf, server_id, client_id, r)
         console(mctf, server_id, "ecc run all --player %s --cid %s" % (BOT, cid["run"]))
         wait_suite_ends(mctf, server_id, cid["run"], r)
         log.lap("run")
@@ -601,7 +664,7 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
             if client_id:
                 mctf("mc_hmc_stop", client_id=client_id)
             if server_id:
-                mctf("mc_stop", server_id=server_id)
+                note_stop(r, mctf("mc_stop", server_id=server_id))
         log.lap("stop")
         log.say("done in %.1fs; problems: %s" % (time.monotonic() - log.begun, r.problems or "none"))
     sel = suite_table(r.events).get("selection-click", {}).get("run")
@@ -712,6 +775,7 @@ def run_hytale_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> Flavor
         log.lap("start")
 
         join_synthetic(mctf, server_id)
+        real_quit_and_login(mctf, server_id, r)
         before = mctf("mc_player", server_id=server_id, player=BOT)
         log.lap("join")
         console(mctf, server_id, "ecc run all --player %s --cid %s" % (BOT, cid))
@@ -731,7 +795,9 @@ def run_hytale_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> Flavor
     finally:
         log.lap("collect")
         if server_id and not a.keep:
-            r.shutdown_reason = mctf("mc_stop", server_id=server_id).get("shutdown_reason")
+            stop = mctf("mc_stop", server_id=server_id)
+            r.shutdown_reason = stop.get("shutdown_reason")
+            note_stop(r, stop)
         log.lap("stop")
         log.say("done in %.1fs; problems: %s" % (time.monotonic() - log.begun, r.problems or "none"))
     if not mctf.dry_run:

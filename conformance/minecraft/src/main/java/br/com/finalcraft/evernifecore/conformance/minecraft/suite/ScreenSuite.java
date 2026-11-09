@@ -594,7 +594,7 @@ public final class ScreenSuite implements ConformanceSuite {
     }
 
     /** The display name of what the window's inventory holds at {@code slot} - what the chest really drew. */
-    private static String drawnName(ScreenView view, int slot) {
+    static String drawnName(ScreenView view, int slot) {
         BukkitScreenSurface surface = ChestScreenRenderer.surfaceOf(view);
         ItemStack stack = surface == null ? null : surface.getInventory().getItem(slot);
         return stack == null || !stack.hasItemMeta() ? null : stack.getItemMeta().getDisplayName();

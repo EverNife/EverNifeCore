@@ -45,6 +45,7 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.entity.Item;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
@@ -98,6 +99,7 @@ final class TerrainCases {
                 PlayerCases.later("terrain-snapshot-keeps-sign-text", ctx, this::snapshotKeepsSignText),
                 PlayerCases.later("terrain-snapshot-entities-back", ctx, this::snapshotEntitiesBack),
                 PlayerCases.later("terrain-snapshot-polygon-box", ctx, this::snapshotPolygonBox),
+                PlayerCases.later("clear-items-inside-the-shape", ctx, this::clearItemsInsideTheShape),
                 PlayerCases.later("terrain-snapshot-retention", ctx, this::snapshotRetention),
                 PlayerCases.later("worldedit-rotated-paste-undo", ctx, this::rotatedPasteUndo),
                 PlayerCases.later("terrain-cost-grid", ctx, this::costGrid));
@@ -315,6 +317,31 @@ final class TerrainCases {
             return Verdict.of(insideBack == inside && outsideAltered == 0, "box=" + box.size() + " insideBack=" + insideBack + "/" + inside
                     + " outsideAltered=" + outsideAltered + "/" + outside + " (blocks outside the region the restore changed)");
         }), () -> box.forEach(block -> block.setType(Material.AIR)));
+    }
+
+    /**
+     * A right-triangle region with an item inside, one the filter refuses inside, and one on the corner of the bounding box outside the
+     * triangle: only the first leaves the ground, and it is what the clearance answers.
+     */
+    private CompletableFuture<Verdict> clearItemsInsideTheShape(Player player) {
+        World world = player.getWorld();
+        Block c = anchor(player, 96);
+        PolygonShape triangle = PolygonShape.ofUnboundedY(Arrays.asList(pos(c), pos(c).add(6, 0, 0), pos(c).add(0, 0, 6)));
+        Item[] items = new Item[3];
+        return inRegion("ecc-clear-items", world, triangle, TIMEOUT_MILLIS, region -> {
+            items[0] = world.dropItem(c.getRelative(1, 0, 1).getLocation().add(0.5, 0.5, 0.5), new ItemStack(Material.STONE, 3));
+            items[1] = world.dropItem(c.getRelative(2, 0, 1).getLocation().add(0.5, 0.5, 0.5), new ItemStack(Material.DIRT, 2));
+            items[2] = world.dropItem(c.getRelative(6, 0, 6).getLocation().add(0.5, 0.5, 0.5), new ItemStack(Material.COBBLESTONE, 4));
+        }, region -> region.clearItems(item -> !items[1].getUniqueId().equals(item.getEntityId())).thenApply(cleared -> {
+            boolean onlyTheFirst = cleared.getEntityCount() == 1 && cleared.getUnitCount() == 3
+                    && items[0].getUniqueId().equals(cleared.getItems().get(0).getEntityId());
+            return Verdict.of(onlyTheFirst && items[0].isDead() && !items[1].isDead() && !items[2].isDead(), "cleared=" + cleared
+                    + " insideGone=" + items[0].isDead() + " refusedGone=" + items[1].isDead() + " cornerGone=" + items[2].isDead());
+        }), () -> {
+            for (Item item : items) {
+                if (item != null) item.remove();
+            }
+        });
     }
 
     /** With a retention of 2, three snapshots leave the two newest on disk, the oldest gone with its side files. */

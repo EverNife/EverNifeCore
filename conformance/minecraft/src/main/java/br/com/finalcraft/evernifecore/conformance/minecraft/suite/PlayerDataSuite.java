@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -39,7 +40,7 @@ public final class PlayerDataSuite implements ConformanceSuite {
 
     @Override
     public List<ConformanceCase> getWriteCases(ConformanceContext ctx) {
-        return Collections.singletonList(PlayerCases.later("write", ctx, player -> {
+        return Arrays.asList(HeldInventoryCases.write(ctx), PlayerCases.later("write", ctx, player -> {
             String token = UUID.randomUUID().toString();
             CompletableFuture<Verdict> answer = PlayerController.getPDSection(player.getUniqueId(), Section.class)
                     .thenCompose(section -> {
@@ -62,7 +63,7 @@ public final class PlayerDataSuite implements ConformanceSuite {
 
     @Override
     public List<ConformanceCase> getReadCases(ConformanceContext ctx) {
-        return Collections.singletonList(PlayerCases.later("read", ctx, player -> {
+        return Arrays.asList(HeldInventoryCases.read(ctx), PlayerCases.later("read", ctx, player -> {
             File file = tokenFile(ctx);
             if (!file.isFile()) {
                 return CompletableFuture.completedFuture(Verdict.fail("no " + TOKEN_FILE + " - the write half never ran here"));

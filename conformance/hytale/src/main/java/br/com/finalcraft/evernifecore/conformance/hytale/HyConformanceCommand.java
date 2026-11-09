@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.conformance.hytale;
 
+import br.com.finalcraft.evernifecore.conformance.hytale.suite.HyDeliveriesSuite;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
@@ -32,6 +33,9 @@ import java.util.stream.Collectors;
 //"ecc" first: on Hytale the core registers only the first alias as a command
 @FinalCMD(aliases = {"ecc", "ecoreconformance"}, permission = "evernifecore.conformance")
 public class HyConformanceCommand {
+
+    /** The line the matrix driver waits for before the player leaves. */
+    private static final String ARMED = "ecc-armed";
 
     private final List<ConformanceSuite> suites;
     private final File dataFolder;
@@ -71,6 +75,27 @@ public class HyConformanceCommand {
     @FinalCMD.SubCMD(subcmd = "command-probe")
     public void commandProbe(FCommandSender sender, @Arg("<name>") String name) {
         DeliveryCases.answerCommandProbe(name);
+    }
+
+    /** {@code arm} before the player really leaves, {@code read} once they are back; {@code HyPlatformSuite} judges. */
+    @FinalCMD.SubCMD(subcmd = "hold-quit")
+    public void holdQuit(FCommandSender sender, @Arg("<step>") String step, @Arg("<player>") FPlayer player) {
+        if ("arm".equals(step)) {
+            HyPlatformSuite.armRealDisconnect(player).whenComplete((done, failed) -> log.accept(ARMED + " hold-quit " + (failed == null ? "" : Verdict.describe(failed))));
+        } else {
+            HyPlatformSuite.readRealDisconnect(player);
+            log.accept(ARMED + " hold-quit-read");
+        }
+    }
+
+    /** Leaves a delivery for {@code player}'s next login; {@code HyDeliveriesSuite} reads the claim. */
+    @FinalCMD.SubCMD(subcmd = "login-claim")
+    public void loginClaim(FCommandSender sender, @Arg("<player>") FPlayer player) throws Exception {
+        for (ConformanceSuite suite : suites) {
+            if (suite instanceof HyDeliveriesSuite) {
+                ((HyDeliveriesSuite) suite).armLoginClaim(player).whenComplete((done, failed) -> log.accept(ARMED + " login-claim " + (failed == null ? "" : Verdict.describe(failed))));
+            }
+        }
     }
 
     @FinalCMD.SubCMD(subcmd = "screen")
