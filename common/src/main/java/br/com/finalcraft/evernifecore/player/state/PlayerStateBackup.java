@@ -8,9 +8,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * What a player had before the session flags that restore {@code persistent} changed it, slot by slot, as
- * {@link HeldPlayerState} encodes it - kept so a player inside a region when the server stopped gets it back on the
- * next join. Empty while no such flag holds anything.
+ * What a player had before a {@link HoldOptions#persistent()} hold changed it, slot by slot, as {@link HeldPlayerState}
+ * encodes it, and the inventory of any hold whose give-back was refused - kept so the next join gives it back after a
+ * server stop, a refused write or a reconnection window that ended. Empty while nothing of the kind is held.
  */
 public class PlayerStateBackup extends PDSection {
 

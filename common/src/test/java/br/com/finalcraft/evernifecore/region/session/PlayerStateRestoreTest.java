@@ -1,11 +1,14 @@
 package br.com.finalcraft.evernifecore.region.session;
 
+import br.com.finalcraft.evernifecore.api.events.player.ECPlayerFullyLoggedInEvent;
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.flag.Tristate;
 import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.flag.core.PlayerStateSettings;
 import br.com.finalcraft.evernifecore.player.state.HeldPlayerState;
 import br.com.finalcraft.evernifecore.player.state.PlayerStateBackup;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
+import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
 import br.com.finalcraft.evernifecore.testing.Storages;
@@ -74,6 +77,63 @@ class PlayerStateRestoreTest extends TrackerFixture {
             tracker.onJoin(player, at(5.5)); //inside again, still grounded
             tracker.onMove(player, at(5.5), at(30.5), MoveCause.MOVE, null);
             assertTrue(state.allowFlight, "the flight from before the stop, not the grounded state found on the join");
+        } finally {
+            world.close();
+        }
+    }
+
+    private void login() {
+        PlayerData data = PlayerController.handleLogin(player.getUniqueId(), player.getName()).join();
+        data.setPlayer(player);
+        ECEventBus.global().post(new ECPlayerFullyLoggedInEvent(data, false));
+    }
+
+    /** A persistent flag left its state in the backup when the server stopped; the player comes back inside the region. */
+    private PlayerDataWorld stopWithThePlayerInside(TestPlatform platform, String db) {
+        PlayerDataWorld world = PlayerDataWorld.with(Storages.h2(db)).boot(tempDir);
+        PlayerController.handleLogin(player.getUniqueId(), player.getName()).join();
+        Region zone = region("zone", 0, 10);
+        zone.setFlag(registered(CoreFlags.ALLOW_FLY), Tristate.FALSE);
+        platform.getTestPlayerState().of(player).allowFlight = true;
+        tracker.onJoin(player, at(5.5));
+        tracker.stop();
+        world.close(); //a restart: a fresh PlayerData layer over the same storage
+        tracker = new RegionMovementTracker(lookup, bus);
+        return PlayerDataWorld.with(Storages.h2(db)).boot(tempDir);
+    }
+
+    @Test
+    void aSlotARegionHoldsStaysHeldWhenTheLoginComesAfterTheRegionJoin(TestPlatform platform) {
+        PlayerDataWorld world = stopWithThePlayerInside(platform, "region_state_region_first");
+        try {
+            TestPlayerState.State state = platform.getTestPlayerState().of(player);
+            PlayerController.handleLogin(player.getUniqueId(), player.getName()).join();
+
+            tracker.onJoin(player, at(5.5));
+            login();
+
+            assertFalse(state.allowFlight, "the region holds it: the login does not write over it");
+            assertEquals("true|false", backup().get(HeldPlayerState.FLIGHT));
+            tracker.onMove(player, at(5.5), at(30.5), MoveCause.MOVE, null);
+            assertTrue(state.allowFlight, "and leaving gives the flight from before the stop");
+        } finally {
+            world.close();
+        }
+    }
+
+    @Test
+    void aSlotARegionHoldsIsHeldWhenTheLoginComesBeforeTheRegionJoin(TestPlatform platform) {
+        PlayerDataWorld world = stopWithThePlayerInside(platform, "region_state_login_first");
+        try {
+            TestPlayerState.State state = platform.getTestPlayerState().of(player);
+
+            login();
+            assertTrue(state.allowFlight, "no region knows the player yet: the login gives it back");
+            tracker.onJoin(player, at(5.5));
+
+            assertFalse(state.allowFlight, "the region holds it from here");
+            tracker.onMove(player, at(5.5), at(30.5), MoveCause.MOVE, null);
+            assertTrue(state.allowFlight, "and leaving gives the flight back");
         } finally {
             world.close();
         }

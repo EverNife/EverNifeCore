@@ -2,16 +2,28 @@ package br.com.finalcraft.evernifecore.testing;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
+import br.com.finalcraft.evernifecore.player.state.HeldPlayerState;
+import br.com.finalcraft.evernifecore.player.state.HeldStateQuitEvent;
+import br.com.finalcraft.evernifecore.player.state.HoldOptions;
+import br.com.finalcraft.evernifecore.player.state.QuitPolicy;
+import br.com.finalcraft.evernifecore.player.state.StateHolder;
+import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** The core's own plugin data is global state: a world lends one and hands back whatever was there before. */
 class ECoreTestWorldTest {
@@ -29,6 +41,43 @@ class ECoreTestWorldTest {
     @AfterEach
     void restoreTheCore() {
         EverNifeCore.instance.onLoaderInstantiate(before);
+    }
+
+    @Test
+    void aPlayerOnAReconnectionWindowDoesNotOutliveTheWorld() {
+        StateHolder duel = StateHolder.of("theduel:battle");
+        TestFPlayerSender player = new TestFPlayerSender("duelist");
+        List<HeldStateQuitEvent.Expired> expired = new CopyOnWriteArrayList<>();
+        TestClock.acquire();
+        try {
+            ECoreTestWorld world = Platforms.lenient().playerState().install();
+            PlayerDataWorld playerData = PlayerDataWorld.with(Storages.memory()).boot(tempDir);
+            try {
+                PlayerController.handleLogin(player.getUniqueId(), player.getName()).join();
+                HeldPlayerState.of(player.getUniqueId()).hold(HeldPlayerState.INVENTORY, duel, "kit", p -> { },
+                        HoldOptions.persistent().onQuit(QuitPolicy.keepFor(Duration.ofSeconds(10))), player);
+                HeldPlayerState.forget(player.getUniqueId(), player);
+                assertTrue(HeldPlayerState.of(player.getUniqueId()).getHolders(HeldPlayerState.INVENTORY).containsKey(duel.getHolderId()), "on the window");
+            } finally {
+                playerData.close();
+                world.close();
+            }
+
+            ECoreTestWorld next = Platforms.lenient().playerState().install();
+            ECEventSubscription<HeldStateQuitEvent.Expired> listening = ECEventBus.global().subscribe(HeldStateQuitEvent.Expired.class, expired::add);
+            try {
+                assertTrue(HeldPlayerState.of(player.getUniqueId()).getHolders(HeldPlayerState.INVENTORY).isEmpty(), "no state for the next world");
+                HeldPlayerState.forget(player.getUniqueId(), null);
+                TestClock.advance(Duration.ofSeconds(11));
+                TestClock.runDue();
+                assertTrue(expired.isEmpty(), "and no task of the old window does anything");
+            } finally {
+                listening.unsubscribe();
+                next.close();
+            }
+        } finally {
+            TestClock.release();
+        }
     }
 
     @Test

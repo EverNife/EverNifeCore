@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.flag.FlagKey;
 import br.com.finalcraft.evernifecore.logic.audit.AuditKind;
 import br.com.finalcraft.evernifecore.player.state.ECGameMode;
 import br.com.finalcraft.evernifecore.player.state.HeldPlayerState;
+import br.com.finalcraft.evernifecore.player.state.HoldOptions;
 import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess.Capability;
 import br.com.finalcraft.evernifecore.player.state.StateHolder;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
@@ -186,7 +187,7 @@ class StockLogicTest {
         HeldPlayerState held = HeldPlayerState.of(alex.getUniqueId());
 
         HoldableEffect.HeldEffect byLogic = adventure.hold(ctx(), stage);
-        held.hold(HeldPlayerState.GAME_MODE, flag, ECGameMode.CREATIVE, player -> state.of(player).gameMode = ECGameMode.CREATIVE, false, alex);
+        held.hold(HeldPlayerState.GAME_MODE, flag, ECGameMode.CREATIVE, player -> state.of(player).gameMode = ECGameMode.CREATIVE, HoldOptions.memory(), alex);
         state.of(alex).gameMode = ECGameMode.CREATIVE;
 
         assertEquals(Arrays.asList(stage.getHolderId(), flag.getHolderId()), new ArrayList<>(held.getHolders(HeldPlayerState.GAME_MODE).keySet()));
@@ -200,7 +201,7 @@ class StockLogicTest {
     void releasingAHeldEffectWhileAFlagStillHoldsTheSlotPutsTheFlagsValueBack() {
         FlagKey flag = FlagKey.of("evernifecore", "game-mode");
         HeldPlayerState held = HeldPlayerState.of(alex.getUniqueId());
-        held.hold(HeldPlayerState.GAME_MODE, flag, ECGameMode.CREATIVE, player -> state.of(player).gameMode = ECGameMode.CREATIVE, false, alex);
+        held.hold(HeldPlayerState.GAME_MODE, flag, ECGameMode.CREATIVE, player -> state.of(player).gameMode = ECGameMode.CREATIVE, HoldOptions.memory(), alex);
         state.of(alex).gameMode = ECGameMode.CREATIVE;
         HoldableEffect adventure = (HoldableEffect) Effects.parse(shop.getOwner(), node("{'type': 'gamemode', 'value': 'adventure'}"), ZoneOffset.UTC);
 

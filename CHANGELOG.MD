@@ -52,6 +52,14 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 #### Player state
 
+- **A quit policy per holder of `HeldPlayerState`**: `HoldOptions.memory()|persistent().onQuit(QuitPolicy.giveBack()|keepFor(d)|delegate())`.
+  `keepFor` leaves the slot on the player, saved with them: reconnecting in time finds it still held, and past the window
+  `HeldStateQuitEvent.Expired` is posted and the next join gives their own back. `delegate` posts `HeldStateQuitEvent.Delegated` with the
+  snapshot and a writable player; no answer gives back. With two holders the slot stays while one keeps it.
+  `HeldPlayerState.releaseAway(uuid, slot, holder)` is for the arena that ends during the window.
+- **`IPlayerStateAccess.runWhenWritable(player, task)`**: for a platform that announces the login ahead of the entity;
+  `TestPlayerState.withEntityLate()` / `entityArrived()` play it in a test.
+
 - **`IPlayerStateAccess.Capability.INVENTORY`** and the `HeldPlayerState.INVENTORY` slot: a plugin holds a player's whole
   inventory aside (a duel kit, an arena), and the last holder to let go gives the own one back - on the release, on the
   quit, or with `persistent` on the next join after a server stop. `getInventory(player)` / `setInventory(player, text)`
@@ -156,6 +164,14 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **A menu's refused open reaches the player as a core locale message**: the gate's explanation went out as a fixed red
   line; it is now `MenuRegistry.OPEN_REFUSED` (`${why}`, red by default, en_US and pt_BR). The `Menus` test engine
   loads it.
+
+#### Player state
+
+- **`HeldPlayerState.hold` takes `HoldOptions` instead of `boolean persistent`**, with no overload left: `false` is
+  `HoldOptions.memory()`, `true` is `HoldOptions.persistent()`. The default on quit is still to give back.
+- **What a hold left in the backup comes back on every login** (`ECPlayerFullyLoggedInEvent`), not only with a region of MOVE
+  loaded: a server stop mid-hold used to wait in the backup for a region that may never come. A slot a region holds is not written over, in either order.
+- An inventory held in `memory()` whose give-back the platform refused lands in the backup for the next join, instead of being lost.
 
 ### Fixed
 

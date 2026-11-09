@@ -20,6 +20,7 @@ import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.player.state.ECGameMode;
 import br.com.finalcraft.evernifecore.player.state.EffectLevel;
 import br.com.finalcraft.evernifecore.player.state.HeldPlayerState;
+import br.com.finalcraft.evernifecore.player.state.HoldOptions;
 import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess.Capability;
 import br.com.finalcraft.evernifecore.player.state.PlayerTime;
@@ -311,7 +312,7 @@ final class StockEffects {
         public HeldEffect hold(ExecutionContext ctx, StateHolder holder) {
             FPlayer player = player(ctx, name);
             HeldPlayerState state = HeldPlayerState.of(player.getUniqueId());
-            state.hold(slot, holder, value, held -> write(access(), held), false, player);
+            state.hold(slot, holder, value, held -> write(access(), held), HoldOptions.memory(), player);
             write(access(), player);
             ctx.getAudit().add(ctx, AuditKind.HELD, name + " held by " + holder.getHolderId());
             return () -> {

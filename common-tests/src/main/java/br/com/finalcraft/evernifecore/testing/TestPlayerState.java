@@ -60,6 +60,8 @@ public final class TestPlayerState implements IPlayerStateAccess {
     private final Set<Capability> missing = EnumSet.noneOf(Capability.class);
     private final Set<ECGameMode> missingModes = EnumSet.noneOf(ECGameMode.class);
     private final List<String> commands = new CopyOnWriteArrayList<>();
+    private final List<Runnable> waitingForEntity = new CopyOnWriteArrayList<>();
+    private volatile boolean entityLate;
 
     /** The state of {@code player}, created with the defaults on first use. */
     public State of(FPlayer player) {
@@ -70,6 +72,29 @@ public final class TestPlayerState implements IPlayerStateAccess {
     public TestPlayerState without(Capability... capabilities) {
         missing.addAll(Arrays.asList(capabilities));
         return this;
+    }
+
+    /** From now on {@link #runWhenWritable} waits for {@link #entityArrived()}, as a platform that announces a login ahead of the entity. */
+    public TestPlayerState withEntityLate() {
+        entityLate = true;
+        return this;
+    }
+
+    /** Runs what {@link #runWhenWritable} left waiting, in order, and writes are in place from here on. */
+    public void entityArrived() {
+        entityLate = false;
+        List<Runnable> waiting = new ArrayList<>(waitingForEntity);
+        waitingForEntity.clear();
+        waiting.forEach(Runnable::run);
+    }
+
+    @Override
+    public void runWhenWritable(FPlayer player, Runnable task) {
+        if (entityLate) {
+            waitingForEntity.add(task);
+        } else {
+            task.run();
+        }
     }
 
     /** From now on {@link #supportsGameMode} says no to these. */

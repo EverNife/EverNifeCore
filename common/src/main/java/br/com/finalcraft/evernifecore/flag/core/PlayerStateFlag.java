@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.flag.FlagKey;
 import br.com.finalcraft.evernifecore.flag.FlagSettings;
 import br.com.finalcraft.evernifecore.flag.FlagType;
 import br.com.finalcraft.evernifecore.player.state.HeldPlayerState;
+import br.com.finalcraft.evernifecore.player.state.HoldOptions;
 import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import jakarta.annotation.Nullable;
 
@@ -68,7 +69,7 @@ public abstract class PlayerStateFlag<T> extends Flag<T> {
         }
         PlayerStateSettings settings = context.getSettings(this);
         HeldPlayerState held = context.getSession().getHeldState();
-        held.hold(getSlot(), this, value, player -> apply(context, access, held), settings.isPersistent(), context.getPlayer());
+        held.hold(getSlot(), this, value, player -> apply(context, access, held), settings.isPersistent() ? HoldOptions.persistent() : HoldOptions.memory(), context.getPlayer());
         apply(context, access, held);
     }
 

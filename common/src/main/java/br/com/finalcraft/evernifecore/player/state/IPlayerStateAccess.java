@@ -19,6 +19,15 @@ public interface IPlayerStateAccess {
 
     enum Capability { TIME, WEATHER, FLIGHT, GAME_MODE, EFFECTS, HEALTH, FOOD, COMMAND, EXPERIENCE, STATISTICS, INVENTORY }
 
+    /**
+     * Runs {@code task} once {@code player}'s state can be read and written, in place unless the platform announces a login
+     * ahead of the entity. Such a platform takes any thread here, and drops the task when the player leaves first, so
+     * the task must lose nothing by that.
+     */
+    default void runWhenWritable(FPlayer player, Runnable task) {
+        task.run();
+    }
+
     /** The weather that stops rain and storms, on every platform that has {@link Capability#WEATHER}. */
     String CLEAR = "clear";
     /** The weather that rains, on every platform that has {@link Capability#WEATHER}. */

@@ -12,7 +12,8 @@ import br.com.finalcraft.evernifecore.playerdata.PlayerData;
  * {@link PlayerData#getPlayer()} answers.
  *
  * <p>Each platform decides when that point is reached - the join plus a tick on Bukkit, the connect
- * plus the loaded data on Hytale - and a player who left in between is never announced.</p>
+ * plus the loaded data on Hytale - and a player who left in between is never announced. On Hytale the entity
+ * is not in a world yet: what writes to the player goes through {@code IPlayerStateAccess.runWhenWritable}.</p>
  */
 public class ECPlayerFullyLoggedInEvent extends ECEvent implements IECEvent {
 

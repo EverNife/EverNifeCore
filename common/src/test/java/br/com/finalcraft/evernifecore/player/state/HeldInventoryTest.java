@@ -1,7 +1,10 @@
 package br.com.finalcraft.evernifecore.player.state;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.api.events.player.ECPlayerFullyLoggedInEvent;
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
+import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
@@ -15,9 +18,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.time.Duration;
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** A player's whole inventory held aside - a duel kit, an arena - and given back, even across a quit or a server stop. */
@@ -52,15 +59,15 @@ class HeldInventoryTest {
         platform.close();
     }
 
-    private void holdKit(boolean persistent) {
+    private void holdKit(HoldOptions options) {
         IPlayerStateAccess access = EverNifeCore.getPlatform().getPlayerState();
-        HeldPlayerState.of(player.getUniqueId()).hold(HeldPlayerState.INVENTORY, duel, KIT, p -> access.setInventory(p, KIT), persistent, player);
+        HeldPlayerState.of(player.getUniqueId()).hold(HeldPlayerState.INVENTORY, duel, KIT, p -> access.setInventory(p, KIT), options, player);
         access.setInventory(player, KIT);
     }
 
     @Test
     void theLastHolderToLetGoGivesTheOwnInventoryBack() {
-        holdKit(false);
+        holdKit(HoldOptions.memory());
         assertEquals(KIT, state.inventory);
 
         assertTrue(HeldPlayerState.of(player.getUniqueId()).release(HeldPlayerState.INVENTORY, duel, player));
@@ -70,7 +77,7 @@ class HeldInventoryTest {
     @Test
     void anEmptyInventoryIsTheEmptyStringAndComesBackEmpty() {
         state.inventory = "";
-        holdKit(false);
+        holdKit(HoldOptions.memory());
 
         HeldPlayerState.of(player.getUniqueId()).release(HeldPlayerState.INVENTORY, duel, player);
         assertEquals("", state.inventory, "a player who carried nothing ends with nothing, not with the kit");
@@ -78,7 +85,7 @@ class HeldInventoryTest {
 
     @Test
     void aPlayerWhoQuitsMidHoldGetsTheOwnInventoryBackOnTheQuit() {
-        holdKit(false);
+        holdKit(HoldOptions.memory());
 
         HeldPlayerState.forget(player.getUniqueId(), player); //what the quit runs, after the region sessions let go
         assertEquals(OWN, state.inventory, "the inventory is written back while the player is still there to write to");
@@ -90,7 +97,7 @@ class HeldInventoryTest {
         PlayerDataWorld world = PlayerDataWorld.with(Storages.h2("held_inventory")).boot(tempDir);
         try {
             PlayerController.handleLogin(player.getUniqueId(), player.getName()).join();
-            holdKit(true);
+            holdKit(HoldOptions.persistent());
             assertEquals(OWN, backup().get(HeldPlayerState.INVENTORY), "the own inventory is in the player's data");
 
             //the server stops mid-hold: no quit runs, the held state in memory is gone with the process
@@ -100,8 +107,10 @@ class HeldInventoryTest {
             PlayerController.handleLogin(player.getUniqueId(), player.getName()).join();
             assertEquals(KIT, state.inventory, "the stop left the kit on the player");
 
-            HeldPlayerState.of(player.getUniqueId()).restoreLeftovers(player);
-            assertEquals(OWN, state.inventory, "the join gives the own inventory back");
+            PlayerData data = PlayerController.getLoaded(player.getUniqueId());
+            data.setPlayer(player);
+            ECEventBus.global().post(new ECPlayerFullyLoggedInEvent(data, false));
+            assertEquals(OWN, state.inventory, "the login gives the own inventory back, no region around");
             assertNull(backup().get(HeldPlayerState.INVENTORY), "and the backup lets it go");
         } finally {
             world.close();
@@ -113,7 +122,7 @@ class HeldInventoryTest {
         PlayerDataWorld world = PlayerDataWorld.with(Storages.h2("held_inventory_refused")).boot(tempDir);
         try {
             PlayerController.handleLogin(player.getUniqueId(), player.getName()).join();
-            holdKit(true);
+            holdKit(HoldOptions.persistent());
             access.without(IPlayerStateAccess.Capability.INVENTORY); //the write back throws, as a broken item read would
 
             HeldPlayerState.forget(player.getUniqueId(), player);
@@ -121,6 +130,94 @@ class HeldInventoryTest {
             assertEquals(OWN, backup().get(HeldPlayerState.INVENTORY), "a refused write is not a reason to lose the inventory for good");
         } finally {
             world.close();
+        }
+    }
+
+    @Test
+    void anInventoryHeldInMemoryThatCouldNotBeWrittenBackLandsInTheBackupToo() {
+        PlayerDataWorld world = PlayerDataWorld.with(Storages.h2("held_inventory_memory_refused")).boot(tempDir);
+        try {
+            PlayerController.handleLogin(player.getUniqueId(), player.getName()).join();
+            holdKit(HoldOptions.memory());
+            assertNull(backup().get(HeldPlayerState.INVENTORY), "memory writes nothing while it can give back");
+            access.without(IPlayerStateAccess.Capability.INVENTORY);
+
+            HeldPlayerState.forget(player.getUniqueId(), player);
+
+            assertEquals(OWN, backup().get(HeldPlayerState.INVENTORY), "never lost in silence");
+        } finally {
+            world.close();
+        }
+    }
+
+    @Test
+    void aLoginAnnouncedAheadOfTheEntityWaitsForItToGiveBack() {
+        PlayerDataWorld world = PlayerDataWorld.with(Storages.h2("held_inventory_entity_late")).boot(tempDir);
+        try {
+            PlayerController.handleLogin(player.getUniqueId(), player.getName()).join();
+            holdKit(HoldOptions.persistent());
+            HeldPlayerState.forget(player.getUniqueId(), null); //the server stops mid-hold
+
+            access.withEntityLate();
+            PlayerData data = PlayerController.getLoaded(player.getUniqueId());
+            data.setPlayer(player);
+            ECEventBus.global().post(new ECPlayerFullyLoggedInEvent(data, false));
+            assertEquals(KIT, state.inventory, "no entity to write to yet");
+            assertEquals(OWN, backup().get(HeldPlayerState.INVENTORY));
+
+            access.entityArrived();
+            assertEquals(OWN, state.inventory);
+            assertNull(backup().get(HeldPlayerState.INVENTORY));
+        } finally {
+            world.close();
+        }
+    }
+
+    @Test
+    void aWindowInMemoryIsRefusedAndTheMessageNamesTheWayOut() {
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+                () -> HoldOptions.memory().onQuit(QuitPolicy.keepFor(Duration.ofSeconds(10))));
+
+        assertTrue(refused.getMessage().contains("HoldOptions.persistent().onQuit"), refused.getMessage());
+    }
+
+    @Test
+    void aWindowOfNoTimeIsRefused() {
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> QuitPolicy.keepFor(Duration.ZERO));
+
+        assertTrue(refused.getMessage().contains("QuitPolicy.giveBack()"), refused.getMessage());
+    }
+
+    @Test
+    void theDefaultPolicyGivesBackOnTheQuit() {
+        assertSame(QuitPolicy.giveBack(), HoldOptions.memory().getQuitPolicy());
+        assertSame(QuitPolicy.giveBack(), HoldOptions.persistent().getQuitPolicy());
+        PlayerDataWorld world = PlayerDataWorld.with(Storages.h2("held_inventory_default")).boot(tempDir);
+        try {
+            PlayerController.handleLogin(player.getUniqueId(), player.getName()).join();
+            holdKit(HoldOptions.persistent());
+
+            HeldPlayerState.forget(player.getUniqueId(), player);
+
+            assertEquals(OWN, state.inventory);
+            assertNull(backup().get(HeldPlayerState.INVENTORY));
+        } finally {
+            world.close();
+        }
+    }
+
+    @Test
+    void aLoginWithNothingToGiveBackLeavesNoStateAndAsksThePlatformForNothing() {
+        ECoreTestWorld strict = Platforms.strict().onlinePlayers(Collections.emptyList()).mainThreadInline().loggingToStdout().install();
+        PlayerDataWorld world = PlayerDataWorld.with(Storages.h2("held_inventory_strict")).boot(tempDir);
+        try {
+            PlayerData data = PlayerController.handleLogin(player.getUniqueId(), player.getName()).join();
+            data.setPlayer(player);
+            //the strict double refuses getPlayerState, and the world's close fails on a refusal that reached the bus
+            ECEventBus.global().post(new ECPlayerFullyLoggedInEvent(data, false));
+        } finally {
+            world.close();
+            strict.close();
         }
     }
 

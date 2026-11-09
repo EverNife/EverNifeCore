@@ -192,7 +192,7 @@ public final class RegionMovementTracker {
     public MoveVerdict onJoin(FPlayer player, WorldLocPos at) {
         warnIfOffThread("onJoin", at.getWorldName());
         lookup.forgetSession(player.getUniqueId());
-        HeldPlayerState.forget(player.getUniqueId(), null); //a joining player holds nothing yet: what memory kept is a past life's
+        HeldPlayerState.forget(player.getUniqueId(), null); //what memory kept is a past life's, except what a reconnection window kept
         RegionPlayerSession session = lookup.getSession(player);
         session.setOnlinePlayer(player);
         List<Region> next = lookup.at(at);

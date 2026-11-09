@@ -21,6 +21,7 @@ import br.com.finalcraft.evernifecore.eventbus.EventBuses;
 import br.com.finalcraft.evernifecore.eventbus.ECListenerWatch;
 import br.com.finalcraft.evernifecore.eventbus.ECNativeAudience;
 import br.com.finalcraft.evernifecore.notify.Notifier;
+import br.com.finalcraft.evernifecore.player.state.HeldPlayerState;
 import br.com.finalcraft.evernifecore.waypoint.Waypoints;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.spawn.ISpawnProvider;
@@ -213,6 +214,7 @@ public final class ECoreTestWorld implements AutoCloseable {
             DeliveryDestinations.unregister(inventoryOwner, InventoryDestination.ID);
         }
         Deliveries.closeAll();
+        HeldPlayerState.closeAll();
         //a sink a test registered by hand outlives Deliveries: put the dropping one back for the next test
         DeferredEffects.register(null);
         List<String> leaked = leftOnTheGlobalBus();

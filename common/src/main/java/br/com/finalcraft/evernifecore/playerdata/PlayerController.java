@@ -12,6 +12,7 @@ import br.com.finalcraft.evernifecore.cooldown.server.ServerCooldowns;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.locale.LocalePDSection;
 import br.com.finalcraft.evernifecore.logic.delivery.DeliveriesSection;
+import br.com.finalcraft.evernifecore.player.state.HeldPlayerState;
 import br.com.finalcraft.evernifecore.player.state.PlayerStateBackup;
 import br.com.finalcraft.evernifecore.playerdata.account.Account;
 import br.com.finalcraft.evernifecore.playerdata.account.Accounts;
@@ -796,6 +797,7 @@ public class PlayerController {
                 .description("What the region session flags changed on a player, to give it back")
                 .build());
         }
+        HeldPlayerState.start();
 
         //ONLINE: a login claims the pending deliveries right away, and a give to an online player lands in memory
         if (!REGISTERED_SECTIONS.containsKey(DeliveriesSection.class)){
@@ -2417,6 +2419,7 @@ public class PlayerController {
     public static synchronized void shutdown(){
         PlayerController controller = INSTANCE;
         if (controller == null) return;
+        HeldPlayerState.closeAll();
         controller.sweepEngine.shutdown();
         controller.closeCacheSync();
         controller.lifecycleEngine.stop();

@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.region;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.player.state.HeldPlayerState;
+import br.com.finalcraft.evernifecore.player.state.HoldOptions;
 import br.com.finalcraft.evernifecore.player.state.StateHolder;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import br.com.finalcraft.evernifecore.testing.minecraft.screen.BukkitScreenWorld;
@@ -73,7 +74,7 @@ class McHeldInventoryTest {
     void aDuelKitIsReplacedByTheOwnInventoryWhenTheHolderLetsGo() {
         StateHolder duel = StateHolder.of("theduel:battle");
         HeldPlayerState held = HeldPlayerState.of(player.getUniqueId());
-        held.hold(HeldPlayerState.INVENTORY, duel, "", p -> access.setInventory(p, ""), false, player);
+        held.hold(HeldPlayerState.INVENTORY, duel, "", p -> access.setInventory(p, ""), HoldOptions.memory(), player);
         access.setInventory(player, "");
         inventory.setItem(0, new ItemStack(Material.BOW));
 

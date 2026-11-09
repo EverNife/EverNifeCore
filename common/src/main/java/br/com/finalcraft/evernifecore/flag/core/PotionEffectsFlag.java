@@ -16,6 +16,7 @@ import br.com.finalcraft.evernifecore.flag.TickingFlag;
 import br.com.finalcraft.evernifecore.player.state.ActiveEffect;
 import br.com.finalcraft.evernifecore.player.state.EffectLevel;
 import br.com.finalcraft.evernifecore.player.state.HeldPlayerState;
+import br.com.finalcraft.evernifecore.player.state.HoldOptions;
 import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import jakarta.annotation.Nullable;
 
@@ -75,7 +76,7 @@ public final class PotionEffectsFlag extends Flag<List<EffectLevel>> implements 
         for (EffectLevel effect : value) {
             if (access.isEffect(effect.getEffect())) {
                 held.hold(HeldPlayerState.effect(effect.getEffect()), this, effect, player -> access.addEffect(player, effect, LENGTH),
-                        settings.isPersistent(), context.getPlayer());
+                        settings.isPersistent() ? HoldOptions.persistent() : HoldOptions.memory(), context.getPlayer());
                 access.addEffect(context.getPlayer(), effect, LENGTH);
             }
         }
