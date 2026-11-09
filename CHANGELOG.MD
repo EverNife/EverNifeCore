@@ -225,6 +225,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 #### Regions
 
+- **A region's terrain no longer stops a JSON store from opening.** The journal and snapshots moved from
+  `<owner data>/regions/terrain/<region>/` to `<owner data>/region-terrain/<region>/`: a grouped file JSON store in
+  `<owner data>/regions` refused to open on the next boot, taking the plugin's setup down with it, once a `journal.json` (or
+  on Hytale a `.prefab.json`) lay below it.
 - **`deny-item-drop` on Hytale keeps the item with the dropper**: it denied `DropItemEvent.Drop`, which the server fires
   once the stack has left the slot, so the cancelled drop spawned nothing and gave nothing back. It now denies
   `DropItemEvent.PlayerRequest`, while the stack is still in its slot (the request names no quantity: its context

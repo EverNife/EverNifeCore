@@ -494,7 +494,7 @@ final class TerrainCases {
         }
         double recordMillis = (System.nanoTime() - start) / 1_000_000.0;
         changed.forEach(block -> block.setType(Material.AIR));
-        File journal = new File(regions.getOwner().getMetaInfo().getDataFolder(), "regions/terrain/" + region.getId().getName() + "/journal.json");
+        File journal = new File(regions.getOwner().getMetaInfo().getDataFolder(), "region-terrain/" + region.getId().getName() + "/journal.json");
         String[] recorded = new String[1];
         //the core writes a disk journal a second after its first change, off the main thread: wait that write out
         return ticks(JOURNAL_WRITE_TICKS).thenCompose(written -> {

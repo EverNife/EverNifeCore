@@ -184,7 +184,7 @@ public final class RegionTerrain {
     }
 
     /**
-     * Saves the bounding box of {@code region} as {@code <owner data>/regions/terrain/<region>/<stamp>.<ext>} on the
+     * Saves the bounding box of {@code region} as {@code <owner data>/region-terrain/<region>/<stamp>.<ext>} on the
      * world's thread, with the game version beside it, keeping the {@link #getSnapshotRetention()} newest and deleting
      * the older ones.
      *
@@ -527,7 +527,8 @@ public final class RegionTerrain {
     }
 
     private File terrainFolder(Region region) {
-        return new File(manager.getOwner().getMetaInfo().getDataFolder(), "regions/terrain/" + region.getId().getName());
+        //beside the regions folder, never in it: a grouped file store there refuses key files below its directory
+        return new File(manager.getOwner().getMetaInfo().getDataFolder(), "region-terrain/" + region.getId().getName());
     }
 
     private static TrackChangesSettings settingsOf(Region region) {

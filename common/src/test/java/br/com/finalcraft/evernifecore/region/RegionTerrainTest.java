@@ -16,6 +16,8 @@ import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.region.terrain.JournalPersistence;
 import br.com.finalcraft.evernifecore.region.terrain.RegionTerrain;
 import br.com.finalcraft.evernifecore.region.terrain.TerrainContent;
+import br.com.finalcraft.evernifecore.storage.ECStorage;
+import br.com.finalcraft.evernifecore.storage.config.BackendDefinition;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TestPlatform;
 import br.com.finalcraft.evernifecore.testing.TestTerrain;
@@ -149,6 +151,24 @@ class RegionTerrainTest extends ManagedRegionFixture {
         assertEquals("stone", terrain.getBlock(WORLD, 2, 10, 2));
     }
 
+    /** The grouped store refuses a directory with key files below it, and a journal is a {@code .json}, as a Hytale prefab is. */
+    @Test
+    void aDiskJournalLeavesAJsonStoreInTheRegionsFolderAbleToOpenAgain(TestPlatform platform) {
+        String regionsFolder = new File(owner.getMetaInfo().getDataFolder(), "regions").getPath();
+        ECStorage json = ECStorage.open(BackendDefinition.groupedFile(regionsFolder, BackendDefinition.FileFormat.JSON)).join();
+        RegionManager first = loaded(RegionManager.of(owner, json));
+        Region region = created(first.create("arena", WORLD, box(0, 0, 9, 9)));
+        first.getTerrain().track(region, new TrackChangesSettings().setPersistence(JournalPersistence.DISK));
+        breakThenPlace(platform.getTestTerrain(), 2, 10, 2, "dirt");
+        first.flush().join();
+        first.close().join();
+        json.close().join();
+
+        ECStorage reopened = track(ECStorage.open(BackendDefinition.groupedFile(regionsFolder, BackendDefinition.FileFormat.JSON)).join());
+        RegionManager second = loaded(RegionManager.of(owner, reopened));
+        assertEquals(1, second.getTerrain().getJournalSize(second.get("arena")));
+    }
+
     @Test
     void aMemoryJournalByDefaultWritesNoFileAndIsGoneAfterReopening(TestPlatform platform) throws Exception {
         TestTerrain terrain = platform.getTestTerrain();
@@ -160,7 +180,7 @@ class RegionTerrainTest extends ManagedRegionFixture {
         first.flush().join();
         first.close().join();
 
-        assertEquals(Collections.emptyList(), filesUnder(new File(owner.getMetaInfo().getDataFolder(), "regions/terrain").toPath()));
+        assertEquals(Collections.emptyList(), filesUnder(new File(owner.getMetaInfo().getDataFolder(), "region-terrain").toPath()));
         RegionManager second = manager();
         assertEquals(0, second.getTerrain().getJournalSize(second.get("arena")));
     }

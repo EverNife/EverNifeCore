@@ -1011,7 +1011,7 @@ public final class HyRegionsSuite implements ConformanceSuite {
     /** Journals the first {@code changes} positions, empties them, writes the journal to disk, and restores it. */
     private CompletableFuture<Verdict> gridJournal(World world, Region region, Vector3i min, int side, int changes, int budget) {
         String name = world.getName();
-        File journal = new File(regions.getOwner().getMetaInfo().getDataFolder(), "regions/terrain/" + region.getId().getName() + "/journal.json");
+        File journal = new File(regions.getOwner().getMetaInfo().getDataFolder(), "region-terrain/" + region.getId().getName() + "/journal.json");
         return HyWorld.on(world, () -> {
             long start = System.nanoTime();
             forEach(min, side, changes, (x, y, z) -> RegionTerrain.recordChange(name, x, y, z,

@@ -4,6 +4,6 @@ package br.com.finalcraft.evernifecore.region.terrain;
 public enum JournalPersistence {
     /** Only in memory: a restart or a crash forgets it. The default. */
     MEMORY,
-    /** Also in {@code <owner's data folder>/regions/terrain/<region>/journal.json}, written in batches and read back on load. */
+    /** Also in {@code <owner's data folder>/region-terrain/<region>/journal.json}, written in batches and read back on load. */
     DISK
 }
