@@ -75,7 +75,8 @@ public class GenericInventory {
     public void restoreTo(ItemContainer itemContainer){
         for (short i = 0; i < itemContainer.getCapacity(); i++) {
             ItemStack itemStack = getItem(i);
-            itemContainer.setItemStackForSlot(i, itemStack != null ? itemStack : ItemStack.EMPTY);
+            //unfiltered: an armor slot's add filter refuses the empty stack, and the piece would silently stay
+            itemContainer.setItemStackForSlot(i, itemStack != null ? itemStack : ItemStack.EMPTY, false);
         }
     }
 

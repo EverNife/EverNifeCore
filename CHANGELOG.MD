@@ -277,6 +277,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - `FCPlayerInventory` (Bukkit) keeps the off-hand (`offHand`, null before 1.9) and `restoreTo` no longer blanks it: the
   36-slot `setContents` emptied every slot after the main ones.
 
+#### Hytale
+
+- **Restoring an inventory now empties the armor slots.** `GenericInventory.restoreTo` went through the slot's add filter, which
+  refuses the empty stack: a held inventory never took the armor off, and a restore kept a piece the snapshot did not have.
+
 ## [3.0.1-alpha.71] - 2026-11-02
 
 ### Added

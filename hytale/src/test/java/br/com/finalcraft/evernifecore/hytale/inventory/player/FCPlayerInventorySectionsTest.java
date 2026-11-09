@@ -6,6 +6,8 @@ import com.hypixel.hytale.server.core.inventory.InventoryComponent;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.inventory.container.ItemContainer;
 import com.hypixel.hytale.server.core.inventory.container.SimpleItemContainer;
+import com.hypixel.hytale.server.core.inventory.container.filter.FilterActionType;
+import com.hypixel.hytale.server.core.inventory.container.filter.SlotFilter;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import org.junit.jupiter.api.Test;
 
@@ -247,6 +249,18 @@ class FCPlayerInventorySectionsTest {
             assertEquals(section.itemId, itemIdAt(section.container.apply(target), 0),
                     section + " did not survive a restore with no extra-inventory factories");
         }
+    }
+
+    /** An armor slot takes only its own piece, and the empty stack is not one: the filter must not keep what the snapshot does not hold. */
+    @Test
+    void aRestoreBlanksASlotWhoseFilterRefusesTheEmptyStack() {
+        FakeInventory target = new FakeInventory();
+        target.getArmor().setItemStackForSlot((short) 1, new FakeItemStack("worn"));
+        target.getArmor().setSlotFilter(FilterActionType.ADD, (short) 1, SlotFilter.DENY);
+
+        snapshotWithAnItemInEverySection().restoreSectionsTo(target);
+
+        assertNull(itemIdAt(target.getArmor(), 1), "a slot missing from the snapshot has to end up empty, filter or not");
     }
 
     /** Restoring means "leave it exactly like the snapshot", which is why a stray section is destructive. */
