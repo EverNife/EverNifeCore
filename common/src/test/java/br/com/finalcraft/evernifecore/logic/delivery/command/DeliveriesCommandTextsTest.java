@@ -171,6 +171,17 @@ class DeliveriesCommandTextsTest {
     }
 
     @Test
+    void anAdminListWhoseReadFailedReadsItsEditedErrorAndNotAnEmptyList() {
+        //no PlayerData layer booted: the read fails, and "nobody has any" would be a lie
+        assertAdminReads("CoreDeliveriesCommands.READ_FAILED", "§bBroken", "deliveries list fakeshop", "§bBroken");
+    }
+
+    @Test
+    void aPurgeWhoseReadFailedReadsItsEditedErrorAndNotAPurgeOfNothing() {
+        assertAdminReads("CoreDeliveriesCommands.PURGE_FAILED", "§bHalted", "deliveries purge fakeshop", "§bHalted");
+    }
+
+    @Test
     void aPurgeReadsItsEditedResult() throws IOException {
         enqueue("refund");
 

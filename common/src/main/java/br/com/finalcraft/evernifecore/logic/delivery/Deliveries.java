@@ -322,7 +322,8 @@ public final class Deliveries {
 
     /**
      * The deliveries from {@code pluginName} of every player who has one, loaded or not: the loaded players as they
-     * are now, the others as last stored.
+     * are now, the others as last stored. Fails when the stored ones cannot be read: a list of only the loaded players would
+     * read as "nobody else has any", and {@link #purge} would answer for a part of them.
      */
     public CompletableFuture<Map<UUID, List<Delivery>>> listFrom(String pluginName) {
         String plugin = pluginName.toLowerCase(Locale.ROOT);
@@ -335,11 +336,7 @@ public final class Deliveries {
         }
         // reason-detre: reads every stored deliveries row; an index on the origin plugin when servers grow past a quick scan
         return PlayerController.querySections(DeliveriesSection.class, Query.all(), QueryOptions.none())
-                .handle((rows, failure) -> {
-                    if (failure != null) {
-                        EverNifeCore.getLog().warning("The stored deliveries could not be read, so only the loaded players count: " + failure);
-                        return found;
-                    }
+                .thenApply(rows -> {
                     for (DeliveriesSection row : rows) {
                         if (PlayerController.getLoaded(row.getUniqueId()) == null) {
                             addFrom(found, row.getUniqueId(), row, plugin);
@@ -363,7 +360,8 @@ public final class Deliveries {
 
     /**
      * Removes every pending delivery from {@code pluginName}, of every player, posting PURGED for each and logging how
-     * many on the core's log; completes with how many went away.
+     * many on the core's log; completes with how many went away, and fails with nothing removed when the stored
+     * deliveries cannot be read.
      */
     public CompletableFuture<Integer> purge(String pluginName, Caller by) {
         String plugin = pluginName.toLowerCase(Locale.ROOT);

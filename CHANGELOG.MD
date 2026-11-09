@@ -209,6 +209,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 #### Deliveries
 
+- **`Deliveries.listFrom` fails when the stored deliveries cannot be read**, and so does `purge`, which then removes nothing:
+  the failure used to be a log line, and the admin read a list and a purge of only the loaded players.
 - **`claim <id>` of `DeliveriesCommandNode` takes an id**: `@Arg("<id|all>")` read as a closed list of the two words, so
   the parser refused every id and only `claim all` ever ran. It is `<id>` now, and `all` still claims everything.
 
