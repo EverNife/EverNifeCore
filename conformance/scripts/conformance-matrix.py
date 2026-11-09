@@ -27,7 +27,7 @@ import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 # Copied there by :conformance:minecraft:shadowJar from a public repository (version in libs.versions.toml)
@@ -84,8 +84,9 @@ GUI_WAIT = 5
 DROP_SCENARIOS = (("destroy", ("1", "")), ("lowest-cancel", ("1",)), ("normal-uncancel", ("1",)), ("deny-wins", ("1",)))
 # The region's listeners come up a tick after the arm, which is when the bot gets the stack: until then its hand is empty
 DROP_RETRIES = 20
-# What the core logs if a plugin's own command is still registered when it registers or leaves
+# What the core warns when it takes a command off: past a stop marker that is a plugin's own command outliving it
 COMMAND_REMOVAL = "Removing existent"
+STOP_MARKERS = ("Stopping server", "[HytaleServer] Shutting down")
 
 
 class FlavorFailed(Exception):
@@ -459,19 +460,38 @@ def throw_real_drops(mctf: Mctf, server_id: str, client_id: str, r: FlavorResult
         console(mctf, server_id, "ecc drop finish %s %s" % (scenario, BOT))
 
 
-def count_command_removals(logs_dir: Optional[str]) -> Optional[int]:
-    """Lines of COMMAND_REMOVAL in the logs a stop copied out, the rolled ones of the restart included; None when none was copied."""
-    logs = [p for p in Path(logs_dir).rglob("*") if p.is_file() and ".log" in p.name] if logs_dir else []
-    if not logs:
-        return None
-    return sum(line.count(COMMAND_REMOVAL) for log in logs for line in read_log(log).splitlines())
+def count_command_removals(logs_dir: Optional[str]) -> Optional[Tuple[int, List[str]]]:
+    """The WARN lines of COMMAND_REMOVAL past a stop marker, and those before one (a command taken from someone else at boot), over
+    each server log a stop copied out, the rolled ones of the restart included; None when no log shows a stop, which proves nothing.
+    container.log stays out: it runs across the restart, so the second boot would read as past the first stop."""
+    logs = [p for p in (Path(logs_dir) / "logs").rglob("*") if p.is_file() and ".log" in p.name] if logs_dir else []
+    at_stop, at_boot, stops = 0, [], 0
+    for log in logs:
+        stopping = False
+        for line in read_log(log).splitlines():
+            if any(marker in line for marker in STOP_MARKERS):
+                stopping = True
+                stops += 1
+            elif COMMAND_REMOVAL in line and "WARN" in line:
+                if stopping:
+                    at_stop += 1
+                else:
+                    at_boot.append(line[line.index(COMMAND_REMOVAL):])
+    return (at_stop, at_boot) if stops else None
 
 
-def note_stop(r: FlavorResult, stop: dict):
-    removals = count_command_removals(stop.get("logs_dir"))
-    r.notes.append("'%s' lines in the logs (boot, restart, stop): %s (logs_dir=%s)" % (COMMAND_REMOVAL, removals, stop.get("logs_dir")))
-    if removals:
-        r.problems.append("%d '%s' line(s): a plugin's command outlived its stop" % (removals, COMMAND_REMOVAL))
+def note_stop(mctf: Mctf, r: FlavorResult, stop: dict):
+    if mctf.dry_run:
+        return
+    counted = count_command_removals(stop.get("logs_dir"))
+    if counted is None:
+        r.problems.append("no copied log shows the stop, so nothing says a command did not outlive it (logs_dir=%s)" % stop.get("logs_dir"))
+        return
+    at_stop, at_boot = counted
+    r.notes.append("'%s' WARN lines past the stop: %d; before it, taken from others at boot: %s (logs_dir=%s)"
+                   % (COMMAND_REMOVAL, at_stop, sorted(set(at_boot)), stop.get("logs_dir")))
+    if at_stop:
+        r.problems.append("%d '%s' WARN line(s) past the stop: a plugin's command outlived it" % (at_stop, COMMAND_REMOVAL))
 
 
 def real_quit_and_login(mctf: Mctf, server_id: str, r: FlavorResult):
@@ -598,10 +618,11 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
         click_a_block(mctf, client_id, r)
         console(mctf, server_id, "ecc actions " + BOT)
         act_on_the_server(mctf, client_id, r)
-        throw_real_drops(mctf, server_id, client_id, r)
         console(mctf, server_id, "ecc run all --player %s --cid %s" % (BOT, cid["run"]))
         wait_suite_ends(mctf, server_id, cid["run"], r)
         log.lap("run")
+        throw_real_drops(mctf, server_id, client_id, r)
+        log.lap("real drops")
         console(mctf, server_id, "ecc write all --player %s --cid %s" % (BOT, cid["write"]))
         wait_suite_ends(mctf, server_id, cid["write"], r)
         log.lap("write")
@@ -664,7 +685,7 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
             if client_id:
                 mctf("mc_hmc_stop", client_id=client_id)
             if server_id:
-                note_stop(r, mctf("mc_stop", server_id=server_id))
+                note_stop(mctf, r, mctf("mc_stop", server_id=server_id))
         log.lap("stop")
         log.say("done in %.1fs; problems: %s" % (time.monotonic() - log.begun, r.problems or "none"))
     sel = suite_table(r.events).get("selection-click", {}).get("run")
@@ -797,7 +818,7 @@ def run_hytale_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> Flavor
         if server_id and not a.keep:
             stop = mctf("mc_stop", server_id=server_id)
             r.shutdown_reason = stop.get("shutdown_reason")
-            note_stop(r, stop)
+            note_stop(mctf, r, stop)
         log.lap("stop")
         log.say("done in %.1fs; problems: %s" % (time.monotonic() - log.begun, r.problems or "none"))
     if not mctf.dry_run:

@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.flag.Tristate;
+import br.com.finalcraft.evernifecore.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.group.DissolveCause;
 import br.com.finalcraft.evernifecore.group.Group;
@@ -119,8 +120,8 @@ public final class GroupCases {
 
     /**
      * {@code glow-members = TRUE} on the party: where the platform registers an {@link IGroupGlowProvider},
-     * {@code glowing} reads the player's native glow and must answer true; elsewhere {@code /ecore group} says the flag
-     * is unsupported. {@code expectSupported} is what this server's version should do.
+     * {@code glowing} reads the player's native glow and must answer true; elsewhere the registry calls the flag unsupported
+     * and {@code /ecore group} leaves it out. {@code expectSupported} is what this server's version should do.
      */
     public static Verdict glowMembers(ECPluginData plugin, FPlayer player, boolean expectSupported, Function<FPlayer, Boolean> glowing) {
         boolean supported = EverNifeCore.getProviders().getBaseProvider().provideOrNull(IGroupGlowProvider.class) != null;
@@ -130,9 +131,10 @@ public final class GroupCases {
             if (!supported) {
                 List<String> lines = new ArrayList<>();
                 CoreGroupCommands.show(capturing(lines), player);
-                boolean told = lines.stream().anyMatch(line -> line.contains("glow-members: unsupported on this platform"));
-                return Verdict.of(!expectSupported && told, "glow unsupported (expected " + (expectSupported ? "supported" : "unsupported")
-                        + "), told=" + told + " in " + lines);
+                boolean listed = lines.stream().anyMatch(line -> line.contains("glow-members"));
+                boolean registrySupports = FlagRegistry.get().isSupported(CoreFlags.GLOW_MEMBERS);
+                return Verdict.of(!expectSupported && !registrySupports && !listed, "glow unsupported (expected " + (expectSupported ? "supported" : "unsupported")
+                        + "), registrySupports=" + registrySupports + " listed=" + listed + " in " + lines);
             }
             Boolean glows = glowing.apply(player);
             return Verdict.of(expectSupported && Boolean.TRUE.equals(glows), "glow supported (expected "

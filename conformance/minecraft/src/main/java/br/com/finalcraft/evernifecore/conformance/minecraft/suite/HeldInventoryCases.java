@@ -74,12 +74,12 @@ final class HeldInventoryCases {
             FPlayer viewer = FCBukkitUtil.adapt(player);
             IPlayerStateAccess access = EverNifeCore.getPlatform().getPlayerState();
             fill(player);
-            String before = describe(player);
+            List<String> before = slots(player);
             HeldPlayerState.of(player.getUniqueId()).hold(HeldPlayerState.INVENTORY, HOLDER, "", p -> access.setInventory(p, ""),
                     HoldOptions.persistent().onQuit(QuitPolicy.keepFor(Duration.ofHours(1))), viewer);
             access.setInventory(viewer, "");
-            Files.write(tokenFile(ctx).toPath(), before.getBytes(StandardCharsets.UTF_8));
-            return Verdict.of(describe(player).isEmpty(), "held [" + before + "] during=[" + describe(player) + "]");
+            Files.write(tokenFile(ctx).toPath(), before, StandardCharsets.UTF_8);
+            return Verdict.of(slots(player).isEmpty(), "held " + before + " during=" + slots(player));
         });
     }
 
@@ -89,17 +89,18 @@ final class HeldInventoryCases {
             if (!token.isFile()) {
                 return CompletableFuture.completedFuture(Verdict.fail("no " + TOKEN_FILE + " - the write half never ran here"));
             }
-            String expected = new String(Files.readAllBytes(token.toPath()), StandardCharsets.UTF_8);
+            List<String> expected = Files.readAllLines(token.toPath(), StandardCharsets.UTF_8);
             CompletableFuture<Verdict> answer = new CompletableFuture<>();
             poll(player, expected, GIVE_BACK_POLLS, answer);
             return answer;
         });
     }
 
-    private static void poll(Player player, String expected, int left, CompletableFuture<Verdict> answer) {
-        String now = describe(player);
-        if (now.equals(expected) || left == 0) {
-            answer.complete(Verdict.of(now.equals(expected), "expected=[" + expected + "] after-join=[" + now + "]"));
+    /** Everything held has to be back; more than that is fine, since the login also claims what the run left pending. */
+    private static void poll(Player player, List<String> expected, int left, CompletableFuture<Verdict> answer) {
+        List<String> now = slots(player);
+        if (now.containsAll(expected) || left == 0) {
+            answer.complete(Verdict.of(now.containsAll(expected), "expected=" + expected + " after-join=" + now));
             return;
         }
         Bukkit.getScheduler().runTaskLater(Bukkit.getPluginManager().getPlugin("ECoreConformance"),
@@ -110,12 +111,11 @@ final class HeldInventoryCases {
         return new File(ctx.getDataFolder(), TOKEN_FILE);
     }
 
+    /** Beside what the player has: the item of the nbt suite's write half is read back after the restart, so the hold has to carry it too. */
     private static void fill(Player player) {
         PlayerInventory inventory = player.getInventory();
-        inventory.clear();
-        inventory.setArmorContents(new ItemStack[4]);
-        inventory.setItem(0, named(Material.IRON_SWORD, 1, "ECC held sword", "first lore line", "second lore line"));
-        inventory.setItem(9, new ItemStack(Material.COBBLESTONE, 7));
+        inventory.setItem(inventory.firstEmpty(), named(Material.IRON_SWORD, 1, "ECC held sword", "first lore line", "second lore line"));
+        inventory.setItem(inventory.firstEmpty(), new ItemStack(Material.COBBLESTONE, 7));
         inventory.setChestplate(named(Material.IRON_CHESTPLATE, 1, "ECC held chest", "worn"));
         if (MCVersion.isHigherEquals(MCDetailedVersion.v1_9_R1)) {
             inventory.setItem(40, named(Material.GOLD_INGOT, 3, "ECC held off hand", "off hand")); //by index: no getItemInOffHand before 1.9
@@ -133,6 +133,10 @@ final class HeldInventoryCases {
 
     /** Every slot with an item, in slot order: what comes back has to read the same. */
     private static String describe(Player player) {
+        return String.join(" ", slots(player));
+    }
+
+    private static List<String> slots(Player player) {
         PlayerInventory inventory = player.getInventory();
         List<String> slots = new ArrayList<>();
         ItemStack[] contents = inventory.getContents();
@@ -143,7 +147,7 @@ final class HeldInventoryCases {
         for (int slot = 0; slot < armor.length; slot++) {
             slots.addAll(line("armor" + slot, armor[slot]));
         }
-        return String.join(" ", slots);
+        return slots;
     }
 
     private static List<String> line(String slot, ItemStack stack) {

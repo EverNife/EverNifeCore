@@ -107,6 +107,32 @@ class ScriptedMctf(cm.Mctf):
         self.now += seconds
 
 
+class CommandRemovalCountTest(unittest.TestCase):
+    def count(self, **logs):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "logs").mkdir()
+            for name, text in logs.items():
+                (Path(d) / "logs" / (name + ".log")).write_text(text, encoding="utf-8")
+            return cm.count_command_removals(d)
+
+    def test_a_boot_takeover_is_not_a_command_outliving_the_stop(self):
+        boot = "[Server thread/WARN]: Removing existent command [biomeinfo] from Plugin: WorldEdit!\n"
+        self.assertEqual(self.count(latest=boot + "[INFO]: Stopping server\n"),
+                         (0, ["Removing existent command [biomeinfo] from Plugin: WorldEdit!"]))
+
+    def test_past_the_stop_only_a_warning_counts(self):
+        late = "[INFO]: Stopping server\n[WARN]: Removing existent command [mine]\n[DEBUG]: Removing existent command [own]\n"
+        self.assertEqual(self.count(latest=late), (1, []))
+
+    def test_each_log_stops_on_its_own(self):
+        self.assertEqual(self.count(previous="[INFO]: Stopping server\n", latest="[WARN]: Removing existent command [a]\n[INFO]: Stopping server\n"),
+                         (0, ["Removing existent command [a]"]))
+
+    def test_no_stop_proves_nothing(self):
+        self.assertIsNone(self.count(latest="[WARN]: Removing existent command [a]\n"))
+        self.assertIsNone(cm.count_command_removals(None))
+
+
 class ParallelTest(unittest.TestCase):
 
     def test_a_boot_refused_for_the_budget_is_asked_again_until_it_goes_through(self):

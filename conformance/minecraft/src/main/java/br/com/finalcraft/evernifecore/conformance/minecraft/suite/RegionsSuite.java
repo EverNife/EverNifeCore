@@ -152,7 +152,6 @@ public final class RegionsSuite implements ConformanceSuite {
                 PlayerCases.later("owner-only-pickup-refuses-the-hopper", ctx, this::ownerOnlyPickupRefusesTheHopper),
                 ConformanceCase.of("vehicle-listener-follows-need", () -> listenerFollowsNeed(CoreFlags.DENY_VEHICLE,
                         region -> region.setFlag(CoreFlags.DENY_VEHICLE, Tristate.TRUE), "VehicleActionListeners$BreakAndEnter"))));
-        cases.addAll(RealDropCases.cases(ctx));
         cases.addAll(new TerrainCases(regions).cases(ctx));
         cases.addAll(new FlagValueCases(regions).cases(ctx));
         return cases;
@@ -160,7 +159,10 @@ public final class RegionsSuite implements ConformanceSuite {
 
     @Override
     public List<ConformanceCase> getWriteCases(ConformanceContext ctx) {
-        return Collections.singletonList(ConformanceCase.later("write", () -> write(ctx)));
+        //read here, not in the run half: the throws come after it, or they leave the drop listener up through its idle time and item-drop-listener-follows-need finds it on
+        List<ConformanceCase> cases = new ArrayList<>(RealDropCases.cases(ctx));
+        cases.add(ConformanceCase.later("write", () -> write(ctx)));
+        return cases;
     }
 
     @Override
@@ -286,6 +288,8 @@ public final class RegionsSuite implements ConformanceSuite {
         Bukkit.getScheduler().runTaskLater(plugin(), () -> {
             PermissionAttachment noBypass = player.addAttachment(plugin());
             BYPASS_NODES.forEach(node -> noBypass.setPermission(node, false));
+            //the bot is an op: holding this node it bypasses the flag, and a drop nobody asked the flag about gets no owner
+            noBypass.setPermission("evernifecore.region.bypass.evernifecore.owner-only-pickup", false);
             Item owned = world.dropItem(at, new ItemStack(Material.STONE));
             Item free = world.dropItem(at, new ItemStack(Material.DIRT));
             try {
