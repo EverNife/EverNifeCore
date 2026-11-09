@@ -18,6 +18,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -191,6 +192,8 @@ public final class RealDropCases {
                 listeners.forEach(listener -> Bukkit.getPluginManager().registerEvents(listener, plugin()));
                 heard = ECEventBus.global().subscribe(DropActionEvent.Post.class, post -> posts[0]++);
                 player.getNearbyEntities(REACH, REACH, REACH).stream().filter(entity -> entity instanceof Item).forEach(Entity::remove);
+                //a zombie dying beside the bot during the throw would read as something on the ground (rotten flesh, on arclight-1.21.1)
+                player.getNearbyEntities(2 * REACH, 2 * REACH, 2 * REACH).stream().filter(entity -> entity instanceof LivingEntity && !(entity instanceof Player)).forEach(Entity::remove);
                 player.getInventory().clear();
                 player.getInventory().setHeldItemSlot(0);
                 player.getInventory().setItem(0, new ItemStack(Material.COBBLESTONE, DROP_STACK));
