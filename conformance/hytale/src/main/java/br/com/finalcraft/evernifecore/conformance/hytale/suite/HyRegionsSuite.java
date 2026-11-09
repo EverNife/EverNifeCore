@@ -77,6 +77,7 @@ import com.hypixel.hytale.server.core.io.handlers.game.InventoryPacketHandler;
 import com.hypixel.hytale.server.core.inventory.InventoryComponent;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.modules.entity.item.ItemComponent;
+import com.hypixel.hytale.server.core.entity.ItemUtils;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.inventory.container.ItemContainer;
 import com.hypixel.hytale.server.core.modules.block.components.ItemContainerBlock;
@@ -152,6 +153,7 @@ public final class HyRegionsSuite implements ConformanceSuite {
                 withPlayer("damage-multiplier-scales-damage", ctx, this::damageMultiplierScalesDamage),
                 withPlayer("deny-item-drop-inside-only", ctx, this::dropDeniedKeepsTheItem),
                 withPlayer("destroy-dropped-items-vanishes", ctx, this::destroyedDropVanishes),
+                withPlayer("destroy-dropped-items-keeps-an-unrequested-drop", ctx, this::unrequestedDropLands),
                 ConformanceCase.of("owner-only-pickup-is-not-supported", () -> Verdict.of(!FlagRegistry.get().isSupported(CoreFlags.OWNER_ONLY_PICKUP)
                         && CoreFlags.OWNER_ONLY_PICKUP.isRegistered(), "supported=" + FlagRegistry.get().isSupported(CoreFlags.OWNER_ONLY_PICKUP))),
                 withPlayer("deny-item-pickup-inside-only", ctx, player -> itemDeniedInsideOnly(player, "ecc-item-pickup", CoreFlags.DENY_ITEM_PICKUP,
@@ -328,6 +330,24 @@ public final class HyRegionsSuite implements ConformanceSuite {
                         int after = itemsAround(world, feet);
                         return Verdict.of(LEFT.equals(slot) && after == before[0], "slot=" + slot + " itemsAround=" + before[0] + "->" + after);
                     })))).thenCompose(verdict -> sweepItems(world, feet).thenApply(swept -> verdict));
+        });
+    }
+
+    /** A stack thrown with no request from the player, as a full inventory overflows, lands inside {@code destroy-dropped-items}: only a request vanishes. */
+    private CompletableFuture<Verdict> unrequestedDropLands(FPlayer fplayer) {
+        PlayerRef player = HyWorld.player(fplayer);
+        World world = HyWorld.worldOf(player);
+        return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(at -> {
+            Vector3i feet = block(at, 0, 0, 0);
+            int[] before = new int[1];
+            return HyWorld.on(world, () -> before[0] = itemsAround(world, feet)).thenCompose(counted -> inRegion(regions, "ecc-item-unrequested",
+                    world.getName(), pos(feet).add(-2, -2, -2), pos(feet).add(2, 3, 2),
+                    region -> region.setFlag(CoreFlags.DESTROY_DROPPED_ITEMS, Tristate.TRUE),
+                    region -> HyWorld.on(world, () -> ItemUtils.dropItem(player.getReference(), new ItemStack(SOLID, THROWN), world.getEntityStore().getStore()))
+                            .thenCompose(thrown -> HyWorld.ticks(world, 5)).thenCompose(waited -> HyWorld.on(world, () -> {
+                                int after = itemsAround(world, feet);
+                                return Verdict.of(after > before[0], "itemsAround=" + before[0] + "->" + after);
+                            })))).thenCompose(verdict -> sweepItems(world, feet).thenApply(swept -> verdict));
         });
     }
 
