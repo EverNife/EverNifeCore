@@ -136,16 +136,16 @@ public final class DeliveriesScreen extends Screen<DeliveriesScreen.DeliveriesLa
 
         //the item of each DeliveryIcon.Theme: placed nowhere, only lent to the entries (a Hytale renderer draws the hytale: candidate)
         @IconData(slot = {})
-        public Icon THEME_QUEST = Icon.of(ItemSpec.of("minecraft:book", 1), ItemSpec.of("hytale:Furniture_Chest", 1));
+        public Icon THEME_QUEST = Icon.of(ItemSpec.of("minecraft:book", 1), ItemSpec.of("hytale:Furniture_Crude_Chest_Small", 1));
 
         @IconData(slot = {})
         public Icon THEME_MONEY = Icon.of(ItemSpec.of("minecraft:gold_ingot", 1), ItemSpec.of("hytale:Ingredient_Bar_Iron", 1));
 
         @IconData(slot = {})
-        public Icon THEME_ITEM = Icon.of(ItemSpec.of("minecraft:ender_chest", 1), ItemSpec.of("hytale:Furniture_Chest", 1));
+        public Icon THEME_ITEM = Icon.of(ItemSpec.of("minecraft:ender_chest", 1), ItemSpec.of("hytale:Furniture_Crude_Chest_Small", 1));
 
         @IconData(slot = {})
-        public Icon THEME_COMMAND = Icon.of(ItemSpec.of("minecraft:command_block", 1), ItemSpec.of("hytale:Furniture_Chest", 1));
+        public Icon THEME_COMMAND = Icon.of(ItemSpec.of("minecraft:command_block", 1), ItemSpec.of("hytale:Furniture_Crude_Chest_Small", 1));
 
         @IconData(slot = {})
         public Icon THEME_AUCTION = Icon.of(ItemSpec.of("minecraft:emerald", 1), ItemSpec.of("hytale:Ingredient_Bar_Iron", 1));

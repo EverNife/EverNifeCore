@@ -29,6 +29,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -140,6 +142,18 @@ class DeliveriesScreenTest {
         assertEquals(1, ((DeliveriesScreen) view.getScreen()).getPending().size());
         assertNull(surface(view).getSlot(1), "the claimed one left the list");
         close(view);
+    }
+
+    /** The ids the Hytale server's own assets answered for: only a live server can tell an item from a name that looks like one. */
+    @Test
+    void everyThemeDrawsOnHytaleWithAnIdTheServerHasAsAnItem() throws Exception {
+        Set<String> known = new HashSet<>(Arrays.asList("hytale:Furniture_Crude_Chest_Small", "hytale:Ingredient_Bar_Iron", "hytale:Rock_Gem_Diamond"));
+        DeliveriesScreen.DeliveriesLayout layout = new DeliveriesScreen.DeliveriesLayout();
+        for (DeliveryIcon.Theme theme : DeliveryIcon.Theme.values()) {
+            Icon icon = (Icon) DeliveriesScreen.DeliveriesLayout.class.getField("THEME_" + theme).get(layout);
+            String hytale = icon.getFallbacks().stream().map(ItemSpec::getMaterialId).filter(id -> id.startsWith("hytale:")).findFirst().orElse(null);
+            assertTrue(known.contains(hytale), theme + " draws with " + hytale);
+        }
     }
 
     @Test

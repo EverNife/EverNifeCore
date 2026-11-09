@@ -201,6 +201,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+#### Deliveries
+
+- **The chest themes draw on Hytale**: `THEME_QUEST`, `THEME_ITEM` and `THEME_COMMAND` named `hytale:Furniture_Chest`, which the
+  server has no item for. They now name `hytale:Furniture_Crude_Chest_Small`; a layout file already written keeps the old id until it is edited.
+
 #### Regions
 
 - **`deny-item-drop` on Hytale keeps the item with the dropper**: it denied `DropItemEvent.Drop`, which the server fires
