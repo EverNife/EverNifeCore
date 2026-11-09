@@ -30,10 +30,6 @@ import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.spawn.SpawnPoints;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -129,7 +125,7 @@ public final class ECoreTestWorld implements AutoCloseable {
             if (registered != null) {
                 world.inventoryOwner = registered;
             } else {
-                world.inventoryOwner = Plugins.fakeCore(tempFolder("ecore-test-inventory"));
+                world.inventoryOwner = Plugins.fakeCore(TestTempFolders.getSharedFolder("ecore-test-inventory").toFile());
                 Plugins.forget(Plugins.CORE);
             }
             DeliveryDestinations.register(world.inventoryOwner, platform.testInventory);
@@ -290,7 +286,7 @@ public final class ECoreTestWorld implements AutoCloseable {
         ECBaseProvider providers = EverNifeCore.getProviders().getBaseProvider();
         providers.register(IPlatform.class, Platforms.lenient().build());
         try {
-            EverNifeCore.instance.onLoaderInstantiate(Plugins.fakeCore(tempFolder("ecore-test-core")));
+            EverNifeCore.instance.onLoaderInstantiate(Plugins.fakeCore(TestTempFolders.getSharedFolder("ecore-test-core").toFile()));
             Plugins.forget(Plugins.CORE);
         } finally {
             providers.register(IPlatform.class, platform);
@@ -306,14 +302,6 @@ public final class ECoreTestWorld implements AutoCloseable {
         EverNifeCore.getEcPluginData().setDebugEnabled(true);
         for (String name : names.split(",")) {
             ECDebugModule.valueOf(name.trim().toUpperCase(Locale.ROOT)).setEnabled(true);
-        }
-    }
-
-    private static File tempFolder(String prefix) {
-        try {
-            return Files.createTempDirectory(prefix).toFile();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
         }
     }
 

@@ -27,6 +27,7 @@ import br.com.finalcraft.evernifecore.region.shape.WorldShape;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.Senders;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
+import br.com.finalcraft.evernifecore.testing.TestTempFolders;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import jakarta.annotation.Nullable;
 import org.junit.jupiter.api.AfterAll;
@@ -38,7 +39,6 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.nio.file.Files;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -104,7 +104,7 @@ class RegionResolveTest {
 
     @BeforeAll
     void registerStock() throws Exception {
-        core = Plugins.fakePluginData(CORE, Files.createTempDirectory("resolve-stock").toFile());
+        core = Plugins.fakePluginData(CORE, TestTempFolders.createFolder("resolve-stock").toFile());
         CoreFlags.registerAll(core);
     }
 
@@ -122,7 +122,7 @@ class RegionResolveTest {
     void setUp() throws Exception {
         previousGrid = RegionGridOptions.getCurrent();
         RegionGridOptions.setCurrent(RegionGridOptions.MINECRAFT_LEGACY);
-        owner = Plugins.fakePluginData(OWNER, Files.createTempDirectory("resolve").toFile());
+        owner = Plugins.fakePluginData(OWNER, TestTempFolders.createFolder("resolve").toFile());
         index = new RegionIndex();
         lookup = new RegionLookup(index);
         flag = new DenyThing(owner, "deny-thing", true);

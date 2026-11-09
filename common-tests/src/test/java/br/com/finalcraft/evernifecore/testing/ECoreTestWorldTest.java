@@ -15,11 +15,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -77,6 +79,20 @@ class ECoreTestWorldTest {
             }
         } finally {
             TestClock.release();
+        }
+    }
+
+    @Test
+    void worldsWithoutACoreReuseOneCoreFolder() {
+        EverNifeCore.instance.onLoaderInstantiate(null);
+        File first;
+        try (ECoreTestWorld world = Platforms.lenient().install()) {
+            first = EverNifeCore.getEcPluginData().getMetaInfo().getDataFolder();
+        }
+        assertNull(EverNifeCore.getEcPluginData(), "the world took its core out");
+
+        try (ECoreTestWorld world = Platforms.lenient().install()) {
+            assertEquals(first, EverNifeCore.getEcPluginData().getMetaInfo().getDataFolder());
         }
     }
 

@@ -14,6 +14,7 @@ import br.com.finalcraft.evernifecore.region.session.MoveCause;
 import br.com.finalcraft.evernifecore.testing.Actors;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
+import br.com.finalcraft.evernifecore.testing.TestTempFolders;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -22,7 +23,6 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.nio.file.Files;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
@@ -75,7 +75,7 @@ class CoreFlagsTest {
 
     @BeforeAll
     void registerCore() throws Exception {
-        core = Plugins.fakePluginData(CORE, Files.createTempDirectory("core-flags").toFile());
+        core = Plugins.fakePluginData(CORE, TestTempFolders.createFolder("core-flags").toFile());
         CoreFlags.registerAll(core);
     }
 
