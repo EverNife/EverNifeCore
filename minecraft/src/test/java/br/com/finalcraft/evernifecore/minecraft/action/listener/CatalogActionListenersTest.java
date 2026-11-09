@@ -139,9 +139,13 @@ class CatalogActionListenersTest {
     /** Runs {@code body} hearing every {@code DropActionEvent.Post}, each described when it is heard, with what the entity held then. */
     private static List<String> postsDuring(Item entity, Runnable body) {
         List<String> posts = new ArrayList<>();
-        ECEventSubscription<DropActionEvent.Post> heard = ECEventBus.global().subscribe(DropActionEvent.Post.class, post -> posts.add(
-                post.getContext().getItemKey() + " x" + post.getContext().getAmount() + " spec x" + post.getContext().getItem().getAmount()
-                        + " entity " + entity.getItemStack().getType()));
+        ECEventSubscription<DropActionEvent.Post> heard = ECEventBus.global().subscribe(DropActionEvent.Post.class, post -> {
+            //counted before it is read: the bus swallows a subscriber's exception, and a Post of an empty entity cannot be read
+            int index = posts.size();
+            posts.add("unreadable");
+            posts.set(index, post.getContext().getItemKey() + " x" + post.getContext().getAmount() + " spec x" + post.getContext().getItem().getAmount()
+                    + " entity " + entity.getItemStack().getType());
+        });
         try {
             body.run();
         } finally {
