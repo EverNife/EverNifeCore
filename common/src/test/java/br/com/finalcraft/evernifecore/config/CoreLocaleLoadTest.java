@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.logic.command.CoreLogicCommands;
 import br.com.finalcraft.evernifecore.logic.delivery.command.CoreDeliveriesCommands;
 import br.com.finalcraft.evernifecore.logic.delivery.command.DeliveriesCommandNode;
 import br.com.finalcraft.evernifecore.quest.screen.QuestOfferScreen;
+import br.com.finalcraft.evernifecore.region.command.CoreRegionCommands;
 import br.com.finalcraft.evernifecore.screen.Choice;
 import br.com.finalcraft.evernifecore.screen.ConfirmScreen;
 import br.com.finalcraft.evernifecore.screen.DeliveriesScreen;
@@ -40,7 +41,7 @@ class CoreLocaleLoadTest {
     @Test
     void theBootsListReachesEveryMessageOfTheToolsInBothLanguages() throws IllegalAccessException {
         List<Class<?>> tools = Arrays.asList(DeliveriesCommandNode.class, CoreDeliveriesCommands.class, CoreScreenCommands.class,
-                CoreLogicCommands.class, AuditCommandNode.class, CoreGroupCommands.class,
+                CoreLogicCommands.class, AuditCommandNode.class, CoreGroupCommands.class, CoreRegionCommands.class,
                 CoreDialogueCommands.class, PromptRegistry.class, Choice.class, DeliveriesScreen.class, ConfirmScreen.class, QuestOfferScreen.class);
         assertTrue(Arrays.asList(ConfigManager.CORE_LOCALE_CLASSES).containsAll(tools), Arrays.toString(ConfigManager.CORE_LOCALE_CLASSES));
 

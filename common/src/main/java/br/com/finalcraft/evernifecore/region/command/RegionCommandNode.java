@@ -737,7 +737,7 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
             groupDone(sender, target, "priority " + group.getPriority() + ", permission " + (group.getPermission() == null ? "-" : group.getPermission()));
             for (GroupMember member : group.getMembers()) {
                 Duration left = member.getRemaining();
-                sender.sendMessage(" §7member §f" + member.getUuid() + (left == null ? "" : " §7(" + CoreRegionCommands.remaining(left) + ")"));
+                sender.sendMessage(" §7member §f" + member.getUuid() + (left == null ? "" : " §7(" + CoreRegionCommands.remaining(sender, left) + ")"));
             }
             for (Flag<?> flag : FlagRegistry.get().getSupported()) {
                 Object value = group.getFlag(flag);

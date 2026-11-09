@@ -89,18 +89,18 @@ public final class CoreGroupCommands {
         if (member != null) {
             String roles = member.getRoles().stream().map(GroupRole::getName).collect(Collectors.joining(", "));
             (member.getExpiresAt() == null ? MEMBER_LINE_NEVER_EXPIRES : MEMBER_LINE).custom().addPlaceholder("roles", roles.isEmpty() ? "-" : roles)
-                    .addPlaceholder("since", member.getJoinedAt()).addPlaceholder("expires", expiry(member.getExpiresAt())).send(sender);
+                    .addPlaceholder("since", member.getJoinedAt()).addPlaceholder("expires", expiry(sender, member.getExpiresAt())).send(sender);
         }
         for (Map.Entry<FlagKey, FlagValue<?>> entry : FlagRegistry.get().supportedOf(group.getFlags()).entrySet()) {
             FlagValue<?> value = entry.getValue();
             (value.getExpiresAt() == null ? FLAG_LINE : FLAG_LINE_EXPIRING).custom().addPlaceholder("flag", entry.getKey())
                     .addPlaceholder("value", value.getValue()).addPlaceholder("group", group.getId())
-                    .addPlaceholder("expires", expiry(value.getExpiresAt())).send(sender);
+                    .addPlaceholder("expires", expiry(sender, value.getExpiresAt())).send(sender);
         }
     }
 
-    private static String expiry(Instant at) {
-        return at == null ? "" : at + " (" + CoreRegionCommands.remaining(Duration.between(ECClock.now(), at)) + ")";
+    private static String expiry(FCommandSender viewer, Instant at) {
+        return at == null ? "" : at + " (" + CoreRegionCommands.remaining(viewer, Duration.between(ECClock.now(), at)) + ")";
     }
 
     private static String nameOf(UUID uuid) {

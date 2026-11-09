@@ -250,7 +250,7 @@ public class GroupCommandNode implements VerbPermissionBase {
             Duration left = member.getRemaining();
             String roles = member.getRoles().stream().map(GroupRole::getName).collect(Collectors.joining(", "));
             sender.sendMessage(" §7member §f" + nameOf(member.getUuid()) + (roles.isEmpty() ? "" : " §7[" + roles + "]")
-                    + (left == null ? "" : " §7(" + CoreRegionCommands.remaining(left) + ")"));
+                    + (left == null ? "" : " §7(" + CoreRegionCommands.remaining(sender, left) + ")"));
         }
         group.getInvites().forEach(invite -> sender.sendMessage(" §7invite §f" + nameOf(invite.getPlayer()) + " §7(until "
                 + invite.getExpiresAt() + ")"));

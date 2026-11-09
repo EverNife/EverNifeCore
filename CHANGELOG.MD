@@ -114,6 +114,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 #### Regions
 
+- **The time left in the region and group commands reads from the locale** (`CoreRegionCommands.REMAINING`, `${time} left`);
+  `CoreRegionCommands.remaining` now takes the viewer.
 - **A flag the platform cannot serve is silent and out of sight** (`FlagRegistry.isSupported`, derived from what the
   platform declared: no source it needs is raised, one of `getRequiredSources()` is not, a capability is missing, or it
   refines another flag only for actors never classified). It logs nothing at boot, leaves the completions and the flag

@@ -66,6 +66,13 @@ public class CoreRegionCommands {
     @FCLocale(lang = LocaleType.PT_BR, text = "§6Flags que valem aqui, para §e${player}§6:")
     public static LocaleMessage HERE_FLAGS_HEADER;
 
+    @FCLocale(lang = LocaleType.EN_US, text = "${time} left")
+    @FCLocale(lang = LocaleType.PT_BR, text = "resta ${time}")
+    public static LocaleMessage REMAINING;
+
+    //what a time left reads when nothing loaded this class's locale: a command node of a plugin's test calls it with only its own loaded
+    private static final String REMAINING_NOT_LOADED = "[time left text not loaded]";
+
     private static final Map<String, PageViewer<Region>> LIST_PAGES = new ConcurrentHashMap<>();
 
     @FinalCMD.SubCMD(subcmd = "here", locales = {
@@ -152,14 +159,14 @@ public class CoreRegionCommands {
         sender.sendMessage("§7priority: §f" + region.getPriority() + " §7parent: §f" + (parent == null ? "-" : parent.getId().toString()));
         Instant expiresAt = region.getExpiresAt();
         sender.sendMessage("§7persistence: §f" + region.getPersistence() + " §7expires: §f"
-                + (expiresAt == null ? "never" : expiresAt + " (" + remaining(Duration.between(ECClock.now(), expiresAt)) + ")"));
+                + (expiresAt == null ? "never" : expiresAt + " (" + remaining(sender, Duration.between(ECClock.now(), expiresAt)) + ")"));
         sender.sendMessage("§7foreign edits: §f" + (region.getManager().isForeignAccessAllowed() ? "accepted" : "refused by the owner"));
 
         Map<FlagKey, FlagValue<?>> listed = FlagRegistry.get().supportedOf(region.getFlags());
         sender.sendMessage("§7flags: §f" + listed.size());
         for (Map.Entry<FlagKey, FlagValue<?>> entry : listed.entrySet()) {
             Flag<?> flag = FlagRegistry.get().get(entry.getKey());
-            StringBuilder line = new StringBuilder(" §7- §f" + entry.getKey() + " §7= §e" + valueText(flag, entry.getValue()));
+            StringBuilder line = new StringBuilder(" §7- §f" + entry.getKey() + " §7= §e" + valueText(sender, flag, entry.getValue()));
             String envelope = entry.getValue().describeEnvelope();
             if (!envelope.isEmpty()) {
                 line.append(" §7").append(envelope);
@@ -207,10 +214,10 @@ public class CoreRegionCommands {
                     + " §7check §f" + group.getMembershipCheck().toText());
             for (GroupMember member : group.getMembers()) {
                 Duration left = member.getRemaining();
-                sender.sendMessage("    §7member §f" + member.getUuid() + (left == null ? "" : " §7(" + remaining(left) + ")"));
+                sender.sendMessage("    §7member §f" + member.getUuid() + (left == null ? "" : " §7(" + remaining(sender, left) + ")"));
             }
             for (Map.Entry<FlagKey, FlagValue<?>> entry : FlagRegistry.get().supportedOf(group.getFlags()).entrySet()) {
-                sender.sendMessage("    §7flag §f" + entry.getKey() + " §7= §e" + valueText(FlagRegistry.get().get(entry.getKey()), entry.getValue()));
+                sender.sendMessage("    §7flag §f" + entry.getKey() + " §7= §e" + valueText(sender, FlagRegistry.get().get(entry.getKey()), entry.getValue()));
             }
         }
         sender.sendMessage("§7tags: §f" + (region.getTags().isEmpty() ? "-" : String.join(", ", region.getTags())));
@@ -274,7 +281,7 @@ public class CoreRegionCommands {
         return pos.getWorldName() + " " + (int) Math.floor(pos.getX()) + " " + (int) Math.floor(pos.getY()) + " " + (int) Math.floor(pos.getZ());
     }
 
-    private static String valueText(@Nullable Flag<?> flag, FlagValue<?> value) {
+    private static String valueText(FCommandSender viewer, @Nullable Flag<?> flag, FlagValue<?> value) {
         String text = flag == null ? String.valueOf(value.getValue()) : FlagValues.format(flag, value.getValue());
         for (Object part : value.getValue() instanceof List ? (List<?>) value.getValue() : Collections.singletonList(value.getValue())) {
             String pending = part instanceof FlagDefinition ? ((FlagDefinition<?>) part).getPendingType() : null;
@@ -283,11 +290,14 @@ public class CoreRegionCommands {
             }
         }
         Duration left = value.getRemaining();
-        return left == null ? text : text + " §7(" + remaining(left) + ")";
+        return left == null ? text : text + " §7(" + remaining(viewer, left) + ")";
     }
 
-    /** Internal: how a time left reads in the region and group commands, {@code 5m left}. */
-    public static String remaining(Duration left) {
-        return FCTimeFrame.of(Math.max(0, left.toMillis())).toConfigString() + " left";
+    /** Internal: how a time left reads to {@code viewer} in the region and group commands, {@code 5m left}. */
+    public static String remaining(@Nullable FCommandSender viewer, Duration left) {
+        if (REMAINING == null) {
+            return REMAINING_NOT_LOADED;
+        }
+        return REMAINING.getFancyText(viewer).getText().replace("${time}", FCTimeFrame.of(Math.max(0, left.toMillis())).toConfigString());
     }
 }
