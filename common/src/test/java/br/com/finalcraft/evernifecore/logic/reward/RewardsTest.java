@@ -35,6 +35,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -265,6 +266,62 @@ class RewardsTest {
         await(deliveries.claimAll(Senders.player("Bob", offline)));
 
         assertEquals(Collections.singletonList("Bob: kit vip"), commands());
+    }
+
+    /** The command with {@code delay: 2s}, and its player gone when the delay ends. */
+    private List<AuditEntry> delayedCommandWhosePlayerLeft(TestFPlayerSender player, String keys) {
+        ExecutionContext context = duel.context(player).build();
+        Effects.apply(context, Effects.parse(duel.getOwner(),
+                node("{'type': 'command', 'command': 'say {player-uuid}', 'delay': '2s'" + keys + "}"), ZoneOffset.UTC));
+        duel.quit(player);
+        duel.advance(Duration.ofSeconds(2));
+        duel.runDue();
+        return context.getAudit().getEntries();
+    }
+
+    @Test
+    void aDelayedSkipWhosePlayerLeftRunsNothingKeepsNothingAndAuditsTheSkip() {
+        TestFPlayerSender leaver = duel.player("Leaver");
+
+        List<AuditEntry> audit = delayedCommandWhosePlayerLeft(leaver, ", 'offline': 'skip'");
+
+        assertEquals(Collections.emptyList(), commands());
+        assertTrue(pending(leaver.getUniqueId()).isEmpty(), "skip does not become a delivery");
+        assertEquals(1, audit.stream().filter(entry -> entry.getKind() == AuditKind.EFFECT_SKIPPED).count(), audit.toString());
+        assertTrue(audit.stream().noneMatch(entry -> entry.getKind() == AuditKind.DEFERRED_DROPPED), audit.toString());
+    }
+
+    @Test
+    void aDelayedRunWhosePlayerLeftRunsNow() {
+        TestFPlayerSender leaver = duel.player("Leaver");
+
+        delayedCommandWhosePlayerLeft(leaver, "");
+
+        assertEquals(Collections.singletonList("console: say " + leaver.getUniqueId()), commands());
+        assertTrue(pending(leaver.getUniqueId()).isEmpty());
+    }
+
+    @Test
+    void aDelayedOnLoginWhosePlayerLeftWaitsAsOneDelivery() {
+        TestFPlayerSender leaver = duel.player("Leaver");
+
+        delayedCommandWhosePlayerLeft(leaver, ", 'offline': 'on-login'");
+
+        assertEquals(Collections.emptyList(), commands());
+        assertEquals(1, pending(leaver.getUniqueId()).size());
+    }
+
+    @Test
+    void aDelayedCommandWhosePlayerStayedRunsWithThem() {
+        TestFPlayerSender stayer = duel.player("Stayer");
+        ExecutionContext context = duel.context(stayer).build();
+        Effects.apply(context, Effects.parse(duel.getOwner(),
+                node("{'type': 'command', 'command': 'say {player}', 'delay': '2s', 'offline': 'skip'}"), ZoneOffset.UTC));
+
+        duel.advance(Duration.ofSeconds(2));
+        duel.runDue();
+
+        assertEquals(Collections.singletonList("console: say Stayer"), commands());
     }
 
     @Test

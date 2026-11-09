@@ -123,7 +123,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   audits the new `AuditKind.EFFECT_SKIPPED`; `on-login` waits as a delivery and resolves `{player}` at the claim.
   `as: player` without `offline` waits; `offline: run` with `as: player` is refused on load. A context with no player
   owner runs as before. `{player}` resolves offline in every text, and `{player-uuid}` is new. A command that needs the
-  player in the world (`give`, `tp`) writes `on-login` or `skip`: the server does not report the miss.
+  player in the world (`give`, `tp`) writes `on-login` or `skip`: the server does not report the miss. A `delay:` that ends
+  with the player gone obeys the same `offline`, instead of always waiting as a delivery (`Effect.decidesAbsence`).
 - **`Rewards.pay` records each share's effects in the caller's `AuditLog`**, so a failed or skipped one is readable there.
 - **`Deliveries.enqueue(recipient, origin, policy, ttl, icon, effects)` and `keepFor(ctx, policy, ttl, icon, node)`**
   take the `@Nullable DeliveryIcon` the delivery is drawn with; the core's own leftovers pass none.
@@ -217,11 +218,6 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `ConfirmScreen.CANNOT_CONFIRM` and `QuestOfferScreen.NOT_STARTED` declared `%x%` keys, which never match, so the player
   read the `%delivered%` raw. The texts now read `${delivered}`, `${kept}`, `${missing}` and `${why}`; a language file
   written before this keeps the old text until it is edited.
-
-#### Logic
-
-- **A `command` effect for an offline member waits for the login**: with `Absence.deliver()` it ran at once with
-  `{player}` unresolved; it is now kept as a pending delivery and runs on the claim with the member's name.
 
 #### Groups
 

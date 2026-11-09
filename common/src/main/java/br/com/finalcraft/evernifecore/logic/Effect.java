@@ -30,6 +30,14 @@ public interface Effect {
     }
 
     /**
+     * Whether, run with no player and the absent player as its owner, it decides by itself what an absence means (a command
+     * has {@code offline:}). A delayed effect whose player left then runs so; any other waits or is dropped by the {@link DeferredEffects}.
+     */
+    default boolean decidesAbsence() {
+        return false;
+    }
+
+    /**
      * This effect with its amount multiplied by {@code share}, to split it among several players; one without an amount
      * goes whole, which is this default.
      */

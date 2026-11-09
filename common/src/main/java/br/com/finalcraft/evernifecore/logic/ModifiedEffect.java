@@ -75,7 +75,7 @@ final class ModifiedEffect implements Effect {
         }
     }
 
-    /** A delayed run: the player is looked up again, and a player who left never gets the effect. */
+    /** A delayed run: the player is looked up again, and a player who left never gets the effect, unless it {@link Effect#decidesAbsence decides that itself}. */
     private void fire(ExecutionContext run) {
         FPlayer player = run.getPlayer();
         if (player == null) {
@@ -85,7 +85,9 @@ final class ModifiedEffect implements Effect {
         UUID id = player.getUniqueId();
         FPlayer now = EverNifeCore.getPlatform().getPlayer(id);
         if (now == null || !now.isOnline()) {
-            if (node == null) {
+            if (effect.decidesAbsence()) {
+                Effects.apply(run.derive().player(null).owner(ProgressOwner.player(id)).build(), effect);
+            } else if (node == null) {
                 DeferredEffects.dropShare(run, effect, id);
             } else {
                 DeferredEffects.get().defer(run, effect, node, id);

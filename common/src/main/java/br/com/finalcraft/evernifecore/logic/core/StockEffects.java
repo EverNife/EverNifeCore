@@ -259,6 +259,11 @@ final class StockEffects {
         }
 
         @Override
+        public boolean decidesAbsence() {
+            return true;
+        }
+
+        @Override
         public String toString() {
             return "command(" + command + ")";
         }
