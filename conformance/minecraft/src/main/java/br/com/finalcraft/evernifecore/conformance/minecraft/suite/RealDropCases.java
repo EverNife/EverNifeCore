@@ -128,7 +128,7 @@ public final class RealDropCases {
         private final List<String> samples = new ArrayList<>();
         private final List<Sample> reads = new ArrayList<>();
         private int[] posts = new int[1];
-        private int spawned;
+        private final Map<String, Integer> spawned = new TreeMap<>();
         private Region region;
         private ECEventSubscription<DropActionEvent.Post> heard;
         private PermissionAttachment noBypass;
@@ -158,7 +158,12 @@ public final class RealDropCases {
             listeners.add(new Listener() {
                 @EventHandler(priority = EventPriority.MONITOR)
                 public void onSpawn(ItemSpawnEvent event) {
-                    spawned++;
+                    //the whole world spawns items too: only what can be this throw counts, and an uncancelled drop of air can spawn as air
+                    Material type = event.getEntity().getItemStack().getType();
+                    if ((type == Material.COBBLESTONE || type == Material.AIR) && event.getLocation().getWorld().equals(player.getWorld())
+                            && event.getLocation().distance(player.getLocation()) <= REACH) {
+                        spawned.merge(type.name(), 1, Integer::sum);
+                    }
                 }
             });
             if (scenario == Scenario.LOWEST_CANCEL) {
@@ -195,7 +200,7 @@ public final class RealDropCases {
         }
 
         private String sample() {
-            Sample read = new Sample(inventory(), ground(), spawned, posts[0]);
+            Sample read = new Sample(inventory(), ground(), new TreeMap<>(spawned), posts[0]);
             reads.add(read);
             samples.add(read.toString());
             return "sample " + read;
@@ -232,10 +237,10 @@ public final class RealDropCases {
             switch (scenario) {
                 case DESTROY:
                     return Verdict.of(reads.size() == 2 && reads.get(0).holds(DROP_STACK - 1) && reads.get(0).ground.isEmpty()
-                            && last.inventory.isEmpty() && last.ground.isEmpty() && last.spawned == 0 && last.posts == 2, detail);
+                            && last.inventory.isEmpty() && last.ground.isEmpty() && last.spawned.isEmpty() && last.posts == 2, detail);
                 case LOWEST_CANCEL:
                 case DENY_WINS:
-                    return Verdict.of(last.holds(DROP_STACK) && last.ground.isEmpty() && last.spawned == 0 && last.posts == 0, detail);
+                    return Verdict.of(last.holds(DROP_STACK) && last.ground.isEmpty() && last.spawned.isEmpty() && last.posts == 0, detail);
                 default:
                     //whatever the era does with an uncancelled drop of air, nothing comes out of it that was not there before
                     return Verdict.of(last.units() <= DROP_STACK && last.onlyCobblestone(), detail);
@@ -272,10 +277,10 @@ public final class RealDropCases {
 
         private final Map<String, Integer> inventory;
         private final Map<String, Integer> ground;
-        private final int spawned;
+        private final Map<String, Integer> spawned;
         private final int posts;
 
-        private Sample(Map<String, Integer> inventory, Map<String, Integer> ground, int spawned, int posts) {
+        private Sample(Map<String, Integer> inventory, Map<String, Integer> ground, Map<String, Integer> spawned, int posts) {
             this.inventory = inventory;
             this.ground = ground;
             this.spawned = spawned;

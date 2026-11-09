@@ -107,6 +107,13 @@ class ScriptedMctf(cm.Mctf):
         self.now += seconds
 
 
+class EnabledTest(unittest.TestCase):
+    def test_an_enabled_plugin_counts_with_or_without_its_version(self):
+        self.assertEqual(cm.routed_but_not_enabled(["EverNife:ECoreConformance"], [cm.HYTALE_PLUGIN_ID]), [])
+        self.assertEqual(cm.routed_but_not_enabled(["EverNife:ECoreConformance@3.0.1"], [cm.HYTALE_PLUGIN_ID]), [])
+        self.assertEqual(cm.routed_but_not_enabled(["Hytale:Universe"], [cm.HYTALE_PLUGIN_ID]), [cm.HYTALE_PLUGIN_ID])
+
+
 class CommandRemovalCountTest(unittest.TestCase):
     def count(self, **logs):
         with tempfile.TemporaryDirectory() as d:

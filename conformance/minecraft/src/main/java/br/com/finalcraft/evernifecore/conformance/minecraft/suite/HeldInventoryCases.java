@@ -73,13 +73,15 @@ final class HeldInventoryCases {
         return PlayerCases.of("held-inventory-write", ctx, player -> {
             FPlayer viewer = FCBukkitUtil.adapt(player);
             IPlayerStateAccess access = EverNifeCore.getPlatform().getPlayerState();
+            List<String> others = slots(player);
             fill(player);
-            List<String> before = slots(player);
+            List<String> own = new ArrayList<>(slots(player));
+            own.removeAll(others);
             HeldPlayerState.of(player.getUniqueId()).hold(HeldPlayerState.INVENTORY, HOLDER, "", p -> access.setInventory(p, ""),
                     HoldOptions.persistent().onQuit(QuitPolicy.keepFor(Duration.ofHours(1))), viewer);
             access.setInventory(viewer, "");
-            Files.write(tokenFile(ctx).toPath(), before, StandardCharsets.UTF_8);
-            return Verdict.of(slots(player).isEmpty(), "held " + before + " during=" + slots(player));
+            Files.write(tokenFile(ctx).toPath(), own, StandardCharsets.UTF_8);
+            return Verdict.of(slots(player).isEmpty(), "held " + own + " beside " + others.size() + " other slots, during=" + slots(player));
         });
     }
 
@@ -96,7 +98,10 @@ final class HeldInventoryCases {
         });
     }
 
-    /** Everything held has to be back; more than that is fine, since the login also claims what the run left pending. */
+    /**
+     * What this case put in has to be back; the other slots are not its to judge, since the login also claims what the run left pending
+     * (a diamond lands on the diamond held), and the nbt suite reads its own item.
+     */
     private static void poll(Player player, List<String> expected, int left, CompletableFuture<Verdict> answer) {
         List<String> now = slots(player);
         if (now.containsAll(expected) || left == 0) {

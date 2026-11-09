@@ -48,7 +48,7 @@ CLIENT_FOR = {
 HYBRIDS = {"crucible-1.7.10", "mohist-1.12.2", "mohist-1.16.5", "arclight-1.21.1"}
 # No headless client there: the player is the harness's synthetic one, and every jar goes into mods/
 HYTALE = {"hytale-0.7.1"}
-HYTALE_PLUGIN_ID = "EverNife:ECoreConformance@3.0.1"
+HYTALE_PLUGIN_ID = "EverNife:ECoreConformance"
 HYTALE_SUITES = 9
 # Texts the Hytale regions suite sets as deny-message, read back from what the player received
 ENTRY_MESSAGE = "ECC entry denied"
@@ -67,7 +67,7 @@ EXPECTED_ENDS = {"run": len(SUITE_ORDER) - 1, "write": 3, "read": 3}
 WAIT_SECONDS = {"run": 300, "write": 180, "read": 180}
 TEXT_LINES = ("iiiiiiiiii", "WWWWWWWWWW")
 BOT = "EccBot"
-PLUGIN_ID = "ECoreConformance@3.0.1"
+PLUGIN_ID = "ECoreConformance"
 # The daemon refuses a boot past its container or memory budget; with every flavor at once that is a wait, not a failure
 START_TOOLS = ("mc_start", "mc_hmc_start")
 LIMIT_CODES = ("START_LIMIT_REACHED", "CLIENT_LIMIT_REACHED")
@@ -145,7 +145,8 @@ def suite_table(events: List[dict]) -> Dict[str, Dict[str, dict]]:
 
 
 def routed_but_not_enabled(enabled: List[str], routed: List[str]) -> List[str]:
-    """Plugin names routed into the server that did not come up - a broken fixture, not a suite verdict."""
+    """Plugin names routed into the server that did not come up - a broken fixture, not a suite verdict. An enabled entry
+    carries @version only when the harness answered in time; read off the log, the daemon has just the name."""
     up = {e.split("@", 1)[0] for e in enabled}
     return [name for name in routed if name not in up]
 
@@ -602,7 +603,7 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
 
         boot = mctf("mc_status", server_id=server_id)
         enabled = (boot.get("plugins") or {}).get("enabled") or []
-        if PLUGIN_ID not in enabled:
+        if routed_but_not_enabled(enabled, [PLUGIN_ID]):
             raise FlavorFailed("%s not enabled; plugins=%s" % (PLUGIN_ID, boot.get("plugins")))
         dead = routed_but_not_enabled(enabled, ["WorldEdit"] + (["PlaceholderAPI"] if flavor in a.papi_flavors else []))
         if dead:
@@ -789,7 +790,7 @@ def run_hytale_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> Flavor
         if not start.get("ok"):
             raise FlavorFailed("mc_start: " + _err(start))
         enabled = (start.get("plugins") or {}).get("enabled") or []
-        if HYTALE_PLUGIN_ID not in enabled and not mctf.dry_run:
+        if routed_but_not_enabled(enabled, [HYTALE_PLUGIN_ID]) and not mctf.dry_run:
             raise FlavorFailed("%s not enabled; plugins=%s" % (HYTALE_PLUGIN_ID, start.get("plugins")))
         r.booted = True
         run_dir = start.get("run_dir")
