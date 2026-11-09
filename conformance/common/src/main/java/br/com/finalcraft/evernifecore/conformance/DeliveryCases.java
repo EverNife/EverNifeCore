@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.item.ItemMatcher;
 import br.com.finalcraft.evernifecore.logic.Caller;
 import br.com.finalcraft.evernifecore.logic.Effects;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
+import br.com.finalcraft.evernifecore.logic.ProgressOwner;
 import br.com.finalcraft.evernifecore.logic.audit.AuditKind;
 import br.com.finalcraft.evernifecore.logic.delivery.Deliveries;
 import br.com.finalcraft.evernifecore.logic.delivery.Delivery;
@@ -24,8 +25,9 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * The pending deliveries on a live server, both platforms: a {@code give-item} that fits lands in the player's native
- * inventory, and one that finds the inventory full becomes a delivery from the case's caller. Each case runs on the
- * player's thread and gives the inventory back as it found it.
+ * inventory, and one that finds the inventory full becomes a delivery from the case's caller; a {@code command} for an
+ * owner the context has no player of runs now or waits, as its {@code offline} says. Each case runs on the player's
+ * thread and gives the inventory back as it found it.
  */
 public final class DeliveryCases {
 
@@ -33,6 +35,7 @@ public final class DeliveryCases {
     public static final String EMITTER = "conformance/deliveries";
     private static final long TIMEOUT_MILLIS = 10_000;
     private static final ObjectMapper JSON = new ObjectMapper();
+    private static volatile CompletableFuture<String> commandProbe = new CompletableFuture<>();
 
     private DeliveryCases() {
     }
@@ -100,6 +103,64 @@ public final class DeliveryCases {
                             Verdict.of(mine.size() == 1 && purged >= 1 && audit.isEmpty(), "item=" + itemId + " held-when-full=" + fullCount
                                     + " pending-from-case=" + mine + " purged=" + purged + audit));
                 });
+    }
+
+    /** What the plugin's probe subcommand calls when it runs: the case reads the name the command reached it with. */
+    public static void answerCommandProbe(String name) {
+        commandProbe.complete(name);
+    }
+
+    /**
+     * A {@code command} for an owner the context has no player of runs now and leaves nothing pending. The owner is the
+     * live player, so the name the server saw is a real one; {@code probe} is the command that ends in
+     * {@link #answerCommandProbe}.
+     */
+    public static CompletableFuture<Verdict> commandOfflineRunsNow(ECPluginData plugin, FPlayer player, String probe) throws Exception {
+        CompletableFuture<String> reached = newProbe();
+        ExecutionContext ctx = offlineCommand(plugin, player, "{\"type\": \"command\", \"command\": \"" + probe + " {player}\"}");
+        return reached.thenCompose(name -> Deliveries.get().listOf(player.getUniqueId()).thenApply(pending -> {
+            List<Delivery> mine = fromThisCase(plugin, pending);
+            return Verdict.of(player.getName().equals(name) && mine.isEmpty() && failures(ctx).isEmpty(),
+                    "reached-with=" + name + " pending-from-case=" + mine + failures(ctx));
+        }));
+    }
+
+    /**
+     * A {@code command} with {@code offline: on-login} does not run: it is one delivery from the case's caller, and
+     * claiming that delivery with the player online is what runs it, with the player's name.
+     */
+    public static CompletableFuture<Verdict> commandOfflineOnLoginWaits(ECPluginData plugin, FPlayer player, String probe) throws Exception {
+        CompletableFuture<String> reached = newProbe();
+        CompletableFuture<Delivery> enqueued = new CompletableFuture<>();
+        ECEventSubscription<DeliveryEvent> watch = ECEventBus.global().subscribe(DeliveryEvent.class, event -> {
+            if (event.getKind() == DeliveryEvent.Kind.ENQUEUED && event.getDelivery().getRecipient().equals(player.getUniqueId())) {
+                enqueued.complete(event.getDelivery());
+            }
+        });
+        ECScheduler.scheduleAsync(() -> enqueued.completeExceptionally(new IllegalStateException("no delivery was enqueued within "
+                + TIMEOUT_MILLIS + "ms")), TIMEOUT_MILLIS);
+        ExecutionContext ctx = offlineCommand(plugin, player, "{\"type\": \"command\", \"command\": \"" + probe + " {player}\","
+                + " \"offline\": \"on-login\"}");
+        return enqueued.whenComplete((delivery, failed) -> watch.unsubscribe()).thenCompose(delivery -> {
+            boolean waited = !reached.isDone();
+            return Deliveries.get().claim(player, delivery.getId()).thenCompose(claimed -> reached).thenApply(name ->
+                    Verdict.of(waited && player.getName().equals(name) && failures(ctx).isEmpty(), "ran-before-the-claim=" + !waited
+                            + " reached-with=" + name + failures(ctx)));
+        });
+    }
+
+    private static CompletableFuture<String> newProbe() {
+        CompletableFuture<String> probe = new CompletableFuture<>();
+        commandProbe = probe;
+        ECScheduler.scheduleAsync(() -> probe.completeExceptionally(new IllegalStateException("the command did not reach the probe within "
+                + TIMEOUT_MILLIS + "ms")), TIMEOUT_MILLIS);
+        return probe;
+    }
+
+    private static ExecutionContext offlineCommand(ECPluginData plugin, FPlayer owner, String json) throws Exception {
+        ExecutionContext ctx = ExecutionContext.builder(Caller.of(plugin, EMITTER)).owner(ProgressOwner.player(owner.getUniqueId())).build();
+        Effects.apply(ctx, Effects.parse(plugin, JSON.readTree(json), Window.getServerZone()));
+        return ctx;
     }
 
     private static ExecutionContext giveItem(ECPluginData plugin, FPlayer player, String itemId, int amount) throws Exception {

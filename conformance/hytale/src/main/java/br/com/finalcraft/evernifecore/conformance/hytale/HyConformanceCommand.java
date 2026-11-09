@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.conformance.ConformanceCase;
 import br.com.finalcraft.evernifecore.conformance.ConformanceContext;
 import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
+import br.com.finalcraft.evernifecore.conformance.DeliveryCases;
 import br.com.finalcraft.evernifecore.conformance.MarkerLine;
 import br.com.finalcraft.evernifecore.conformance.RunIds;
 import br.com.finalcraft.evernifecore.conformance.SuiteRunner;
@@ -65,6 +66,11 @@ public class HyConformanceCommand {
     @FinalCMD.SubCMD(subcmd = "whoami")
     public void whoami(FPlayer player, @Arg("<token>") String token) {
         HyPlatformSuite.answerWhoami(token, player);
+    }
+
+    @FinalCMD.SubCMD(subcmd = "command-probe")
+    public void commandProbe(FCommandSender sender, @Arg("<name>") String name) {
+        DeliveryCases.answerCommandProbe(name);
     }
 
     @FinalCMD.SubCMD(subcmd = "screen")

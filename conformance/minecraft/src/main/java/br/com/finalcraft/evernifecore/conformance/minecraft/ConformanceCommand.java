@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.conformance.ConformanceCase;
 import br.com.finalcraft.evernifecore.conformance.ConformanceContext;
 import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
+import br.com.finalcraft.evernifecore.conformance.DeliveryCases;
 import br.com.finalcraft.evernifecore.conformance.MarkerLine;
 import br.com.finalcraft.evernifecore.conformance.RunIds;
 import br.com.finalcraft.evernifecore.conformance.SuiteRunner;
@@ -82,6 +83,11 @@ public class ConformanceCommand {
     public void run(FCommandSender sender, @Arg("<suite>") String suite,
                     @Arg.Flag("--player") FPlayer player, @Arg.Flag("--cid") String cid) {
         execute(sender, suite, player, cid, "run", ConformanceSuite::getCases);
+    }
+
+    @FinalCMD.SubCMD(subcmd = "command-probe")
+    public void commandProbe(FCommandSender sender, @Arg("<name>") String name) {
+        DeliveryCases.answerCommandProbe(name);
     }
 
     @FinalCMD.SubCMD(subcmd = "write")

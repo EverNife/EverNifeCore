@@ -35,6 +35,7 @@ public final class HyDeliveriesSuite implements ConformanceSuite {
     private static final String ITEM = "hytale:" + ASSET;
     /** More than every slot holds, so adding it leaves each slot full. */
     private static final int OVERFLOW = 100_000;
+    private static final String PROBE = "ecc command-probe";
 
     private final ECPluginData plugin;
 
@@ -53,7 +54,9 @@ public final class HyDeliveriesSuite implements ConformanceSuite {
                 onWorld("inventory-fits", ctx, player -> () -> DeliveryCases.inventoryFits(plugin, player, ITEM, 10, inventoryOf(player))),
                 onWorld("inventory-full-goes-pending", ctx, player -> () -> DeliveryCases.inventoryFullGoesPending(plugin, player, ITEM,
                         inventoryOf(player))),
-                onWorld("inventory-readers", ctx, player -> () -> CompletableFuture.completedFuture(inventoryReaders(player))));
+                onWorld("inventory-readers", ctx, player -> () -> CompletableFuture.completedFuture(inventoryReaders(player))),
+                onWorld("command-offline-runs-now", ctx, player -> () -> DeliveryCases.commandOfflineRunsNow(plugin, player, PROBE)),
+                onWorld("command-offline-on-login-waits", ctx, player -> () -> DeliveryCases.commandOfflineOnLoginWaits(plugin, player, PROBE)));
     }
 
     /**

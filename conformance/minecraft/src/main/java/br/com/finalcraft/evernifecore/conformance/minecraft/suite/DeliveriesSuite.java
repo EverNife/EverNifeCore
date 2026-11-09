@@ -22,6 +22,7 @@ public final class DeliveriesSuite implements ConformanceSuite {
 
     private static final String ITEM = "minecraft:diamond";
     private static final int MAIN_SLOTS = 36;
+    private static final String PROBE = "ecc command-probe";
 
     private final ECPluginData plugin;
 
@@ -40,7 +41,11 @@ public final class DeliveriesSuite implements ConformanceSuite {
                 PlayerCases.later("inventory-fits", ctx, player -> PlayerCases.within(
                         DeliveryCases.inventoryFits(plugin, ctx.getPlayerOrNull(), ITEM, 64, inventoryOf(player)), 15_000)),
                 PlayerCases.later("inventory-full-goes-pending", ctx, player -> PlayerCases.within(
-                        DeliveryCases.inventoryFullGoesPending(plugin, ctx.getPlayerOrNull(), ITEM, inventoryOf(player)), 15_000)));
+                        DeliveryCases.inventoryFullGoesPending(plugin, ctx.getPlayerOrNull(), ITEM, inventoryOf(player)), 15_000)),
+                PlayerCases.later("command-offline-runs-now", ctx, player -> PlayerCases.within(
+                        DeliveryCases.commandOfflineRunsNow(plugin, ctx.getPlayerOrNull(), PROBE), 15_000)),
+                PlayerCases.later("command-offline-on-login-waits", ctx, player -> PlayerCases.within(
+                        DeliveryCases.commandOfflineOnLoginWaits(plugin, ctx.getPlayerOrNull(), PROBE), 15_000)));
     }
 
     private static DeliveryCases.NativeInventory inventoryOf(Player player) {
