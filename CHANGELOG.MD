@@ -105,6 +105,20 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **`LayoutDiff` returns data and `/ecore screen diff` says it in the core's language**: `Entry.getDetail()` is
   `getOrigin()`, `getStateCount()`, `getLanguages()` and `getPermission()`; `getWarnings()` is `getUnreadableSlots()` and
   `getSlotDisputes()`, which names a group as `[group]`.
+- **The ranking marks the viewer's row with a core locale message**: the `{marker}` of `RankingLayout.ENTRY` was a fixed
+  green arrow; it is now `RankingScreen.SELF_MARKER` (en_US, pt_BR, same arrow by default), in the viewer's language and
+  editable in the core's language file.
+- **The confirmation's display item sits where `ConfirmLayout.DISPLAY` says**: it was placed at the computed centre;
+  `DISPLAY` (slot 13, the same centre on the 3-row default, written into an existing `ConfirmLayout.yml` by itself)
+  now holds the place, drawn only when the request has a display item, and a name or lore written on it replaces the
+  item's. A child layout with more rows now finds it at slot 13 too, until its file moves it.
+
+- **`/ecore screen` speaks the core locale**: `CoreScreenCommands` moved to en_US and pt_BR messages and joined the boot's
+  list; `LayoutDiff`'s own details and warnings stay as the diff writes them.
+
+- **A prompt's refusal without a reason and the colours of a `Choice` live in the core's language file**:
+  `PromptRegistry.REFUSED_WITHOUT_REASON`, `Choice.ENABLED_NAME_COLOUR`, `DISABLED_NAME_COLOUR` and `COST_LINE`
+  (`${costs}`), with the same green, grey and grey by default. `ScreenWorld` and `BukkitScreenWorld` load them.
 
 #### Logic
 
@@ -147,23 +161,6 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `CoreDeliveriesCommands` (en_US, pt_BR), one message per sentence. `DeliveriesCommandNode.line(Delivery)` left the
   public API: a line now depends on who reads it.
 
-#### Screens
-
-- **The ranking marks the viewer's row with a core locale message**: the `{marker}` of `RankingLayout.ENTRY` was a fixed
-  green arrow; it is now `RankingScreen.SELF_MARKER` (en_US, pt_BR, same arrow by default), in the viewer's language and
-  editable in the core's language file.
-- **The confirmation's display item sits where `ConfirmLayout.DISPLAY` says**: it was placed at the computed centre;
-  `DISPLAY` (slot 13, the same centre on the 3-row default, written into an existing `ConfirmLayout.yml` by itself)
-  now holds the place, drawn only when the request has a display item, and a name or lore written on it replaces the
-  item's. A child layout with more rows now finds it at slot 13 too, until its file moves it.
-
-- **`/ecore screen` speaks the core locale**: `CoreScreenCommands` moved to en_US and pt_BR messages and joined the boot's
-  list; `LayoutDiff`'s own details and warnings stay as the diff writes them.
-
-- **A prompt's refusal without a reason and the colours of a `Choice` live in the core's language file**:
-  `PromptRegistry.REFUSED_WITHOUT_REASON`, `Choice.ENABLED_NAME_COLOUR`, `DISABLED_NAME_COLOUR` and `COST_LINE`
-  (`${costs}`), with the same green, grey and grey by default. `ScreenWorld` and `BukkitScreenWorld` load them.
-
 #### Dialogues
 
 - **The dialogue speaker is drawn in the layout's format**: `DialogueScreen` coloured the speaker and the line itself;
@@ -199,6 +196,20 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   loaded: a server stop mid-hold used to wait in the backup for a region that may never come. A slot a region holds is not written over, in either order.
 - An inventory held in `memory()` whose give-back the platform refused lands in the backup for the next join, instead of being lost.
 
+#### Commands
+
+- **Unregistering a plugin's own command logs at debug**, not WARN: every stop takes each command and alias off the
+  map, which broke any "WARN = 0" check over a whole log. Removing another plugin's or the server's command still warns.
+
+#### Build and dependencies
+
+- **The test engine owns its temp folders**: `TestTempFolders` (`common-tests`) keeps one root per JVM,
+  `<java.io.tmpdir>/evernifecore-tests/jvm-*`, where `@TempDirNobodyCleans` and `ECoreTestWorld` now create theirs; the core
+  of a test world and its inventory owner keep one folder per JVM instead of one per world. A JVM deletes its own root on
+  exit, and the next one deletes roots older than 1 hour. A plugin gets this by recompiling, with no build setting. The
+  `Test` tasks of this repository still point `java.io.tmpdir` at their own `build/tmp/<task>`, emptied before each run.
+- **Hytale Server 0.7.6** (`hytale-server` in the catalog). No code change; a walked-over pickup still raises no event.
+
 ### Fixed
 
 #### Deliveries
@@ -207,6 +218,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   ran before it took the delivery with its `give-item` landing nowhere. The login claim now waits for `IPlayerStateAccess.runWhenWritable`.
 - **The chest themes draw on Hytale**: `THEME_QUEST`, `THEME_ITEM` and `THEME_COMMAND` named `hytale:Furniture_Chest`, which the
   server has no item for. They now name `hytale:Furniture_Crude_Chest_Small`; a layout file already written keeps the old id until it is edited.
+- **`Deliveries.listFrom` fails when the stored deliveries cannot be read**, and so does `purge`, which then removes nothing:
+  the failure used to be a log line, and the admin read a list and a purge of only the loaded players.
+- **`claim <id>` of `DeliveriesCommandNode` takes an id**: `@Arg("<id|all>")` read as a closed list of the two words, so
+  the parser refused every id and only `claim all` ever ran. It is `<id>` now, and `all` still claims everything.
 
 #### Regions
 
@@ -227,13 +242,6 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **The confirmation of a confirmed offer speaks the core locale**: "Buy/Sell `<goods>` for `<price>`?" was hardcoded
   English; it is now `Transactions`' `CONFIRM_BUY`/`CONFIRM_SELL` (en_US, pt_BR), in the trading context's language and
   editable in the core's language file like the other trade texts.
-
-#### Deliveries
-
-- **`Deliveries.listFrom` fails when the stored deliveries cannot be read**, and so does `purge`, which then removes nothing:
-  the failure used to be a log line, and the admin read a list and a purge of only the loaded players.
-- **`claim <id>` of `DeliveriesCommandNode` takes an id**: `@Arg("<id|all>")` read as a closed list of the two words, so
-  the parser refused every id and only `claim all` ever ran. It is `<id>` now, and `all` still claims everything.
 
 #### Screens
 
@@ -264,22 +272,6 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 - `FCPlayerInventory` (Bukkit) keeps the off-hand (`offHand`, null before 1.9) and `restoreTo` no longer blanks it: the
   36-slot `setContents` emptied every slot after the main ones.
-
-### Changed
-
-#### Commands
-
-- **Unregistering a plugin's own command logs at debug**, not WARN: every stop takes each command and alias off the
-  map, which broke any "WARN = 0" check over a whole log. Removing another plugin's or the server's command still warns.
-
-#### Build and dependencies
-
-- **The test engine owns its temp folders**: `TestTempFolders` (`common-tests`) keeps one root per JVM,
-  `<java.io.tmpdir>/evernifecore-tests/jvm-*`, where `@TempDirNobodyCleans` and `ECoreTestWorld` now create theirs; the core
-  of a test world and its inventory owner keep one folder per JVM instead of one per world. A JVM deletes its own root on
-  exit, and the next one deletes roots older than 1 hour. A plugin gets this by recompiling, with no build setting. The
-  `Test` tasks of this repository still point `java.io.tmpdir` at their own `build/tmp/<task>`, emptied before each run.
-- **Hytale Server 0.7.6** (`hytale-server` in the catalog). No code change; a walked-over pickup still raises no event.
 
 ## [3.0.1-alpha.71] - 2026-11-02
 
