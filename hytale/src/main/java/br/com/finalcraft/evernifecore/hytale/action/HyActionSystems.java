@@ -106,6 +106,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -338,10 +339,37 @@ public final class HyActionSystems {
             return judge(source, world, event, context);
         }
         if (event instanceof DropItemEvent.PlayerRequest) {
-            return judgeDropRequest(world, event, context);
+            boolean denied = judgeDropRequest(world, event, context);
+            if (!event.isCancelled()) {
+                expectDrop(actor, store.getExternalData().getWorld());
+            }
+            return denied;
         }
-        judgeDrop(world, event, context);
+        judgeDrop(world, event, context, takeExpectedDrop(actor));
         return false;
+    }
+
+    /** Who has a request let through, waiting for the {@code Drop} it turns into. */
+    private static final Set<Ref<EntityStore>> EXPECTED_DROPS = ConcurrentHashMap.newKeySet();
+
+    /**
+     * The server's drop handler fires the {@code Drop} of a request inside the same task of the world's queue, or none at
+     * all (a section, slot or item it refuses), so the expectation dies with that task.
+     */
+    // reason-detre: a request refused after this point stays expected until its task ends, and a Drop of another path queued
+    // ahead of the clearing task would be taken for it; a request id on the server's Drop event would close it
+    static void expectDrop(Ref<EntityStore> player, Executor world) {
+        try {
+            world.execute(() -> EXPECTED_DROPS.remove(player));
+            EXPECTED_DROPS.add(player);
+        } catch (RuntimeException stopping) {
+            //a world that takes no task is going down: its drop lands like one nobody asked for
+        }
+    }
+
+    /** Whether {@code player} has a request waiting for this {@code Drop}; a request answers for one drop only. */
+    static boolean takeExpectedDrop(Ref<EntityStore> player) {
+        return EXPECTED_DROPS.remove(player);
     }
 
     /**
@@ -356,16 +384,21 @@ public final class HyActionSystems {
     }
 
     /**
-     * The stack has left the inventory ({@code DropItemEvent.Drop}): it is never denied here - a cancelled drop spawns no
-     * item and gives nothing back, so the denial belongs to {@link #judgeDropRequest}. The {@code Post} is posted, and a drop
-     * a flag marked ({@link ItemContext#isItemDestroyed()}) with nothing denying it is cancelled after it: the item vanishes.
+     * A stack leaves for the ground ({@code DropItemEvent.Drop}): it is never denied here - a cancelled drop spawns no
+     * item and gives nothing back, so the denial belongs to {@link #judgeDropRequest}. The {@code Post} is posted for every
+     * drop. One the player {@code requested}, that a flag marked ({@link ItemContext#isItemDestroyed()}) with nothing
+     * denying it, is cancelled after it: the item vanishes. Any other Drop lands: an NPC's, a command's, what a full
+     * inventory overflows and a creative player's throw from the palette have no request, and cost the player nothing.
      */
-    static void judgeDrop(String world, ICancellableEcsEvent event, Supplier<ItemContext> context) {
+    static void judgeDrop(String world, ICancellableEcsEvent event, Supplier<ItemContext> context, boolean requested) {
         if (!EventSourceUsage.get().isNeeded(EventSource.ITEM_DROP) || event.isCancelled() || HyActionContexts.isDisabled(world)) {
             return;
         }
-        ItemContext asked = context.get();
-        boolean destroyed = RegionLookup.get().decide(asked) != Decision.DENY && asked.isItemDestroyed();
+        boolean destroyed = false;
+        if (requested) {
+            ItemContext asked = context.get();
+            destroyed = RegionLookup.get().decide(asked) != Decision.DENY && asked.isItemDestroyed();
+        }
         Actions.post(EventSource.ITEM_DROP, context);
         if (destroyed) {
             event.setCancelled(true);

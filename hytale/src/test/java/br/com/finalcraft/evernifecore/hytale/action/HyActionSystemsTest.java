@@ -44,6 +44,7 @@ import com.hypixel.hytale.server.core.inventory.MaterialQuantity;
 import org.joml.Vector3d;
 import java.util.UUID;
 import java.util.function.Supplier;
+import br.com.finalcraft.evernifecore.action.event.DropActionEvent;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.action.EventSource;
@@ -381,7 +382,7 @@ class HyActionSystemsTest {
         DropItemEvent.Drop drop = new DropItemEvent.Drop(null, 0f);
 
         HyActionSystems.judgeDrop(WORLD, drop, () -> new ItemContext(EventSource.ITEM_DROP,
-                HyActionContexts.position(WORLD, new Vector3i(5, 5, 5)), player, drop, stick, 1, null, null));
+                HyActionContexts.position(WORLD, new Vector3i(5, 5, 5)), player, drop, stick, 1, null, null), true);
 
         assertFalse(drop.isCancelled(), "a cancelled Drop spawns nothing and gives nothing back: the item would be lost");
     }
@@ -409,11 +410,53 @@ class HyActionSystemsTest {
         DropItemEvent.Drop outside = new DropItemEvent.Drop(null, 0f);
 
         HyActionSystems.judgeDrop(WORLD, inside, () -> new ItemContext(EventSource.ITEM_DROP,
-                HyActionContexts.position(WORLD, new Vector3i(5, 5, 5)), player, inside, stick, 1, null, null));
+                HyActionContexts.position(WORLD, new Vector3i(5, 5, 5)), player, inside, stick, 1, null, null), true);
         HyActionSystems.judgeDrop(WORLD, outside, () -> new ItemContext(EventSource.ITEM_DROP,
-                HyActionContexts.position(WORLD, new Vector3i(50, 5, 50)), player, outside, stick, 1, null, null));
+                HyActionContexts.position(WORLD, new Vector3i(50, 5, 50)), player, outside, stick, 1, null, null), true);
         assertTrue(inside.isCancelled(), "the stack already left the inventory: a cancelled drop spawns nothing");
         assertFalse(outside.isCancelled());
+    }
+
+    @Test
+    void onlyTheDropOfARequestIsDestroyedAndEveryDropPostsItsPost() {
+        FlagRegistry.get().register(core, CoreFlags.DESTROY_DROPPED_ITEMS);
+        vault(CoreFlags.DESTROY_DROPPED_ITEMS);
+        Actor player = HyActionContexts.actor(miner, null, null, null);
+        TypeKey stick = HyActionContexts.key("Ingredient_Stick");
+        Ref<EntityStore> dropper = new Ref<>(null);
+        DropItemEvent.Drop requested = new DropItemEvent.Drop(null, 0f);
+        DropItemEvent.Drop overflow = new DropItemEvent.Drop(null, 0f);
+        List<DropActionEvent.Post> posts = new ArrayList<>();
+        ECEventSubscription<DropActionEvent.Post> heard = ECEventBus.global().subscribe(DropActionEvent.Post.class, posts::add);
+        try {
+            HyActionSystems.expectDrop(dropper, task -> {
+            });
+            HyActionSystems.judgeDrop(WORLD, requested, () -> new ItemContext(EventSource.ITEM_DROP, HyActionContexts.position(WORLD, new Vector3i(5, 5, 5)),
+                    player, requested, stick, 1, null, null), HyActionSystems.takeExpectedDrop(dropper));
+            HyActionSystems.judgeDrop(WORLD, overflow, () -> new ItemContext(EventSource.ITEM_DROP, HyActionContexts.position(WORLD, new Vector3i(5, 5, 5)),
+                    player, overflow, stick, 1, null, null), HyActionSystems.takeExpectedDrop(dropper));
+        } finally {
+            heard.unsubscribe();
+        }
+
+        assertTrue(requested.isCancelled());
+        assertFalse(overflow.isCancelled(), "a request answers for one drop: what comes after it nobody asked for, and it lands");
+        assertEquals(2, posts.size(), "a quest of drops counts both");
+    }
+
+    @Test
+    void aRequestThatNeverBecameADropExpiresWithItsTaskAndAStoppedWorldExpectsNothing() {
+        Ref<EntityStore> dropper = new Ref<>(null);
+        List<Runnable> queue = new ArrayList<>();
+
+        HyActionSystems.expectDrop(dropper, queue::add);
+        queue.forEach(Runnable::run);
+        assertFalse(HyActionSystems.takeExpectedDrop(dropper), "the handler's task ended with no Drop");
+
+        HyActionSystems.expectDrop(dropper, task -> {
+            throw new IllegalThreadStateException("the world takes no task");
+        });
+        assertFalse(HyActionSystems.takeExpectedDrop(dropper));
     }
 
     @Test

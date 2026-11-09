@@ -35,7 +35,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `DropActionEvent.Post` with the real item, empties the entity to AIR and cancels `PlayerDropItemEvent`. So a plugin at
   `NORMAL` or later reads a cancelled drop of AIR and can no longer save the item; one that cancels at `LOWEST` still
   keeps it with the player; one that uncancels gets no second `Post`; a Forge mod's `ItemTossEvent` does not fire for it.
-  Hytale cancels `DropItemEvent.Drop`, which fires once the stack has left the inventory.
+  Hytale cancels the `DropItemEvent.Drop` of a `PlayerRequest`, once the stack has left the inventory; a `Drop` with no
+  request (an NPC, a command, a full inventory's overflow, a creative throw from the palette) lands and still posts its `Post`.
 - **`owner-only-pickup`** (core flag; `ITEM_DROP`, `ITEM_PICKUP` and the new `ITEM_HOPPER_PICKUP`): an item dropped in the
   region can be picked up there only by whoever dropped it, and no hopper or hopper minecart pulls it; `only`/`except`
   narrow it to some items, and it rules where the item lies now. The drop marks the owner (`ItemContext.getItemOwner()`),
