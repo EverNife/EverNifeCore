@@ -5,7 +5,7 @@ one call per step. Per flavor: boot with the core + ECoreConformance + harness r
 headless bot, run/write the suites, open every GUI screen on both sides, restart (persistence
 proof), read the suites back, collect the ENCTEST markers via mc_read_events and the plugin's own
 NDJSON reports, tear down. A Hytale flavor has no client: its player is the harness's synthetic one, joined
-and read through the channel ops. The flavors run side by side (--parallel), each in its own worker with its own
+and read through the channel ops, and joined again after its restart. The flavors run side by side (--parallel), each in its own worker with its own
 <out>/<flavor>/driver.log; a flavor that dies mid-way is recorded as failed and the others carry on.
 
 Exit code 0 only when every flavor booted, nothing went wrong on the way, and every suite_end
@@ -47,9 +47,11 @@ CLIENT_FOR = {
 }
 HYBRIDS = {"crucible-1.7.10", "mohist-1.12.2", "mohist-1.16.5", "arclight-1.21.1"}
 # No headless client there: the player is the harness's synthetic one, and every jar goes into mods/
-HYTALE = {"hytale-0.7.1"}
+HYTALE = {"hytale-0.7.6"}
 HYTALE_PLUGIN_ID = "EverNife:ECoreConformance"
 HYTALE_SUITES = 9
+# Only the platform suite has a half around the restart
+HYTALE_HALF_ENDS = 1
 # Texts the Hytale regions suite sets as deny-message, read back from what the player received
 ENTRY_MESSAGE = "ECC entry denied"
 BREAK_MESSAGE = "ECC break denied"
@@ -776,12 +778,15 @@ def player_checks(before: dict, after: dict, r: FlavorResult):
 
 
 def run_hytale_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
-    """Boot with the core, ECoreConformance and the harness in mods/, join the synthetic player, run every suite."""
+    """Boot with the core, ECoreConformance and the harness in mods/, join the synthetic player, run every suite, restart
+    (persistence proof) and read the suites back with the player joined again: he does not survive the restart."""
     r = FlavorResult(flavor)
     fdir = out / flavor
     log = FlavorLog(flavor, None if mctf.dry_run else fdir / "driver.log")
     server_id = None
-    cid = "ecc%s-run" % time.strftime("%H%M%S")
+    stamp = time.strftime("%H%M%S")
+    cid = {h: "ecc%s-%s" % (stamp, h) for h in HALVES}
+    pre_restart: List[dict] = []
     try:
         routes = [{"from": [a.hytale_core_jar], "to": "mods"}, {"from": [a.hytale_ecc_jar], "to": "mods"},
                   {"from": [str(fw / "final-artifacts/harness-hytale/ENCTestHarnessHytale-*.jar")], "to": "mods"}]
@@ -800,11 +805,25 @@ def run_hytale_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> Flavor
         real_quit_and_login(mctf, server_id, r)
         before = mctf("mc_player", server_id=server_id, player=BOT)
         log.lap("join")
-        console(mctf, server_id, "ecc run all --player %s --cid %s" % (BOT, cid))
-        wait_suite_ends(mctf, server_id, cid, r, want=HYTALE_SUITES)
+        console(mctf, server_id, "ecc run all --player %s --cid %s" % (BOT, cid["run"]))
+        wait_suite_ends(mctf, server_id, cid["run"], r, want=HYTALE_SUITES)
         log.lap("run")
         player_checks(before, mctf("mc_player", server_id=server_id, player=BOT), r)
-        r.events = read_all_events(mctf, server_id)
+        console(mctf, server_id, "ecc write all --player %s --cid %s" % (BOT, cid["write"]))
+        wait_suite_ends(mctf, server_id, cid["write"], r, want=HYTALE_HALF_ENDS)
+        log.lap("write")
+
+        pre_restart = read_all_events(mctf, server_id)
+        restart = mctf("mc_restart", server_id=server_id)
+        r.shutdown_reason = "%s (graceful_shutdown=%s)" % (restart.get("shutdown_reason"), restart.get("graceful_shutdown"))
+        if not restart.get("ok"):
+            raise FlavorFailed("mc_restart: " + _err(restart))
+        join_synthetic(mctf, server_id)
+        log.lap("restart")
+        console(mctf, server_id, "ecc read all --player %s --cid %s" % (BOT, cid["read"]))
+        wait_suite_ends(mctf, server_id, cid["read"], r, want=HYTALE_HALF_ENDS)
+        log.lap("read")
+        r.events = merge_events(pre_restart, read_all_events(mctf, server_id))
         if not mctf.dry_run and run_dir:
             for server_log in sorted(Path(run_dir).glob("logs/*.log")):
                 r.details += case_lines(server_log.read_text(encoding="utf-8", errors="replace"))
@@ -814,12 +833,11 @@ def run_hytale_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> Flavor
         mctf("mc_exec", server_id=server_id, ops=[{"op": "player_leave", "name": BOT}])
     except FlavorFailed as e:
         r.problems.append(str(e))
+        r.events = r.events or pre_restart
     finally:
         log.lap("collect")
         if server_id and not a.keep:
-            stop = mctf("mc_stop", server_id=server_id)
-            r.shutdown_reason = stop.get("shutdown_reason")
-            note_stop(mctf, r, stop)
+            note_stop(mctf, r, mctf("mc_stop", server_id=server_id))
         log.lap("stop")
         log.say("done in %.1fs; problems: %s" % (time.monotonic() - log.begun, r.problems or "none"))
     if not mctf.dry_run:

@@ -51,6 +51,7 @@ import org.bson.BsonDocument;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
@@ -183,6 +184,16 @@ public final class HyPlatformSuite implements ConformanceSuite {
                     EcoResponse take = money.take(unknown, BigDecimal.ONE, Caller.of(EverNifeCore.getEcPluginData(), "conformance/economy"));
                     return Verdict.of(take.getReason() == EcoResponse.Reason.UNAVAILABLE, "no economy: take=" + take);
                 }));
+    }
+
+    @Override
+    public List<ConformanceCase> getWriteCases(ConformanceContext ctx) {
+        return Collections.singletonList(HeldInventoryRestartCases.write(ctx));
+    }
+
+    @Override
+    public List<ConformanceCase> getReadCases(ConformanceContext ctx) {
+        return Collections.singletonList(HeldInventoryRestartCases.read(ctx));
     }
 
     /**

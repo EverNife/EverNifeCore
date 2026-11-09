@@ -20,13 +20,14 @@ import java.io.File;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
- * {@code /ecc run <suite|all> [--player <name>] [--cid <id>]}: runs suites on this server and reports every case to
- * the sender and, as an {@code ENCTEST} marker, to the server's stdout. {@code /ecc list} names the suites;
+ * {@code /ecc run|write|read <suite|all> [--player <name>] [--cid <id>]}: runs suites on this server (their whole, or the half
+ * before or after a restart) and reports every case to the sender and, as an {@code ENCTEST} marker, to the server's stdout. {@code /ecc list} names the suites;
  * {@code /ecc whoami <token>} is the player-only verb the {@code platform} suite runs through {@code sudo};
  * {@code /ecc screen <screen> <player>} leaves a screen open for somebody looking with a real client.
  */
@@ -111,6 +112,23 @@ public class HyConformanceCommand {
     @FinalCMD.SubCMD(subcmd = "run")
     public void run(FCommandSender sender, @Arg("<suite>") String requested,
                     @Arg.Flag("--player") FPlayer player, @Arg.Flag("--cid") String cid) {
+        execute(sender, requested, player, cid, ConformanceSuite::getCases);
+    }
+
+    @FinalCMD.SubCMD(subcmd = "write")
+    public void write(FCommandSender sender, @Arg("<suite>") String requested,
+                      @Arg.Flag("--player") FPlayer player, @Arg.Flag("--cid") String cid) {
+        execute(sender, requested, player, cid, ConformanceSuite::getWriteCases);
+    }
+
+    @FinalCMD.SubCMD(subcmd = "read")
+    public void read(FCommandSender sender, @Arg("<suite>") String requested,
+                     @Arg.Flag("--player") FPlayer player, @Arg.Flag("--cid") String cid) {
+        execute(sender, requested, player, cid, ConformanceSuite::getReadCases);
+    }
+
+    private void execute(FCommandSender sender, String requested, FPlayer player, String cid,
+                         BiFunction<ConformanceSuite, ConformanceContext, List<ConformanceCase>> casesOf) {
         List<ConformanceSuite> chosen = "all".equalsIgnoreCase(requested) ? suites
                 : suites.stream().filter(s -> s.getId().equalsIgnoreCase(requested)).collect(Collectors.toList());
         if (chosen.isEmpty()) {
@@ -127,7 +145,10 @@ public class HyConformanceCommand {
         //one suite after the other, also when a case of the previous one answered on a later tick
         CompletableFuture<?> chain = CompletableFuture.completedFuture(null);
         for (ConformanceSuite suite : chosen) {
-            List<ConformanceCase> cases = suite.getCases(ctx);
+            List<ConformanceCase> cases = casesOf.apply(suite, ctx);
+            if (cases.isEmpty()) {
+                continue; //no suite_end for a half this suite does not have
+            }
             chain = chain.thenCompose(previous -> runner.run(suite.getId(), correlation, cases, ctx.getVersionLabel()));
         }
     }

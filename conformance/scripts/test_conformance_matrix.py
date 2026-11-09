@@ -244,23 +244,34 @@ class CliTest(unittest.TestCase):
         self.assertIsNone(cm.worldedit_forge_jar(SimpleNamespace(worldedit_dir="m"), "1.12.2"))
 
     def test_hytale_dry_run_routes_into_mods_with_no_client(self):
-        proc = run_script("--dry-run", "--flavors", "hytale-0.7.1")
+        proc = run_script("--dry-run", "--flavors", "hytale-0.7.6")
         self.assertEqual(proc.returncode, 0, proc.stderr)
         tools = re.findall(r"^\[dry-run\] mctf (\S+)", proc.stdout, re.M)
         self.assertNotIn("mc_hmc_start", tools)
-        # the bot comes back twice for the real quit cases, but nobody ever warms the server up before it
+        # the bot comes back for the two real quit cases and after the restart, but nobody ever warms the server up before it
         joins = re.findall(r'"name": "([^"]+)", "op": "player_join"', proc.stdout)
-        self.assertEqual(joins, [cm.BOT] * 3, "only the bot joins")
+        self.assertEqual(joins, [cm.BOT] * 4, "only the bot joins")
         self.assertLess(proc.stdout.index('"op": "player_join"'), proc.stdout.index("ecc hold-quit arm"), "the bot is in before anything asks for it")
         self.assertEqual(proc.stdout.count('"op": "player_leave"'), 3, "two real quits, then the end of the run")
         start_line = next(l for l in proc.stdout.splitlines() if l.startswith("[dry-run] mctf mc_start "))
         self.assertNotIn('"to": "plugins"', start_line)
 
+    def test_hytale_restarts_between_the_halves_and_joins_again_before_reading(self):
+        proc = run_script("--dry-run", "--flavors", "hytale-0.7.6")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        out = proc.stdout
+        restart = out.index("mctf mc_restart ")
+        self.assertEqual(out.count("mctf mc_restart "), 1)
+        self.assertLess(out.index("ecc write all"), restart)
+        joined = out.index('"op": "player_join"', restart)
+        self.assertLess(joined, out.index("ecc read all"), "the synthetic player does not survive the restart")
+        self.assertLess(out.index("ecc read all"), out.index('"op": "player_leave"', restart))
+
     def test_hytale_case_lines_and_player_checks(self):
         log = "\x1b[m[INFO] [ECoreConformance|P] [ECoreConformance] regions/gate PASS needed=true\x1b[m\n" \
               "[INFO] [ECoreConformance] regions summary 8/8 (0 skipped)\n"
         self.assertEqual(cm.case_lines(log), ["regions/gate PASS needed=true"])
-        r = cm.FlavorResult("hytale-0.7.1", booted=True)
+        r = cm.FlavorResult("hytale-0.7.6", booted=True)
         after = {"snapshot": {"messages": ["ECC entry denied", "ECC break denied"],
                               "packets": [{"type": "SpawnParticleSystem", "count": 3}, {"type": "Ping", "count": 9},
                                           {"type": "CustomPage", "count": 5}]}}
@@ -272,7 +283,7 @@ class CliTest(unittest.TestCase):
         self.assertTrue(any(n.startswith("screen page packets sent: 4") for n in r.notes), r.notes)
 
     def test_hytale_player_checks_want_a_page_and_its_update(self):
-        r = cm.FlavorResult("hytale-0.7.1", booted=True)
+        r = cm.FlavorResult("hytale-0.7.6", booted=True)
         after = {"snapshot": {"messages": ["ECC entry denied", "ECC break denied"],
                               "packets": [{"type": "SpawnParticleSystem", "count": 2}, {"type": "CustomPage", "count": 1}]}}
         cm.player_checks({"snapshot": {"packets": []}}, after, r)
