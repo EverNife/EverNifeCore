@@ -146,11 +146,11 @@ public final class Effects {
             }
         }
         boolean plain = !(running instanceof EffectList) && !(running instanceof ModifiedEffect);
-        //an effect that refuses (no player, no wallet) audits EFFECT_FAILED and returns: it was not applied
-        int failedBefore = plain ? ctx.getAudit().getEntries(AuditKind.EFFECT_FAILED).size() : 0;
+        //an effect that refuses (no player, no wallet) audits EFFECT_FAILED and returns, one that steps aside EFFECT_SKIPPED: not applied
+        int notAppliedBefore = plain ? notApplied(ctx) : 0;
         try {
             running.apply(ctx);
-            if (plain && ctx.getAudit().getEntries(AuditKind.EFFECT_FAILED).size() == failedBefore) {
+            if (plain && notApplied(ctx) == notAppliedBefore) {
                 ctx.getAudit().add(ctx, AuditKind.EFFECT_APPLIED, String.valueOf(running));
             }
         } catch (RuntimeException failure) {
@@ -164,6 +164,10 @@ public final class Effects {
                 ctx.getCaller().getPlugin().getLog().warning("[" + ctx.getCaller() + "] " + text);
             }
         }
+    }
+
+    private static int notApplied(ExecutionContext ctx) {
+        return ctx.getAudit().getEntries(AuditKind.EFFECT_FAILED).size() + ctx.getAudit().getEntries(AuditKind.EFFECT_SKIPPED).size();
     }
 
     private static final class Pending implements Effect {

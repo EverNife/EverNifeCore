@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.logic.reward;
 
+import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
 import br.com.finalcraft.evernifecore.group.Group;
 import br.com.finalcraft.evernifecore.group.GroupKind;
@@ -7,6 +8,7 @@ import br.com.finalcraft.evernifecore.group.GroupRole;
 import br.com.finalcraft.evernifecore.logic.Caller;
 import br.com.finalcraft.evernifecore.logic.EffectList;
 import br.com.finalcraft.evernifecore.logic.Effects;
+import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 import br.com.finalcraft.evernifecore.logic.ProgressOwner;
 import br.com.finalcraft.evernifecore.logic.audit.AuditEntry;
 import br.com.finalcraft.evernifecore.logic.audit.AuditKind;
@@ -22,7 +24,6 @@ import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.Senders;
 import br.com.finalcraft.evernifecore.testing.TestCurrency;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
-import br.com.finalcraft.evernifecore.testing.TestPlayerState;
 import br.com.finalcraft.evernifecore.types.TypeRegistryException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -183,24 +184,123 @@ class RewardsTest {
         assertEquals(1, pending(offline).size());
     }
 
+    // ------------------------------------------------------------------
+    //  A command for an offline member
+    // ------------------------------------------------------------------
+
     @Test
-    void aCommandForTheOfflineWaitsForTheLoginAndRunsWithTheirName() {
+    void aCommandForTheOfflineRunsNowWithTheLastNameSeen() {
+        UUIDsController.addOrUpdateUUIDName(offline, "SeenBob");
+
+        pay(commandForTheLeader("{'type': 'command', 'command': 'eco give {player} 100'}"), context().build());
+
+        assertEquals(Collections.singletonList("console: eco give SeenBob 100"), commands());
+        assertTrue(pending(offline).isEmpty(), "run does not wait: " + pending(offline));
+    }
+
+    @Test
+    void aCommandNamingAnOfflineNobodySawFailsAuditedAndRunsNothing() throws Exception {
+        AuditLog log = duel.auditLog();
+
+        pay(commandForTheLeader("{'type': 'command', 'command': 'eco give {player} 100'}"), context().build());
+
+        assertEquals(Collections.emptyList(), commands(), "never the literal {player}");
+        assertTrue(pending(offline).isEmpty());
+        duel.awaitAudit();
+        List<AuditEntry> failed = await(log.query(new AuditQuery().kind(AuditKind.EFFECT_FAILED)));
+        assertEquals(1, failed.size(), failed.toString());
+        assertTrue(failed.get(0).getText().contains("{player-uuid}") && failed.get(0).getText().contains("on-login"), failed.toString());
+        assertTrue(await(log.query(new AuditQuery().kind(AuditKind.EFFECT_APPLIED))).isEmpty());
+    }
+
+    @Test
+    void playerUuidResolvesOnlineAndOffline() {
+        pay(commandForTheLeader("{'type': 'command', 'command': 'pay {player-uuid}'}"), context().build());
+        assertEquals(Collections.singletonList("console: pay " + offline), commands(), "no name needed");
+
+        alpha.setLeader(steve.getUniqueId());
+        pay(RewardRule.builder().eligibility(Eligibility.role("leader")).distribution(Distribution.each()).effects(Effects.parseList(
+                duel.getOwner(), node("[{'type': 'command', 'command': 'pay {player-uuid}'}]"), ZoneOffset.UTC)).build(), context().build());
+        assertEquals(Arrays.asList("console: pay " + offline, "console: pay " + steve.getUniqueId()), commands());
+    }
+
+    @Test
+    void skipRunsNothingKeepsNothingAndAuditsTheSkip() throws Exception {
+        AuditLog log = duel.auditLog();
+        UUIDsController.addOrUpdateUUIDName(offline, "SeenBob");
+
+        pay(commandForTheLeader("{'type': 'command', 'command': 'tp {player} 0 64 0', 'offline': 'skip'}"), context().build());
+
+        assertEquals(Collections.emptyList(), commands());
+        assertTrue(pending(offline).isEmpty(), "skip does not wait either: " + pending(offline));
+        duel.awaitAudit();
+        List<AuditEntry> skipped = await(log.query(new AuditQuery().kind(AuditKind.EFFECT_SKIPPED)));
+        assertEquals(1, skipped.size(), skipped.toString());
+        assertEquals(offline, skipped.get(0).getPlayer());
+        assertTrue(await(log.query(new AuditQuery().kind(AuditKind.EFFECT_APPLIED))).isEmpty(), "a skip is not an applied effect");
+    }
+
+    @Test
+    void onLoginWaitsAndRunsWithTheNameOfTheLogin() {
+        UUIDsController.addOrUpdateUUIDName(offline, "OldBob");
+
+        pay(commandForTheLeader("{'type': 'command', 'command': 'give {player} diamond 1', 'offline': 'on-login'}"), context().build());
+
+        assertEquals(Collections.emptyList(), commands(), "nothing runs before the login");
+        assertEquals(1, pending(offline).size(), "the command waits as one delivery");
+
+        await(deliveries.claimAll(Senders.player("Bob", offline)));
+
+        assertEquals(Collections.singletonList("console: give Bob diamond 1"), commands(), "the login's name, not the old one");
+        assertTrue(pending(offline).isEmpty());
+    }
+
+    @Test
+    void aCommandAsThePlayerWaitsForTheLoginWhenOfflineIsNotWritten() {
+        pay(commandForTheLeader("{'type': 'command', 'command': 'kit vip', 'as': 'player'}"), context().build());
+
+        assertEquals(Collections.emptyList(), commands());
+        assertEquals(1, pending(offline).size());
+
+        await(deliveries.claimAll(Senders.player("Bob", offline)));
+
+        assertEquals(Collections.singletonList("Bob: kit vip"), commands());
+    }
+
+    @Test
+    void offlineRunWithAsPlayerIsRefusedOnLoadAndTeachesBothWayOut() {
+        TypeRegistryException refused = assertThrows(TypeRegistryException.class, () -> Effects.parse(duel.getOwner(),
+                node("{'type': 'command', 'command': 'kit vip', 'as': 'player', 'offline': 'run'}"), ZoneOffset.UTC));
+
+        assertTrue(refused.getMessage().contains("on-login") && refused.getMessage().contains("as: console"), refused.getMessage());
+    }
+
+    @Test
+    void anUnknownOfflineModeIsRefusedOnLoad() {
+        assertThrows(TypeRegistryException.class, () -> Effects.parse(duel.getOwner(),
+                node("{'type': 'command', 'command': 'kit vip', 'offline': 'later'}"), ZoneOffset.UTC));
+    }
+
+    @Test
+    void aGlobalEffectWithNoPlayerOwnerRunsAsBefore() {
+        ExecutionContext global = ExecutionContext.builder(caller()).build();
+
+        Effects.apply(global, Effects.parse(duel.getOwner(),
+                node("{'type': 'command', 'command': 'say {player} {player-uuid}', 'offline': 'skip'}"), ZoneOffset.UTC));
+
+        assertEquals(Collections.singletonList("console: say {player} {player-uuid}"), commands(), "no player in question: the mode has no say");
+        assertTrue(global.getAudit().getEntries(AuditKind.EFFECT_SKIPPED).isEmpty());
+        assertEquals(1, global.getAudit().getEntries(AuditKind.EFFECT_APPLIED).size());
+    }
+
+    private RewardRule commandForTheLeader(String command) {
         alpha.setLeader(offline);
-        RewardRule rule = RewardRule.builder().eligibility(Eligibility.role("leader")).distribution(Distribution.each())
-                .absent(Absence.deliver())
-                .effects(Effects.parseList(duel.getOwner(), node("[{'type': 'command', 'command': 'give {player} diamond 1'}]"), ZoneOffset.UTC))
-                .build();
-        TestPlayerState state = world.platform().getTestPlayerState();
+        return RewardRule.builder().eligibility(Eligibility.role("leader")).distribution(Distribution.each()).absent(Absence.deliver())
+                .effects(Effects.parseList(duel.getOwner(), node("[" + command + "]"), ZoneOffset.UTC)).build();
+    }
 
-        pay(rule, context().build());
-
-        assertTrue(state.getCommands().isEmpty(), "nothing runs for an offline member: " + state.getCommands());
-        assertEquals(1, pending(offline).size(), "the command waits as a delivery");
-
-        TestFPlayerSender bob = Senders.player("Bob", offline);
-        await(deliveries.claimAll(bob));
-
-        assertEquals(Collections.singletonList("console: give Bob diamond 1"), state.getCommands());
+    private List<String> commands() {
+        return world.platform().getTestPlayerState().getCommands();
     }
 
     // ------------------------------------------------------------------

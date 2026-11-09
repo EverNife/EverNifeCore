@@ -204,16 +204,21 @@ public final class Rewards {
     private static CompletableFuture<Void> payOne(RewardRule rule, RewardContext ctx, UUID member, BigDecimal share, boolean delivered) {
         EffectList shared = (EffectList) rule.getEffects().withShare(share);
         Runnable task = () -> {
-            shared.apply(contextOf(ctx.getCaller(), member, delivered));
+            ExecutionContext paying = contextOf(ctx.getCaller(), member, delivered);
+            shared.apply(paying);
             ECEventBus.global().postIfListened(RewardPaidEvent.class,
                     () -> new RewardPaidEvent(ctx.getCaller(), ctx.getOwner(), member, share, rule, delivered));
-            AuditLog.ofIfPresent(ctx.getCaller().getPlugin()).ifPresent(log -> log.record(AuditEntry.builder(AuditKind.REWARD_PAID, ctx.getCaller())
-                    .owner(ProgressOwner.player(member))
-                    .amount(share)
-                    .subject(ctx.getOwner().toString())
-                    .text("reward share " + share.stripTrailingZeros().toPlainString() + " of " + ctx.getOwner()
-                            + (delivered ? ", kept as a pending delivery" : "") + ": " + shared)
-                    .build()));
+            AuditLog.ofIfPresent(ctx.getCaller().getPlugin()).ifPresent(log -> {
+                //nobody else ever reads this context: a share that failed or skipped would vanish with its trail
+                log.record(paying.getAudit());
+                log.record(AuditEntry.builder(AuditKind.REWARD_PAID, ctx.getCaller())
+                        .owner(ProgressOwner.player(member))
+                        .amount(share)
+                        .subject(ctx.getOwner().toString())
+                        .text("reward share " + share.stripTrailingZeros().toPlainString() + " of " + ctx.getOwner()
+                                + (delivered ? ", what can wait is a pending delivery" : "") + ": " + shared)
+                        .build());
+            });
         };
         FPlayer player = delivered ? null : online(member);
         FLocation location = player == null ? null : player.getLocation();
@@ -239,7 +244,8 @@ public final class Rewards {
 
     /**
      * The member online, or - offline - its uuid as owner with every effect that can wait sent to the pending
-     * destination: an amount or an item becomes a delivery, what cannot wait (a message) applies without a player.
+     * destination: an amount or an item becomes a delivery, a command follows its own {@code offline}, and what cannot
+     * wait (a message) applies without a player.
      */
     private static ExecutionContext contextOf(Caller caller, UUID member, boolean delivered) {
         ExecutionContext.Builder builder = ExecutionContext.builder(caller);

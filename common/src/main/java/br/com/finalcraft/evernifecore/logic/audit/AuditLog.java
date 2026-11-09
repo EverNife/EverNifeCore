@@ -55,7 +55,7 @@ public final class AuditLog {
 
     /** The kinds of an {@link AuditTrail} that {@link #record(AuditTrail)} keeps. */
     private static final Set<AuditKind> TRAIL_KINDS = EnumSet.of(AuditKind.COST_TAKEN, AuditKind.COST_REFUNDED, AuditKind.REFUND_FAILED,
-            AuditKind.EFFECT_APPLIED, AuditKind.EFFECT_FAILED);
+            AuditKind.EFFECT_APPLIED, AuditKind.EFFECT_FAILED, AuditKind.EFFECT_SKIPPED);
 
     private static final Map<String, AuditLog> OWNED = new ConcurrentHashMap<>();
 
@@ -149,7 +149,7 @@ public final class AuditLog {
         track(repository.save(Row.of(entry)));
     }
 
-    /** One entry per cost taken or refunded, refund failed, effect applied or failed of {@code trail}, in order. */
+    /** One entry per cost taken or refunded, refund failed, effect applied, failed or skipped of {@code trail}, in order. */
     public void record(AuditTrail trail) {
         for (AuditEntry entry : trail.getEntries()) {
             if (TRAIL_KINDS.contains(entry.getKind())) {

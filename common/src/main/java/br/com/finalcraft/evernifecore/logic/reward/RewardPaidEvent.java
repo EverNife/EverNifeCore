@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
- * One member was paid by {@link Rewards#pay}: its effects applied (online) or kept as a pending delivery (offline). A
+ * One member was paid by {@link Rewards#pay}: its effects applied (online) or, offline, {@link Absence#deliver()}. A
  * forfeited share posts nothing. Posted once the member's effects ran, on the thread they ran on.
  */
 public class RewardPaidEvent extends ECEvent implements IECEvent {
@@ -57,7 +57,7 @@ public class RewardPaidEvent extends ECEvent implements IECEvent {
         return rule;
     }
 
-    /** Whether the member was offline and the share waits as a pending delivery. */
+    /** Whether the member was offline and what of the share can wait is a pending delivery ({@link Absence#deliver()}). */
     public boolean isDelivered() {
         return delivered;
     }

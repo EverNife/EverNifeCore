@@ -114,6 +114,14 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 #### Deliveries
 
+- **A `command` for an offline player runs now by default**: it no longer follows the `pending` destination of
+  `Absence.deliver`, but its own `offline: run | skip | on-login`. `run` (the default) runs from the console with the last
+  name the server saw, and audits `EFFECT_FAILED` instead of running a literal `{player}` when none is known; `skip`
+  audits the new `AuditKind.EFFECT_SKIPPED`; `on-login` waits as a delivery and resolves `{player}` at the claim.
+  `as: player` without `offline` waits; `offline: run` with `as: player` is refused on load. A context with no player
+  owner runs as before. `{player}` resolves offline in every text, and `{player-uuid}` is new. A command that needs the
+  player in the world (`give`, `tp`) writes `on-login` or `skip`: the server does not report the miss.
+- **`Rewards.pay` records each share's effects in the caller's `AuditLog`**, so a failed or skipped one is readable there.
 - **`Deliveries.enqueue(recipient, origin, policy, ttl, icon, effects)` and `keepFor(ctx, policy, ttl, icon, node)`**
   take the `@Nullable DeliveryIcon` the delivery is drawn with; the core's own leftovers pass none.
 

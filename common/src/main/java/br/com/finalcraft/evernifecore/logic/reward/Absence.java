@@ -7,7 +7,7 @@ import java.util.UUID;
 /** What becomes of an eligible member who is offline when the rule pays. Any thread. */
 public interface Absence extends RewardPiece {
 
-    /** {@link #DELIVER}: a pending delivery; {@link #FORFEIT}: nothing; {@link #REDISTRIBUTE}: the share goes to the online eligible. */
+    /** {@link #DELIVER}: see {@link Absence#deliver()}; {@link #FORFEIT}: nothing; {@link #REDISTRIBUTE}: the share goes to the online eligible. */
     enum Outcome { DELIVER, FORFEIT, REDISTRIBUTE }
 
     Outcome onAbsent(UUID member, RewardContext ctx);
@@ -17,7 +17,10 @@ public interface Absence extends RewardPiece {
         return Role.ABSENCE;
     }
 
-    /** The share, already divided, waits as a pending delivery of the member ({@code Deliveries}), claimed on the next login. */
+    /**
+     * What of the share can wait, already divided, waits as a pending delivery of the member ({@code Deliveries}), claimed on
+     * the next login; a {@code command} follows its own {@code offline}, which by default runs it now.
+     */
     static Absence deliver() {
         return CoreRewardPieces.DELIVER;
     }

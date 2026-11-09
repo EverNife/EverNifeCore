@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.logic;
 
 import br.com.finalcraft.evernifecore.action.ActionContext;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import br.com.finalcraft.evernifecore.integration.placeholders.PAPIIntegration;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.logic.audit.AuditTrail;
@@ -129,9 +130,10 @@ public final class ExecutionContext {
 
     /**
      * {@code text} with every {@code {key}} replaced - by a variable of this context, else by a registered parameterless
-     * {@link Variable} read for this context ({@code {health}}, {@code {finaljobs:level}}), else by {@code {player}},
-     * {@code {owner}} or {@code {caller}} - and then every {@code %placeholder%} through the core's and PlaceholderAPI's
-     * replacers. A key nobody answers stays written as it was; color codes are left for the text renderer.
+     * {@link Variable} read for this context ({@code {health}}, {@code {finaljobs:level}}), else by {@code {player}} (for
+     * a player owner with no player here, the last name the server saw), {@code {player-uuid}}, {@code {owner}} or
+     * {@code {caller}} - and then every {@code %placeholder%} through the core's and PlaceholderAPI's replacers. A key
+     * nobody answers stays written as it was; color codes are left for the text renderer.
      */
     public String resolve(String text) {
         if (text == null) {
@@ -169,7 +171,13 @@ public final class ExecutionContext {
         }
         switch (key) {
             case "player":
-                return player == null ? null : player.getName();
+                if (player != null) {
+                    return player.getName();
+                }
+                //memory only: a text resolves on the effect's thread, which never waits for storage
+                return owner.isKind(ProgressOwner.PLAYER) ? UUIDsController.getNameFromUUID(owner.getId()) : null;
+            case "player-uuid":
+                return player != null ? player.getUniqueId().toString() : owner.isKind(ProgressOwner.PLAYER) ? owner.getId() : null;
             case "owner":
                 return owner.toString();
             case "caller":

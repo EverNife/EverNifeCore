@@ -11,11 +11,11 @@ import br.com.finalcraft.evernifecore.logic.Effects;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 import br.com.finalcraft.evernifecore.logic.HoldableEffect;
 import br.com.finalcraft.evernifecore.logic.MutableVariable;
+import br.com.finalcraft.evernifecore.logic.ProgressOwner;
 import br.com.finalcraft.evernifecore.logic.Variable;
 import br.com.finalcraft.evernifecore.logic.audit.AuditKind;
 import br.com.finalcraft.evernifecore.logic.delivery.Deliveries;
 import br.com.finalcraft.evernifecore.logic.delivery.DeliveryPolicy;
-import br.com.finalcraft.evernifecore.logic.delivery.PendingDestination;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.player.state.ECGameMode;
 import br.com.finalcraft.evernifecore.player.state.EffectLevel;
@@ -27,8 +27,10 @@ import br.com.finalcraft.evernifecore.player.state.PlayerTime;
 import br.com.finalcraft.evernifecore.player.state.StateHolder;
 import br.com.finalcraft.evernifecore.types.ParamSpec;
 import br.com.finalcraft.evernifecore.types.TypeDescriptor;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import jakarta.annotation.Nullable;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -53,10 +55,22 @@ final class StockEffects {
                 })
                 .build());
         Effects.registry().register(core, TypeDescriptor.<Effect>of("evernifecore:command")
-                .describe("Runs a command, its {variables} filled, as the console or, with as: player, as the player.")
+                .describe("Runs a command, its {variables} filled, as the console or, with as: player, as the player; offline says"
+                        + " what happens when that player is offline.")
                 .param(ParamSpec.required("command", ParamSpec.Kind.STRING, "The command, without the leading /."))
+                .param(ParamSpec.optional("offline", ParamSpec.Kind.STRING, null, "When the player is offline: run (now, from the"
+                        + " console, the default), skip, or on-login (waits as a delivery, the default of as: player).")
+                        .oneOf("run", "skip", "on-login"))
                 .needsCapability(Capability.COMMAND)
-                .factory(params -> new CommandEffect(params.getString("command")))
+                .factory(params -> {
+                    String offline = params.getString("offline");
+                    JsonNode sender = params.getRaw().get("as");
+                    if ("run".equals(offline) && sender != null && "player".equalsIgnoreCase(sender.asText().trim())) {
+                        throw new IllegalArgumentException("offline: run starts the command now, and as: player needs the player"
+                                + " online to run as. Write offline: on-login to wait for the next login, or as: console to run it now.");
+                    }
+                    return new CommandEffect(params.getString("command"), offline);
+                })
                 .build());
         Effects.registry().register(core, TypeDescriptor.<Effect>of("evernifecore:set")
                 .describe("Sets a variable that can be written to an amount.")
@@ -199,27 +213,42 @@ final class StockEffects {
 
     private static final class CommandEffect implements Effect {
         private final String command;
+        private final @Nullable String offline;
 
-        CommandEffect(String command) {
+        CommandEffect(String command, @Nullable String offline) {
             this.command = command.startsWith("/") ? command.substring(1) : command;
+            this.offline = offline;
         }
 
         /**
-         * As the console unless {@code as: player}. With no player and the pending destination (an offline member's
-         * reward), it waits as a delivery and runs on the claim, where {@code {player}} has a name to resolve to.
+         * As the console unless {@code as: player}. For a player owner the context has no player of, {@code offline} decides,
+         * whatever destination a reward set: {@code run} (the default) runs it now with the last name the server saw, and fails
+         * audited when it names {@code {player}} and none is known; {@code skip} audits {@code EFFECT_SKIPPED}; {@code on-login}
+         * (the default of {@code as: player}) waits as a delivery and runs on the claim with the name of that login.
          */
         @Override
         public void apply(ExecutionContext ctx) {
             boolean asPlayer = "player".equals(ctx.getAttribute(EffectModifiers.SENDER_ATTRIBUTE, String.class));
-            if (ctx.getPlayer() == null && PendingDestination.ID.equals(ctx.getAttribute(EffectModifiers.DESTINATION_ATTRIBUTE, String.class))) {
-                ObjectNode node = JsonNodeFactory.instance.objectNode();
-                node.put("type", "evernifecore:command");
-                node.put("command", command);
-                if (asPlayer) {
-                    node.put("as", "player");
+            if (ctx.getPlayer() == null && ctx.getOwner().isKind(ProgressOwner.PLAYER)) {
+                String mode = offline != null ? offline : asPlayer ? "on-login" : "run";
+                if (mode.equals("skip")) {
+                    ctx.getAudit().add(ctx, AuditKind.EFFECT_SKIPPED, this + " skipped: " + ctx.getOwner() + " is offline.");
+                    return;
                 }
-                Deliveries.get().keepFor(ctx, DeliveryPolicy.KEEP_SELF_CONTAINED, null, null, node);
-                return;
+                if (mode.equals("on-login")) {
+                    ObjectNode node = JsonNodeFactory.instance.objectNode();
+                    node.put("type", "evernifecore:command");
+                    node.put("command", command);
+                    if (asPlayer) {
+                        node.put("as", "player");
+                    }
+                    Deliveries.get().keepFor(ctx, DeliveryPolicy.KEEP_SELF_CONTAINED, null, null, node);
+                    return;
+                }
+                if (command.contains("{player}") && ctx.resolve("{player}").equals("{player}")) {
+                    throw new IllegalStateException("The command '" + command + "' names {player}, and the server never saw a name for "
+                            + ctx.getOwner() + ". Write {player-uuid}, or offline: on-login to run it with the name of the next login.");
+                }
             }
             access().dispatchCommand(asPlayer ? player(ctx, "command") : null, ctx.resolve(command));
         }
