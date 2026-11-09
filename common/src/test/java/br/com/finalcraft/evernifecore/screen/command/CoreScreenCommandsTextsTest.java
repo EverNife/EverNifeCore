@@ -21,6 +21,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -91,6 +94,61 @@ class CoreScreenCommandsTextsTest {
         assertReads("MATCHED", "§bSame: ${count}", diff, "§bSame: 1");
         assertReads("ENTRY_KEY", "§bKey ${key}", diff, "§bKey BUY   §7Slot [0]");
         assertReads("NO_OVERLAY", "§bNo ${language} yet", diff + " PT_BR", "§bNo PT_BR yet");
+    }
+
+    @ScreenLayout(title = "Fair", rows = 1)
+    public static class FairLayout extends Layout {
+
+        @IconData(slot = {0})
+        public Icon FIRST = Icon.of(ItemSpec.of("minecraft:chest", 1));
+
+        @IconData(slot = {1})
+        public Icon SECOND = Icon.of(ItemSpec.of("minecraft:chest", 1));
+
+    }
+
+    private Path rewriteFair(String from, String to) throws IOException {
+        Path file = tempDir.resolve("cmd/guis/FairLayout.yml");
+        String text = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
+        assertTrue(text.contains(from), text);
+        Files.write(file, text.replace(from, to).getBytes(StandardCharsets.UTF_8));
+        return file;
+    }
+
+    @Test
+    void whatTheDiffSaysOfAKeyAndOfTheWholeFileReadsItsEditedTexts() throws IOException {
+        Layouts.of(FairLayout.class);
+        String diff = "screen diff " + harness.pluginName + " FairLayout";
+
+        rewriteFair("Slot: \"[1]\"", "Slot: \"[0]\"");
+        assertReads("WARNING_SLOT_DISPUTE", "§b${winner} beats ${loser} at ${slot}", diff, "§bFIRST beats SECOND at 0");
+
+        rewriteFair("Slot: \"[0]\"\n", "Slot: \"[one]\"\n");
+        assertReads("WARNING_UNREADABLE_SLOTS", "§bBroken ${key} at ${path} in ${file}", diff, "§bBroken FIRST at Layout.FIRST.Slot in guis/FairLayout.yml");
+    }
+
+    private void assertAnEntrySays(String key, String text, String line, String expected) {
+        admin.clearMessages();
+        try (Locales.Retext edited = Locales.retext(harness.ecPluginData, "CoreScreenCommands." + key, harness.ecPluginData.getPluginLanguage(), text)) {
+            harness.dispatch(ecore, admin, line);
+        }
+        assertTrue(admin.getMessages().stream().anyMatch(message -> message.contains(expected)), "expected <" + expected + "> in " + admin.getMessages());
+    }
+
+    @Test
+    void theNotesOfAKeyReadTheirEditedTexts() throws IOException {
+        Layouts.of(FairLayout.class);
+        String diff = "screen diff " + harness.pluginName + " FairLayout";
+        rewriteFair("  SECOND:", "  GONE:");
+        Path file = rewriteFair("  FIRST:", "  FIRST:\n    Permission: fair.use\n    States:\n      open: {}\n    Locale:\n      en_us: {}");
+        Files.write(file, (new String(Files.readAllBytes(file), StandardCharsets.UTF_8) + "\nBackground:\n  PANE:\n    Slot: \"[3]\"\n").getBytes(StandardCharsets.UTF_8));
+
+        assertAnEntrySays("ENTRY_TO_BE_SEEDED", "§bcomes later", diff, "SECOND§bcomes later");
+        assertAnEntrySays("ENTRY_NO_LONGER_DECLARED", "§bleft over", diff, "GONE§bleft over");
+        assertAnEntrySays("ENTRY_FILE_ONLY", "§bthe file's", diff, "§bthe file's");
+        assertAnEntrySays("ENTRY_STATES", "§bstates=${count}", diff, "§bstates=1");
+        assertAnEntrySays("ENTRY_LANGUAGES", "§blangs=${languages}", diff, "§blangs=en_us");
+        assertAnEntrySays("ENTRY_PERMISSION", "§bneeds ${permission}", diff, "§bneeds fair.use");
     }
 
     @Test

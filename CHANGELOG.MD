@@ -100,6 +100,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+#### Screens
+
+- **`LayoutDiff` returns data and `/ecore screen diff` says it in the core's language**: `Entry.getDetail()` is
+  `getOrigin()`, `getStateCount()`, `getLanguages()` and `getPermission()`; `getWarnings()` is `getUnreadableSlots()` and
+  `getSlotDisputes()`, which names a group as `[group]`.
+
 #### Logic
 
 - **The texts of `/ecore logic trace|audit`, of `AuditCommandNode` and of `/ecore group` are in the core's language file**,

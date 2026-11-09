@@ -225,11 +225,10 @@ class LayoutScannerTest {
 
         assertEquals(Arrays.asList(), namesOf(diff, LayoutDiff.Verdict.SILENCED),
                 "an empty list is deliberate; a broken one is not, and reading them the same way hides it");
-        assertEquals(1, diff.getWarnings().size(), diff.getWarnings().toString());
-        assertTrue(diff.getWarnings().get(0).contains("KEY has an unreadable slot list"),
-                diff.getWarnings().toString());
-        assertTrue(diff.getWarnings().get(0).contains("guis/VaultLayout.yml"),
-                "and it names the file to open: " + diff.getWarnings());
+        assertEquals(1, diff.getUnreadableSlots().size(), diff.getUnreadableSlots().toString());
+        assertEquals("KEY", diff.getUnreadableSlots().get(0).getKey());
+        assertEquals("Layout.KEY.Slot", diff.getUnreadableSlots().get(0).getPath(), "and it names the node to fix");
+        assertEquals("guis/VaultLayout.yml", diff.getFileName());
     }
 
     @Test

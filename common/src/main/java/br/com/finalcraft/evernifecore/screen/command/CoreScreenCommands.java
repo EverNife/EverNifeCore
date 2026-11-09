@@ -70,9 +70,13 @@ public class CoreScreenCommands {
     @FCLocale(lang = LocaleType.PT_BR, text = "§c  AVISOS (${count})")
     private static LocaleMessage WARNINGS;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§7    ${warning}")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§7    ${warning}")
-    private static LocaleMessage WARNING_LINE;
+    @FCLocale(lang = LocaleType.EN_US, text = "§7    ${key} has an unreadable slot list, so where it goes is unknown: ${reason} Fix ${path} in ${file}.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7    ${key} tem uma lista de slots ilegível, então não se sabe onde ele vai: ${reason} Corrija ${path} em ${file}.")
+    private static LocaleMessage WARNING_UNREADABLE_SLOTS;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§7    ${winner} and ${loser} both claim slot ${slot}. ${winner} wins.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7    ${winner} e ${loser} disputam o slot ${slot}. ${winner} vence.")
+    private static LocaleMessage WARNING_SLOT_DISPUTE;
 
     @FCLocale(lang = LocaleType.EN_US, text = "§7    §f${key}")
     @FCLocale(lang = LocaleType.PT_BR, text = "§7    §f${key}")
@@ -86,9 +90,29 @@ public class CoreScreenCommands {
     @FCLocale(lang = LocaleType.PT_BR, text = "   §7grupo ${group}")
     private static LocaleMessage ENTRY_GROUP;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "   §7${detail}")
-    @FCLocale(lang = LocaleType.PT_BR, text = "   §7${detail}")
-    private static LocaleMessage ENTRY_DETAIL;
+    @FCLocale(lang = LocaleType.EN_US, text = "   §7will be seeded on the next save")
+    @FCLocale(lang = LocaleType.PT_BR, text = "   §7será criada no próximo save")
+    private static LocaleMessage ENTRY_TO_BE_SEEDED;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "   §7the plugin no longer declares it")
+    @FCLocale(lang = LocaleType.PT_BR, text = "   §7o plugin não a declara mais")
+    private static LocaleMessage ENTRY_NO_LONGER_DECLARED;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "   §7declared by the file only")
+    @FCLocale(lang = LocaleType.PT_BR, text = "   §7declarada só pelo arquivo")
+    private static LocaleMessage ENTRY_FILE_ONLY;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "   §7states: ${count}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "   §7estados: ${count}")
+    private static LocaleMessage ENTRY_STATES;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "   §7languages: ${languages}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "   §7idiomas: ${languages}")
+    private static LocaleMessage ENTRY_LANGUAGES;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "   §7permission ${permission}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "   §7permissão ${permission}")
+    private static LocaleMessage ENTRY_PERMISSION;
 
     @FCLocale(lang = LocaleType.EN_US, text = "   §7from overlay")
     @FCLocale(lang = LocaleType.PT_BR, text = "   §7do overlay")
@@ -191,10 +215,16 @@ public class CoreScreenCommands {
         report(sender, diff, LayoutDiff.Verdict.ORPHAN, ORPHAN);
         report(sender, diff, LayoutDiff.Verdict.SILENCED, SILENCED);
 
-        if (!diff.getWarnings().isEmpty()) {
-            WARNINGS.addPlaceholder("count", diff.getWarnings().size()).send(sender);
-            for (String warning : diff.getWarnings()) {
-                WARNING_LINE.addPlaceholder("warning", warning).send(sender);
+        int warnings = diff.getUnreadableSlots().size() + diff.getSlotDisputes().size();
+        if (warnings > 0) {
+            WARNINGS.addPlaceholder("count", warnings).send(sender);
+            for (LayoutDiff.UnreadableSlots unreadable : diff.getUnreadableSlots()) {
+                WARNING_UNREADABLE_SLOTS.custom().addPlaceholder("key", unreadable.getKey()).addPlaceholder("reason", unreadable.getReason())
+                        .addPlaceholder("path", unreadable.getPath()).addPlaceholder("file", diff.getFileName()).send(sender);
+            }
+            for (LayoutDiff.SlotDispute dispute : diff.getSlotDisputes()) {
+                WARNING_SLOT_DISPUTE.custom().addPlaceholder("winner", dispute.getWinner()).addPlaceholder("loser", dispute.getLoser())
+                        .addPlaceholder("slot", dispute.getSlot()).send(sender);
             }
         }
     }
@@ -250,8 +280,21 @@ public class CoreScreenCommands {
                 //three icons over one slot read as a defect until the report says they share it on purpose
                 line = line.append(ENTRY_GROUP.custom().addPlaceholder("group", entry.getGroup()));
             }
-            if (!entry.getDetail().isEmpty()) {
-                line = line.append(ENTRY_DETAIL.custom().addPlaceholder("detail", entry.getDetail()));
+            if (entry.getOrigin() == LayoutDiff.Origin.TO_BE_SEEDED) {
+                line = line.append(ENTRY_TO_BE_SEEDED);
+            } else if (entry.getOrigin() == LayoutDiff.Origin.NO_LONGER_DECLARED) {
+                line = line.append(ENTRY_NO_LONGER_DECLARED);
+            } else if (entry.getOrigin() == LayoutDiff.Origin.FILE_ONLY) {
+                line = line.append(ENTRY_FILE_ONLY);
+            }
+            if (entry.getStateCount() > 0) {
+                line = line.append(ENTRY_STATES.custom().addPlaceholder("count", entry.getStateCount()));
+            }
+            if (!entry.getLanguages().isEmpty()) {
+                line = line.append(ENTRY_LANGUAGES.custom().addPlaceholder("languages", String.join("/", entry.getLanguages())));
+            }
+            if (entry.getPermission() != null) {
+                line = line.append(ENTRY_PERMISSION.custom().addPlaceholder("permission", entry.getPermission()));
             }
             if (entry.isFromOverlay()) {
                 line = line.append(ENTRY_FROM_OVERLAY);

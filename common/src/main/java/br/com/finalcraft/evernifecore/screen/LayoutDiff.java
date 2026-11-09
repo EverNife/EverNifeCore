@@ -40,6 +40,99 @@ public final class LayoutDiff {
         SILENCED
     }
 
+    /** Where a key stands between what the plugin declares and what the file says. */
+    public enum Origin {
+        /** Read from the file as the plugin declares it. */
+        DECLARED,
+        /** Not in the file yet: it will be seeded on the next save. */
+        TO_BE_SEEDED,
+        /** The plugin no longer declares it. */
+        NO_LONGER_DECLARED,
+        /** A decoration the file added by itself. */
+        FILE_ONLY
+    }
+
+    /** A slot list nothing can read: where it goes is unknown, and that is a defect, not the empty list that switches an icon off. */
+    public static final class UnreadableSlots {
+
+        private final String key;
+        private final String reason;
+        private final String path;
+
+        UnreadableSlots(String key, String reason, String path) {
+            this.key = key;
+            this.reason = reason;
+            this.path = path;
+        }
+
+        @Nonnull
+        public String getKey() {
+            return key;
+        }
+
+        /** What the deepest failure said. */
+        @Nonnull
+        public String getReason() {
+            return reason;
+        }
+
+        /** The node to fix in {@link LayoutDiff#getFileName()}. */
+        @Nonnull
+        public String getPath() {
+            return path;
+        }
+
+        @Override
+        public String toString() {
+            return key + " has an unreadable slot list at " + path + ": " + reason;
+        }
+    }
+
+    /** One slot two claims of the same layer want, in the order the screen resolves them. */
+    public static final class SlotDispute {
+
+        private final String winner;
+        private final String loser;
+        private final int slot;
+
+        SlotDispute(String winner, String loser, int slot) {
+            this.winner = winner;
+            this.loser = loser;
+            this.slot = slot;
+        }
+
+        /** The key that keeps the slot, or {@code [group]} for an icon that declares one: a group is named as a whole. */
+        @Nonnull
+        public String getWinner() {
+            return winner;
+        }
+
+        /** The key that loses the slot, or {@code [group]}. */
+        @Nonnull
+        public String getLoser() {
+            return loser;
+        }
+
+        public int getSlot() {
+            return slot;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof SlotDispute && toString().equals(other.toString());
+        }
+
+        @Override
+        public int hashCode() {
+            return toString().hashCode();
+        }
+
+        @Override
+        public String toString() {
+            return winner + " and " + loser + " both claim slot " + slot + ". " + winner + " wins.";
+        }
+    }
+
     /** One key and what became of it. */
     public static final class Entry {
 
@@ -48,18 +141,28 @@ public final class LayoutDiff {
         private final String section;
         private final SlotSet slots;
         private final boolean fromOverlay;
-        private final String detail;
+        private final Origin origin;
+        private final int stateCount;
+        private final Set<String> languages;
+        private final String permission;
         private final String group;
 
-        Entry(String key, Verdict verdict, String section, SlotSet slots, boolean fromOverlay, String detail,
-              String group) {
+        Entry(String key, Verdict verdict, String section, SlotSet slots, boolean fromOverlay, Origin origin,
+              int stateCount, Set<String> languages, String permission, String group) {
             this.key = key;
             this.verdict = verdict;
             this.section = section;
             this.slots = slots;
             this.fromOverlay = fromOverlay;
-            this.detail = detail;
+            this.origin = origin;
+            this.stateCount = stateCount;
+            this.languages = languages;
+            this.permission = permission;
             this.group = group;
+        }
+
+        static Entry bare(String key, Verdict verdict, String section, SlotSet slots, boolean fromOverlay, Origin origin, String group) {
+            return new Entry(key, verdict, section, slots, fromOverlay, origin, 0, Collections.emptySet(), null, group);
         }
 
         @Nonnull
@@ -89,10 +192,27 @@ public final class LayoutDiff {
             return fromOverlay;
         }
 
-        /** What else is worth knowing about this key - states, permission - or an empty string. */
+        /** Where the key stands between the plugin and the file. */
         @Nonnull
-        public String getDetail() {
-            return detail;
+        public Origin getOrigin() {
+            return origin;
+        }
+
+        /** How many {@code States} the file gives this key. */
+        public int getStateCount() {
+            return stateCount;
+        }
+
+        /** The languages the file's {@code Locale} block covers for this key. */
+        @Nonnull
+        public Set<String> getLanguages() {
+            return languages;
+        }
+
+        /** The permission the file asks for this key, or {@code null}. */
+        @Nullable
+        public String getPermission() {
+            return permission;
         }
 
         /**
@@ -116,16 +236,18 @@ public final class LayoutDiff {
     private final String language;
     private final boolean overlayPresent;
     private final List<Entry> entries;
-    private final List<String> warnings;
+    private final List<UnreadableSlots> unreadableSlots;
+    private final List<SlotDispute> slotDisputes;
 
     private LayoutDiff(String layoutName, String fileName, String language, boolean overlayPresent,
-                       List<Entry> entries, List<String> warnings) {
+                       List<Entry> entries, List<UnreadableSlots> unreadableSlots, List<SlotDispute> slotDisputes) {
         this.layoutName = layoutName;
         this.fileName = fileName;
         this.language = language;
         this.overlayPresent = overlayPresent;
         this.entries = entries;
-        this.warnings = warnings;
+        this.unreadableSlots = unreadableSlots;
+        this.slotDisputes = slotDisputes;
     }
 
     /** The confrontation for {@code type}, reading the plugin's own files. */
@@ -149,7 +271,7 @@ public final class LayoutDiff {
 
         String fileName = LayoutScanner.fileNameOf(type);
         List<Entry> entries = new ArrayList<>();
-        List<String> warnings = new ArrayList<>();
+        List<UnreadableSlots> unreadable = new ArrayList<>();
         Map<String, SlotSet> claimedSlots = new LinkedHashMap<>();
 
         for (Map.Entry<String, Field> declared : fieldOfKey.entrySet()) {
@@ -158,42 +280,41 @@ public final class LayoutDiff {
             String section = iconData.background() ? LayoutScanner.BACKGROUND : LayoutScanner.LAYOUT;
             String path = section + "." + key;
             if (!source.contains(path)) {
-                entries.add(new Entry(key, Verdict.NEW, section, null, false,
-                        "will be seeded on the next save", iconData.group()));
+                entries.add(Entry.bare(key, Verdict.NEW, section, null, false, Origin.TO_BE_SEEDED, iconData.group()));
                 continue;
             }
-            SlotSet slots = slotsOf(source, path, warnings, key, fileName);
+            SlotSet slots = slotsOf(source, path, unreadable, key);
             Verdict verdict = slots != null && slots.isEmpty() ? Verdict.SILENCED : Verdict.MATCHED;
-            entries.add(new Entry(key, verdict, section, slots, source.isFromOverlay(path),
-                    detailOf(source, path), iconData.group()));
+            String permission = source.getString(path + ".Permission");
+            entries.add(new Entry(key, verdict, section, slots, source.isFromOverlay(path), Origin.DECLARED,
+                    source.getKeys(path + ".States").size(), source.getKeys(path + ".Locale"),
+                    permission == null || permission.isEmpty() ? null : permission, iconData.group()));
             if (slots != null) {
                 claimedSlots.put(key, slots);
             }
         }
         //the claims are confronted in the order the SCREEN resolves them, never in declaration order:
         //a report that named the other winner is worse than no report at all
-        reportDisputes(fields, claimedSlots, warnings);
+        List<SlotDispute> disputes = disputesOf(fields, claimedSlots);
 
         for (String key : source.getKeys(LayoutScanner.LAYOUT)) {
             if (!fieldOfKey.containsKey(key)) {
-                entries.add(new Entry(key, Verdict.ORPHAN, LayoutScanner.LAYOUT, null,
-                        source.isFromOverlay(LayoutScanner.LAYOUT + "." + key),
-                        "the plugin no longer declares it", ""));
+                entries.add(Entry.bare(key, Verdict.ORPHAN, LayoutScanner.LAYOUT, null,
+                        source.isFromOverlay(LayoutScanner.LAYOUT + "." + key), Origin.NO_LONGER_DECLARED, ""));
             }
         }
         //Decoration the file added on its own is a feature, not leftovers: it renders, so it matches
         for (String key : source.getKeys(LayoutScanner.BACKGROUND)) {
             if (!fieldOfKey.containsKey(key)) {
                 String path = LayoutScanner.BACKGROUND + "." + key;
-                SlotSet slots = slotsOf(source, path, warnings, key, fileName);
-                entries.add(new Entry(key, slots != null && slots.isEmpty() ? Verdict.SILENCED
-                        : Verdict.MATCHED, LayoutScanner.BACKGROUND, slots, source.isFromOverlay(path),
-                        "declared by the file only", ""));
+                SlotSet slots = slotsOf(source, path, unreadable, key);
+                entries.add(Entry.bare(key, slots != null && slots.isEmpty() ? Verdict.SILENCED
+                        : Verdict.MATCHED, LayoutScanner.BACKGROUND, slots, source.isFromOverlay(path), Origin.FILE_ONLY, ""));
             }
         }
 
         return new LayoutDiff(type.getSimpleName(), fileName, language,
-                source.hasOverlay(), entries, warnings);
+                source.hasOverlay(), entries, unreadable, disputes);
     }
 
     /**
@@ -201,13 +322,11 @@ public final class LayoutDiff {
      * which is reported as the defect it is, never as the empty list that switches an icon off.
      */
     @Nullable
-    private static SlotSet slotsOf(LayoutSource source, String path, List<String> warnings, String key,
-                                   String fileName) {
+    private static SlotSet slotsOf(LayoutSource source, String path, List<UnreadableSlots> unreadable, String key) {
         try {
             return source.getValue(path + ".Slot", SlotSet.class);
-        } catch (RuntimeException unreadable) {
-            warnings.add(key + " has an unreadable slot list, so where it goes is unknown: "
-                    + reasonOf(unreadable) + " Fix " + path + ".Slot in " + fileName + ".");
+        } catch (RuntimeException failure) {
+            unreadable.add(new UnreadableSlots(key, reasonOf(failure), path + ".Slot"));
             return null;
         }
     }
@@ -223,29 +342,9 @@ public final class LayoutDiff {
         return message == null ? deepest.toString() : message;
     }
 
-    private static String detailOf(LayoutSource source, String path) {
-        List<String> detail = new ArrayList<>();
-        Set<String> states = source.getKeys(path + ".States");
-        if (!states.isEmpty()) {
-            detail.add(states.size() + " state" + (states.size() == 1 ? "" : "s"));
-        }
-        Set<String> languages = source.getKeys(path + ".Locale");
-        if (!languages.isEmpty()) {
-            detail.add(String.join("/", languages));
-        }
-        String permission = source.getString(path + ".Permission");
-        if (permission != null && !permission.isEmpty()) {
-            detail.add("permission " + permission);
-        }
-        return String.join(", ", detail);
-    }
-
-    /**
-     * The slots more than one key claims, as the screen would resolve them: same layer, different
-     * groups. What the log says at load and what this answers are the same sentence.
-     */
-    private static void reportDisputes(List<Field> fields, Map<String, SlotSet> claimedSlots,
-                                       List<String> warnings) {
+    /** The slots more than one key claims, as the screen would resolve them: same layer, different groups. */
+    private static List<SlotDispute> disputesOf(List<Field> fields, Map<String, SlotSet> claimedSlots) {
+        Set<SlotDispute> disputes = new LinkedHashSet<>(); //a whole group against one outsider is one dispute
         Map<Integer, Field> ownerOfContentSlot = new LinkedHashMap<>();
         Map<Integer, Field> ownerOfBackgroundSlot = new LinkedHashMap<>();
         for (Field field : LayoutScanner.byDisputePriority(fields)) {
@@ -261,14 +360,16 @@ public final class LayoutDiff {
                 if (owner == null) {
                     ownerOfSlot.put(slot, field);
                 } else if (!LayoutScanner.sharesGroup(owner, field)) {
-                    String dispute = LayoutScanner.slotDisputeMessage(LayoutScanner.claimantOf(owner),
-                            LayoutScanner.claimantOf(field), slot);
-                    if (!warnings.contains(dispute)) { //a whole group against one outsider is one sentence
-                        warnings.add(dispute);
-                    }
+                    disputes.add(new SlotDispute(claimOf(owner), claimOf(field), slot));
                 }
             }
         }
+        return new ArrayList<>(disputes);
+    }
+
+    private static String claimOf(Field field) {
+        String group = LayoutScanner.groupOf(field);
+        return group.isEmpty() ? field.getName() : "[" + group + "]";
     }
 
     @Nonnull
@@ -309,8 +410,13 @@ public final class LayoutDiff {
     }
 
     @Nonnull
-    public List<String> getWarnings() {
-        return Collections.unmodifiableList(warnings);
+    public List<UnreadableSlots> getUnreadableSlots() {
+        return Collections.unmodifiableList(unreadableSlots);
+    }
+
+    @Nonnull
+    public List<SlotDispute> getSlotDisputes() {
+        return Collections.unmodifiableList(slotDisputes);
     }
 
     /** The keys the overlay answers for - what a language changed about this screen. */

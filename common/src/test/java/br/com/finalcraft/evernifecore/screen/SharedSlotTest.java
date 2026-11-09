@@ -252,16 +252,16 @@ class SharedSlotTest {
 
         assertEquals(Collections.emptyList(), disputes(),
                 "five icons over two slots, every one of them there on purpose: " + logs());
-        assertEquals(Collections.emptyList(), LayoutDiff.of(plugin, MarketLayout.class, null).getWarnings());
+        assertEquals(Collections.emptyList(), LayoutDiff.of(plugin, MarketLayout.class, null).getSlotDisputes());
 
         LayoutScanner.load(plugin, IntruderLayout.class, null);
 
         assertEquals(Arrays.asList("IntruderLayout: group [mode] and ZOMBIE_NOTES both claim slot 52. "
                         + "group [mode] wins." + ADVICE), disputes(),
                 "the group is named as a whole - which member arrived first is not the operator's problem");
-        assertEquals(Arrays.asList("group [mode] and ZOMBIE_NOTES both claim slot 52. group [mode] wins."),
-                LayoutDiff.of(plugin, IntruderLayout.class, null).getWarnings(),
-                "and the operator reads the same sentence the log said");
+        assertEquals(Arrays.asList("[mode] and ZOMBIE_NOTES both claim slot 52. [mode] wins.").toString(),
+                LayoutDiff.of(plugin, IntruderLayout.class, null).getSlotDisputes().toString(),
+                "and the operator reads the same claims the log said");
     }
 
     @Test
@@ -284,8 +284,8 @@ class SharedSlotTest {
                         "DisagreeLayout: ALPHA and BETA both claim slot 13. ALPHA wins." + ADVICE),
                 disputes(), "the log confronts the claims in the order the screen resolves them");
         assertEquals(Arrays.asList("ZULU and AARDVARK both claim slot 14. ZULU wins.",
-                        "ALPHA and BETA both claim slot 13. ALPHA wins."),
-                LayoutDiff.of(plugin, DisagreeLayout.class, null).getWarnings());
+                        "ALPHA and BETA both claim slot 13. ALPHA wins.").toString(),
+                LayoutDiff.of(plugin, DisagreeLayout.class, null).getSlotDisputes().toString());
 
         ScreenView view = world.open(Screen.of(DisagreeLayout.class), player);
         RecordingSurface surface = world.getRenderer().surfaceOf(view);

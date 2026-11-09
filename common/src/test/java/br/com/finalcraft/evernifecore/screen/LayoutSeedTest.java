@@ -285,7 +285,7 @@ class LayoutSeedTest {
                 "the key the file no longer holds is waiting to be seeded, not missing");
         assertEquals(Arrays.asList("OLD_UPGRADE"), namesOf(diff, LayoutDiff.Verdict.ORPHAN));
         assertEquals(Arrays.asList("EDIT"), namesOf(diff, LayoutDiff.Verdict.SILENCED));
-        assertEquals(Collections.emptyList(), diff.getWarnings(),
+        assertEquals(Collections.emptyList(), diff.getSlotDisputes(),
                 "PRODUCT landed on a slot the BACKDROP pane covers, which is what a background is for");
     }
 
@@ -312,8 +312,8 @@ class LayoutSeedTest {
 
         LayoutDiff diff = LayoutDiff.of(plugin, ShopLayout.class, null);
 
-        assertEquals(Arrays.asList("PRODUCT and UPGRADE both claim slot 10. PRODUCT wins."),
-                diff.getWarnings(), "a contested slot is invisible on screen and only the report says why");
+        assertEquals(Arrays.asList("PRODUCT and UPGRADE both claim slot 10. PRODUCT wins.").toString(),
+                diff.getSlotDisputes().toString(), "a contested slot is invisible on screen and only the report says why");
     }
 
     private static int occurrencesOf(String text, String fragment) {
