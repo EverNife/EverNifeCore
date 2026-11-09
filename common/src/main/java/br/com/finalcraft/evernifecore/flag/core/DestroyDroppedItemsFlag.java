@@ -12,9 +12,9 @@ import br.com.finalcraft.evernifecore.flag.TristateFlag;
 import java.util.Collections;
 
 /**
- * {@code destroy-dropped-items}: TRUE lets a player drop an item in the region, and the item vanishes instead of lying
- * there. It never denies: it marks the drop ({@link ItemContext#setItemDestroyed}) for the drop listener, which removes
- * the item only when nothing denied the drop - {@code deny-item-drop} keeps the item with the dropper. The
+ * {@code destroy-dropped-items}: TRUE makes an item a player drops in the region leave their hand and never enter the
+ * world. It never denies: it marks the drop ({@link ItemContext#setItemDestroyed}) for the platform listener, which
+ * destroys the item only when nothing denied the drop - {@code deny-item-drop} keeps the item with the dropper. The
  * {@link TypeFilterSettings} narrow it to some droppers or items.
  */
 public final class DestroyDroppedItemsFlag extends TristateFlag {
@@ -50,7 +50,7 @@ public final class DestroyDroppedItemsFlag extends TristateFlag {
 
     @Override
     public String getDescription() {
-        return "TRUE: items dropped in the region vanish instead of lying there; the drop itself is allowed (deny-item-drop"
-                + " forbids it). only/except in the settings narrow it to some items.";
+        return "TRUE: items players drop in the region leave their hand and never lie there (deny-item-drop keeps them in the"
+                + " hand instead). only/except in the settings narrow it to some items.";
     }
 }

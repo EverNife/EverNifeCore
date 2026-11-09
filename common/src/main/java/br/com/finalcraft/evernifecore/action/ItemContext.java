@@ -69,8 +69,9 @@ public final class ItemContext extends ActionContext {
     }
 
     /**
-     * Whether a flag asked for the dropped item to vanish once the drop goes through ({@code destroy-dropped-items}). The
-     * platform listener acts on it only when nothing denied the drop: a denied drop keeps the item with the dropper.
+     * Whether a flag asked for the dropped item never to enter the world ({@code destroy-dropped-items}). The platform
+     * listener acts on it only when nothing denied the drop - a denied drop keeps the item with the dropper - and, on
+     * Hytale, only for a drop the player asked for.
      */
     public boolean isItemDestroyed() {
         return itemDestroyed;

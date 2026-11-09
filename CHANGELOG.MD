@@ -29,11 +29,13 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 #### Regions
 
-- **`destroy-dropped-items`** (core flag, `ITEM_DROP`): a player may drop an item in the region and the item vanishes
-  instead of lying there; `deny-item-drop` still wins and keeps the item with the dropper, and `only`/`except` narrow
-  it to some items. The flag marks the drop (`ItemContext.isItemDestroyed()`); Bukkit removes the item a tick after
-  the drop event (the server adds it to the world after the event), Hytale cancels `DropItemEvent.Drop`, which fires
-  once the stack has left the inventory.
+- **`destroy-dropped-items`** (core flag, `ITEM_DROP`): an item a player drops in the region leaves the hand and never
+  enters the world; `deny-item-drop` still wins and keeps the item with the dropper, and `only`/`except` narrow it to
+  some items. The flag marks the drop (`ItemContext.isItemDestroyed()`). Bukkit does all of it at `LOW`: it posts
+  `DropActionEvent.Post` with the real item, empties the entity to AIR and cancels `PlayerDropItemEvent`. So a plugin at
+  `NORMAL` or later reads a cancelled drop of AIR and can no longer save the item; one that cancels at `LOWEST` still
+  keeps it with the player; one that uncancels gets no second `Post`; a Forge mod's `ItemTossEvent` does not fire for it.
+  Hytale cancels `DropItemEvent.Drop`, which fires once the stack has left the inventory.
 - **`owner-only-pickup`** (core flag; `ITEM_DROP`, `ITEM_PICKUP` and the new `ITEM_HOPPER_PICKUP`): an item dropped in the
   region can be picked up there only by whoever dropped it, and no hopper or hopper minecart pulls it; `only`/`except`
   narrow it to some items, and it rules where the item lies now. The drop marks the owner (`ItemContext.getItemOwner()`),

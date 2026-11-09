@@ -1,8 +1,12 @@
 package br.com.finalcraft.evernifecore.minecraft.action.listener;
 
 import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.event.DropActionEvent;
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.flag.Tristate;
 import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
+import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.minecraft.region.RegionServer;
 import br.com.finalcraft.evernifecore.region.Region;
@@ -16,6 +20,8 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
@@ -31,7 +37,8 @@ import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -102,12 +109,45 @@ class CatalogActionListenersTest {
         return RegionServer.entity(Item.class, EntityType.ITEM, server.at(x, 5, 5)).returning("getItemStack", new ItemStack(type)).build();
     }
 
-    private static Item removableItem(RegionServer server, double x, Runnable onRemove) {
-        return RegionServer.entity(Item.class, EntityType.ITEM, server.at(x, 5, 5)).returning("getItemStack", new ItemStack(Material.DIAMOND))
-                .on("remove", args -> {
-                    onRemove.run();
+    /** Five diamonds on an entity that keeps what {@code setItemStack} gives it, as the real one does. */
+    private static Item fiveDiamonds(RegionServer server, double x) {
+        ItemStack[] held = {new ItemStack(Material.DIAMOND, 5)};
+        return RegionServer.entity(Item.class, EntityType.ITEM, server.at(x, 5, 5))
+                .on("getItemStack", args -> held[0])
+                .on("setItemStack", args -> {
+                    held[0] = (ItemStack) args[0];
                     return null;
                 }).build();
+    }
+
+    /** Another plugin that cancels every drop before the core's listener. */
+    public static final class CancelsAtLowest implements ECListener {
+        @EventHandler(priority = EventPriority.LOWEST)
+        public void onDrop(PlayerDropItemEvent event) {
+            event.setCancelled(true);
+        }
+    }
+
+    /** Another plugin that gives every cancelled drop a second chance after the core's listener. */
+    public static final class UncancelsAtNormal implements ECListener {
+        @EventHandler(priority = EventPriority.NORMAL)
+        public void onDrop(PlayerDropItemEvent event) {
+            event.setCancelled(false);
+        }
+    }
+
+    /** Runs {@code body} hearing every {@code DropActionEvent.Post}, each described when it is heard, with what the entity held then. */
+    private static List<String> postsDuring(Item entity, Runnable body) {
+        List<String> posts = new ArrayList<>();
+        ECEventSubscription<DropActionEvent.Post> heard = ECEventBus.global().subscribe(DropActionEvent.Post.class, post -> posts.add(
+                post.getContext().getItemKey() + " x" + post.getContext().getAmount() + " spec x" + post.getContext().getItem().getAmount()
+                        + " entity " + entity.getItemStack().getType()));
+        try {
+            body.run();
+        } finally {
+            heard.unsubscribe();
+        }
+        return posts;
     }
 
     @Test
@@ -128,39 +168,90 @@ class CatalogActionListenersTest {
     }
 
     @Test
-    void destroyDroppedItemsLetsTheDropThroughAndRemovesItsItemATickLater() {
+    void aDropMarkedForDestructionEndsCancelledAndEmptyWithAPostOfTheRealItem() {
         try (RegionServer server = RegionServer.open(tempDir)) {
             server.box("arena", 0, 0, 0, 10, 10, 10, server.flag(CoreFlags.DESTROY_DROPPED_ITEMS));
             server.listen(new ItemActionListeners.Drop());
             Player fighter = server.player("fighter", 5, 5, 5);
-            AtomicInteger removed = new AtomicInteger();
-            Item inside = removableItem(server, 5, removed::incrementAndGet);
-            Item outside = removableItem(server, 50, () -> removed.addAndGet(100));
+            Item inside = fiveDiamonds(server, 5);
+            Item outside = fiveDiamonds(server, 50);
+            boolean[] cancelled = new boolean[2];
 
-            assertFalse(server.call(new PlayerDropItemEvent(fighter, inside)).isCancelled(), "the drop itself is allowed");
-            assertFalse(server.call(new PlayerDropItemEvent(fighter, outside)).isCancelled());
-            assertEquals(0, removed.get(), "the server has not added the item yet: nothing is removed during the event");
+            List<String> posts = postsDuring(inside, () -> cancelled[0] = server.call(new PlayerDropItemEvent(fighter, inside)).isCancelled());
+            List<String> postsOutside = postsDuring(outside, () -> cancelled[1] = server.call(new PlayerDropItemEvent(fighter, outside)).isCancelled());
 
-            server.server.runScheduledTasks();
-
-            assertEquals(1, removed.get(), "only the item dropped inside vanishes");
+            assertTrue(cancelled[0], "a cancelled drop never enters the world");
+            assertEquals(Material.AIR, inside.getItemStack().getType(), "the server gives the entity's stack back: nothing comes back");
+            assertEquals(1, posts.size());
+            assertEquals("minecraft:diamond x5 spec x5 entity DIAMOND", posts.get(0), "the Post is asked before the entity is emptied");
+            assertFalse(cancelled[1], "outside the region nothing changes");
+            assertEquals(Material.DIAMOND, outside.getItemStack().getType());
+            assertEquals(1, postsOutside.size());
         }
     }
 
     @Test
-    void aDropAnotherPluginCancelsKeepsItsItemUnderDestroyDroppedItems() {
+    void denyItemDropBeatsDestructionTheEntityKeepsTheItemAndNoPostGoesOut() {
+        try (RegionServer server = RegionServer.open(tempDir)) {
+            server.box("arena", 0, 0, 0, 10, 10, 10, server.flag(CoreFlags.DESTROY_DROPPED_ITEMS), server.flag(CoreFlags.DENY_ITEM_DROP));
+            server.listen(new ItemActionListeners.Drop());
+            Player fighter = server.player("fighter", 5, 5, 5);
+            Item item = fiveDiamonds(server, 5);
+            boolean[] cancelled = new boolean[1];
+
+            List<String> posts = postsDuring(item, () -> cancelled[0] = server.call(new PlayerDropItemEvent(fighter, item)).isCancelled());
+
+            assertTrue(cancelled[0]);
+            assertEquals(Material.DIAMOND, item.getItemStack().getType(), "the server gives these diamonds back");
+            assertTrue(posts.isEmpty());
+        }
+    }
+
+    @Test
+    void aDropAnotherPluginCancelsAtLowestKeepsItsItemUnderDestroyDroppedItems() {
+        try (RegionServer server = RegionServer.open(tempDir)) {
+            server.box("arena", 0, 0, 0, 10, 10, 10, server.flag(CoreFlags.DESTROY_DROPPED_ITEMS));
+            server.listen(new CancelsAtLowest());
+            server.listen(new ItemActionListeners.Drop());
+            Player fighter = server.player("fighter", 5, 5, 5);
+            Item item = fiveDiamonds(server, 5);
+
+            List<String> posts = postsDuring(item, () -> server.call(new PlayerDropItemEvent(fighter, item)));
+
+            assertEquals(Material.DIAMOND, item.getItemStack().getType(), "onDrop never ran: the server gives these diamonds back");
+            assertTrue(posts.isEmpty());
+        }
+    }
+
+    @Test
+    void aPluginThatUncancelsADestroyedDropGetsNoSecondPost() {
         try (RegionServer server = RegionServer.open(tempDir)) {
             server.box("arena", 0, 0, 0, 10, 10, 10, server.flag(CoreFlags.DESTROY_DROPPED_ITEMS));
             server.listen(new ItemActionListeners.Drop());
+            server.listen(new UncancelsAtNormal());
             Player fighter = server.player("fighter", 5, 5, 5);
-            AtomicInteger removed = new AtomicInteger();
-            Item item = removableItem(server, 5, removed::incrementAndGet);
+            Item item = fiveDiamonds(server, 5);
+            boolean[] cancelled = new boolean[1];
 
-            PlayerDropItemEvent drop = server.call(new PlayerDropItemEvent(fighter, item));
-            drop.setCancelled(true); //a later listener's word: the server gives the item back
-            server.server.runScheduledTasks();
+            List<String> posts = postsDuring(item, () -> cancelled[0] = server.call(new PlayerDropItemEvent(fighter, item)).isCancelled());
 
-            assertEquals(0, removed.get());
+            assertFalse(cancelled[0], "afterDrop ran");
+            assertEquals(Material.AIR, item.getItemStack().getType(), "the item is gone either way");
+            assertEquals(1, posts.size(), "the Post of this drop went out at LOW");
+        }
+    }
+
+    @Test
+    void aDestroyedItemKeepsNoOwner() {
+        try (RegionServer server = RegionServer.open(tempDir)) {
+            server.box("arena", 0, 0, 0, 10, 10, 10, server.flag(CoreFlags.DESTROY_DROPPED_ITEMS), server.flag(CoreFlags.OWNER_ONLY_PICKUP));
+            server.listen(new ItemActionListeners.Drop());
+            server.listen(new ItemActionListeners.Pickup());
+            Item item = fiveDiamonds(server, 5);
+
+            server.call(new PlayerDropItemEvent(server.player("owner", 5, 5, 5), item));
+
+            assertFalse(server.call(new EntityPickupItemEvent(server.player("other", 6, 5, 5), item, 0)).isCancelled(), "no owner was kept for it");
         }
     }
 

@@ -8,8 +8,7 @@ import br.com.finalcraft.evernifecore.action.TypeKey;
 import br.com.finalcraft.evernifecore.action.event.DropActionEvent;
 import br.com.finalcraft.evernifecore.action.event.PickupActionEvent;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
-import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
-import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.entity.Item;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
@@ -31,8 +30,10 @@ import java.util.WeakHashMap;
  * The item listeners, one class per event so that each registers alone: {@link EventSource#ITEM_DROP} is a player
  * throwing an item, {@link EventSource#ITEM_PICKUP} anyone picking one up - asked where the item lies; a denial, or a
  * cancelled {@code Pre}, cancels it, and one that went through posts its {@link DropActionEvent} / {@link PickupActionEvent}
- * Post; a drop let through that a flag marked ({@link ItemContext#isItemDestroyed()}) loses its item a tick later, or
- * keeps its owner ({@link ItemContext#getItemOwner()}) for the pickups, hoppers and merges of that item. The pickup event fires every tick for every item next to someone, which is why it is a source of its own.
+ * Post. A drop let through that a flag marked ({@link ItemContext#isItemDestroyed()}) never enters the world: it posts
+ * its Post, empties the entity and cancels the event, all at {@code LOW}, so a plugin at {@code NORMAL} or later reads a
+ * cancelled drop of air. Any other drop keeps its owner ({@link ItemContext#getItemOwner()}) for the pickups, hoppers and
+ * merges of that item. The pickup event fires every tick for every item next to someone, which is why it is a source of its own.
  */
 public final class ItemActionListeners {
 
@@ -82,27 +83,29 @@ public final class ItemActionListeners {
                 event.setCancelled(true);
                 return;
             }
+            if (context.isItemDestroyed()) {
+                postDropped(event); //while the entity still holds the item the Post describes
+                item.setItemStack(new ItemStack(Material.AIR)); //the server gives a cancelled drop's stack back to the player: nothing comes back
+                event.setCancelled(true);
+                return;
+            }
             if (context.getItemOwner() != null) {
                 OWNERS.put(item, context.getItemOwner());
-            }
-            if (context.isItemDestroyed()) {
-                //a tick later: the server adds the item to the world after this event, and an entity removed before that
-                //is refused with a warning (1.17+); the pickup delay of a thrown item outlasts the tick
-                Bukkit.getScheduler().runTaskLater(EverNifeCoreBukkitPlugin.instance, () -> {
-                    if (!event.isCancelled()) {
-                        item.remove();
-                    }
-                }, 1L);
             }
         }
 
         @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
         public void afterDrop(PlayerDropItemEvent event) {
             Item item = event.getItemDrop();
-            if (!McActionContexts.isDisabled(item.getWorld())) {
-                Actions.post(DropActionEvent.Post.class, () -> new DropActionEvent.Post(context(EventSource.ITEM_DROP, item,
-                        McActionContexts.actor(event.getPlayer()), event)));
+            //an empty entity reaching here is one onDrop destroyed and another plugin uncancelled: its Post already went out
+            if (!McActionContexts.isDisabled(item.getWorld()) && item.getItemStack().getType() != Material.AIR) {
+                postDropped(event);
             }
+        }
+
+        private static void postDropped(PlayerDropItemEvent event) {
+            Actions.post(DropActionEvent.Post.class, () -> new DropActionEvent.Post(context(EventSource.ITEM_DROP, event.getItemDrop(),
+                    McActionContexts.actor(event.getPlayer()), event)));
         }
     }
 
