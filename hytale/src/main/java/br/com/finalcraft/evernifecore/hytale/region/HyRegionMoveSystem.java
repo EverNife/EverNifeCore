@@ -32,6 +32,7 @@ import jakarta.annotation.Nullable;
 import org.joml.Vector3d;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
@@ -79,6 +80,7 @@ public final class HyRegionMoveSystem extends EntityTickingSystem<EntityStore> {
     private final Supplier<RegionMovementTracker> tracker;
     //one System for every world, each ticking on its own thread
     private final Map<UUID, Seen> seen = new ConcurrentHashMap<>();
+    private final Set<UUID> entered = ConcurrentHashMap.newKeySet();
     private final Map<UUID, SeenChunk> chunks = new ConcurrentHashMap<>();
 
     /** Internal: built once by {@link br.com.finalcraft.evernifecore.hytale.action.HyActionSystems}. */
@@ -121,6 +123,7 @@ public final class HyRegionMoveSystem extends EntityTickingSystem<EntityStore> {
      * @return where to send him back, or null when he stays where he is
      */
     @Nullable WorldLocPos step(UUID uuid, Supplier<FPlayer> player, String world, Vector3d at, boolean teleporting) {
+        boolean logging = entered.add(uuid);
         if (!EventSourceUsage.get().isNeeded(EventSource.MOVE)) {
             if (!seen.isEmpty()) {
                 seen.clear();   //positions go stale while nobody listens; the next tick seeds everyone again
@@ -139,7 +142,8 @@ public final class HyRegionMoveSystem extends EntityTickingSystem<EntityStore> {
         }
         WorldLocPos to = HyActionContexts.position(world, at);
         if (last == null) {
-            MoveVerdict verdict = tracker.get().onJoin(player.get(), to);
+            //only the very first tick is a login: later a position just went stale, and what the player holds is of this life
+            MoveVerdict verdict = logging ? tracker.get().onJoin(player.get(), to) : tracker.get().seedOnline(player.get(), to);
             seen.put(uuid, new Seen(world, at));
             return verdict.getRevertTo();
         }
@@ -194,6 +198,7 @@ public final class HyRegionMoveSystem extends EntityTickingSystem<EntityStore> {
     /** The player left: his session ends, if this System ever saw him. Any thread. */
     public void quit(UUID uuid, Supplier<FPlayer> player) {
         chunks.remove(uuid);
+        entered.remove(uuid);
         if (seen.remove(uuid) != null) {
             tracker.get().onQuit(player.get());
         }

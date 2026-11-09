@@ -221,7 +221,7 @@ public final class MoveActionListener implements ECListener {
         for (FPlayer player : EverNifeCore.getPlatform().getOnlinePlayers()) {
             FLocation at = player.getLocation();
             if (at != null && !ECSettings.REGIONS_DISABLED_WORLDS.contains(at.getWorldName())) {
-                MoveVerdict verdict = tracker.onJoin(player, at.getWorldLocPos());
+                MoveVerdict verdict = tracker.seedOnline(player, at.getWorldLocPos());
                 if (!verdict.isAllowed()) {
                     player.teleportTo(new FLocation(verdict.getRevertTo(), null));
                 }

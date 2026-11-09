@@ -162,6 +162,27 @@ class HeldQuitPolicyTest {
     }
 
     @Test
+    void seedingAPlayerAlreadyOnlineKeepsAHoldWithNoWindowAndTheQuitStillGivesBack() {
+        hold(duel, KIT, HoldOptions.memory());
+
+        RegionMovementTracker.get().seedOnline(player, WorldLocPos.of(0, 64, 0, "world"));
+
+        assertEquals(KIT, state.inventory);
+        assertEquals(Collections.singletonList(duel.getHolderId()), holders());
+        quit();
+        assertEquals(OWN, state.inventory, "still held when the quit came");
+    }
+
+    @Test
+    void aRealJoinStillDropsWhatMemoryKeptOfAPastLife() {
+        hold(duel, KIT, HoldOptions.memory());
+
+        RegionMovementTracker.get().onJoin(player, WorldLocPos.of(0, 64, 0, "world"));
+
+        assertEquals(Collections.emptyList(), holders());
+    }
+
+    @Test
     void reconnectingThroughTheMovementTrackerAlsoKeepsTheHold() {
         WorldLocPos at = WorldLocPos.of(0, 64, 0, "world");
         hold(duel, KIT, keeps(WINDOW));

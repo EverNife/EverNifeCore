@@ -230,6 +230,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 #### Player state
 
+- **Seeding a player already online keeps what they hold**: `RegionMovementTracker.onJoin` ran also when the MOVE listener
+  arrived on a running server (and on Hytale after nobody needed MOVE for a while), and it dropped a hold with no window
+  without giving it back, so the next quit gave nothing back. A player who was online goes through the new
+  `seedOnline`; `onJoin` is a login.
 - **Hytale: what is held comes back on the disconnect.** The server dispatches `PlayerDisconnectEvent` on the channel's thread, where
   every write is refused, so the give-back failed and a `memory()` hold lost the inventory for good. The quit now hops to the world
   ahead of `Player.remove`, with the entity alive: `ECPlayerQuitEvent` is posted on the world thread there. The login gives back on the first

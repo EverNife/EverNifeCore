@@ -9,6 +9,9 @@ import br.com.finalcraft.evernifecore.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.flag.Tristate;
 import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.player.state.HeldPlayerState;
+import br.com.finalcraft.evernifecore.player.state.HoldOptions;
+import br.com.finalcraft.evernifecore.player.state.StateHolder;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.event.RegionLeaveEvent;
 import br.com.finalcraft.evernifecore.region.session.MoveCause;
@@ -30,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -60,7 +64,7 @@ class HyRegionMoveSystemTest {
 
     @BeforeEach
     void open() {
-        server = Platforms.lenient().install();
+        server = Platforms.lenient().playerState().install();
         regions = RegionWorld.open("HyMoveOwner", tempDir.resolve("regions"));
         core = Plugins.fakeCore(tempDir.resolve("core").toFile());
         FlagRegistry.get().register(core, CoreFlags.DENY_ENTRY);
@@ -85,6 +89,43 @@ class HyRegionMoveSystemTest {
 
     private WorldLocPos stepTo(double x, double y, double z) {
         return system.step(walker.getUniqueId(), () -> walker, WORLD, new Vector3d(x, y, z), false);
+    }
+
+    private Set<String> holdersAfterHolding(Runnable between) {
+        StateHolder holder = StateHolder.of("theduel:battle");
+        HeldPlayerState.of(walker.getUniqueId()).hold(HeldPlayerState.INVENTORY, holder, "kit", p -> { }, HoldOptions.memory(), walker);
+        between.run();
+        return HeldPlayerState.of(walker.getUniqueId()).getHolders(HeldPlayerState.INVENTORY).keySet();
+    }
+
+    @Test
+    void theFirstTickOfALoginDropsWhatMemoryKeptOfAPastLife() {
+        assertTrue(holdersAfterHolding(() -> {
+            arena();
+            stepTo(-5, 5, 5);
+        }).isEmpty());
+    }
+
+    @Test
+    void aPlayerSeededAfterTheirLoginKeepsWhatTheyHold() {
+        stepTo(-5, 5, 5); //the login, with no region needing MOVE yet
+
+        assertEquals(1, holdersAfterHolding(() -> {
+            arena();
+            stepTo(-5, 5, 5);
+            assertTrue(system.isFollowing(walker.getUniqueId()));
+        }).size());
+    }
+
+    @Test
+    void afterAQuitTheNextFirstTickIsALoginAgain() {
+        stepTo(-5, 5, 5);
+        system.quit(walker.getUniqueId(), () -> walker);
+
+        assertTrue(holdersAfterHolding(() -> {
+            arena();
+            stepTo(-5, 5, 5);
+        }).isEmpty());
     }
 
     @Test

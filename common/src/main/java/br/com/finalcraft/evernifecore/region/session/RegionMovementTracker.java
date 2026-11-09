@@ -183,16 +183,32 @@ public final class RegionMovementTracker {
     }
 
     /**
-     * The player appeared at {@code at}: they are inside wherever that is, unasked - unless a region there expels a
-     * player found inside ({@link ProtectionFlagGate#decideExpulsion}). Thread: the player's world.
+     * The player logged in at {@code at}; what memory still holds for them is a past life's and goes, except what a
+     * reconnection window kept. A player who was already online is {@link #seedOnline}. See {@link #seedOnline} for the rest.
+     *
+     * @return {@link MoveVerdict#allowed()}, or where the platform must put the player
+     */
+    public MoveVerdict onJoin(FPlayer player, WorldLocPos at) {
+        warnIfOffThread("onJoin", at.getWorldName());
+        HeldPlayerState.forget(player.getUniqueId(), null);
+        return enter(player, at);
+    }
+
+    /**
+     * A player already online starts being followed at {@code at}, because the movement source only came on now: they
+     * are inside wherever that is, unasked - unless a region there expels a player found inside
+     * ({@link ProtectionFlagGate#decideExpulsion}). What they hold stays held. Thread: the player's world.
      *
      * @return {@link MoveVerdict#allowed()}, or where the platform must put the player; the tracker already counts
      *         them there, so the teleport that follows crosses nothing
      */
-    public MoveVerdict onJoin(FPlayer player, WorldLocPos at) {
-        warnIfOffThread("onJoin", at.getWorldName());
+    public MoveVerdict seedOnline(FPlayer player, WorldLocPos at) {
+        warnIfOffThread("seedOnline", at.getWorldName());
+        return enter(player, at);
+    }
+
+    private MoveVerdict enter(FPlayer player, WorldLocPos at) {
         lookup.forgetSession(player.getUniqueId());
-        HeldPlayerState.forget(player.getUniqueId(), null); //what memory kept is a past life's, except what a reconnection window kept
         RegionPlayerSession session = lookup.getSession(player);
         session.setOnlinePlayer(player);
         List<Region> next = lookup.at(at);
