@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDP
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.logic.Caller;
 import br.com.finalcraft.evernifecore.logic.audit.command.AuditCommandNode;
+import br.com.finalcraft.evernifecore.testing.Locales;
 import br.com.finalcraft.evernifecore.pageviewer.nav.PVExtraMessages;
 import br.com.finalcraft.evernifecore.pageviewer.theme.ClassicPageTheme;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
@@ -112,6 +113,25 @@ class AuditCommandNodeTest {
         harness.dispatch(awshop, steve, "log --page 2");
         awaitLines(5);
         assertEquals(5, transferLines().size(), steve.getMessages().toString());
+    }
+
+    @Test
+    void anEntryAndAnUnknownKindReadTheirEditedTexts() {
+        steve.grant(BASE).grant(BASE + ".view");
+        FinalCMDPluginCommand awshop = mount();
+        try (Locales.Retext edited = Locales.retext(harness.ecPluginData, "AuditCommandNode.LINE", harness.ecPluginData.getPluginLanguage(),
+                "§b${kind}: ${subject}${amount} by ${origin}")) {
+            harness.dispatch(awshop, steve, "log --kind transfer");
+            awaitLines(1);
+        }
+        assertTrue(steve.getMessages().stream().anyMatch(line -> line.startsWith("§btransfer: ") && line.endsWith(" by awshop:give")), steve.getMessages().toString());
+
+        steve.clearMessages();
+        try (Locales.Retext edited = Locales.retext(harness.ecPluginData, "AuditCommandNode.UNKNOWN_KIND", harness.ecPluginData.getPluginLanguage(),
+                "§bNo ${kind} in ${kinds}")) {
+            harness.dispatch(awshop, steve, "log --kind nonsense");
+        }
+        assertTrue(steve.getMessages().get(0).startsWith("§bNo nonsense in "), steve.getMessages().toString());
     }
 
     @Test

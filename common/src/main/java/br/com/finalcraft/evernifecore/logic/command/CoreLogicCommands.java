@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.logic.audit.AuditLog;
 import br.com.finalcraft.evernifecore.logic.audit.AuditQuery;
@@ -25,6 +26,30 @@ import java.util.UUID;
  */
 public class CoreLogicCommands {
 
+    @FCLocale(lang = LocaleType.EN_US, text = "&eLogic trace of &a${player}&e: &coff")
+    @FCLocale(lang = LocaleType.PT_BR, text = "&eTrace de lógica de &a${player}&e: &cdesligado")
+    private static LocaleMessage TRACE_OFF;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "&eLogic trace of &a${player}&e: &aon&7 (every plugin)")
+    @FCLocale(lang = LocaleType.PT_BR, text = "&eTrace de lógica de &a${player}&e: &aligado&7 (todo plugin)")
+    private static LocaleMessage TRACE_ON_EVERY_PLUGIN;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "&eLogic trace of &a${player}&e: &aon&7 (only ${plugin})")
+    @FCLocale(lang = LocaleType.PT_BR, text = "&eTrace de lógica de &a${player}&e: &aligado&7 (só ${plugin})")
+    private static LocaleMessage TRACE_ON_ONE_PLUGIN;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "&7 - run the same command again to stop it.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "&7 - rode o mesmo comando de novo para parar.")
+    private static LocaleMessage TRACE_HOW_TO_STOP;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "&7 - run the same command again to stop it; it replaces the trace you had.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "&7 - rode o mesmo comando de novo para parar; ele substitui o trace que você tinha.")
+    private static LocaleMessage TRACE_HOW_TO_STOP_REPLACED;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "&e${plugin}&c keeps no audit log: a plugin opens one with AuditLog.of(plugin, storage) on enable.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "&e${plugin}&c não mantém log de auditoria: um plugin abre o seu com AuditLog.of(plugin, storage) no enable.")
+    private static LocaleMessage NO_AUDIT_LOG;
+
     @FinalCMD.SubCMD(subcmd = "trace", locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "Toggle a trace of every gate, cost and effect run for a player, optionally of one plugin"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Liga/desliga o trace de todo gate, custo e efeito de um jogador, opcionalmente de um plugin")
@@ -34,13 +59,13 @@ public class CoreLogicCommands {
         Optional<LogicTrace.Watch> current = LogicTrace.get(watcher);
         if (current.isPresent() && current.get().getPlayer().equals(target.getUniqueId()) && samePlugin(current.get().getPlugin(), plugin)) {
             LogicTrace.stop(watcher);
-            sender.sendMessage("§eLogic trace of §a" + target.getName() + "§e: §coff");
+            TRACE_OFF.addPlaceholder("player", target.getName()).send(sender);
             return;
         }
         LogicTrace.start(watcher, target.getUniqueId(), plugin, sender::sendMessage);
-        sender.sendMessage("§eLogic trace of §a" + target.getName() + "§e: §aon§7"
-                + (plugin == null ? " (every plugin)" : " (only " + plugin + ")")
-                + " - run the same command again to stop it" + (current.isPresent() ? "; it replaces the trace you had." : "."));
+        (plugin == null ? TRACE_ON_EVERY_PLUGIN : TRACE_ON_ONE_PLUGIN).custom().addPlaceholder("player", target.getName())
+                .addPlaceholder("plugin", String.valueOf(plugin))
+                .append(current.isPresent() ? TRACE_HOW_TO_STOP_REPLACED : TRACE_HOW_TO_STOP).send(sender);
     }
 
     @FinalCMD.SubCMD(subcmd = "audit", permission = PermissionNodes.EVERNIFECORE_COMMAND_LOGIC_AUDIT, locales = {
@@ -51,14 +76,14 @@ public class CoreLogicCommands {
                       @Arg.Flag("--page") Integer page) {
         Optional<AuditLog> log = AuditLog.ofIfPresent(plugin);
         if (!log.isPresent()) {
-            sender.sendMessage("§e" + plugin + "§c keeps no audit log: a plugin opens one with AuditLog.of(plugin, storage) on enable.");
+            NO_AUDIT_LOG.addPlaceholder("plugin", plugin).send(sender);
             return;
         }
         AuditQuery query = new AuditQuery().limit(AuditCommandNode.PAGE_SIZE * 25);
         if (player != null) {
             UUID uuid = AuditCommandNode.playerId(player);
             if (uuid == null) {
-                sender.sendMessage("§cNo player is known as §e" + player + "§c: give a name that joined this server, or the UUID.");
+                AuditCommandNode.UNKNOWN_PLAYER.addPlaceholder("player", player).send(sender);
                 return;
             }
             query.player(uuid);

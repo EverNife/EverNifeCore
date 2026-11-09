@@ -4,8 +4,8 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
-import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.logic.audit.AuditEntry;
 import br.com.finalcraft.evernifecore.logic.audit.AuditKind;
@@ -39,6 +39,26 @@ import java.util.UUID;
  * when the storage answers.
  */
 public class AuditCommandNode {
+
+    @FCLocale(lang = LocaleType.EN_US, text = "&cNo player is known as &e${player}&c: give a name that joined this server, or the UUID.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "&cNenhum jogador conhecido como &e${player}&c: informe um nome que já entrou neste servidor, ou o UUID.")
+    public static LocaleMessage UNKNOWN_PLAYER;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "&cNo audit kind &e${kind}&c: write one of ${kinds}.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "&cNão existe o tipo de auditoria &e${kind}&c: escreva um de ${kinds}.")
+    private static LocaleMessage UNKNOWN_KIND;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "&cThe audit log of ${plugin} could not be read: ${reason}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "&cO log de auditoria de ${plugin} não pôde ser lido: ${reason}")
+    private static LocaleMessage READ_FAILED;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "&7The audit log of &e${plugin}&7 has no entry for that.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "&7O log de auditoria de &e${plugin}&7 não tem entrada para isso.")
+    private static LocaleMessage NO_ENTRIES;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "&7${at} &8| &e${kind} &8| &f${player} &8| &f${counterparty} &8| &f${subject}${amount} &8| &7${origin}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "&7${at} &8| &e${kind} &8| &f${player} &8| &f${counterparty} &8| &f${subject}${amount} &8| &7${origin}")
+    private static LocaleMessage LINE;
 
     public static final int PAGE_SIZE = 20;
     /** How many entries a view reads at most, newest first. */
@@ -80,7 +100,7 @@ public class AuditCommandNode {
         if (player != null) {
             UUID uuid = playerId(player);
             if (uuid == null) {
-                sender.sendMessage("§cNo player is known as §e" + player + "§c: give a name that joined this server, or the UUID.");
+                UNKNOWN_PLAYER.addPlaceholder("player", player).send(sender);
                 return;
             }
             query.player(uuid);
@@ -91,7 +111,7 @@ public class AuditCommandNode {
         if (kind != null) {
             AuditKind parsed = kind(kind);
             if (parsed == null) {
-                sender.sendMessage("§cNo audit kind §e" + kind + "§c: write one of " + kindNames() + ".");
+                UNKNOWN_KIND.custom().addPlaceholder("kind", kind).addPlaceholder("kinds", kindNames()).send(sender);
                 return;
             }
             query.kind(parsed);
@@ -104,9 +124,9 @@ public class AuditCommandNode {
         String plugin = log.getPlugin().getMetaInfo().getName();
         log.query(query).whenComplete((entries, failure) -> {
             if (failure != null) {
-                sender.sendMessage("§cThe audit log of " + plugin + " could not be read: " + failure.getMessage());
+                READ_FAILED.custom().addPlaceholder("plugin", plugin).addPlaceholder("reason", String.valueOf(failure.getMessage())).send(sender);
             } else if (entries.isEmpty()) {
-                sender.sendMessage("§7The audit log of §e" + plugin + "§7 has no entry for that.");
+                NO_ENTRIES.addPlaceholder("plugin", plugin).send(sender);
             } else {
                 pageOf(entries).send(page, sender);
             }
@@ -119,21 +139,18 @@ public class AuditCommandNode {
                         .unlimitedEntries()
                         .orderBy(entry -> entry.getInstant().toEpochMilli()).descending()
                         .cache(CachePolicy.none())
-                        .addValue("line", AuditCommandNode::line)
+                        .addValue("at", AuditEntry::getInstant)
+                        .addValue("kind", entry -> kindName(entry.getKind()))
+                        .addValue("player", entry -> name(entry.getPlayer()))
+                        .addValue("counterparty", entry -> name(entry.getCounterparty()))
+                        .addValue("subject", entry -> entry.getSubject() == null ? "-" : entry.getSubject())
+                        .addValue("amount", entry -> entry.getAmount() == null ? "" : " " + entry.getAmount().toPlainString())
+                        .addValue("origin", entry -> entry.getCaller().getOrigin())
                         .build())
-                .setFormatLine(FancyText.of("${line}"))
+                .setFormatLine(LINE)
                 .setPageSize(PAGE_SIZE)
                 .theme(PageTheme.classic().withTotalCount())
                 .build();
-    }
-
-    /** {@code at | kind | player | counterparty | subject amount | caller origin}. */
-    public static String line(AuditEntry entry) {
-        return "§7" + entry.getInstant() + " §8| §e" + kindName(entry.getKind())
-                + " §8| §f" + name(entry.getPlayer()) + " §8| §f" + name(entry.getCounterparty())
-                + " §8| §f" + (entry.getSubject() == null ? "-" : entry.getSubject())
-                + (entry.getAmount() == null ? "" : " " + entry.getAmount().toPlainString())
-                + " §8| §7" + entry.getCaller().getOrigin();
     }
 
     private static String name(@Nullable UUID player) {

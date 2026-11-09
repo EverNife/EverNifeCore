@@ -8,7 +8,10 @@ import br.com.finalcraft.evernifecore.logic.Conditions;
 import br.com.finalcraft.evernifecore.logic.Effects;
 import br.com.finalcraft.evernifecore.logic.Gate;
 import br.com.finalcraft.evernifecore.logic.Variables;
+import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.logic.audit.LogicTrace;
+import br.com.finalcraft.evernifecore.logic.audit.command.AuditCommandNode;
+import br.com.finalcraft.evernifecore.testing.Locales;
 import br.com.finalcraft.evernifecore.logic.command.CoreLogicCommands;
 import br.com.finalcraft.evernifecore.testing.Commands;
 import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
@@ -49,6 +52,7 @@ class CoreLogicAndTypesCommandsTest {
     @BeforeEach
     void setUp() {
         harness = Commands.harness("LogicCmd", tempDir.resolve("cmd"));
+        FCLocaleManager.loadLocale(harness.ecPluginData, CoreLogicCommands.class, AuditCommandNode.class);
         ecore = harness.register(CoreCommand.class);
         shop = LogicWorld.open("FakeShop", tempDir.resolve("shop"));
         alex = shop.player("Alex");
@@ -80,6 +84,35 @@ class CoreLogicAndTypesCommandsTest {
 
         assertEquals(before, admin.getMessages().size(), admin.getMessages().toString());
         assertFalse(LogicTrace.get(CoreLogicCommands.watcherId(admin)).isPresent());
+    }
+
+    private void assertAdminReads(String key, String text, String line, String expected) {
+        admin.clearMessages();
+        try (Locales.Retext edited = Locales.retext(harness.ecPluginData, key, harness.ecPluginData.getPluginLanguage(), text)) {
+            harness.dispatch(ecore, admin, line);
+        }
+        assertTrue(admin.getMessages().contains(expected), "expected <" + expected + "> in " + admin.getMessages());
+    }
+
+    @Test
+    void theTraceReadsItsEditedTexts() {
+        assertAdminReads("CoreLogicCommands.TRACE_ON_ONE_PLUGIN", "§bWatching ${player} on ${plugin}", "logic trace Alex FakeShop",
+                "§bWatching Alex on FakeShop§7 - run the same command again to stop it.");
+        assertAdminReads("CoreLogicCommands.TRACE_OFF", "§bDone with ${player}", "logic trace Alex FakeShop", "§bDone with Alex");
+        assertAdminReads("CoreLogicCommands.TRACE_ON_EVERY_PLUGIN", "§bWatching ${player}", "logic trace Alex",
+                "§bWatching Alex§7 - run the same command again to stop it.");
+        assertAdminReads("CoreLogicCommands.TRACE_HOW_TO_STOP_REPLACED", " §breplaced", "logic trace Alex FakeShop",
+                "§eLogic trace of §aAlex§e: §aon§7 (only FakeShop) §breplaced");
+    }
+
+    @Test
+    void theAuditReadsItsEditedRefusals() {
+        admin.grant(PermissionNodes.EVERNIFECORE_COMMAND_LOGIC_AUDIT);
+        assertAdminReads("CoreLogicCommands.NO_AUDIT_LOG", "§b${plugin} logs nothing", "logic audit Nobody", "§bNobody logs nothing");
+
+        shop.auditLog();
+        assertAdminReads("AuditCommandNode.UNKNOWN_PLAYER", "§bWho is ${player}?", "logic audit FakeShop Ghost", "§bWho is Ghost?");
+        assertAdminReads("AuditCommandNode.NO_ENTRIES", "§b${plugin} is empty", "logic audit FakeShop", "§bFakeShop is empty");
     }
 
     @Test

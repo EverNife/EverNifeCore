@@ -100,6 +100,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+#### Logic
+
+- **The texts of `/ecore logic trace|audit`, of `AuditCommandNode` and of `/ecore group` are in the core's language file**,
+  each line of an audit page included (`AuditCommandNode.LINE`). The public `AuditCommandNode.line(entry)` is gone: the page
+  draws that message.
+
 #### Regions
 
 - **A flag the platform cannot serve is silent and out of sight** (`FlagRegistry.isSupported`, derived from what the

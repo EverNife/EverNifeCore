@@ -30,13 +30,37 @@ import java.util.stream.Collectors;
  */
 public final class CoreGroupCommands {
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §cName the player whose groups to read: §e/ecore group <player>")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §cInforme o jogador cujos grupos ler: §e/ecore group <jogador>")
+    @FCLocale(lang = LocaleType.EN_US, text = "&4&l ▶ &cName the player whose groups to read: &e/ecore group <player>")
+    @FCLocale(lang = LocaleType.PT_BR, text = "&4&l ▶ &cInforme o jogador cujos grupos ler: &e/ecore group <jogador>")
     public static LocaleMessage NEEDS_A_PLAYER;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§6Groups of §e${player}§6: §e${count}")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§6Grupos de §e${player}§6: §e${count}")
+    @FCLocale(lang = LocaleType.EN_US, text = "&6Groups of &e${player}&6: &e${count}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "&6Grupos de &e${player}&6: &e${count}")
     public static LocaleMessage HEADER;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "&e${group} &7leader &f${leader} &7members &f${members}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "&e${group} &7líder &f${leader} &7membros &f${members}")
+    private static LocaleMessage PROVIDER_GROUP;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "&e${group} &7kind &f${kind} &7leader &f${leader} &7online &f${online}/${size}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "&e${group} &7tipo &f${kind} &7líder &f${leader} &7online &f${online}/${size}")
+    private static LocaleMessage GROUP_LINE;
+
+    @FCLocale(lang = LocaleType.EN_US, text = " &7roles &f${roles} &7member since &f${since} &7expires &f${expires}")
+    @FCLocale(lang = LocaleType.PT_BR, text = " &7cargos &f${roles} &7membro desde &f${since} &7expira &f${expires}")
+    private static LocaleMessage MEMBER_LINE;
+
+    @FCLocale(lang = LocaleType.EN_US, text = " &7roles &f${roles} &7member since &f${since} &7never expires")
+    @FCLocale(lang = LocaleType.PT_BR, text = " &7cargos &f${roles} &7membro desde &f${since} &7nunca expira")
+    private static LocaleMessage MEMBER_LINE_NEVER_EXPIRES;
+
+    @FCLocale(lang = LocaleType.EN_US, text = " &7flag &f${flag} &7= &e${value} &7<- ${group}")
+    @FCLocale(lang = LocaleType.PT_BR, text = " &7flag &f${flag} &7= &e${value} &7<- ${group}")
+    private static LocaleMessage FLAG_LINE;
+
+    @FCLocale(lang = LocaleType.EN_US, text = " &7flag &f${flag} &7= &e${value} &7<- ${group} &7(${expires})")
+    @FCLocale(lang = LocaleType.PT_BR, text = " &7flag &f${flag} &7= &e${value} &7<- ${group} &7(${expires})")
+    private static LocaleMessage FLAG_LINE_EXPIRING;
 
     private CoreGroupCommands() {
     }
@@ -49,8 +73,8 @@ public final class CoreGroupCommands {
             Group group = GroupLookup.get().byId(id);
             if (group == null) {   //a provider's group: only what a provider answers
                 UUID leader = GroupLookup.get().getLeader(id);
-                sender.sendMessage("§e" + id + " §7leader §f" + (leader == null ? "-" : nameOf(leader)) + " §7members §f"
-                        + GroupLookup.get().getMembers(id).size());
+                PROVIDER_GROUP.custom().addPlaceholder("group", id).addPlaceholder("leader", leader == null ? "-" : nameOf(leader))
+                        .addPlaceholder("members", GroupLookup.get().getMembers(id).size()).send(sender);
                 continue;
             }
             describe(sender, group, target.getUniqueId());
@@ -58,24 +82,25 @@ public final class CoreGroupCommands {
     }
 
     private static void describe(FCommandSender sender, Group group, UUID player) {
-        sender.sendMessage("§e" + group.getId() + " §7kind §f" + group.getKind().getKey() + " §7leader §f"
-                + (group.getLeader() == null ? "-" : nameOf(group.getLeader())) + " §7online §f" + group.getOnlineMembers().size() + "/"
-                + group.size());
+        GROUP_LINE.custom().addPlaceholder("group", group.getId()).addPlaceholder("kind", group.getKind().getKey())
+                .addPlaceholder("leader", group.getLeader() == null ? "-" : nameOf(group.getLeader()))
+                .addPlaceholder("online", group.getOnlineMembers().size()).addPlaceholder("size", group.size()).send(sender);
         GroupMember member = group.getMember(player);
         if (member != null) {
             String roles = member.getRoles().stream().map(GroupRole::getName).collect(Collectors.joining(", "));
-            sender.sendMessage(" §7roles §f" + (roles.isEmpty() ? "-" : roles) + " §7member since §f" + member.getJoinedAt()
-                    + " §7expires §f" + expiry(member.getExpiresAt()));
+            (member.getExpiresAt() == null ? MEMBER_LINE_NEVER_EXPIRES : MEMBER_LINE).custom().addPlaceholder("roles", roles.isEmpty() ? "-" : roles)
+                    .addPlaceholder("since", member.getJoinedAt()).addPlaceholder("expires", expiry(member.getExpiresAt())).send(sender);
         }
         for (Map.Entry<FlagKey, FlagValue<?>> entry : FlagRegistry.get().supportedOf(group.getFlags()).entrySet()) {
             FlagValue<?> value = entry.getValue();
-            sender.sendMessage(" §7flag §f" + entry.getKey() + " §7= §e" + value.getValue() + " §7<- " + group.getId()
-                    + (value.getExpiresAt() == null ? "" : " §7(" + expiry(value.getExpiresAt()) + ")"));
+            (value.getExpiresAt() == null ? FLAG_LINE : FLAG_LINE_EXPIRING).custom().addPlaceholder("flag", entry.getKey())
+                    .addPlaceholder("value", value.getValue()).addPlaceholder("group", group.getId())
+                    .addPlaceholder("expires", expiry(value.getExpiresAt())).send(sender);
         }
     }
 
     private static String expiry(Instant at) {
-        return at == null ? "never" : at + " (" + CoreRegionCommands.remaining(Duration.between(ECClock.now(), at)) + ")";
+        return at == null ? "" : at + " (" + CoreRegionCommands.remaining(Duration.between(ECClock.now(), at)) + ")";
     }
 
     private static String nameOf(UUID uuid) {

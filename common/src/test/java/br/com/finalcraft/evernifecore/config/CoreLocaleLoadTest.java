@@ -4,6 +4,9 @@ import br.com.finalcraft.evernifecore.dialogue.command.CoreDialogueCommands;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
+import br.com.finalcraft.evernifecore.group.command.CoreGroupCommands;
+import br.com.finalcraft.evernifecore.logic.audit.command.AuditCommandNode;
+import br.com.finalcraft.evernifecore.logic.command.CoreLogicCommands;
 import br.com.finalcraft.evernifecore.logic.delivery.command.CoreDeliveriesCommands;
 import br.com.finalcraft.evernifecore.logic.delivery.command.DeliveriesCommandNode;
 import br.com.finalcraft.evernifecore.quest.screen.QuestOfferScreen;
@@ -37,6 +40,7 @@ class CoreLocaleLoadTest {
     @Test
     void theBootsListReachesEveryMessageOfTheToolsInBothLanguages() throws IllegalAccessException {
         List<Class<?>> tools = Arrays.asList(DeliveriesCommandNode.class, CoreDeliveriesCommands.class, CoreScreenCommands.class,
+                CoreLogicCommands.class, AuditCommandNode.class, CoreGroupCommands.class,
                 CoreDialogueCommands.class, PromptRegistry.class, Choice.class, DeliveriesScreen.class, ConfirmScreen.class, QuestOfferScreen.class);
         assertTrue(Arrays.asList(ConfigManager.CORE_LOCALE_CLASSES).containsAll(tools), Arrays.toString(ConfigManager.CORE_LOCALE_CLASSES));
 
@@ -45,6 +49,8 @@ class CoreLocaleLoadTest {
             for (Class<?> tool : tools) {
                 assertTrue(logged.stream().noneMatch(line -> line.contains("[" + tool.getSimpleName() + "]")), logged.toString());
             }
+
+            assertTrue(logged.stream().noneMatch(line -> line.contains("has no LocaleMessage fields")), logged.toString());
 
             int messages = 0;
             for (Class<?> tool : tools) {

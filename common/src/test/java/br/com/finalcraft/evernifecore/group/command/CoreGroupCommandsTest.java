@@ -14,6 +14,7 @@ import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.testing.Commands;
 import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.testing.GroupWorld;
+import br.com.finalcraft.evernifecore.testing.Locales;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
@@ -48,6 +49,28 @@ class CoreGroupCommandsTest extends GroupCommandFixture {
         steve.assertAnyMessageContains("fakeparty:alpha §7kind §ffakeparty:party §7leader §fAlex");
         steve.assertAnyMessageContains("max-members");
         assertFalse(steve.anyMessageContains("glow-members"), "this platform cannot glow, so the flag does not exist for the verb");
+    }
+
+    @Test
+    void eachLineOfAGroupReadsItsEditedText() {
+        FinalCMDPluginCommand ecore = harness.register(new CoreCommand());
+        steve.grant("evernifecore.command.group");
+        Group alpha = parties.group("alpha", party);
+        alpha.add(alex.getUniqueId());
+        alpha.setLeader(alex.getUniqueId());
+        alpha.setFlag(CoreFlags.MAX_MEMBERS, 5);
+
+        assertSteveReads("CoreGroupCommands.GROUP_LINE", "§b${group} of ${kind}, ${online}/${size}", "§bfakeparty:alpha of fakeparty:party, 1/1");
+        assertSteveReads("CoreGroupCommands.MEMBER_LINE_NEVER_EXPIRES", "§broles ${roles}", "§broles -");
+        assertSteveReads("CoreGroupCommands.FLAG_LINE", "§b${flag} is ${value}", "max-members is 5");
+    }
+
+    private void assertSteveReads(String key, String text, String expected) {
+        steve.clearMessages();
+        try (Locales.Retext edited = Locales.retext(harness.ecPluginData, key, harness.ecPluginData.getPluginLanguage(), text)) {
+            harness.dispatch(harness.register(new CoreCommand()), steve, "group Alex");
+        }
+        steve.assertAnyMessageContains(expected);
     }
 
     @Test
