@@ -23,6 +23,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.WeakHashMap;
 
@@ -67,6 +68,8 @@ public final class ItemActionListeners {
 
     public static final class Drop implements ECListener {
 
+        private final Set<Item> destroyed = Collections.newSetFromMap(new WeakHashMap<>()); //a cancelled entity never spawned: nothing else holds it
+
         @Override
         public boolean silentRegistration() {
             return true;
@@ -84,6 +87,7 @@ public final class ItemActionListeners {
                 return;
             }
             if (context.isItemDestroyed()) {
+                destroyed.add(item);
                 postDropped(event); //while the entity still holds the item the Post describes
                 item.setItemStack(new ItemStack(Material.AIR)); //the server gives a cancelled drop's stack back to the player: nothing comes back
                 event.setCancelled(true);
@@ -97,8 +101,8 @@ public final class ItemActionListeners {
         @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
         public void afterDrop(PlayerDropItemEvent event) {
             Item item = event.getItemDrop();
-            //an empty entity reaching here is one onDrop destroyed and another plugin uncancelled: its Post already went out
-            if (!McActionContexts.isDisabled(item.getWorld()) && item.getItemStack().getType() != Material.AIR) {
+            //one onDrop destroyed reaches here only if another plugin uncancelled it: its Post already went out
+            if (!destroyed.remove(item) && !McActionContexts.isDisabled(item.getWorld())) {
                 postDropped(event);
             }
         }
