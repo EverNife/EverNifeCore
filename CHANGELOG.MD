@@ -203,6 +203,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 #### Deliveries
 
+- **A login on Hytale no longer loses what it claims**: `ECPlayerFullyLoggedInEvent` comes ahead of the entity there, and a claim that
+  ran before it took the delivery with its `give-item` landing nowhere. The login claim now waits for `IPlayerStateAccess.runWhenWritable`.
 - **The chest themes draw on Hytale**: `THEME_QUEST`, `THEME_ITEM` and `THEME_COMMAND` named `hytale:Furniture_Chest`, which the
   server has no item for. They now name `hytale:Furniture_Crude_Chest_Small`; a layout file already written keeps the old id until it is edited.
 

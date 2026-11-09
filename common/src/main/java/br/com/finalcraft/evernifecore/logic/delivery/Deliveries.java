@@ -111,6 +111,11 @@ public final class Deliveries {
         if (player == null || !PlayerController.getConfiguredPDSections().containsKey(DeliveriesSection.class)) {
             return;
         }
+        //a login can come ahead of the entity (Hytale): a claim then took the delivery and the item landed nowhere. One who leaves first keeps it pending
+        EverNifeCore.getPlatform().getPlayerState().runWhenWritable(player, () -> claimOnLogin(player, event));
+    }
+
+    private static void claimOnLogin(FPlayer player, ECPlayerFullyLoggedInEvent event) {
         get().claimAll(player).exceptionally(failure -> {
             Throwable cause = failure instanceof CompletionException && failure.getCause() != null ? failure.getCause() : failure;
             if (cause instanceof UnsupportedOperationException) {

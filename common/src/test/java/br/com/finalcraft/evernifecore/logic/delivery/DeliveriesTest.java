@@ -64,7 +64,7 @@ class DeliveriesTest {
 
     @BeforeEach
     void open() {
-        world = Platforms.strict().ignoringPlatformRegistrations().mainThreadInline().loggingToStdout().withInventory(2).install();
+        world = Platforms.strict().ignoringPlatformRegistrations().mainThreadInline().loggingToStdout().withInventory(2).playerState().install();
         shop = LogicWorld.open("FakeShop", tempDir);
         alex = shop.player("Alex");
         inventory = world.platform().getTestInventory();
@@ -299,6 +299,27 @@ class DeliveriesTest {
         } finally {
             Plugins.forget("FakeQuests");
         }
+    }
+
+    @Test
+    void aLoginAheadOfTheEntityClaimsOnlyOnceItArrives() {
+        await(deliveries.enqueue(alex.getUniqueId(), DeliveryOrigin.of("FakeShop", "test", ""), DeliveryPolicy.KEEP_SELF_CONTAINED, null, null,
+                Collections.singletonList(node("{'type': 'give-item', 'item': '" + IRON + "', 'amount': 7}"))));
+        Deliveries.start();
+        PlayerData data = await(PlayerController.getOrCreate(alex.getUniqueId()));
+        world.platform().getTestPlayerState().withEntityLate();
+
+        ECEventBus.global().post(new ECPlayerFullyLoggedInEvent(data, false));
+        assertEquals(1, pending().size(), "nothing to write to yet, so it stays pending");
+        assertEquals(0, held(IRON));
+
+        world.platform().getTestPlayerState().entityArrived();
+        long until = System.currentTimeMillis() + 5000;
+        while (held(IRON) == 0 && System.currentTimeMillis() < until) {
+            Thread.yield();
+        }
+        assertEquals(7, held(IRON));
+        assertTrue(pending().isEmpty(), pending().toString());
     }
 
     @Test

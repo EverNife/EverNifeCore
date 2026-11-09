@@ -28,7 +28,7 @@ class DeliveriesStrictPlatformTest {
     @Test
     void aLoginClaimRefusedByAnUnconfiguredDoubleFailsTheWorldNamingTheBuilder() throws Exception {
         //no platformProviderId(...): reading the command effect asks the platform which one it is
-        ECoreTestWorld world = Platforms.strict().ignoringPlatformRegistrations().mainThreadInline().loggingToStdout().install();
+        ECoreTestWorld world = Platforms.strict().ignoringPlatformRegistrations().mainThreadInline().loggingToStdout().playerState().install();
         LogicWorld shop = LogicWorld.open("FakeShop", tempDir);
         try {
             TestFPlayerSender alex = shop.player("Alex");
