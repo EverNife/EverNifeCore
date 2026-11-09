@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.config.factory.ConfigFactoryCodec;
 import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.hytale.inventory.player.FCPlayerInventory;
+import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.player.state.ActiveEffect;
 import br.com.finalcraft.evernifecore.player.state.ECGameMode;
 import br.com.finalcraft.evernifecore.player.state.EffectLevel;
@@ -50,10 +51,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 /**
@@ -68,6 +72,8 @@ import java.util.function.Supplier;
 public final class HyPlayerStateAccess implements IPlayerStateAccess {
 
     static final long RAMP_STEP_MILLIS = 100;
+    //what the server itself waits for Player.remove on the world, in Universe.removePlayer
+    private static final long QUIT_HOP_TIMEOUT_MILLIS = 5000;
     private static final long TICKS_PER_DAY = 24000;
     private static final long TICKS_AT_MIDNIGHT = 18000;   //Minecraft's day starts at 06:00
     private static final Set<Capability> SUPPORTED = EnumSet.of(Capability.TIME, Capability.FLIGHT, Capability.GAME_MODE,
@@ -122,6 +128,8 @@ public final class HyPlayerStateAccess implements IPlayerStateAccess {
     private final Map<UUID, PlayerTime> times = new ConcurrentHashMap<>();
     private final Map<UUID, Instant> shown = new ConcurrentHashMap<>();
     private final Map<UUID, ScheduledFuture<?>> ramps = new ConcurrentHashMap<>();
+
+    private final Map<UUID, Runnable> waitingForEntity = new ConcurrentHashMap<>();
 
     public HyPlayerStateAccess() {
         this(new EcsOps(), () -> HytaleServer.SCHEDULED_EXECUTOR);
@@ -200,6 +208,7 @@ public final class HyPlayerStateAccess implements IPlayerStateAccess {
 
     /** Forgets a player who left the server, without sending him anything. */
     public void forget(UUID uuid) {
+        waitingForEntity.remove(uuid);
         cancelRamp(uuid);
         shown.remove(uuid);
         times.remove(uuid);
@@ -321,6 +330,76 @@ public final class HyPlayerStateAccess implements IPlayerStateAccess {
     }
 
     // ---- INVENTORY ----
+
+    /**
+     * The login is announced on {@code PlayerConnectEvent}, on the thread that loaded the player's file and with the entity
+     * still a holder ({@code Universe.addPlayer}, before {@code World.addPlayer}), where {@link EcsOps} refuses everything: the
+     * task waits for the first tick the entity is seen ({@link #runWaiting}).
+     */
+    @Override
+    public void runWhenWritable(FPlayer player, Runnable task) {
+        waitingForEntity.merge(player.getUniqueId(), task, (first, then) -> () -> {
+            first.run();
+            then.run();
+        });
+    }
+
+    /** Internal, called by the tick over each player: what {@link #runWhenWritable} left for {@code uuid} runs on {@code world} after this tick's iteration. */
+    public void runWaiting(UUID uuid, Executor world) {
+        if (waitingForEntity.isEmpty()) {
+            return;
+        }
+        Runnable task = waitingForEntity.remove(uuid);
+        if (task == null) {
+            return;
+        }
+        try {
+            world.execute(task);
+        } catch (RuntimeException stopping) {
+            ECDebugModule.REGIONS.debug("The world of {} takes no more tasks, so what waited for his entity is dropped: {}", uuid, stopping.toString());
+        }
+    }
+
+    /**
+     * Runs a quit where {@code player} can still be written to. {@code Universe.removePlayer} dispatches
+     * {@code PlayerDisconnectEvent} on the caller's thread (the channel's, on a closed connection), where
+     * {@code Store.assertThread} refuses every component, and only then queues {@code Player.remove} on the world: a task
+     * queued here runs before it, with the entity alive. A player in no world (between worlds) has nothing to hop to: the
+     * quit runs in place, and what it cannot write stays for the next join ({@code HeldPlayerState}).
+     */
+    public static void runBeforeRemoval(PlayerRef player, Runnable quit) {
+        Ref<EntityStore> ref = player.getReference();
+        if (ref == null || !ref.isValid()) {
+            quit.run();
+            return;
+        }
+        World world = ref.getStore().getExternalData().getWorld();
+        runBeforeRemoval(world, world.isInThread(), QUIT_HOP_TIMEOUT_MILLIS, quit);
+    }
+
+    static void runBeforeRemoval(Executor world, boolean onItsThread, long timeoutMillis, Runnable quit) {
+        if (onItsThread) {
+            quit.run();
+            return;
+        }
+        AtomicBoolean started = new AtomicBoolean();
+        Runnable once = () -> {
+            if (started.compareAndSet(false, true)) {
+                quit.run();
+            }
+        };
+        try {
+            //a world that stops with this queued never runs it, and the quit also flushes the player's data
+            CompletableFuture.runAsync(once, world).orTimeout(timeoutMillis, TimeUnit.MILLISECONDS).whenComplete((done, failed) -> {
+                if (failed != null) {
+                    EverNifeCore.getLog().warning("A player's quit did not finish on the world thread: " + failed);
+                    once.run();
+                }
+            });
+        } catch (RuntimeException notAccepting) {
+            once.run();
+        }
+    }
 
     @Override
     public String getInventory(FPlayer player) {

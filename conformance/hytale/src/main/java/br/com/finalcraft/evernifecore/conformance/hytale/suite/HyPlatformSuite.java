@@ -20,19 +20,28 @@ import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.hytale.action.HyActionSystems;
 import br.com.finalcraft.evernifecore.hytale.itemdatapart.datapart.ItemDataPartMetadata;
 import br.com.finalcraft.evernifecore.hytale.itemstack.ComparableItemComplex;
+import br.com.finalcraft.evernifecore.hytale.region.HyPlayerStateAccess;
 import br.com.finalcraft.evernifecore.logic.Caller;
 import br.com.finalcraft.evernifecore.notify.IHudAccess;
+import br.com.finalcraft.evernifecore.player.state.HeldPlayerState;
+import br.com.finalcraft.evernifecore.player.state.HoldOptions;
+import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
+import br.com.finalcraft.evernifecore.player.state.StateHolder;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 import br.com.finalcraft.evernifecore.testing.PlatformConformance;
 import br.com.finalcraft.evernifecore.version.FCPlatformType;
+import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.server.core.command.system.AbstractCommand;
 import com.hypixel.hytale.server.core.command.system.CommandManager;
 import com.hypixel.hytale.server.core.console.ConsoleSender;
+import com.hypixel.hytale.server.core.inventory.InventoryComponent;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.plugin.PluginBase;
+import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import org.bson.BsonDocument;
 
 import java.math.BigDecimal;
@@ -141,6 +150,7 @@ public final class HyPlatformSuite implements ConformanceSuite {
                 }),
                 //the server dispatches a player's command (chat or sudo) with the PlayerRef as its sender
                 HyRegionsSuite.withPlayer("player-verb-by-sudo", ctx, this::playerVerbBySudo),
+                HyRegionsSuite.withPlayer("held-inventory-comes-back-on-disconnect", ctx, HyPlatformSuite::heldInventoryComesBackOnDisconnect),
                 //no command event on this server: the core posts COMMAND from its own executor, for its own commands
                 HyRegionsSuite.withPlayer("command-source-via-finalcmd", ctx, this::commandSourceViaFinalCmd),
                 ConformanceCase.of("fish-source-not-served", () -> {
@@ -164,6 +174,42 @@ public final class HyPlatformSuite implements ConformanceSuite {
                     EcoResponse take = money.take(unknown, BigDecimal.ONE, Caller.of(EverNifeCore.getEcPluginData(), "conformance/economy"));
                     return Verdict.of(take.getReason() == EcoResponse.Reason.UNAVAILABLE, "no economy: take=" + take);
                 }));
+    }
+
+    /**
+     * The disconnect's path with the player kept for the other cases: from a thread that is not the world's, where the
+     * server dispatches {@code PlayerDisconnectEvent}, the give-back hops and is done on the entity before a task queued right
+     * after it - the place of {@code Player.remove} in {@code Universe.removePlayer}. It lets go by {@code release} and not
+     * {@code forget}, which would orphan the region session of the player who stays.
+     */
+    private static CompletableFuture<Verdict> heldInventoryComesBackOnDisconnect(FPlayer player) {
+        PlayerRef ref = HyWorld.player(player);
+        World world = HyWorld.worldOf(ref);
+        IPlayerStateAccess access = EverNifeCore.getPlatform().getPlayerState();
+        StateHolder holder = StateHolder.of("evernifecore:conformance-held-inventory");
+        HeldPlayerState held = HeldPlayerState.of(player.getUniqueId());
+        return HyWorld.on(world, () -> {
+            String before = access.getInventory(player);
+            Ref<EntityStore> entity = ref.getReference();
+            InventoryComponent.Hotbar hotbar = entity.getStore().getComponent(entity, InventoryComponent.Hotbar.getComponentType());
+            hotbar.getInventory().addItemStack(new ItemStack(ITEM, 3));
+            String own = access.getInventory(player);
+            held.hold(HeldPlayerState.INVENTORY, holder, "", p -> access.setInventory(p, ""), HoldOptions.memory(), player);
+            access.setInventory(player, "");
+            return new String[]{before, own};
+        }).thenCompose(inventories -> {
+            CompletableFuture<Verdict> answer = new CompletableFuture<>();
+            CompletableFuture.runAsync(() -> {
+                HyPlayerStateAccess.runBeforeRemoval(ref, () -> held.release(HeldPlayerState.INVENTORY, holder, player));
+                world.execute(() -> {
+                    String after = access.getInventory(player);
+                    access.setInventory(player, inventories[0]);
+                    answer.complete(Verdict.of(after.equals(inventories[1]) && !inventories[1].equals(inventories[0]),
+                            "own came back before the removal's place in the queue: " + after.equals(inventories[1])));
+                });
+            });
+            return answer;
+        });
     }
 
     /**

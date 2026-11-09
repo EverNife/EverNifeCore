@@ -28,8 +28,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -165,6 +169,108 @@ class HyPlayerStateAccessTest {
         assertThrows(UnsupportedOperationException.class, () -> access.getLevel(player));
         assertThrows(UnsupportedOperationException.class, () -> access.setFood(player, 5));
         assertNull(access.toWeatherId("clear"));
+    }
+
+    @Test
+    void whatALoginAsksWaitsForTheFirstTickTheEntityIsSeen() {
+        List<String> ran = new ArrayList<>();
+        access.runWhenWritable(player, () -> ran.add("first"));
+        access.runWhenWritable(player, () -> ran.add("second"));
+        assertTrue(ran.isEmpty(), "the login is announced while the entity is still a holder");
+
+        access.runWaiting(UUID.randomUUID(), Runnable::run);
+        assertTrue(ran.isEmpty(), "another player's tick");
+
+        access.runWaiting(player.getUniqueId(), Runnable::run);
+        assertEquals(Arrays.asList("first", "second"), ran);
+
+        access.runWaiting(player.getUniqueId(), Runnable::run);
+        assertEquals(2, ran.size(), "once");
+    }
+
+    @Test
+    void whatALoginAskedIsDroppedWithAPlayerWhoLeftFirst() {
+        List<String> ran = new ArrayList<>();
+        access.runWhenWritable(player, () -> ran.add("late"));
+
+        access.forget(player.getUniqueId());
+        access.runWaiting(player.getUniqueId(), Runnable::run);
+
+        assertTrue(ran.isEmpty());
+    }
+
+    @Test
+    void aWorldThatTakesNoTasksDropsWhatALoginAskedWithoutBreakingTheTick() {
+        List<String> ran = new ArrayList<>();
+        access.runWhenWritable(player, () -> ran.add("late"));
+
+        access.runWaiting(player.getUniqueId(), task -> {
+            throw new IllegalThreadStateException("stopping");
+        });
+
+        assertTrue(ran.isEmpty());
+    }
+
+    /**
+     * What {@code Universe.removePlayer} does on a closed channel: dispatches the disconnect on the channel's thread, then
+     * queues {@code Player.remove} on the world. The give-back runs on the world, on an entity still alive.
+     */
+    @Test
+    void theQuitOffTheWorldThreadRunsOnItBeforeTheEntityIsRemoved() throws Exception {
+        ExecutorService world = Executors.newSingleThreadExecutor();
+        try {
+            Thread worldThread = world.submit(Thread::currentThread).get();
+            List<String> order = new CopyOnWriteArrayList<>();
+
+            HyPlayerStateAccess.runBeforeRemoval(world, false, 5000, () -> {
+                if (Thread.currentThread() != worldThread) {
+                    throw new IllegalStateException("Store.assertThread would refuse this");
+                }
+                order.add("give back");
+            });
+            world.submit(() -> order.add("entity removed")).get();
+
+            assertEquals(Arrays.asList("give back", "entity removed"), order);
+        } finally {
+            world.shutdownNow();
+        }
+    }
+
+    @Test
+    void theQuitOnTheWorldThreadRunsInPlace() {
+        List<String> order = new ArrayList<>();
+        HyPlayerStateAccess.runBeforeRemoval(task -> {
+            throw new AssertionError("no hop from the world's own thread");
+        }, true, 5000, () -> order.add("give back"));
+
+        assertEquals(Collections.singletonList("give back"), order);
+    }
+
+    @Test
+    void aWorldThatStoppedStillGetsTheQuitRunInPlace() {
+        List<String> order = new ArrayList<>();
+        HyPlayerStateAccess.runBeforeRemoval(task -> {
+            throw new IllegalThreadStateException("stopping");
+        }, false, 5000, () -> order.add("quit"));
+
+        assertEquals(Collections.singletonList("quit"), order);
+    }
+
+    @Test
+    void aWorldThatNeverRunsTheQueuedQuitStillGetsItRunOnceAfterTheTimeout() throws Exception {
+        CountDownLatch ran = new CountDownLatch(1);
+        List<Runnable> queued = new ArrayList<>();
+        List<String> order = new CopyOnWriteArrayList<>();
+        try (ECoreTestWorld ignored = Platforms.lenient().install()) { //the warning goes through the core's log
+            HyPlayerStateAccess.runBeforeRemoval(queued::add, false, 20, () -> {
+                order.add("quit");
+                ran.countDown();
+            });
+            assertTrue(ran.await(5, TimeUnit.SECONDS));
+        }
+        queued.get(0).run();
+
+        assertEquals(Collections.singletonList("quit"), order, "the queued copy finds it already ran");
     }
 
     @Test

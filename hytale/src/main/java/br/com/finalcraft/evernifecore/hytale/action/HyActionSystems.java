@@ -25,6 +25,7 @@ import br.com.finalcraft.evernifecore.hytale.loader.imp.HyPlatform;
 import br.com.finalcraft.evernifecore.hytale.region.HyRegionMoveSystem;
 import br.com.finalcraft.evernifecore.hytale.region.HySelectionItems;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
+import br.com.finalcraft.evernifecore.hytale.region.HyPlayerStateAccess;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
@@ -165,11 +166,11 @@ public final class HyActionSystems {
             return false;
         }
         plugin.getEventRegistry().registerGlobal(PlayerDisconnectEvent.class,
-                event -> {
+                event -> HyPlayerStateAccess.runBeforeRemoval(event.getPlayerRef(), () -> {
                     MOVE.quit(event.getPlayerRef().getUuid(), () -> FCHytaleUtil.adapt(event.getPlayerRef()));
                     HyPlatform.PLAYER_STATE.forget(event.getPlayerRef().getUuid()); //after the quit restored what the regions changed
                     RESPAWN_POINTS.remove(event.getPlayerRef().getUuid());
-                });
+                }));
         ComponentRegistryProxy<EntityStore> registry = plugin.getEntityStoreRegistry();
         registry.registerSystem(MOVE);
         registry.registerSystem(new BreakSystem());

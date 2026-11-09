@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.action.ExploreContext;
 import br.com.finalcraft.evernifecore.math.game.vector.chunkpos.ChunkPos;
 import br.com.finalcraft.evernifecore.action.EventSourceUsage;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.hytale.loader.imp.HyPlatform;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.session.MoveCause;
@@ -105,6 +106,7 @@ public final class HyRegionMoveSystem extends EntityTickingSystem<EntityStore> {
         boolean teleporting = chunk.getComponent(index, Teleport.getComponentType()) != null
                 || chunk.getComponent(index, PendingTeleport.getComponentType()) != null;
         World world = store.getExternalData().getWorld();
+        HyPlatform.PLAYER_STATE.runWaiting(player.getUuid(), world); //the one System that sees every player, whatever a region needs
         Ref<EntityStore> ref = chunk.getReferenceTo(index);
         explore(player.getUuid(), () -> HyActionContexts.actor(ref, store), world.getName(), transform.getPosition(), teleporting);
         WorldLocPos revertTo = step(player.getUuid(), () -> FCHytaleUtil.adapt(player), world.getName(), transform.getPosition(), teleporting);

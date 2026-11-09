@@ -219,6 +219,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 #### Player state
 
+- **Hytale: what is held comes back on the disconnect.** The server dispatches `PlayerDisconnectEvent` on the channel's thread, where
+  every write is refused, so the give-back failed and a `memory()` hold lost the inventory for good. The quit now hops to the world
+  ahead of `Player.remove`, with the entity alive: `ECPlayerQuitEvent` is posted on the world thread there. The login gives back on the first
+  tick the entity is seen, since `ECPlayerFullyLoggedInEvent` comes while it is not in a world yet.
 - A held slot whose give-back the platform refused stays in `PlayerStateBackup` and is tried again on the next join; it
   used to be dropped from the backup and lost.
 

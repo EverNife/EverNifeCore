@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.hytale.loader.EverNifeCoreHytalePlugin;
+import br.com.finalcraft.evernifecore.hytale.region.HyPlayerStateAccess;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import com.hypixel.hytale.server.core.Message;
@@ -72,16 +73,18 @@ public class PlayerLoginListener implements ECListener {
         EverNifeCoreHytalePlugin.instance.getEventRegistry().registerGlobal(PlayerDisconnectEvent.class, (event) -> {
             var playerRef = event.getPlayerRef();
 
-            PlayerData playerData = PlayerController.getLoaded(FCHytaleUtil.adapt(playerRef));
+            HyPlayerStateAccess.runBeforeRemoval(playerRef, () -> {
+                PlayerData playerData = PlayerController.getLoaded(FCHytaleUtil.adapt(playerRef));
 
-            if (playerData != null){
-                //announced while the data is still attached, so a handler can read it and dirty it
-                ECEventBus.global().post(new ECPlayerQuitEvent(playerData));
+                if (playerData != null){
+                    //announced while the data is still attached, so a handler can read it and dirty it
+                    ECEventBus.global().post(new ECPlayerQuitEvent(playerData));
 
-                //Detach + durably flush this player off the quit thread (bounded async; retried on
-                //a storage outage, never dropped). Working-set sections evict after a short grace.
-                PlayerController.handlePlayerQuit(playerData.getUniqueId());
-            }
+                    //Detach + durably flush this player off the quit thread (bounded async; retried on
+                    //a storage outage, never dropped). Working-set sections evict after a short grace.
+                    PlayerController.handlePlayerQuit(playerData.getUniqueId());
+                }
+            });
         });
     }
 
