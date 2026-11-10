@@ -204,12 +204,8 @@ public final class CoreRewardPieces {
 
     public static Eligibility condition(Condition condition) {
         Objects.requireNonNull(condition, "condition");
-        return named("condition: " + condition, (member, ctx) -> {
-            FPlayer player = Rewards.online(member);
-            ExecutionContext.Builder run = ExecutionContext.builder(ctx.getCaller());
-            ExecutionContext context = player != null ? run.player(player).build() : run.owner(ProgressOwner.player(member)).build();
-            return condition.test(context).isPassed();
-        });
+        //the context the member's effects get: the scene's variables and the reward's attributes included
+        return named("condition: " + condition, (member, ctx) -> condition.test(Rewards.contextOf(ctx, member, false)).isPassed());
     }
 
     public static Distribution tiers(BigDecimal... byPosition) {

@@ -59,7 +59,10 @@ public interface Eligibility extends RewardPiece {
         return CoreRewardPieces.top(count);
     }
 
-    /** {@code condition} passes for the member: run with the member online, or for its uuid as owner when offline. */
+    /**
+     * {@code condition} passes for the member, tested in the context its effects get: the member online, or its uuid
+     * as owner when offline, with the reward's attributes and the scene's variables.
+     */
     static Eligibility condition(Condition condition) {
         return CoreRewardPieces.condition(condition);
     }

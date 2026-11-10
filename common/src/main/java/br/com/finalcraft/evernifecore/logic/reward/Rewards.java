@@ -57,8 +57,8 @@ public final class Rewards {
 
     /**
      * Pays {@code rule} for {@code ctx}. Nothing is paid or posted when the rule's moment does not take the context's
-     * trigger. Otherwise the candidates (the owner's members, offline included, plus whoever contributed while the
-     * leaver keeps) pass every eligibility, the distribution gives each a share, and each eligible member gets the
+     * trigger. Otherwise the candidates (a {@link RewardScene}'s participants; without one, the owner's members,
+     * offline included, plus whoever contributed while the leaver keeps) pass every eligibility, the distribution gives each a share, and each eligible member gets the
      * rule's effects multiplied by its share: applied on the member's thread when online; when offline, as the absence
      * says - a pending delivery, nothing, or split among the online eligible. Every payment posts a
      * {@link RewardPaidEvent} and lands in the caller plugin's {@link AuditLog} when it has one open. Any thread.
@@ -125,8 +125,14 @@ public final class Rewards {
         return CompletableFuture.allOf(applied.toArray(new CompletableFuture<?>[0])).thenApply(done -> result);
     }
 
-    /** The owner's members (offline included where the owner knows them), then the contributors the leaver rule keeps. */
+    /**
+     * A scene's participants; otherwise the owner's members (offline included where the owner knows them), then the
+     * contributors the leaver rule keeps.
+     */
     private static Set<UUID> candidatesOf(RewardRule rule, RewardContext ctx) {
+        if (ctx.getScene() != null) {
+            return new LinkedHashSet<>(ctx.getContributions().keySet());
+        }
         Set<UUID> members = membersOf(ctx.getOwner());
         Set<UUID> candidates = new LinkedHashSet<>();
         if (members != null) {
@@ -204,7 +210,7 @@ public final class Rewards {
     private static CompletableFuture<Void> payOne(RewardRule rule, RewardContext ctx, UUID member, BigDecimal share, boolean delivered) {
         EffectList shared = (EffectList) rule.getEffects().withShare(share);
         Runnable task = () -> {
-            ExecutionContext paying = contextOf(ctx.getCaller(), member, delivered);
+            ExecutionContext paying = contextOf(ctx, member, delivered);
             shared.apply(paying);
             ECEventBus.global().postIfListened(RewardPaidEvent.class,
                     () -> new RewardPaidEvent(ctx.getCaller(), ctx.getOwner(), member, share, rule, delivered));
@@ -245,10 +251,26 @@ public final class Rewards {
     /**
      * The member online, or - offline - its uuid as owner with every effect that can wait sent to the pending
      * destination: an amount or an item becomes a delivery, a command follows its own {@code offline}, and what cannot
-     * wait (a message) applies without a player.
+     * wait (a message) applies without a player. Either way it carries the reward's attributes and, under a scene, the
+     * scene's variables and the participant's name as {@code {player}}. Every effect and {@code condition} of a payment
+     * reads this context. Internal.
      */
-    private static ExecutionContext contextOf(Caller caller, UUID member, boolean delivered) {
-        ExecutionContext.Builder builder = ExecutionContext.builder(caller);
+    public static ExecutionContext contextOf(RewardContext ctx, UUID member, boolean delivered) {
+        ExecutionContext.Builder builder = ExecutionContext.builder(ctx.getCaller());
+        for (Map.Entry<String, Object> attribute : ctx.getAttributes().entrySet()) {
+            builder.attribute(attribute.getKey(), attribute.getValue());
+        }
+        RewardScene scene = ctx.getScene();
+        if (scene != null) {
+            for (Map.Entry<String, String> variable : scene.getVariables().entrySet()) {
+                builder.variable(variable.getKey(), variable.getValue());
+            }
+            RewardScene.Participant participant = scene.getParticipant(member);
+            if (participant != null) {
+                //the plugin's name wins over the last name the server saw
+                builder.variable("player", participant.getName());
+            }
+        }
         FPlayer player = delivered ? null : online(member);
         if (player != null) {
             return builder.player(player).build();

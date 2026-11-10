@@ -148,6 +148,18 @@ public final class RewardRule {
         return builder.build();
     }
 
+    /**
+     * {@link #parse(ECPluginData, JsonNode)} for a rule paid under {@code occasion}: every {@code {variable}} its texts
+     * write must be one the occasion accepts ({@link RewardOccasion#acceptsVariable}); {@code %placeholders%} are not checked.
+     *
+     * @throws TypeRegistryException as {@link #parse(ECPluginData, JsonNode)} does, or naming the first variable the
+     *                               occasion does not give with the ones it does
+     */
+    public static RewardRule parse(ECPluginData caller, RewardOccasion occasion, JsonNode node) throws TypeRegistryException {
+        occasion.checkVariables(caller, node);
+        return parse(caller, node);
+    }
+
     private static <P extends RewardPiece> @Nullable P optionalPiece(ECPluginData caller, JsonNode rule, String key, Class<P> role)
             throws TypeRegistryException {
         JsonNode node = rule.get(key);

@@ -15,7 +15,8 @@ import java.util.UUID;
 /**
  * What one payment knows that the core cannot: who pays ({@link Caller}), whose reward it is ({@link ProgressOwner}),
  * why now ({@link RewardTrigger}), what each member contributed and whose action closed it - all measured by the caller
- * (a quest engine from its objectives, a plugin from its own book). Immutable; any thread.
+ * (a quest engine from its objectives, a plugin from its own book) - or, with a {@link RewardScene}, who took part and what
+ * the texts read. Immutable; any thread.
  */
 public final class RewardContext {
 
@@ -25,12 +26,18 @@ public final class RewardContext {
     private final Map<UUID, BigDecimal> contributions;
     private final @Nullable UUID lastActor;
     private final Map<String, Object> attributes;
+    private final @Nullable RewardScene scene;
 
     private RewardContext(Builder builder) {
         this.caller = builder.caller;
         this.owner = builder.owner;
         this.trigger = builder.trigger;
-        this.contributions = Collections.unmodifiableMap(new LinkedHashMap<>(builder.contributions));
+        if (builder.scene != null && !builder.contributions.isEmpty()) {
+            throw new IllegalArgumentException("The reward of " + builder.caller + " has a scene and contributions: the scene carries each"
+                    + " participant's contribution - drop .contributions(...).");
+        }
+        this.scene = builder.scene;
+        this.contributions = Collections.unmodifiableMap(new LinkedHashMap<>(scene != null ? scene.getContributions() : builder.contributions));
         this.lastActor = builder.lastActor;
         this.attributes = Collections.unmodifiableMap(new HashMap<>(builder.attributes));
     }
@@ -72,6 +79,16 @@ public final class RewardContext {
         return attributes.get(key);
     }
 
+    /** Every attribute; each payment's {@code ExecutionContext} carries them too. Read-only. */
+    public Map<String, Object> getAttributes() {
+        return attributes;
+    }
+
+    /** Who took part, when the caller described the payment as a scene: its participants are then the candidates. */
+    public @Nullable RewardScene getScene() {
+        return scene;
+    }
+
     @Override
     public String toString() {
         return "RewardContext{" + caller + " for " + owner + " at " + trigger + "}";
@@ -84,13 +101,14 @@ public final class RewardContext {
         private final Map<UUID, BigDecimal> contributions = new LinkedHashMap<>();
         private @Nullable UUID lastActor;
         private final Map<String, Object> attributes = new HashMap<>();
+        private @Nullable RewardScene scene;
 
         private Builder(Caller caller, ProgressOwner owner) {
             this.caller = Objects.requireNonNull(caller, "caller");
             this.owner = Objects.requireNonNull(owner, "owner");
         }
 
-        /** Replaces the contributions; a negative one is refused. */
+        /** Replaces the contributions; a negative one is refused. With a {@link #scene} the scene's are the contributions. */
         public Builder contributions(Map<UUID, BigDecimal> byMember) {
             contributions.clear();
             for (Map.Entry<UUID, BigDecimal> entry : byMember.entrySet()) {
@@ -116,6 +134,15 @@ public final class RewardContext {
 
         public Builder attribute(String key, Object value) {
             attributes.put(key, value);
+            return this;
+        }
+
+        /**
+         * Pays the scene's participants instead of the owner's members: they are the candidates, their contributions the
+         * contributions, and every payment reads the scene's variables and the participant's name as {@code {player}}.
+         */
+        public Builder scene(@Nullable RewardScene scene) {
+            this.scene = scene;
             return this;
         }
 

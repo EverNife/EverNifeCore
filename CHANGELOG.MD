@@ -98,6 +98,16 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   admin edit of the lang file would, until the returned `Retext` closes. `ScreenWorld` now loads the core locale
   messages its core screens draw.
 
+#### Rewards
+
+- **`RewardScene` and `RewardOccasion`** (`logic.reward`): a plugin declares an occasion in code (id, the marks a
+  participant may carry, the `{variables}` its texts read) and describes each payment as a scene under it -
+  participants (uuid, name, contribution, marks) plus the variables (`{stage}` = 5). `RewardContext.Builder.scene(scene)`
+  makes the participants the candidates of `Rewards.pay`, members of no owner included; a mark or variable the occasion
+  does not declare is refused when the scene is built. `RewardRule.parse(plugin, occasion, node)` refuses a `{variable}`
+  the occasion does not give (its own, `{player}`, `{player-uuid}`, `{owner}`, `{caller}`, any registered variable),
+  listing the accepted ones.
+
 ### Changed
 
 #### Screens
@@ -121,6 +131,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   (`${costs}`), with the same green, grey and grey by default. `ScreenWorld` and `BukkitScreenWorld` load them.
 
 #### Logic
+
+- **A reward payment's context carries what the payment knows**: every effect of `Rewards.pay` and the `condition`
+  eligibility read the `RewardContext`'s attributes and, under a scene, its variables and the participant's name as
+  `{player}` (it wins over the last name the server saw). The `condition` eligibility used to test an empty context.
+- **`compare` reads a variable the executor wrote** (a scene's `stage`) before a registered one, as a resolved text
+  already did; the written text compares as a number, true/false or text.
 
 - **The texts of `/ecore logic trace|audit`, of `AuditCommandNode` and of `/ecore group` are in the core's language file**,
   each line of an audit page included (`AuditCommandNode.LINE`). The public `AuditCommandNode.line(entry)` is gone: the page

@@ -158,16 +158,26 @@ final class StockConditions {
 
         @Override
         public ConditionResult test(ExecutionContext ctx) {
-            Variable<?> read = variable;
-            if (read == null) {
-                read = variable(caller, variableId);
-                variable = read;
+            Object value;
+            Class<?> type;
+            String written = ctx.getVariable(variableId);
+            if (written != null) {
+                //a variable the executor wrote (a reward scene's stage) wins, as it does in a resolved text
+                value = typed(written);
+                type = value.getClass();
+            } else {
+                Variable<?> read = variable;
+                if (read == null) {
+                    read = variable(caller, variableId);
+                    variable = read;
+                }
+                value = read.read(ctx);
+                type = read.getType();
             }
-            Object value = read.read(ctx);
             boolean passed;
             BigDecimal left = number(value);
             if (left != null) {
-                BigDecimal right = number(StockConditions.read(read.getType() == Duration.class ? Duration.class : BigDecimal.class, amount));
+                BigDecimal right = number(StockConditions.read(type == Duration.class ? Duration.class : BigDecimal.class, amount));
                 int order = left.compareTo(right);
                 switch (op) {
                     case "<": passed = order < 0; break;
@@ -200,6 +210,18 @@ final class StockConditions {
                 }
             }
             return ConditionResult.of(passed, FancyText.of(variableId + " is " + format(value) + ", and it must be " + op + " " + amount + "."));
+        }
+
+        /** A written variable as a number, true/false, or the text itself. */
+        private static Object typed(String written) {
+            if (written.equalsIgnoreCase("true") || written.equalsIgnoreCase("false")) {
+                return Boolean.valueOf(written);
+            }
+            try {
+                return new BigDecimal(written.trim());
+            } catch (NumberFormatException notANumber) {
+                return written;
+            }
         }
 
         private static String format(Object value) {
