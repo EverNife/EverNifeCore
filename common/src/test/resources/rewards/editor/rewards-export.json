@@ -1,0 +1,2133 @@
+{
+  "format": 1,
+  "plugin": "FakeRaid",
+  "platform": "test",
+  "types": {
+    "effect": [
+      {
+        "key": "evernifecore:message",
+        "name": "message",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Sends the player a text, its {variables} and %placeholders% filled.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "text",
+            "kind": "TEXT",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The text sent."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:command",
+        "name": "command",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Runs a command, its {variables} filled, as the console or, with as: player, as the player. For an offline player it runs now from the console, or waits for the login under as: player; offline: overrides both.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [
+          "COMMAND"
+        ],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "command",
+            "kind": "STRING",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The command, without the leading /."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:set",
+        "name": "set",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Sets a variable that can be written to an amount.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "variable",
+            "kind": "ID",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The variable written, e.g. food."
+          },
+          {
+            "name": "amount",
+            "kind": "STRING",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The value written: a number, a text, true or false."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:add",
+        "name": "add",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Adds an amount to a numeric variable that can be written; a negative amount takes.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "variable",
+            "kind": "ID",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The variable written, e.g. exp-points."
+          },
+          {
+            "name": "amount",
+            "kind": "STRING",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The number added."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:teleport",
+        "name": "teleport",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Teleports the player to a point of a world.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "world",
+            "kind": "STRING",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The world's name."
+          },
+          {
+            "name": "x",
+            "kind": "NUMBER",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "X."
+          },
+          {
+            "name": "y",
+            "kind": "NUMBER",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "Y."
+          },
+          {
+            "name": "z",
+            "kind": "NUMBER",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "Z."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:gamemode",
+        "name": "gamemode",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Changes the player's game mode; holdable.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [
+          "GAME_MODE"
+        ],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "value",
+            "kind": "STRING",
+            "required": true,
+            "default": null,
+            "one-of": [
+              "survival",
+              "creative",
+              "adventure",
+              "spectator"
+            ],
+            "nested": null,
+            "description": "The game mode."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:fly",
+        "name": "fly",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Lets the player fly, or takes it away and lands them; holdable.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [
+          "FLIGHT"
+        ],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "value",
+            "kind": "BOOLEAN",
+            "required": false,
+            "default": true,
+            "one-of": [],
+            "nested": null,
+            "description": "Whether the player may fly."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:potion-effect",
+        "name": "potion-effect",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Gives the player an effect for a time; holdable.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [
+          "EFFECTS"
+        ],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "effect",
+            "kind": "ID",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The platform's effect id, e.g. speed."
+          },
+          {
+            "name": "level",
+            "kind": "NUMBER",
+            "required": false,
+            "default": 1,
+            "one-of": [],
+            "nested": null,
+            "description": "The level, from 1."
+          },
+          {
+            "name": "duration",
+            "kind": "DURATION",
+            "required": false,
+            "default": "30s",
+            "one-of": [],
+            "nested": null,
+            "description": "How long it lasts."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:player-time",
+        "name": "player-time",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Shows the player a time of day of their own (ticks, 0 = 06:00), fixed or running from it; holdable.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [
+          "TIME"
+        ],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "value",
+            "kind": "NUMBER",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The time in ticks, 0 to 24000."
+          },
+          {
+            "name": "relative",
+            "kind": "BOOLEAN",
+            "required": false,
+            "default": false,
+            "one-of": [],
+            "nested": null,
+            "description": "Whether the clock keeps running from it."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:player-weather",
+        "name": "player-weather",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Shows the player a weather of their own; holdable.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [
+          "WEATHER"
+        ],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "value",
+            "kind": "STRING",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The weather, e.g. clear or rain."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:money",
+        "name": "money",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Gives an amount of a currency to the owner's wallet, multiplied by the owner's boosters of that currency.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "amount",
+            "kind": "STRING",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The amount: a number, or a {variable}."
+          },
+          {
+            "name": "currency",
+            "kind": "ID",
+            "required": false,
+            "default": "money",
+            "one-of": [],
+            "nested": null,
+            "description": "The currency, e.g. money or finaleconomy:gold."
+          },
+          {
+            "name": "boosted",
+            "kind": "BOOLEAN",
+            "required": false,
+            "default": true,
+            "one-of": [],
+            "nested": null,
+            "description": "Whether the boosters of the currency multiply it."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:give-item",
+        "name": "give-item",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Gives the player an item through to: (the inventory by default); what does not fit waits as a pending delivery.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "item",
+            "kind": "ID",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The item's id, e.g. minecraft:iron_ingot."
+          },
+          {
+            "name": "amount",
+            "kind": "NUMBER",
+            "required": false,
+            "default": 1,
+            "one-of": [],
+            "nested": null,
+            "description": "How many."
+          },
+          {
+            "name": "data",
+            "kind": "NUMBER",
+            "required": false,
+            "default": -1,
+            "one-of": [],
+            "nested": null,
+            "description": "The data value - the colour of a pre-1.13 wool (minecraft:wool with 14 is red), a tool's damage; -1 for any."
+          },
+          {
+            "name": "expires",
+            "kind": "DURATION",
+            "required": false,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "How long what did not fit waits to be claimed; without it, until claimed."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:open-screen",
+        "name": "open-screen",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Opens the screen a key names for the player - whatever override answers it, else the core's default.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "screen",
+            "kind": "STRING",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The screen key, owner:name - e.g. evernifecore:deliveries."
+          },
+          {
+            "name": "args",
+            "kind": "LIST",
+            "required": false,
+            "default": "[]",
+            "one-of": [],
+            "nested": null,
+            "description": "What {0}..{n} read in the screen's text; each one has its {variables} filled."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:start-quest",
+        "name": "start-quest",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Starts a quest for the context's owner.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "quest",
+            "kind": "ID",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The quest, owner:name (a bare name is the caller's own)."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:offer-quest",
+        "name": "offer-quest",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Offers a quest to the context's owner.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "quest",
+            "kind": "ID",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The quest, owner:name (a bare name is the caller's own)."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:complete-quest",
+        "name": "complete-quest",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Completes the context's owner's active quest.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "quest",
+            "kind": "ID",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The quest, owner:name (a bare name is the caller's own)."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:fail-quest",
+        "name": "fail-quest",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Fails the context's owner's active quest.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "quest",
+            "kind": "ID",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The quest, owner:name (a bare name is the caller's own)."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:track-quest",
+        "name": "track-quest",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Makes the player track a quest.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "quest",
+            "kind": "ID",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The quest, owner:name (a bare name is the caller's own)."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:start-dialogue",
+        "name": "start-dialogue",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Starts a registered dialogue for the player; the caller of the context becomes the session's origin and an npc attribute of the context its NPC. A dialogue the player was in ends as replaced.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "dialogue",
+            "kind": "ID",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The dialogue, owner:name - e.g. finalcolonies:tomas."
+          },
+          {
+            "name": "node",
+            "kind": "STRING",
+            "required": false,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The node to start on instead of the dialogue's entry."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:end-dialogue",
+        "name": "end-dialogue",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Ends the dialogue the player is in, if any.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": []
+      },
+      {
+        "key": "evernifecore:open-menu",
+        "name": "open-menu",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Opens a registered menu for the player - on top of the screen a click came from, so back returns there.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "menu",
+            "kind": "STRING",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The menu id, owner:name - e.g. finalmenus:shop-vip."
+          },
+          {
+            "name": "args",
+            "kind": "LIST",
+            "required": false,
+            "default": "[]",
+            "one-of": [],
+            "nested": null,
+            "description": "What {0}..{n} read in the menu's text; each one has its {variables} filled."
+          }
+        ]
+      }
+    ],
+    "condition": [
+      {
+        "key": "evernifecore:all",
+        "name": "all",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Passes when every condition passes; a failure lists every condition that failed.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "conditions",
+            "kind": "NODE_LIST",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": "condition",
+            "description": "The conditions combined."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:any",
+        "name": "any",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Passes when at least one condition passes.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "conditions",
+            "kind": "NODE_LIST",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": "condition",
+            "description": "The conditions combined."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:none",
+        "name": "none",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Passes when no condition passes.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "conditions",
+            "kind": "NODE_LIST",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": "condition",
+            "description": "The conditions combined."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:at-least",
+        "name": "at-least",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Passes when at least count of the conditions pass.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "count",
+            "kind": "NUMBER",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "How many conditions must pass."
+          },
+          {
+            "name": "conditions",
+            "kind": "NODE_LIST",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": "condition",
+            "description": "The conditions combined."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:optional",
+        "name": "optional",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Always passes; when its condition fails, the failure is shown as a note.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "condition",
+            "kind": "NODE",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": "condition",
+            "description": "The condition reported."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:compare",
+        "name": "compare",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Compares a variable with an amount: numbers with < <= = >= > !=, texts with = != contains, true/false with = !=.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "variable",
+            "kind": "ID",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The variable read, e.g. exp-level or finaljobs:level."
+          },
+          {
+            "name": "op",
+            "kind": "STRING",
+            "required": true,
+            "default": null,
+            "one-of": [
+              "<",
+              "<=",
+              "=",
+              ">=",
+              ">",
+              "!=",
+              "contains"
+            ],
+            "nested": null,
+            "description": "How to compare."
+          },
+          {
+            "name": "amount",
+            "kind": "STRING",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "What the variable is compared with: a number, a text, true or false."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:permission",
+        "name": "permission",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Passes when the player has a permission node.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "node",
+            "kind": "ID",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The permission node, e.g. shop.vip."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:repeat",
+        "name": "repeat",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Takes one use of a counter of the context's owner - a limit, a gap between uses, a window that starts the count over - and gives it back when a later cost does not come out.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "counter",
+            "kind": "ID",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The counter's id within the plugin, e.g. vip-door."
+          },
+          {
+            "name": "limit",
+            "kind": "NUMBER",
+            "required": false,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "Uses allowed, per window when one is set; none is unlimited."
+          },
+          {
+            "name": "cooldown",
+            "kind": "DURATION",
+            "required": false,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The least time between two uses, e.g. 10m."
+          },
+          {
+            "name": "window",
+            "kind": "WINDOW",
+            "required": false,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "When the count starts over, e.g. daily at 04:00."
+          },
+          {
+            "name": "reach",
+            "kind": "STRING",
+            "required": false,
+            "default": "local",
+            "one-of": [
+              "local",
+              "network"
+            ],
+            "nested": null,
+            "description": "Where a player's or the server's counter lives."
+          },
+          {
+            "name": "persistent",
+            "kind": "BOOLEAN",
+            "required": false,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "Whether it outlives a restart; by default only a limit does."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:money",
+        "name": "money",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Takes an amount of a currency from the owner's wallet; gives it back when a later cost does not come out.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "amount",
+            "kind": "STRING",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The amount: a number, or a {variable}."
+          },
+          {
+            "name": "currency",
+            "kind": "ID",
+            "required": false,
+            "default": "money",
+            "one-of": [],
+            "nested": null,
+            "description": "The currency, e.g. money or finaleconomy:gold."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:item",
+        "name": "item",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Takes matching items from the player's inventory; hands them back when a later cost does not come out.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "item",
+            "kind": "ID",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The item's id, e.g. minecraft:diamond; a bare name matches any namespace."
+          },
+          {
+            "name": "amount",
+            "kind": "NUMBER",
+            "required": false,
+            "default": 1,
+            "one-of": [],
+            "nested": null,
+            "description": "How many."
+          },
+          {
+            "name": "data",
+            "kind": "NUMBER",
+            "required": false,
+            "default": -1,
+            "one-of": [],
+            "nested": null,
+            "description": "The data value - the colour of a pre-1.13 wool (minecraft:wool with 14 is red), a tool's damage; -1 for any."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:near-npc",
+        "name": "near-npc",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Passes while the player stands near an NPC, in the same world.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "npc",
+            "kind": "ID",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The NPC as provider:id, e.g. citizens:12 or znpcsplus:merchant."
+          },
+          {
+            "name": "radius",
+            "kind": "NUMBER",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "How many blocks away still counts as near."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:in-region",
+        "name": "in-region",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Passes while the player stands in a region (by id) or in any region with a tag; with for-at-least, only once they stood there that long without leaving.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "region",
+            "kind": "ID",
+            "required": false,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The region, owner:name; a bare name is the caller's own."
+          },
+          {
+            "name": "tag",
+            "kind": "STRING",
+            "required": false,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "Any region with this tag."
+          },
+          {
+            "name": "for-at-least",
+            "kind": "DURATION",
+            "required": false,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "How long inside, without leaving, e.g. 5m."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:region-flag",
+        "name": "region-flag",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Passes when a flag resolves, where the player stands, to a value.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "flag",
+            "kind": "ID",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The flag, e.g. evernifecore:pvp."
+          },
+          {
+            "name": "equals",
+            "kind": "STRING",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The value it resolves to, as written in a region, e.g. deny."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:region-member",
+        "name": "region-member",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Passes when the player belongs to a group local to a region.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "region",
+            "kind": "ID",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The region, owner:name; a bare name is the caller's own."
+          },
+          {
+            "name": "group",
+            "kind": "STRING",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The region's group, e.g. members."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:quest-status",
+        "name": "quest-status",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Whether the owner stands at a status of a quest: AVAILABLE, ACTIVE, COMPLETED...",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "quest",
+            "kind": "ID",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The quest, owner:name (a bare name is the caller's own)."
+          },
+          {
+            "name": "is",
+            "kind": "STRING",
+            "required": true,
+            "default": null,
+            "one-of": [
+              "LOCKED",
+              "AVAILABLE",
+              "OFFERED",
+              "ACTIVE",
+              "COMPLETED",
+              "FAILED",
+              "EXPIRED",
+              "ABANDONED",
+              "COOLDOWN",
+              "locked",
+              "available",
+              "offered",
+              "active",
+              "completed",
+              "failed",
+              "expired",
+              "abandoned",
+              "cooldown"
+            ],
+            "nested": null,
+            "description": "The status."
+          }
+        ]
+      }
+    ],
+    "variable": [
+      {
+        "key": "evernifecore:exp-level",
+        "name": "exp-level",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "The player's experience level.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [
+          "EXPERIENCE"
+        ],
+        "unsupported": null,
+        "params": []
+      },
+      {
+        "key": "evernifecore:exp-points",
+        "name": "exp-points",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "The player's total experience points.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [
+          "EXPERIENCE"
+        ],
+        "unsupported": null,
+        "params": []
+      },
+      {
+        "key": "evernifecore:health",
+        "name": "health",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "The player's health.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [
+          "HEALTH"
+        ],
+        "unsupported": null,
+        "params": []
+      },
+      {
+        "key": "evernifecore:food",
+        "name": "food",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "The player's food level.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [
+          "FOOD"
+        ],
+        "unsupported": null,
+        "params": []
+      },
+      {
+        "key": "evernifecore:gamemode",
+        "name": "gamemode",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "The player's game mode: survival, creative, adventure or spectator.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [
+          "GAME_MODE"
+        ],
+        "unsupported": null,
+        "params": []
+      },
+      {
+        "key": "evernifecore:playtime",
+        "name": "playtime",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "How long the player has played on this server.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": []
+      },
+      {
+        "key": "evernifecore:permission",
+        "name": "permission",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Whether the player has a permission node.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "node",
+            "kind": "ID",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The permission node, e.g. shop.vip."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:placeholder",
+        "name": "placeholder",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "A text with %placeholders% filled for the player.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "text",
+            "kind": "STRING",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The text, e.g. %vault_eco_balance%."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:custom",
+        "name": "custom",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "A plugin's own variable, one value per owner, by the id it was defined with (plugin:name).",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "id",
+            "kind": "ID",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The variable's id, e.g. fakeshop:daily-money-earned."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:stat",
+        "name": "stat",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "A statistic of the platform by its native name, e.g. PLAY_ONE_MINUTE on Bukkit.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [
+          "STATISTICS"
+        ],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "name",
+            "kind": "ID",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The statistic's native name."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:region-time",
+        "name": "region-time",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "How long the player has stood in a region without leaving it; zero outside.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "region",
+            "kind": "ID",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The region, owner:name; a bare name is the caller's own."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:quest-times",
+        "name": "quest-times",
+        "category": null,
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "How many times the owner completed a quest.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "quest",
+            "kind": "ID",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The quest, owner:name (a bare name is the caller's own)."
+          }
+        ]
+      },
+      {
+        "key": "fakeraid:gold",
+        "name": "gold",
+        "category": null,
+        "registered-by": "FakeRaid",
+        "aliases": [],
+        "description": "The balance in gold of the context's owner.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": []
+      }
+    ],
+    "eligibility": [
+      {
+        "key": "evernifecore:completed-objective",
+        "name": "completed-objective",
+        "category": "eligibility",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "The members who contributed to an objective of the quest being paid.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "id",
+            "kind": "STRING",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The objective's id in the quest, e.g. mobs."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:any-member",
+        "name": "any-member",
+        "category": "eligibility",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Every member of the owner, offline included, and whoever contributed while the leaver keeps.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": []
+      },
+      {
+        "key": "evernifecore:online",
+        "name": "online",
+        "category": "eligibility",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "The members online when the reward pays.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": []
+      },
+      {
+        "key": "evernifecore:present",
+        "name": "present",
+        "category": "eligibility",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "The members standing in the owner's region or world; the online ones for a group or a player.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": []
+      },
+      {
+        "key": "evernifecore:last-actor",
+        "name": "last-actor",
+        "category": "eligibility",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Only whose action closed it, as the caller names it; nobody when it names none.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": []
+      },
+      {
+        "key": "evernifecore:role",
+        "name": "role",
+        "category": "eligibility",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "The group's leader (role: leader) or the members holding a role of the group's kind. Group owners only.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "role",
+            "kind": "STRING",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "leader, or the name of a role of the group's kind."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:contribution-at-least",
+        "name": "contribution-at-least",
+        "category": "eligibility",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "The members who contributed at least this much.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "min",
+            "kind": "NUMBER",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The least contribution, e.g. 1."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:contribution-share",
+        "name": "contribution-share",
+        "category": "eligibility",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "The members who contributed at least this part of the fair share (total / contributors).",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "at-least",
+            "kind": "STRING",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "A part of the fair share: 60% or 0.6."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:top",
+        "name": "top",
+        "category": "eligibility",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "The members with the highest contributions.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "count",
+            "kind": "NUMBER",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "How many, e.g. 3."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:condition",
+        "name": "condition",
+        "category": "eligibility",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "The members for whom a condition passes.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "condition",
+            "kind": "NODE",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": "condition",
+            "description": "The condition, run for the member."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:mark",
+        "name": "mark",
+        "category": "eligibility",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "The participants of the scene carrying a mark; only on a rule read under an occasion that declares it.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "mark",
+            "kind": "ID",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "A mark the occasion declares, e.g. alive."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:any-of",
+        "name": "any-of",
+        "category": "eligibility",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "The members at least one of the listed eligibilities accepts.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "of",
+            "kind": "NODE_LIST",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": "reward-piece",
+            "description": "The eligibilities, e.g. [{type: mark, mark: mvp}, {type: top, count: 3}]."
+          }
+        ]
+      },
+      {
+        "key": "evernifecore:not",
+        "name": "not",
+        "category": "eligibility",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "The members the given eligibility does not accept.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "of",
+            "kind": "NODE",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": "reward-piece",
+            "description": "The eligibility turned around, e.g. {type: mark, mark: alive}."
+          }
+        ]
+      }
+    ],
+    "distribution": [
+      {
+        "key": "evernifecore:each",
+        "name": "each",
+        "category": "distribution",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "The whole reward to every eligible member.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": []
+      },
+      {
+        "key": "evernifecore:split-equal",
+        "name": "split-equal",
+        "category": "distribution",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "The reward split equally among the eligible.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": []
+      },
+      {
+        "key": "evernifecore:proportional",
+        "name": "proportional",
+        "category": "distribution",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "The reward split by contribution.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": []
+      },
+      {
+        "key": "evernifecore:top-takes-all",
+        "name": "top-takes-all",
+        "category": "distribution",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "The whole reward to the highest contribution.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": []
+      },
+      {
+        "key": "evernifecore:tiers",
+        "name": "tiers",
+        "category": "distribution",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "A part of the reward per position, highest contribution first; positions past the list get nothing.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "tiers",
+            "kind": "LIST",
+            "required": true,
+            "default": null,
+            "one-of": [],
+            "nested": null,
+            "description": "The part of each position, e.g. [50%, 30%, 20%]."
+          }
+        ]
+      }
+    ],
+    "absence": [
+      {
+        "key": "evernifecore:deliver",
+        "name": "deliver",
+        "category": "absence",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "An offline member's share waits as a pending delivery.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": []
+      },
+      {
+        "key": "evernifecore:forfeit",
+        "name": "forfeit",
+        "category": "absence",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "An offline member's share is lost.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": []
+      },
+      {
+        "key": "evernifecore:redistribute",
+        "name": "redistribute",
+        "category": "absence",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "An offline member's share is split among the online eligible.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": []
+      }
+    ],
+    "moment": [
+      {
+        "key": "evernifecore:on-complete",
+        "name": "on-complete",
+        "category": "moment",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Pays when what it was for is done.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": []
+      },
+      {
+        "key": "evernifecore:on-window-end",
+        "name": "on-window-end",
+        "category": "moment",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Pays when its time window closes.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": []
+      },
+      {
+        "key": "evernifecore:on-owner-gone",
+        "name": "on-owner-gone",
+        "category": "moment",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Pays, in part, when its owner is gone.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": []
+      }
+    ],
+    "membership": [
+      {
+        "key": "evernifecore:membership",
+        "name": "membership",
+        "category": "membership",
+        "registered-by": "EverNifeCore",
+        "aliases": [],
+        "description": "Whether a member who left keeps a contribution, and whether one who joined late inherits.",
+        "platforms": [],
+        "sources": [],
+        "capabilities": [],
+        "unsupported": null,
+        "params": [
+          {
+            "name": "leaver",
+            "kind": "STRING",
+            "required": false,
+            "default": "keeps",
+            "one-of": [
+              "keeps",
+              "forfeits"
+            ],
+            "nested": null,
+            "description": "keeps or forfeits."
+          },
+          {
+            "name": "joiner",
+            "kind": "STRING",
+            "required": false,
+            "default": "from-now",
+            "one-of": [
+              "from-now",
+              "inherits-zero"
+            ],
+            "nested": null,
+            "description": "from-now or inherits-zero."
+          }
+        ]
+      }
+    ]
+  },
+  "effect-modifiers": [
+    {
+      "name": "delay",
+      "kind": "DURATION",
+      "required": false,
+      "default": null,
+      "one-of": [],
+      "nested": null,
+      "description": "Waits this long before applying the effect."
+    },
+    {
+      "name": "chance",
+      "kind": "NUMBER",
+      "required": false,
+      "default": null,
+      "one-of": [],
+      "nested": null,
+      "description": "From 0 (never) to 1 (always): how likely the effect applies."
+    },
+    {
+      "name": "if",
+      "kind": "NODE",
+      "required": false,
+      "default": null,
+      "one-of": [],
+      "nested": "condition",
+      "description": "A condition that must pass for the effect to apply."
+    },
+    {
+      "name": "repeat",
+      "kind": "NUMBER",
+      "required": false,
+      "default": 1,
+      "one-of": [],
+      "nested": null,
+      "description": "How many times the effect runs; more than 1 needs every."
+    },
+    {
+      "name": "every",
+      "kind": "DURATION",
+      "required": false,
+      "default": null,
+      "one-of": [],
+      "nested": null,
+      "description": "The time between the runs of repeat."
+    },
+    {
+      "name": "as",
+      "kind": "STRING",
+      "required": false,
+      "default": null,
+      "one-of": [
+        "player",
+        "console"
+      ],
+      "nested": null,
+      "description": "Who runs it, for an effect that takes a sender (command)."
+    },
+    {
+      "name": "target",
+      "kind": "STRING",
+      "required": false,
+      "default": "self",
+      "one-of": [
+        "self",
+        "group",
+        "region-players",
+        "world-players",
+        "online-players"
+      ],
+      "nested": null,
+      "description": "Who receives it."
+    },
+    {
+      "name": "scope",
+      "kind": "STRING",
+      "required": false,
+      "default": "permanent",
+      "one-of": [
+        "permanent",
+        "held"
+      ],
+      "nested": null,
+      "description": "held lasts only while the condition that gave it holds."
+    },
+    {
+      "name": "to",
+      "kind": "ID",
+      "required": false,
+      "default": null,
+      "one-of": [],
+      "nested": null,
+      "description": "The delivery destination, for an effect that takes one, e.g. pending."
+    },
+    {
+      "name": "offline",
+      "kind": "STRING",
+      "required": false,
+      "default": "run",
+      "one-of": [
+        "run",
+        "skip",
+        "on-login"
+      ],
+      "nested": null,
+      "description": "With the player offline: apply now, skip it, or wait for the next login; a command run as: player waits by default."
+    }
+  ],
+  "always-accepted": [
+    "player",
+    "player-uuid",
+    "owner",
+    "caller",
+    "amount",
+    "share"
+  ],
+  "occasions": [
+    {
+      "id": "stage-won",
+      "phase": "stage",
+      "marks": [
+        "alive",
+        "dead"
+      ],
+      "variables": [
+        "stage",
+        "faction",
+        "boss"
+      ],
+      "sample": {
+        "participants": [
+          {
+            "uuid": "9aba45a7-f199-3a9c-9fc9-6ef2a45810fb",
+            "name": "Ana",
+            "contribution": 900,
+            "marks": [
+              "alive"
+            ]
+          },
+          {
+            "uuid": "a72d119a-0c3c-3b62-91c6-55a9cc4b7769",
+            "name": "Bia",
+            "contribution": 600,
+            "marks": [
+              "alive"
+            ]
+          },
+          {
+            "uuid": "86862b8d-8a31-3e64-abd0-fde3d9f93a29",
+            "name": "Caio",
+            "contribution": 300,
+            "marks": [
+              "dead"
+            ]
+          },
+          {
+            "uuid": "02f9ffdb-b2a2-309c-9b54-c24814f0ab55",
+            "name": "Duda",
+            "contribution": 200,
+            "marks": [
+              "alive"
+            ]
+          }
+        ],
+        "variables": {
+          "stage": "5",
+          "faction": "Dragons",
+          "boss": "MewTwo"
+        }
+      },
+      "rewards": {
+        "5": [
+          {
+            "name": "congrats",
+            "effects": [
+              {
+                "type": "message",
+                "text": "Congrats! Stage {stage} beaten! {boss} is down."
+              }
+            ]
+          },
+          {
+            "name": "pool",
+            "distribution": "proportional",
+            "absent": "deliver",
+            "effects": [
+              {
+                "type": "money",
+                "amount": 2000,
+                "currency": "fakeraid:gold"
+              },
+              {
+                "type": "message",
+                "text": "Your part of the pool: {amount}"
+              }
+            ]
+          },
+          {
+            "name": "alive",
+            "eligibility": {
+              "type": "mark",
+              "mark": "alive"
+            },
+            "effects": [
+              {
+                "type": "money",
+                "amount": 300,
+                "currency": "fakeraid:gold"
+              },
+              {
+                "type": "message",
+                "text": "Still standing: +{amount}"
+              }
+            ]
+          },
+          {
+            "name": "dead",
+            "eligibility": {
+              "type": "mark",
+              "mark": "dead"
+            },
+            "effects": [
+              {
+                "type": "money",
+                "amount": 50,
+                "currency": "fakeraid:gold"
+              },
+              {
+                "type": "message",
+                "text": "You fell, {player}: +{amount}"
+              }
+            ]
+          },
+          {
+            "name": "broadcast",
+            "once": true,
+            "effects": [
+              {
+                "type": "command",
+                "command": "fbroad &aThe Faction &b[{faction}] &awon stage {stage}!"
+              }
+            ]
+          }
+        ],
+        "default": [
+          {
+            "effects": [
+              {
+                "type": "message",
+                "text": "Stage {stage} beaten, {player}!"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
