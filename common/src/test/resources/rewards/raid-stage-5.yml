@@ -1,0 +1,28 @@
+# PokeRaidArena: the raid, keyed by stage (occasion stage-won: marks alive/dead, variables stage/faction/boss).
+5:
+  - name: congrats
+    effects:
+      - {type: message, text: "Congrats! Stage {stage} beaten! {boss} is down."}
+  - name: pool
+    distribution: proportional
+    absent: deliver
+    effects:
+      - {type: money, amount: 2000, currency: "fakeraid:gold"}
+      - {type: message, text: "Your part of the pool: {amount}"}
+  - name: alive
+    eligibility: {type: mark, mark: alive}
+    effects:
+      - {type: money, amount: 300, currency: "fakeraid:gold"}
+      - {type: message, text: "Still standing: +{amount}"}
+  - name: dead
+    eligibility: {type: mark, mark: dead}
+    effects:
+      - {type: money, amount: 50, currency: "fakeraid:gold"}
+      - {type: message, text: "You fell, {player}: +{amount}"}
+  - name: broadcast
+    once: true
+    effects:
+      - {type: command, command: "fbroad &aThe Faction &b[{faction}] &awon stage {stage}!"}
+default:
+  - effects:
+      - {type: message, text: "Stage {stage} beaten, {player}!"}

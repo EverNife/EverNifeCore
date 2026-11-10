@@ -198,7 +198,7 @@ public final class QuestDefinition {
         return onAbandon;
     }
 
-    /** What completing it pays, rule by rule, through {@code Rewards.pay}; {@link Reward#NONE} for nothing. */
+    /** What completing it pays, step by step, through its {@code RewardTable}; {@link Reward#NONE} for nothing. */
     public Reward getReward() {
         return reward;
     }

@@ -1,0 +1,7 @@
+# Territory: an invasion repelled (occasion territory-invaded: mark damaged); the offline defenders get nothing.
+default:
+  - eligibility: {type: any-of, of: [{type: mark, mark: damaged}, {type: top, count: 1}]}
+    absent: forfeit
+    effects:
+      - {type: money, amount: 150, currency: "fakeraid:gold"}
+      - {type: message, text: "Territory held: +{amount}"}

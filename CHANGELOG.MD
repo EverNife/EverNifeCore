@@ -103,7 +103,7 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **`RewardScene` and `RewardOccasion`** (`logic.reward`): a plugin declares an occasion in code (id, the marks a
   participant may carry, the `{variables}` its texts read) and describes each payment as a scene under it -
   participants (uuid, name, contribution, marks) plus the variables (`{stage}` = 5). `RewardContext.Builder.scene(scene)`
-  makes the participants the candidates of `Rewards.pay`, members of no owner included; a mark or variable the occasion
+  makes the participants the candidates of the payment, members of no owner included; a mark or variable the occasion
   does not declare is refused when the scene is built. `RewardRule.parse(plugin, occasion, node)` refuses a `{variable}`
   the occasion does not give (its own, `{player}`, `{player-uuid}`, `{owner}`, `{caller}`, any registered variable),
   listing the accepted ones.
@@ -114,11 +114,26 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `Eligibility.mark/anyOf/not` build them in code.
 - **`once: true` on a reward rule**: its effects apply one time, on the main thread, from the console, with the
   reward's attributes and the scene's variables (`{stage}`) and no member - with no participant too. With
-  `eligibility`, `distribution`, `absent`, `leaver` or `joiner` it is refused on load, saying why. `Rewards.pay`
-  completes with an empty map for it and writes one `REWARD_PAID` audit line.
+  `eligibility`, `distribution`, `absent`, `leaver` or `joiner` it is refused on load, saying why, and
+  `RewardRule.Builder.build()` refuses it with an eligibility, distribution, absence or membership set, with the same
+  message. Its receipt step has no line, and it writes one `REWARD_PAID` audit line.
 - **`name:` on a reward rule** (`RewardRule.getName()`): written in the `REWARD_PAID` audit line of its payments.
-- **A `target` other than `self` in a reward rule logs a warning** on the caller's log, naming the rule: the effect
-  reaches its targets once for every member paid.
+- **A `target` other than `self` in a reward rule logs a warning** on the caller's log, naming the step by its index
+  and name: the effect reaches its targets once for every member paid.
+- **`RewardTable` and `RewardReceipt`**: a reward is an ordered list of steps (`RewardRule`s);
+  `RewardTable.parse(plugin, occasion, node)` reads it, `pay(ctx)` pays the steps one after the other and completes with
+  a `RewardReceipt` (per step: index, name, and per member its share, amount and status `ONLINE`, `DELIVERED`, `LOST` or
+  `REDISTRIBUTED`), and `preview(ctx)` answers the same receipt applying nothing - no effect, delivery,
+  `RewardPaidEvent` or audit line. A step that asks for a group role on an owner that is not a group refuses the whole
+  table before anything is paid. It is the one way to pay: `Rewards.pay(rule, ctx)` is internal now, and a single rule
+  pays as `RewardTable.of(Collections.singletonList(rule))`.
+- **`PhasedRewardTable`**: a table per phase of an occasion, keyed `5`, `4-10`, `10+`, `every 5` or `default`; the most
+  specific key wins (exact, the narrowest range, the highest `N+`, the largest `every N`, `default`), and two keys of
+  one kind that take a common phase without nesting (`4-10` and `8-12`) are refused on load, naming both and the phase.
+- **`{amount}` and `{share}`** in every effect of a member's payment: what the step's effects with an amount give that
+  member (`Effect.getAmount`, answered by `money`) and its part of the step, 0-1. Every occasion accepts them.
+- **`RewardOccasion.Builder.phase(...)` and `sample(...)`**: what the occasion's phases count (`stage`, `wave`,
+  `position`) and a sample scene, built and checked with the occasion.
 
 ### Changed
 
@@ -206,6 +221,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 #### Quests
 
+- **A quest pays through a `RewardTable`**: `Reward.getTable()` replaces `getRules()`, and its steps pay in order, one
+  after the other; the quest file does not change. A step asking for a group role on a quest that is not a group's now
+  stops the whole reward before anything is paid, logged as before.
 - **The quest journal names statuses and its filter in the viewer's language**: `{status}` and `{filter}` printed the
   enum (`ACTIVE`, `ALL`); they are now the core locale messages `QuestJournalScreen.STATUS.<STATUS>` (one per
   `QuestStatus`) and `QuestJournalScreen.FILTER.ALL`, en_US and pt_BR.

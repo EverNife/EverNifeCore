@@ -185,6 +185,11 @@ final class ModifiedEffect implements Effect {
     }
 
     @Override
+    public @Nullable BigDecimal getAmount(ExecutionContext ctx) {
+        return effect.getAmount(ctx);
+    }
+
+    @Override
     public String toString() {
         return effect.toString();
     }

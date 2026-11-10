@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.logic;
 
+import jakarta.annotation.Nullable;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,6 +39,19 @@ public final class EffectList implements Effect {
             shared.add(effect.withShare(share));
         }
         return new EffectList(shared);
+    }
+
+    /** The sum of its effects' amounts; null when none has one. */
+    @Override
+    public @Nullable BigDecimal getAmount(ExecutionContext ctx) {
+        BigDecimal sum = null;
+        for (Effect effect : effects) {
+            BigDecimal amount = effect.getAmount(ctx);
+            if (amount != null) {
+                sum = sum == null ? amount : sum.add(amount);
+            }
+        }
+        return sum;
     }
 
     @Override

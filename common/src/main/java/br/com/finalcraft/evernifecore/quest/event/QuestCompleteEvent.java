@@ -7,7 +7,7 @@ import br.com.finalcraft.evernifecore.quest.QuestEngine;
 import br.com.finalcraft.evernifecore.quest.QuestId;
 import br.com.finalcraft.evernifecore.quest.QuestState;
 
-/** The quest completed; its rewards are paid by {@code Rewards.pay}, which posts their own events. */
+/** The quest completed; its rewards are paid by its {@code RewardTable}, which posts their own events. */
 public class QuestCompleteEvent extends QuestEvent {
 
     /** Bukkit-only: this event's own native handler list - see {@link ECEvent#getHandlerListOf(Class)}. */

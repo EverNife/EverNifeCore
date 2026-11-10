@@ -17,17 +17,19 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * One reward: who receives ({@link Eligibility}, all of them), how much each ({@link Distribution}), what becomes of the
  * offline ({@link Absence}), when it pays ({@link Moment}), the leaver/joiner rules ({@link RewardMembership}) and the
  * effects it applies, divided by each member's share - or, {@link #isOnce() once}, the effects applied one time for
- * nobody in particular. Paid by {@link Rewards#pay}. Immutable; any thread.
+ * nobody in particular. One step of a {@link RewardTable}, which pays it. Immutable; any thread.
  */
 public final class RewardRule {
 
@@ -43,6 +45,7 @@ public final class RewardRule {
         NOT_WITH_ONCE.put("absent", "would decide for offline members, and once pays none");
         NOT_WITH_ONCE.put("leaver", "would decide which members count, and once pays none");
         NOT_WITH_ONCE.put("joiner", "would decide which members count, and once pays none");
+        NOT_WITH_ONCE.put("membership", "would decide which members count, and once pays none");
     }
 
     private final List<Eligibility> eligibility;
@@ -133,10 +136,21 @@ public final class RewardRule {
      *                               comes with a key it would ignore - the message names it and the way out
      */
     public static RewardRule parse(ECPluginData caller, JsonNode node) throws TypeRegistryException {
-        return read(caller, null, node);
+        return read(caller, null, node, -1);
     }
 
-    private static RewardRule read(ECPluginData caller, @Nullable RewardOccasion occasion, JsonNode node) throws TypeRegistryException {
+    /** {@link #parse(ECPluginData, RewardOccasion, JsonNode)} for the step at {@code index} of a table, which its warnings name. */
+    static RewardRule parseStep(ECPluginData caller, RewardOccasion occasion, JsonNode node, int index) throws TypeRegistryException {
+        occasion.checkVariables(caller, node);
+        return read(caller, occasion, node, index);
+    }
+
+    /** How a message names a step: {@code step 2 'bonus'}; without an index (-1), {@code step 'bonus'}, or {@code step}. */
+    static String labelOf(int index, @Nullable String name) {
+        return "The reward step" + (index < 0 ? "" : " " + index) + (name == null ? "" : " '" + name + "'");
+    }
+
+    private static RewardRule read(ECPluginData caller, @Nullable RewardOccasion occasion, JsonNode node, int index) throws TypeRegistryException {
         if (node == null || !node.isObject()) {
             throw new TypeRegistryException("A reward is written as {eligibility: [...], distribution: ..., absent: ..., effects: [...]}"
                     + " - this one is " + (node == null ? "empty" : node.toString()) + ".");
@@ -157,11 +171,9 @@ public final class RewardRule {
         }
         boolean once = onceNode != null && onceNode.asBoolean();
         if (once) {
-            for (Map.Entry<String, String> refused : NOT_WITH_ONCE.entrySet()) {
-                if (node.has(refused.getKey())) {
-                    throw new TypeRegistryException("A reward with once: true runs its effects one time, from the console, for nobody in"
-                            + " particular, and '" + refused.getKey() + "' " + refused.getValue() + ". Remove '" + refused.getKey()
-                            + "', or drop once to pay each member.");
+            for (String refused : NOT_WITH_ONCE.keySet()) {
+                if (node.has(refused)) {
+                    throw new TypeRegistryException(notWithOnce(refused));
                 }
             }
             builder.once(true);
@@ -211,9 +223,15 @@ public final class RewardRule {
         builder.effects(Effects.parseList(caller, node.get("effects"), Window.getServerZone()));
         RewardRule rule = builder.build();
         if (!once) {
-            warnOfTargets(caller, rule, node.get("effects"));
+            warnOfTargets(caller, rule, node.get("effects"), index);
         }
         return rule;
+    }
+
+    /** Why a {@code once: true} rule refuses {@code key}, and the way out. */
+    private static String notWithOnce(String key) {
+        return "A reward with once: true runs its effects one time, from the console, for nobody in particular, and '" + key + "' "
+                + NOT_WITH_ONCE.get(key) + ". Remove '" + key + "', or drop once to pay each member.";
     }
 
     private static void checkMarks(@Nullable RewardOccasion occasion, Eligibility eligibility) throws TypeRegistryException {
@@ -232,14 +250,14 @@ public final class RewardRule {
     }
 
     /** A target other than self competes with the eligibility: the effect reaches its targets once per member paid. */
-    private static void warnOfTargets(ECPluginData caller, RewardRule rule, @Nullable JsonNode effects) {
+    private static void warnOfTargets(ECPluginData caller, RewardRule rule, @Nullable JsonNode effects, int index) {
         if (effects == null) {
             return;
         }
         for (JsonNode effect : effects.isArray() ? effects : Collections.singletonList(effects)) {
             String target = effect.path("target").asText("self").trim().toLowerCase(Locale.ROOT);
             if (!target.equals("self")) {
-                caller.getLog().warning("The reward " + (rule.name == null ? "step" : "step '" + rule.name + "'") + " has an effect with"
+                caller.getLog().warning(labelOf(index, rule.name) + " has an effect with"
                         + " target: " + target + " (" + effect + "): it applies to those targets once for every member the eligibility"
                         + " pays, so they get it as many times. Write once: true to apply it one time, or drop the target to pay each member.");
             }
@@ -255,7 +273,7 @@ public final class RewardRule {
      */
     public static RewardRule parse(ECPluginData caller, RewardOccasion occasion, JsonNode node) throws TypeRegistryException {
         occasion.checkVariables(caller, node);
-        return read(caller, occasion, node);
+        return read(caller, occasion, node, -1);
     }
 
     private static <P extends RewardPiece> @Nullable P optionalPiece(ECPluginData caller, JsonNode rule, String key, Class<P> role)
@@ -294,11 +312,12 @@ public final class RewardRule {
         private EffectList effects = Effects.of(Collections.<Effect>emptyList());
         private boolean once;
         private @Nullable String name;
+        private final Set<String> set = new LinkedHashSet<>();
 
         private Builder() {
         }
 
-        /** {@link RewardRule#isOnce()}: the eligibility, distribution, absence and membership set here are then not used. */
+        /** {@link RewardRule#isOnce()}: refused by {@link #build()} with an eligibility, distribution, absence or membership set. */
         public Builder once(boolean once) {
             this.once = once;
             return this;
@@ -312,16 +331,19 @@ public final class RewardRule {
         /** Replaces the eligibilities; none = {@code any-member}. */
         public Builder eligibility(Eligibility... all) {
             this.eligibility = Arrays.asList(all.clone());
+            set.add("eligibility");
             return this;
         }
 
         public Builder distribution(Distribution distribution) {
             this.distribution = Objects.requireNonNull(distribution, "distribution");
+            set.add("distribution");
             return this;
         }
 
         public Builder absent(Absence absent) {
             this.absent = Objects.requireNonNull(absent, "absent");
+            set.add("absent");
             return this;
         }
 
@@ -332,6 +354,7 @@ public final class RewardRule {
 
         public Builder membership(RewardMembership membership) {
             this.membership = Objects.requireNonNull(membership, "membership");
+            set.add("membership");
             return this;
         }
 
@@ -340,7 +363,11 @@ public final class RewardRule {
             return this;
         }
 
+        /** @throws IllegalStateException for a once rule with an eligibility, distribution, absence or membership set - it pays none of them */
         public RewardRule build() {
+            if (once && !set.isEmpty()) {
+                throw new IllegalStateException(notWithOnce(set.iterator().next()));
+            }
             return new RewardRule(this);
         }
     }

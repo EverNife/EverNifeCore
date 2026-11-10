@@ -1,0 +1,11 @@
+# MobArena: a wave cleared (occasion wave-cleared: mark fighting), every fifth wave a boss wave.
+every 5:
+  - eligibility: {type: mark, mark: fighting}
+    distribution: split-equal
+    effects:
+      - {type: money, amount: 500, currency: "fakeraid:gold"}
+      - {type: message, text: "Boss wave {wave} cleared: +{amount}"}
+default:
+  - eligibility: {type: mark, mark: fighting}
+    effects:
+      - {type: money, amount: 20, currency: "fakeraid:gold"}

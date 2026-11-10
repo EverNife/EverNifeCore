@@ -31,9 +31,7 @@ import br.com.finalcraft.evernifecore.logic.GateResult;
 import br.com.finalcraft.evernifecore.logic.ProgressOwner;
 import br.com.finalcraft.evernifecore.logic.RepeatPolicy;
 import br.com.finalcraft.evernifecore.logic.reward.RewardContext;
-import br.com.finalcraft.evernifecore.logic.reward.RewardRule;
 import br.com.finalcraft.evernifecore.logic.reward.RewardTrigger;
-import br.com.finalcraft.evernifecore.logic.reward.Rewards;
 import br.com.finalcraft.evernifecore.playerdata.PDSectionConfiguration;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
@@ -1565,7 +1563,7 @@ public final class QuestEngine {
     }
 
     /**
-     * Pays every rule of the quest's reward that takes {@code trigger}, through {@link Rewards#pay}: the contribution of
+     * Pays every step of the quest's reward table that takes {@code trigger}: the contribution of
      * each member is the sum of what it counted on the objectives, the last actor is whose action closed the latest
      * objective (on a player's own quest, the player), and the state goes as the {@code quest} attribute.
      */
@@ -1588,16 +1586,14 @@ public final class QuestEngine {
                 .attribute("quest", state.copy())
                 .build();
         afterLanes(() -> {
-            for (RewardRule rule : definition.getReward().getRules()) {
-                try {
-                    Rewards.pay(rule, ctx).whenComplete((paid, error) -> {
-                        if (error != null) {
-                            owner.getLog().warning("A reward of quest {} for {} failed while paying: {}", definition.getId(), progressOwner, error.toString());
-                        }
-                    });
-                } catch (RuntimeException refused) {
-                    owner.getLog().warning("A reward of quest {} for {} was not paid: {}", definition.getId(), progressOwner, refused.getMessage());
-                }
+            try {
+                definition.getReward().getTable().pay(ctx).whenComplete((paid, error) -> {
+                    if (error != null) {
+                        owner.getLog().warning("A reward of quest {} for {} failed while paying: {}", definition.getId(), progressOwner, error.toString());
+                    }
+                });
+            } catch (RuntimeException refused) {
+                owner.getLog().warning("A reward of quest {} for {} was not paid: {}", definition.getId(), progressOwner, refused.getMessage());
             }
         });
     }

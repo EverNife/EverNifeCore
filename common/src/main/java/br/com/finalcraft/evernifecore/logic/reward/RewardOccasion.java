@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -23,8 +24,13 @@ import java.util.regex.Pattern;
  */
 public final class RewardOccasion {
 
-    /** What every reward text reads, whatever the occasion: {@code ExecutionContext.resolve} answers them. */
-    public static final List<String> ALWAYS_ACCEPTED = Collections.unmodifiableList(Arrays.asList("player", "player-uuid", "owner", "caller"));
+    /**
+     * What every reward text reads, whatever the occasion: {@code ExecutionContext.resolve} answers the first four, and a
+     * member's payment writes {@code {amount}} (what the step's effects with an amount give it) and {@code {share}} (its
+     * part, 0-1).
+     */
+    public static final List<String> ALWAYS_ACCEPTED = Collections.unmodifiableList(Arrays.asList("player", "player-uuid", "owner", "caller",
+            "amount", "share"));
 
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{([A-Za-z0-9_.:-]+)}");
 
@@ -32,12 +38,18 @@ public final class RewardOccasion {
     private final String id;
     private final Set<String> marks;
     private final Set<String> variables;
+    private final String phase;
+    private final RewardScene sample;
 
     private RewardOccasion(Builder builder) {
         this.plugin = builder.plugin;
         this.id = builder.id;
         this.marks = Collections.unmodifiableSet(new LinkedHashSet<>(builder.marks));
         this.variables = Collections.unmodifiableSet(new LinkedHashSet<>(builder.variables));
+        this.phase = builder.phase;
+        RewardScene.Builder sample = RewardScene.builder(this);
+        builder.sample.accept(sample);
+        this.sample = sample.build();
     }
 
     /** @param id the occasion's name within {@code plugin}, e.g. {@code raid} */
@@ -61,6 +73,16 @@ public final class RewardOccasion {
     /** The {@code {variables}} a scene of this occasion fills ({@code stage}, {@code wave}), in declaration order. Read-only. */
     public Set<String> getVariables() {
         return variables;
+    }
+
+    /** What its {@link PhasedRewardTable} keys count ({@code stage}, {@code wave}, {@code position}); {@code phase} when not declared. */
+    public String getPhase() {
+        return phase;
+    }
+
+    /** A scene as the plugin would pay one, to try a table on without a real payment; empty when not declared. */
+    public RewardScene getSample() {
+        return sample;
     }
 
     /** Whether a text of {@code caller} under this occasion may write {@code {key}}: declared, always accepted, or a registered variable. */
@@ -110,6 +132,9 @@ public final class RewardOccasion {
         private final String id;
         private final Set<String> marks = new LinkedHashSet<>();
         private final Set<String> variables = new LinkedHashSet<>();
+        private String phase = "phase";
+        private Consumer<RewardScene.Builder> sample = scene -> {
+        };
 
         private Builder(ECPluginData plugin, String id) {
             this.plugin = Objects.requireNonNull(plugin, "plugin");
@@ -142,6 +167,22 @@ public final class RewardOccasion {
             return this;
         }
 
+        /** What the occasion's phases count - {@code stage}, {@code wave}, {@code position}, {@code place}; named in the load errors of a {@link PhasedRewardTable}. */
+        public Builder phase(String phase) {
+            this.phase = Objects.requireNonNull(phase, "phase").trim();
+            return this;
+        }
+
+        /**
+         * Fills the {@link #getSample() sample scene} on {@link #build()}, under the occasion being built - so its marks and
+         * variables are checked like a real scene's.
+         */
+        public Builder sample(Consumer<RewardScene.Builder> sample) {
+            this.sample = Objects.requireNonNull(sample, "sample");
+            return this;
+        }
+
+        /** @throws IllegalArgumentException when the sample carries a mark or a variable the occasion does not declare */
         public RewardOccasion build() {
             return new RewardOccasion(this);
         }

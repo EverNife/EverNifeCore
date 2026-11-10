@@ -1,0 +1,16 @@
+# Tournament: a team places (occasion placed: mark trainer), keyed by place; the NPC trainers are paid nothing.
+1:
+  - eligibility: {type: not, of: {type: mark, mark: trainer}}
+    distribution: split-equal
+    effects:
+      - {type: money, amount: 3000, currency: "fakeraid:gold"}
+      - {type: message, text: "Champions! Your part: {amount}"}
+2:
+  - eligibility: {type: not, of: {type: mark, mark: trainer}}
+    distribution: split-equal
+    effects:
+      - {type: money, amount: 1500, currency: "fakeraid:gold"}
+default:
+  - eligibility: {type: not, of: {type: mark, mark: trainer}}
+    effects:
+      - {type: message, text: "Place {place}: thanks for playing."}

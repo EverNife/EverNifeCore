@@ -39,8 +39,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Pays a {@link RewardRule} to the members of a {@link ProgressOwner}, and holds the {@code reward-piece} registry a
- * plugin adds its own pieces to. The core registers its stock ({@code CoreRewardPieces}) on enable.
+ * The engine that pays a step ({@link RewardRule}) of a {@link RewardTable} to its members, and the {@code reward-piece}
+ * registry a plugin adds its own pieces to. The core registers its stock ({@code CoreRewardPieces}) on enable.
  */
 public final class Rewards {
 
@@ -56,26 +56,44 @@ public final class Rewards {
     }
 
     /**
-     * Pays {@code rule} for {@code ctx}. Nothing is paid or posted when the rule's moment does not take the context's
-     * trigger. Otherwise the candidates (a {@link RewardScene}'s participants; without one, the owner's members,
-     * offline included, plus whoever contributed while the leaver keeps) pass every eligibility, the distribution gives each a share, and each eligible member gets the
-     * rule's effects multiplied by its share: applied on the member's thread when online; when offline, as the absence
-     * says - a pending delivery, nothing, or split among the online eligible. Every payment posts a
-     * {@link RewardPaidEvent} and lands in the caller plugin's {@link AuditLog} when it has one open. A
-     * {@link RewardRule#isOnce() once} rule skips all of that: its effects apply one time on the main thread, from the
-     * console, with the reward's attributes and the scene's variables, and only the audit line is written. Any thread.
+     * Pays one step, {@code rule}, for {@code ctx} - the engine under {@link RewardTable#pay}, which every payment goes
+     * through. Nothing is paid or posted when the rule's moment does not take the context's trigger. Otherwise the
+     * candidates (a {@link RewardScene}'s participants; without one, the owner's members, offline included, plus whoever
+     * contributed while the leaver keeps) pass every eligibility, the distribution gives each a share, and each eligible
+     * member gets the rule's effects multiplied by its share, reading {@code {amount}} and {@code {share}}: applied on the
+     * member's thread when online; when offline, as the absence says - a pending delivery, nothing, or split among the
+     * online eligible. Every payment posts a {@link RewardPaidEvent} and lands in the caller plugin's {@link AuditLog}
+     * when it has one open. A {@link RewardRule#isOnce() once} rule skips all of that: its effects apply one time on the
+     * main thread, from the console, with the reward's attributes and the scene's variables, and only the audit line is
+     * written. Any thread.
      *
-     * @return completes, once every effect applied or was kept, with the share each paid member got (delivered
-     *         included, forfeited left out), in the distribution's order; empty for a once rule
+     * @return completes, once every effect applied or was kept, with the step's receipt
      * @throws IllegalArgumentException when the rule asks for a group role and the owner is not a group
      */
-    public static CompletableFuture<Map<UUID, BigDecimal>> pay(RewardRule rule, RewardContext ctx) {
-        if (!rule.getMoment().paysAt(ctx.getTrigger())) {
-            return CompletableFuture.completedFuture(Collections.<UUID, BigDecimal>emptyMap());
+    static CompletableFuture<RewardReceipt.Step> payStep(RewardRule rule, RewardContext ctx, int index) {
+        RewardReceipt.Step step = settle(rule, ctx, index);
+        if (!step.isRun()) {
+            return CompletableFuture.completedFuture(step);
         }
-        if (rule.isOnce()) {
-            return payOnce(rule, ctx);
+        if (step.isOnce()) {
+            return payOnce(rule, ctx).thenApply(done -> step);
         }
+        List<CompletableFuture<?>> applied = new ArrayList<>();
+        for (RewardReceipt.Line line : step.getLines()) {
+            if (line.getStatus().isPaid()) {
+                applied.add(payOne(rule, ctx, line));
+            }
+        }
+        return CompletableFuture.allOf(applied.toArray(new CompletableFuture<?>[0])).thenApply(done -> step);
+    }
+
+    /** {@link #payStep} alone, answering the share each paid member got (delivered included, forfeited left out); empty for a once rule. */
+    static CompletableFuture<Map<UUID, BigDecimal>> pay(RewardRule rule, RewardContext ctx) {
+        return payStep(rule, ctx, 0).thenApply(step -> step.getPaidShares());
+    }
+
+    /** @throws IllegalArgumentException when {@code rule} asks for a group role and the owner of {@code ctx} is not a group */
+    static void checkRoles(RewardRule rule, RewardContext ctx) {
         for (Eligibility eligibility : rule.getEligibility()) {
             if (CoreRewardPieces.asksForAGroupRole(eligibility) && !ctx.getOwner().isKind(ProgressOwner.GROUP)) {
                 throw new IllegalArgumentException("The reward of " + ctx.getCaller() + " is for " + ctx.getOwner() + ", which has no roles:"
@@ -83,6 +101,20 @@ public final class Rewards {
                         + " eligibility (online, any-member, last-actor...).");
             }
         }
+    }
+
+    /**
+     * What {@link #payStep} would pay, applying nothing: who is eligible, each one's share and amount, and what becomes of
+     * the offline. Posts no event, keeps no delivery and writes no audit line.
+     */
+    static RewardReceipt.Step settle(RewardRule rule, RewardContext ctx, int index) {
+        if (!rule.getMoment().paysAt(ctx.getTrigger())) {
+            return new RewardReceipt.Step(index, rule.getName(), rule.isOnce(), false, Collections.<RewardReceipt.Line>emptyList());
+        }
+        if (rule.isOnce()) {
+            return new RewardReceipt.Step(index, rule.getName(), true, true, Collections.<RewardReceipt.Line>emptyList());
+        }
+        checkRoles(rule, ctx);
 
         Set<UUID> eligible = new LinkedHashSet<>();
         for (UUID candidate : candidatesOf(rule, ctx)) {
@@ -94,12 +126,13 @@ public final class Rewards {
             if (ctx.getLastActor() == null && rule.getEligibility().contains(Eligibility.lastActor()) && TOLD_NO_LAST_ACTOR.add(ctx.getCaller())) {
                 ECDebugModule.GROUPS.debug("A last-actor reward of {} paid nobody: its RewardContext named no last actor.", ctx.getCaller());
             }
-            return CompletableFuture.completedFuture(Collections.<UUID, BigDecimal>emptyMap());
+            return new RewardReceipt.Step(index, rule.getName(), false, true, Collections.<RewardReceipt.Line>emptyList());
         }
 
         Map<UUID, BigDecimal> shares = rule.getDistribution().sharesOf(Collections.unmodifiableSet(eligible), ctx);
         Map<UUID, BigDecimal> paid = new LinkedHashMap<>();
         Set<UUID> delivered = new LinkedHashSet<>();
+        Map<UUID, RewardReceipt.Status> unpaid = new LinkedHashMap<>();
         BigDecimal pooled = BigDecimal.ZERO;
         for (Map.Entry<UUID, BigDecimal> share : shares.entrySet()) {
             if (share.getValue().signum() <= 0) {
@@ -116,18 +149,34 @@ public final class Rewards {
                 delivered.add(member);
             } else if (outcome == Absence.Outcome.REDISTRIBUTE) {
                 pooled = pooled.add(share.getValue());
+                unpaid.put(member, RewardReceipt.Status.REDISTRIBUTED);
+            } else {
+                unpaid.put(member, RewardReceipt.Status.LOST);
             }
         }
-        if (pooled.signum() > 0) {
-            redistribute(rule, ctx, eligible, pooled, paid);
+        if (pooled.signum() > 0 && !redistribute(rule, ctx, eligible, pooled, paid)) {
+            unpaid.replaceAll((member, status) -> RewardReceipt.Status.LOST);
         }
 
-        List<CompletableFuture<?>> applied = new ArrayList<>();
-        for (Map.Entry<UUID, BigDecimal> share : paid.entrySet()) {
-            applied.add(payOne(rule, ctx, share.getKey(), share.getValue(), delivered.contains(share.getKey())));
+        List<RewardReceipt.Line> lines = new ArrayList<>();
+        Set<UUID> order = new LinkedHashSet<>(shares.keySet());
+        order.addAll(paid.keySet());
+        for (UUID member : order) {
+            if (paid.containsKey(member)) {
+                boolean waits = delivered.contains(member);
+                lines.add(new RewardReceipt.Line(member, paid.get(member), amountOf(rule, ctx, member, paid.get(member), waits),
+                        waits ? RewardReceipt.Status.DELIVERED : RewardReceipt.Status.ONLINE));
+            } else if (unpaid.containsKey(member)) {
+                lines.add(new RewardReceipt.Line(member, shares.get(member), amountOf(rule, ctx, member, shares.get(member), true), unpaid.get(member)));
+            }
         }
-        Map<UUID, BigDecimal> result = Collections.unmodifiableMap(paid);
-        return CompletableFuture.allOf(applied.toArray(new CompletableFuture<?>[0])).thenApply(done -> result);
+        return new RewardReceipt.Step(index, rule.getName(), false, true, lines);
+    }
+
+    /** What the rule's effects with an amount give {@code member} for {@code share}; ZERO when none has one. */
+    private static BigDecimal amountOf(RewardRule rule, RewardContext ctx, UUID member, BigDecimal share, boolean delivered) {
+        BigDecimal amount = rule.getEffects().withShare(share).getAmount(contextOf(ctx, member, delivered));
+        return amount == null ? BigDecimal.ZERO : amount;
     }
 
     /**
@@ -183,8 +232,12 @@ public final class Rewards {
         return true;
     }
 
-    /** Splits {@code pooled} among the online eligible by the rule's distribution, normalized so the pool is paid once. */
-    private static void redistribute(RewardRule rule, RewardContext ctx, Set<UUID> eligible, BigDecimal pooled, Map<UUID, BigDecimal> paid) {
+    /**
+     * Splits {@code pooled} among the online eligible by the rule's distribution, normalized so the pool is paid once.
+     *
+     * @return false when nobody took it: the pool is lost
+     */
+    private static boolean redistribute(RewardRule rule, RewardContext ctx, Set<UUID> eligible, BigDecimal pooled, Map<UUID, BigDecimal> paid) {
         Set<UUID> present = new LinkedHashSet<>();
         for (UUID member : eligible) {
             if (online(member) != null) {
@@ -192,7 +245,7 @@ public final class Rewards {
             }
         }
         if (present.isEmpty()) {
-            return; //nobody eligible is online to take it: the pool is lost
+            return false;
         }
         Map<UUID, BigDecimal> again = rule.getDistribution().sharesOf(Collections.unmodifiableSet(present), ctx);
         BigDecimal total = BigDecimal.ZERO;
@@ -200,7 +253,7 @@ public final class Rewards {
             total = total.add(share.max(BigDecimal.ZERO));
         }
         if (total.signum() == 0) {
-            return;
+            return false;
         }
         for (Map.Entry<UUID, BigDecimal> share : again.entrySet()) {
             if (share.getValue().signum() <= 0) {
@@ -210,12 +263,19 @@ public final class Rewards {
             BigDecimal before = paid.get(share.getKey());
             paid.put(share.getKey(), before == null ? extra : before.add(extra));
         }
+        return true;
     }
 
-    private static CompletableFuture<Void> payOne(RewardRule rule, RewardContext ctx, UUID member, BigDecimal share, boolean delivered) {
+    private static CompletableFuture<Void> payOne(RewardRule rule, RewardContext ctx, RewardReceipt.Line line) {
+        UUID member = line.getMember();
+        BigDecimal share = line.getShare();
+        boolean delivered = line.getStatus() == RewardReceipt.Status.DELIVERED;
         EffectList shared = (EffectList) rule.getEffects().withShare(share);
         Runnable task = () -> {
-            ExecutionContext paying = contextOf(ctx, member, delivered);
+            ExecutionContext paying = contextOf(ctx, member, delivered).derive()
+                    .variable("amount", plain(line.getAmount()))
+                    .variable("share", plain(share))
+                    .build();
             shared.apply(paying);
             ECEventBus.global().postIfListened(RewardPaidEvent.class,
                     () -> new RewardPaidEvent(ctx.getCaller(), ctx.getOwner(), member, share, rule, delivered));
@@ -305,6 +365,10 @@ public final class Rewards {
                         .build());
             });
         }).thenApply(done -> Collections.<UUID, BigDecimal>emptyMap());
+    }
+
+    private static String plain(BigDecimal number) {
+        return number.signum() == 0 ? "0" : number.stripTrailingZeros().toPlainString();
     }
 
     private static String titleOf(RewardRule rule) {

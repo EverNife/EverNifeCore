@@ -1,0 +1,11 @@
+# PocketPokeBoss: a boss stage ends (occasion boss-stage: mark won); one broadcast, a word to all, a prize to the winners.
+default:
+  - name: broadcast
+    once: true
+    effects:
+      - {type: command, command: "broadcast The boss of stage {stage} fell"}
+  - effects:
+      - {type: message, text: "Stage {stage}: you were there, {player}."}
+  - eligibility: {type: mark, mark: won}
+    effects:
+      - {type: money, amount: 100, currency: "fakeraid:gold"}

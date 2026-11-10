@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.logic;
 
+import jakarta.annotation.Nullable;
+
 import java.math.BigDecimal;
 
 /**
@@ -44,5 +46,13 @@ public interface Effect {
      */
     default Effect withShare(BigDecimal share) {
         return this;
+    }
+
+    /**
+     * The amount it gives in {@code ctx}, its share already applied and before any player multiplier - what a reward's
+     * {@code {amount}} sums; null for an effect without an amount, which is this default. Never applies anything.
+     */
+    default @Nullable BigDecimal getAmount(ExecutionContext ctx) {
+        return null;
     }
 }

@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.logic.reward;
 
 import br.com.finalcraft.evernifecore.logic.reward.core.CoreRewardPieces;
 
-/** When a rule pays: {@link Rewards#pay} with a trigger the moment does not take pays nothing. Any thread. */
+/** When a step pays: {@link RewardTable#pay} with a trigger the moment does not take pays nothing for it. Any thread. */
 public interface Moment extends RewardPiece {
 
     boolean paysAt(RewardTrigger trigger);

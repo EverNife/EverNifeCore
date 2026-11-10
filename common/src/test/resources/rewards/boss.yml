@@ -1,0 +1,12 @@
+# TheDuel: a boss kill (occasion boss-killed: mark fallen). Who pulled their weight shares the pot by the plugin's own split.
+default:
+  - name: pot
+    eligibility: {type: contribution-share, at-least: 60%}
+    distribution: theduel:boss-share
+    absent: deliver
+    effects:
+      - {type: message, text: "The boss is down: your part is {share}"}
+  - name: fallen
+    eligibility: {type: mark, mark: fallen}
+    effects:
+      - {type: message, text: "You fell, {player}, but so did the boss."}

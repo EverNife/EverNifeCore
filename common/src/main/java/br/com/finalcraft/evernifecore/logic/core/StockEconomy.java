@@ -257,6 +257,16 @@ final class StockEconomy {
                     + " was not given: " + why);
         }
 
+        /** Null when the amount reads as no number here: applying it would fail and audit that. */
+        @Override
+        public @Nullable BigDecimal getAmount(ExecutionContext ctx) {
+            try {
+                return amount(ctx, amount).multiply(share);
+            } catch (IllegalStateException notANumber) {
+                return null;
+            }
+        }
+
         @Override
         public Effect withShare(BigDecimal newShare) {
             return new MoneyEffect(amount, currencyId, boosted, share.multiply(newShare));

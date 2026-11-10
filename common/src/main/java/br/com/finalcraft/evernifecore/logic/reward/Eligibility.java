@@ -34,7 +34,7 @@ public interface Eligibility extends RewardPiece {
 
     /**
      * {@code leader} is the group's leader; any other name is a {@code GroupRole} the member holds. Only a group owner
-     * has roles: {@link Rewards#pay} refuses this piece on any other owner.
+     * has roles: {@link RewardTable#pay} refuses this piece on any other owner.
      */
     static Eligibility role(String role) {
         return CoreRewardPieces.role(role);

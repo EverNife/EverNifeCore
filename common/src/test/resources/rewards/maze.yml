@@ -1,0 +1,15 @@
+# MazeArena: a player reaches the exit (occasion arrived), keyed by position.
+1:
+  - effects:
+      - {type: money, amount: 1000, currency: "fakeraid:gold"}
+      - {type: message, text: "First out! +{amount}"}
+2:
+  - effects:
+      - {type: money, amount: 500, currency: "fakeraid:gold"}
+4-10:
+  - effects:
+      - {type: money, amount: 100, currency: "fakeraid:gold"}
+      - {type: message, text: "Position {position}: +{amount}"}
+default:
+  - effects:
+      - {type: message, text: "You made it out, {player}."}

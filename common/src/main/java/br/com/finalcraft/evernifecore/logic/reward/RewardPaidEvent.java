@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
- * One member was paid by {@link Rewards#pay}: its effects applied (online) or, offline, {@link Absence#deliver()}. A
+ * One member was paid by a step of {@link RewardTable#pay}: its effects applied (online) or, offline, {@link Absence#deliver()}. A
  * forfeited share posts nothing. Posted once the member's effects ran, on the thread they ran on.
  */
 public class RewardPaidEvent extends ECEvent implements IECEvent {

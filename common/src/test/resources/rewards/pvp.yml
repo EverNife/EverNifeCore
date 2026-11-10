@@ -1,0 +1,7 @@
+# PvP: a duel won (occasion duel-won: mark winner); a team duel splits the prize.
+default:
+  - eligibility: {type: mark, mark: winner}
+    distribution: split-equal
+    effects:
+      - {type: money, amount: 200, currency: "fakeraid:gold"}
+      - {type: message, text: "You won the duel: +{amount}"}
