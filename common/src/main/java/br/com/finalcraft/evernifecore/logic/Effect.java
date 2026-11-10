@@ -31,7 +31,8 @@ public interface Effect {
 
     /**
      * Whether, run with no player and the absent player as its owner, it decides by itself what an absence means (a command
-     * has {@code offline:}). A delayed effect whose player left then runs so; any other waits or is dropped by the {@link DeferredEffects}.
+     * runs from the console, or waits under {@code as: player}). A delayed effect whose player left then runs so, unless its
+     * {@code offline:} says otherwise; any other waits or is dropped by the {@link DeferredEffects}.
      */
     default boolean decidesAbsence() {
         return false;

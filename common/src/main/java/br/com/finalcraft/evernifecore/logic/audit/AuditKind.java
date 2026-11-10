@@ -11,7 +11,7 @@ public enum AuditKind {
     REFUND_FAILED,
     EFFECT_APPLIED,
     EFFECT_FAILED,
-    /** An effect stepped aside by its own definition (a command with {@code offline: skip}): not applied, and not a failure. */
+    /** An effect stepped aside by its own definition (an effect with {@code offline: skip} for an offline player): not applied, and not a failure. */
     EFFECT_SKIPPED,
     /** A delayed effect found its player gone and the deferred-effect sink discarded it. */
     DEFERRED_DROPPED,

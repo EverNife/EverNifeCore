@@ -16,12 +16,13 @@ import java.util.Locale;
 /**
  * What the executor does around an effect, written as keys of the effect's own node and never read by its type:
  * {@code delay}, {@code chance}, {@code if}, {@code repeat} + {@code every}, {@code as: player|console},
- * {@code target: self|group|region-players|world-players|online-players} and {@code scope: permanent|held}. Immutable.
+ * {@code target: self|group|region-players|world-players|online-players}, {@code scope: permanent|held} and
+ * {@code offline: run|skip|on-login}. Immutable.
  */
 public final class EffectModifiers {
 
     /** Every key {@link Effects#registry()} reserves for the executor. */
-    public static final List<String> KEYS = Arrays.asList("delay", "chance", "if", "repeat", "every", "as", "target", "scope", "to");
+    public static final List<String> KEYS = Arrays.asList("delay", "chance", "if", "repeat", "every", "as", "target", "scope", "to", "offline");
 
     /** The attribute under which an effect that {@link Effect#acceptsSender() accepts a sender} reads {@code as}. */
     public static final String SENDER_ATTRIBUTE = "evernifecore:as";
@@ -34,7 +35,7 @@ public final class EffectModifiers {
 
     public static final List<String> TARGETS = Arrays.asList("self", "group", "region-players", "world-players", "online-players");
 
-    private static final EffectModifiers NONE = new EffectModifiers(null, null, null, 1, null, null, "self", EffectScope.PERMANENT, null);
+    private static final EffectModifiers NONE = new EffectModifiers(null, null, null, 1, null, null, "self", EffectScope.PERMANENT, null, null);
 
     private final @Nullable Duration delay;
     private final @Nullable BigDecimal chance;
@@ -45,10 +46,11 @@ public final class EffectModifiers {
     private final String target;
     private final EffectScope scope;
     private final @Nullable String destination;
+    private final @Nullable String offline;
 
     private EffectModifiers(@Nullable Duration delay, @Nullable BigDecimal chance, @Nullable Condition condition, int repeat,
                             @Nullable Duration every, @Nullable String sender, String target, EffectScope scope,
-                            @Nullable String destination) {
+                            @Nullable String destination, @Nullable String offline) {
         this.delay = delay;
         this.chance = chance;
         this.condition = condition;
@@ -58,6 +60,7 @@ public final class EffectModifiers {
         this.target = target;
         this.scope = scope;
         this.destination = destination;
+        this.offline = offline;
     }
 
     public static EffectModifiers none() {
@@ -113,11 +116,17 @@ public final class EffectModifiers {
         String target = choice(type, node, "target", TARGETS);
         String scopeText = choice(type, node, "scope", Arrays.asList("permanent", "held"));
         EffectScope scope = "held".equals(scopeText) ? EffectScope.HELD : EffectScope.PERMANENT;
+        String offline = choice(type, node, "offline", Arrays.asList("run", "skip", "on-login"));
+        if ("run".equals(offline) && "player".equals(sender)) {
+            throw new TypeRegistryException("The effect '" + type + "' writes offline: run, which applies it now, and as: player, which"
+                    + " needs the player online to run as. Write offline: on-login to wait for the next login, or as: console to run it now.");
+        }
         if (delay == null && chance == null && condition == null && repeat == 1 && sender == null && target == null && scope == EffectScope.PERMANENT
-                && destination == null) {
+                && destination == null && offline == null) {
             return NONE;
         }
-        return new EffectModifiers(delay, chance, condition, repeat, every, sender, target == null ? "self" : target, scope, destination);
+        return new EffectModifiers(delay, chance, condition, repeat, every, sender, target == null ? "self" : target, scope, destination,
+                offline);
     }
 
     private static @Nullable Duration duration(String type, JsonNode node, String key) {
@@ -192,5 +201,14 @@ public final class EffectModifiers {
     /** The {@code to} delivery destination id; null when not written. */
     public @Nullable String getDestination() {
         return destination;
+    }
+
+    /**
+     * What the effect does for a player owner with no player online: {@code run} applies it anyway, {@code skip} audits
+     * {@code EFFECT_SKIPPED}, {@code on-login} keeps it as a delivery for the next login. Null when not written: the
+     * effect applies as it would, and a {@link Effect#decidesAbsence deciding} one (a command) picks its own default.
+     */
+    public @Nullable String getOffline() {
+        return offline;
     }
 }

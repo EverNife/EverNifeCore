@@ -141,6 +141,11 @@ public final class Deliveries {
      */
     public CompletableFuture<Delivery> enqueue(UUID recipient, DeliveryOrigin origin, DeliveryPolicy policy, @Nullable Duration ttl,
                                                @Nullable DeliveryIcon icon, List<JsonNode> effects) {
+        return enqueue(recipient, origin, policy, ttl, icon, effects, Collections.<String, String>emptyMap());
+    }
+
+    private CompletableFuture<Delivery> enqueue(UUID recipient, DeliveryOrigin origin, DeliveryPolicy policy, @Nullable Duration ttl,
+                                                @Nullable DeliveryIcon icon, List<JsonNode> effects, Map<String, String> variables) {
         Objects.requireNonNull(recipient, "recipient");
         Objects.requireNonNull(origin, "origin");
         Objects.requireNonNull(policy, "policy");
@@ -148,7 +153,7 @@ public final class Deliveries {
             throw new IllegalArgumentException("A delivery to " + recipient + " from " + origin + " owes nothing: give it at least one effect.");
         }
         Instant now = ECClock.now();
-        Delivery delivery = new Delivery(UUID.randomUUID(), recipient, origin, now, ttl == null ? null : now.plus(ttl), policy, icon, effects);
+        Delivery delivery = new Delivery(UUID.randomUUID(), recipient, origin, now, ttl == null ? null : now.plus(ttl), policy, icon, effects, variables);
         return section(recipient).thenApply(section -> {
             section.add(delivery);
             post(DeliveryEvent.Kind.ENQUEUED, delivery, null);
@@ -159,7 +164,7 @@ public final class Deliveries {
     /**
      * What an effect does with {@code node}, the part of it that did not reach the context's player: inside a claim it
      * stays in the claimed delivery; anywhere else it becomes a new delivery from the context's caller, drawn with
-     * {@code icon} (null = the layout's entry item).
+     * {@code icon} (null = the layout's entry item), keeping the variables the context wrote for its texts.
      *
      * @return the new delivery, or a completed null when it stayed in the claim
      * @throws IllegalStateException when the context has neither a player nor a player owner to keep it for
@@ -172,7 +177,8 @@ public final class Deliveries {
             leftovers.add(node);
             return CompletableFuture.completedFuture(null);
         }
-        return enqueue(recipientOf(ctx), DeliveryOrigin.of(ctx.getCaller(), ""), policy, ttl, icon, Collections.singletonList(node));
+        return enqueue(recipientOf(ctx), DeliveryOrigin.of(ctx.getCaller(), ""), policy, ttl, icon, Collections.singletonList(node),
+                ctx.getVariables());
     }
 
     /**
@@ -193,12 +199,12 @@ public final class Deliveries {
             ctx.getAudit().add(ctx, AuditKind.DELIVERY_DISCARDED, effect + " for " + recipient + " was discarded: its player left before"
                     + " it applied, and only the core's own effects can wait in a delivery.");
             post(DeliveryEvent.Kind.DISCARDED, new Delivery(UUID.randomUUID(), recipient, origin, ECClock.now(), null,
-                    DeliveryPolicy.KEEP_SELF_CONTAINED, null, Collections.singletonList(effect)), null);
+                    DeliveryPolicy.KEEP_SELF_CONTAINED, null, Collections.singletonList(effect), ctx.getVariables()), null);
         }
         if (kept.isEmpty()) {
             return CompletableFuture.completedFuture(null);
         }
-        return enqueue(recipient, origin, DeliveryPolicy.KEEP_SELF_CONTAINED, null, null, kept);
+        return enqueue(recipient, origin, DeliveryPolicy.KEEP_SELF_CONTAINED, null, null, kept, ctx.getVariables());
     }
 
     /** Every delivery {@code recipient} has pending, oldest first, expired ones included until the sweep drops them. */
@@ -278,8 +284,10 @@ public final class Deliveries {
             return delivery; //one piece: it waits for every effect's plugin
         }
         List<JsonNode> leftovers = new ArrayList<>();
-        ExecutionContext ctx = ExecutionContext.builder(caller).player(player).owner(ProgressOwner.player(player.getUniqueId()))
-                .attribute(CLAIM_LEFTOVERS, leftovers).build();
+        ExecutionContext.Builder builder = ExecutionContext.builder(caller).player(player).owner(ProgressOwner.player(player.getUniqueId()))
+                .attribute(CLAIM_LEFTOVERS, leftovers);
+        delivery.getVariables().forEach(builder::variable);
+        ExecutionContext ctx = builder.build();
         List<JsonNode> remaining = new ArrayList<>();
         List<String> failures = new ArrayList<>();
         for (int i = 0; i < parsed.size(); i++) {

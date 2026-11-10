@@ -61,15 +61,20 @@ public final class Rewards {
      * offline included, plus whoever contributed while the leaver keeps) pass every eligibility, the distribution gives each a share, and each eligible member gets the
      * rule's effects multiplied by its share: applied on the member's thread when online; when offline, as the absence
      * says - a pending delivery, nothing, or split among the online eligible. Every payment posts a
-     * {@link RewardPaidEvent} and lands in the caller plugin's {@link AuditLog} when it has one open. Any thread.
+     * {@link RewardPaidEvent} and lands in the caller plugin's {@link AuditLog} when it has one open. A
+     * {@link RewardRule#isOnce() once} rule skips all of that: its effects apply one time on the main thread, from the
+     * console, with the reward's attributes and the scene's variables, and only the audit line is written. Any thread.
      *
      * @return completes, once every effect applied or was kept, with the share each paid member got (delivered
-     *         included, forfeited left out), in the distribution's order
+     *         included, forfeited left out), in the distribution's order; empty for a once rule
      * @throws IllegalArgumentException when the rule asks for a group role and the owner is not a group
      */
     public static CompletableFuture<Map<UUID, BigDecimal>> pay(RewardRule rule, RewardContext ctx) {
         if (!rule.getMoment().paysAt(ctx.getTrigger())) {
             return CompletableFuture.completedFuture(Collections.<UUID, BigDecimal>emptyMap());
+        }
+        if (rule.isOnce()) {
+            return payOnce(rule, ctx);
         }
         for (Eligibility eligibility : rule.getEligibility()) {
             if (CoreRewardPieces.asksForAGroupRole(eligibility) && !ctx.getOwner().isKind(ProgressOwner.GROUP)) {
@@ -221,7 +226,7 @@ public final class Rewards {
                         .owner(ProgressOwner.player(member))
                         .amount(share)
                         .subject(ctx.getOwner().toString())
-                        .text("reward share " + share.stripTrailingZeros().toPlainString() + " of " + ctx.getOwner()
+                        .text(titleOf(rule) + " share " + share.stripTrailingZeros().toPlainString() + " of " + ctx.getOwner()
                                 + (delivered ? ", what can wait is a pending delivery" : "") + ": " + shared)
                         .build());
             });
@@ -250,21 +255,15 @@ public final class Rewards {
 
     /**
      * The member online, or - offline - its uuid as owner with every effect that can wait sent to the pending
-     * destination: an amount or an item becomes a delivery, a command follows its own {@code offline}, and what cannot
-     * wait (a message) applies without a player. Either way it carries the reward's attributes and, under a scene, the
+     * destination: an amount or an item becomes a delivery, an effect with {@code offline: skip|on-login} follows it, a
+     * command without one runs now (or waits under {@code as: player}), and anything else applies without a player. Either way it carries the reward's attributes and, under a scene, the
      * scene's variables and the participant's name as {@code {player}}. Every effect and {@code condition} of a payment
      * reads this context. Internal.
      */
     public static ExecutionContext contextOf(RewardContext ctx, UUID member, boolean delivered) {
-        ExecutionContext.Builder builder = ExecutionContext.builder(ctx.getCaller());
-        for (Map.Entry<String, Object> attribute : ctx.getAttributes().entrySet()) {
-            builder.attribute(attribute.getKey(), attribute.getValue());
-        }
+        ExecutionContext.Builder builder = sceneContext(ctx);
         RewardScene scene = ctx.getScene();
         if (scene != null) {
-            for (Map.Entry<String, String> variable : scene.getVariables().entrySet()) {
-                builder.variable(variable.getKey(), variable.getValue());
-            }
             RewardScene.Participant participant = scene.getParticipant(member);
             if (participant != null) {
                 //the plugin's name wins over the last name the server saw
@@ -276,6 +275,40 @@ public final class Rewards {
             return builder.player(player).build();
         }
         return builder.owner(ProgressOwner.player(member)).attribute(EffectModifiers.DESTINATION_ATTRIBUTE, PendingDestination.ID).build();
+    }
+
+    /** The caller's context with the reward's attributes and the scene's variables, before any member. */
+    private static ExecutionContext.Builder sceneContext(RewardContext ctx) {
+        ExecutionContext.Builder builder = ExecutionContext.builder(ctx.getCaller());
+        for (Map.Entry<String, Object> attribute : ctx.getAttributes().entrySet()) {
+            builder.attribute(attribute.getKey(), attribute.getValue());
+        }
+        RewardScene scene = ctx.getScene();
+        if (scene != null) {
+            for (Map.Entry<String, String> variable : scene.getVariables().entrySet()) {
+                builder.variable(variable.getKey(), variable.getValue());
+            }
+        }
+        return builder;
+    }
+
+    private static CompletableFuture<Map<UUID, BigDecimal>> payOnce(RewardRule rule, RewardContext ctx) {
+        return ECScheduler.onMainThread(() -> {
+            ExecutionContext console = sceneContext(ctx).build();
+            rule.getEffects().apply(console);
+            AuditLog.ofIfPresent(ctx.getCaller().getPlugin()).ifPresent(log -> {
+                log.record(console.getAudit());
+                log.record(AuditEntry.builder(AuditKind.REWARD_PAID, ctx.getCaller())
+                        .owner(ctx.getOwner())
+                        .subject(ctx.getOwner().toString())
+                        .text(titleOf(rule) + " ran once for " + ctx.getOwner() + ": " + rule.getEffects())
+                        .build());
+            });
+        }).thenApply(done -> Collections.<UUID, BigDecimal>emptyMap());
+    }
+
+    private static String titleOf(RewardRule rule) {
+        return rule.getName() == null ? "reward" : "reward '" + rule.getName() + "'";
     }
 
     /** The member when it is online; null otherwise. Internal. */

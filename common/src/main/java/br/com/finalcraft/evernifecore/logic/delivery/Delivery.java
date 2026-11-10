@@ -11,8 +11,10 @@ import jakarta.annotation.Nullable;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -37,13 +39,14 @@ public final class Delivery {
     private DeliveryPolicy policy;
     private List<JsonNode> effects = new ArrayList<>();
     private @Nullable DeliveryIcon icon;
+    private @Nullable Map<String, String> variables;
 
     private Delivery() {
         //Jackson no-arg constructor
     }
 
     Delivery(UUID id, UUID recipient, DeliveryOrigin origin, Instant createdAt, @Nullable Instant expiresAt, DeliveryPolicy policy,
-             @Nullable DeliveryIcon icon, List<JsonNode> effects) {
+             @Nullable DeliveryIcon icon, List<JsonNode> effects, Map<String, String> variables) {
         this.id = id.toString();
         this.recipient = recipient.toString();
         this.origin = origin;
@@ -52,11 +55,20 @@ public final class Delivery {
         this.policy = policy;
         this.icon = icon;
         this.effects = new ArrayList<>(effects);
+        this.variables = variables.isEmpty() ? null : new LinkedHashMap<>(variables);
     }
 
     /** The same delivery, still owing only {@code remaining}. */
     Delivery withEffects(List<JsonNode> remaining) {
-        return new Delivery(getId(), getRecipient(), origin, getCreatedAt(), getExpiresAt(), policy, icon, remaining);
+        return new Delivery(getId(), getRecipient(), origin, getCreatedAt(), getExpiresAt(), policy, icon, remaining, getVariables());
+    }
+
+    /**
+     * The {@code {variables}} the context that kept it had written (a reward scene's {@code {stage}}, the participant's
+     * {@code {player}}): the claim resolves the effects' texts with them, ahead of the claiming player's own. Read-only.
+     */
+    public Map<String, String> getVariables() {
+        return variables == null ? Collections.<String, String>emptyMap() : Collections.unmodifiableMap(variables);
     }
 
     public UUID getId() {

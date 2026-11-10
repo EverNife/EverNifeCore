@@ -106,6 +106,11 @@ public final class ExecutionContext {
         return variables.get(key);
     }
 
+    /** Every variable the executor wrote, in the order written. Read-only. */
+    public Map<String, String> getVariables() {
+        return variables;
+    }
+
     /** The product of every registered {@link MultiplierProvider}'s factor for {@code variableId}; {@code ONE} without one. */
     public BigDecimal getMultiplier(String variableId) {
         return Multipliers.of(this, variableId);

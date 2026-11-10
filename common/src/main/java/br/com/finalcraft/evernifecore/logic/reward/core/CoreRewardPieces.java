@@ -19,10 +19,12 @@ import br.com.finalcraft.evernifecore.logic.reward.Moment;
 import br.com.finalcraft.evernifecore.logic.reward.RewardContext;
 import br.com.finalcraft.evernifecore.logic.reward.RewardMembership;
 import br.com.finalcraft.evernifecore.logic.reward.RewardPiece;
+import br.com.finalcraft.evernifecore.logic.reward.RewardScene;
 import br.com.finalcraft.evernifecore.logic.reward.RewardTrigger;
 import br.com.finalcraft.evernifecore.logic.reward.Rewards;
 import br.com.finalcraft.evernifecore.types.ParamSpec;
 import br.com.finalcraft.evernifecore.types.ParsedParams;
+import br.com.finalcraft.evernifecore.types.PendingDefinition;
 import br.com.finalcraft.evernifecore.types.TypeDescriptor;
 
 import java.math.BigDecimal;
@@ -39,7 +41,7 @@ import java.util.UUID;
 import java.util.function.Function;
 
 /**
- * The core's 21 reward pieces ({@code evernifecore:<name>} in {@link Rewards#registry()}), and the instances the static
+ * The core's 24 reward pieces ({@code evernifecore:<name>} in {@link Rewards#registry()}), and the instances the static
  * factories of {@link Eligibility}, {@link Distribution}, {@link Absence}, {@link Moment} and {@link RewardMembership}
  * hand out. Stateless; any thread.
  */
@@ -102,9 +104,9 @@ public final class CoreRewardPieces {
     private CoreRewardPieces() {
     }
 
-    /** Registers the 21 pieces under {@code core}, the EverNifeCore plugin data. */
+    /** Registers the 24 pieces under {@code core}, the EverNifeCore plugin data. */
     public static void registerAll(ECPluginData core) {
-        // eligibility (9)
+        // eligibility (12)
         register(core, "any-member", "Every member of the owner, offline included, and whoever contributed while the leaver keeps.",
                 params -> ANY_MEMBER);
         register(core, "online", "The members online when the reward pays.", params -> ONLINE);
@@ -126,6 +128,17 @@ public final class CoreRewardPieces {
         register(core, "condition", "The members for whom a condition passes.",
                 params -> condition(Conditions.of(params.<Condition>getPending("condition"))),
                 ParamSpec.required("condition", ParamSpec.Kind.NODE, "The condition, run for the member.").nested(Conditions.registry()));
+        register(core, "mark", "The participants of the scene carrying a mark; only on a rule read under an occasion that declares it.",
+                params -> mark(params.getString("mark")),
+                ParamSpec.required("mark", ParamSpec.Kind.ID, "A mark the occasion declares, e.g. alive."));
+        register(core, "any-of", "The members at least one of the listed eligibilities accepts.",
+                params -> anyOf(children(params.<RewardPiece>getPendingNodes("of"))),
+                ParamSpec.required("of", ParamSpec.Kind.NODE_LIST, "The eligibilities, e.g. [{type: mark, mark: mvp}, {type: top, count: 3}].")
+                        .nested(Rewards.registry()));
+        register(core, "not", "The members the given eligibility does not accept.",
+                params -> not(children(Collections.singletonList(params.<RewardPiece>getPending("of"))).get(0)),
+                ParamSpec.required("of", ParamSpec.Kind.NODE, "The eligibility turned around, e.g. {type: mark, mark: alive}.")
+                        .nested(Rewards.registry()));
         // distribution (5)
         register(core, "each", "The whole reward to every eligible member.", params -> EACH);
         register(core, "split-equal", "The reward split equally among the eligible.", params -> SPLIT_EQUAL);
@@ -158,9 +171,65 @@ public final class CoreRewardPieces {
         Rewards.registry().register(core, descriptor.factory(factory).build());
     }
 
-    /** Whether {@code eligibility} reads a group's leader or roles - refused on an owner that is not a group. */
+    /** Whether {@code eligibility}, or one it combines, reads a group's leader or roles - refused on an owner that is not a group. */
     public static boolean asksForAGroupRole(Eligibility eligibility) {
-        return eligibility instanceof RoleEligibility;
+        for (Eligibility each : flatten(eligibility)) {
+            if (each instanceof RoleEligibility) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** The marks {@code eligibility} and every eligibility it combines ({@code any-of}, {@code not}) read, in order. */
+    public static List<String> marksOf(Eligibility eligibility) {
+        List<String> marks = new ArrayList<>();
+        for (Eligibility each : flatten(eligibility)) {
+            if (each instanceof MarkEligibility) {
+                marks.add(((MarkEligibility) each).mark);
+            }
+        }
+        return marks;
+    }
+
+    private static List<Eligibility> flatten(Eligibility eligibility) {
+        List<Eligibility> all = new ArrayList<>();
+        all.add(eligibility);
+        if (eligibility instanceof AnyOf) {
+            for (Eligibility child : ((AnyOf) eligibility).any) {
+                all.addAll(flatten(child));
+            }
+        } else if (eligibility instanceof Not) {
+            all.addAll(flatten(((Not) eligibility).inverted));
+        }
+        return all;
+    }
+
+    public static Eligibility mark(String mark) {
+        return new MarkEligibility(mark);
+    }
+
+    public static Eligibility anyOf(List<Eligibility> any) {
+        return new AnyOf(any);
+    }
+
+    public static Eligibility not(Eligibility inverted) {
+        return new Not(inverted);
+    }
+
+    /** The eligibilities {@code written} reads; refuses one whose type is unknown or that is not an eligibility. */
+    private static List<Eligibility> children(List<PendingDefinition<RewardPiece>> written) {
+        List<Eligibility> children = new ArrayList<>();
+        for (PendingDefinition<RewardPiece> each : written) {
+            RewardPiece piece = each.get().orElseThrow(() -> new IllegalArgumentException("no plugin registered the reward piece '"
+                    + each.getMissingType() + "': fix the name, or load the plugin that registers it."));
+            if (!(piece instanceof Eligibility)) {
+                throw new IllegalArgumentException(piece + " is a " + piece.getRole() + " piece: only eligibilities combine here, e.g."
+                        + " {type: mark, mark: alive} or {type: online}.");
+            }
+            children.add((Eligibility) piece);
+        }
+        return children;
     }
 
     public static Eligibility role(String role) {
@@ -351,6 +420,73 @@ public final class CoreRewardPieces {
         @Override
         public String toString() {
             return "role: " + role;
+        }
+    }
+
+    private static final class MarkEligibility implements Eligibility {
+        private final String mark;
+
+        MarkEligibility(String mark) {
+            if (mark == null || mark.trim().isEmpty()) {
+                throw new IllegalArgumentException("mark: names no mark - write mark: <a mark the occasion declares>, e.g. mark: alive.");
+            }
+            this.mark = mark.trim();
+        }
+
+        @Override
+        public boolean isEligible(UUID member, RewardContext ctx) {
+            RewardScene scene = ctx.getScene();
+            RewardScene.Participant participant = scene == null ? null : scene.getParticipant(member);
+            return participant != null && participant.hasMark(mark);
+        }
+
+        @Override
+        public String toString() {
+            return "mark: " + mark;
+        }
+    }
+
+    private static final class AnyOf implements Eligibility {
+        private final List<Eligibility> any;
+
+        AnyOf(List<Eligibility> any) {
+            if (any.isEmpty()) {
+                throw new IllegalArgumentException("any-of lists no eligibility, so it accepts nobody - list at least one under of: [...].");
+            }
+            this.any = Collections.unmodifiableList(new ArrayList<>(any));
+        }
+
+        @Override
+        public boolean isEligible(UUID member, RewardContext ctx) {
+            for (Eligibility each : any) {
+                if (each.isEligible(member, ctx)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public String toString() {
+            return "any-of: " + any;
+        }
+    }
+
+    private static final class Not implements Eligibility {
+        private final Eligibility inverted;
+
+        Not(Eligibility inverted) {
+            this.inverted = Objects.requireNonNull(inverted, "inverted");
+        }
+
+        @Override
+        public boolean isEligible(UUID member, RewardContext ctx) {
+            return !inverted.isEligible(member, ctx);
+        }
+
+        @Override
+        public String toString() {
+            return "not: " + inverted;
         }
     }
 

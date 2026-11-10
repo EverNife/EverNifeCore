@@ -107,6 +107,18 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   does not declare is refused when the scene is built. `RewardRule.parse(plugin, occasion, node)` refuses a `{variable}`
   the occasion does not give (its own, `{player}`, `{player-uuid}`, `{owner}`, `{caller}`, any registered variable),
   listing the accepted ones.
+- **The `mark`, `any-of` and `not` eligibilities**: `{type: mark, mark: alive}` takes the scene's participants carrying
+  that mark; read under an occasion it refuses a mark the occasion does not declare (listing the declared), read with no
+  occasion (a quest) it is refused. `{type: any-of, of: [...]}` accepts whoever one of the list accepts and
+  `{type: not, of: {...}}` turns one around; both nest any eligibility and serve any rule, a quest's included.
+  `Eligibility.mark/anyOf/not` build them in code.
+- **`once: true` on a reward rule**: its effects apply one time, on the main thread, from the console, with the
+  reward's attributes and the scene's variables (`{stage}`) and no member - with no participant too. With
+  `eligibility`, `distribution`, `absent`, `leaver` or `joiner` it is refused on load, saying why. `Rewards.pay`
+  completes with an empty map for it and writes one `REWARD_PAID` audit line.
+- **`name:` on a reward rule** (`RewardRule.getName()`): written in the `REWARD_PAID` audit line of its payments.
+- **A `target` other than `self` in a reward rule logs a warning** on the caller's log, naming the rule: the effect
+  reaches its targets once for every member paid.
 
 ### Changed
 
@@ -137,6 +149,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `{player}` (it wins over the last name the server saw). The `condition` eligibility used to test an empty context.
 - **`compare` reads a variable the executor wrote** (a scene's `stage`) before a registered one, as a resolved text
   already did; the written text compares as a number, true/false or text.
+- **`offline: run|skip|on-login` is a modifier of every effect** (`EffectModifiers.getOffline()`), no longer a parameter
+  of `command`: for a player owner with no player online, `skip` audits `EFFECT_SKIPPED` and `on-login` keeps the effect
+  as a delivery for the next login, whatever its type (a `message` too); `run`, or nothing written, applies it as
+  before. A `command` reads the same: without `offline` it runs now from the console, or waits under `as: player`;
+  `offline: run` with `as: player` is still refused on load. `ExecutionContext.getVariables()` lists what the executor wrote.
 
 - **The texts of `/ecore logic trace|audit`, of `AuditCommandNode` and of `/ecore group` are in the core's language file**,
   each line of an audit page included (`AuditCommandNode.LINE`). The public `AuditCommandNode.line(entry)` is gone: the page
@@ -230,6 +247,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 #### Deliveries
 
+- **A delivery keeps the variables of the context that kept it** (`Delivery.getVariables()`): an offline participant's
+  `on-login` message or command claimed with `{stage}` and `{player}` raw, or with the login's name; the claim now
+  resolves them with the scene's values and the participant's name, ahead of the claiming player's own.
 - **A login on Hytale no longer loses what it claims**: `ECPlayerFullyLoggedInEvent` comes ahead of the entity there, and a claim that
   ran before it took the delivery with its `give-item` landing nowhere. The login claim now waits for `IPlayerStateAccess.runWhenWritable`.
 - **The chest themes draw on Hytale**: `THEME_QUEST`, `THEME_ITEM` and `THEME_COMMAND` named `hytale:Furniture_Chest`, which the

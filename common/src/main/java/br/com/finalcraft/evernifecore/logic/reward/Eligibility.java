@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.logic.Condition;
 import br.com.finalcraft.evernifecore.logic.reward.core.CoreRewardPieces;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.UUID;
 
 /** Who receives: a member is eligible when every eligibility of the rule accepts it. Any thread. */
@@ -65,5 +66,23 @@ public interface Eligibility extends RewardPiece {
      */
     static Eligibility condition(Condition condition) {
         return CoreRewardPieces.condition(condition);
+    }
+
+    /**
+     * The participants of the {@link RewardScene} carrying {@code mark}; nobody without a scene. A rule read from a file
+     * takes it only under a {@link RewardOccasion} that declares the mark.
+     */
+    static Eligibility mark(String mark) {
+        return CoreRewardPieces.mark(mark);
+    }
+
+    /** Whoever at least one of {@code any} accepts. */
+    static Eligibility anyOf(Eligibility... any) {
+        return CoreRewardPieces.anyOf(Arrays.asList(any));
+    }
+
+    /** Whoever {@code inverted} does not accept. */
+    static Eligibility not(Eligibility inverted) {
+        return CoreRewardPieces.not(inverted);
     }
 }

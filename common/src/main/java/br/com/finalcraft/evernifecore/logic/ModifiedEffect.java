@@ -3,6 +3,9 @@ package br.com.finalcraft.evernifecore.logic;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.logic.audit.AuditKind;
+import br.com.finalcraft.evernifecore.logic.delivery.Deliveries;
+import br.com.finalcraft.evernifecore.logic.delivery.DeliveryPolicy;
 import br.com.finalcraft.evernifecore.player.state.StateHolder;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -48,6 +51,10 @@ final class ModifiedEffect implements Effect {
         if (chance != null && BigDecimal.valueOf(ThreadLocalRandom.current().nextDouble()).compareTo(chance) >= 0) {
             return;
         }
+        if (modifiers.getTarget().equals("self") && ctx.getPlayer() == null && ctx.getOwner().isKind(ProgressOwner.PLAYER)
+                && keptFromTheAbsent(ctx, UUID.fromString(ctx.getOwner().getId()))) {
+            return;
+        }
         if (modifiers.getScope() == EffectScope.HELD && !effect.isHoldable()) {
             throw new IllegalStateException(effect + " cannot be held (scope: held): use effects-on-enter, or scope: permanent.");
         }
@@ -85,8 +92,12 @@ final class ModifiedEffect implements Effect {
         UUID id = player.getUniqueId();
         FPlayer now = EverNifeCore.getPlatform().getPlayer(id);
         if (now == null || !now.isOnline()) {
-            if (effect.decidesAbsence()) {
-                Effects.apply(run.derive().player(null).owner(ProgressOwner.player(id)).build(), effect);
+            ExecutionContext absent = run.derive().player(null).owner(ProgressOwner.player(id)).build();
+            if (keptFromTheAbsent(absent, id)) {
+                return;
+            }
+            if (effect.decidesAbsence() || "run".equals(modifiers.getOffline())) {
+                Effects.apply(absent, effect);
             } else if (node == null) {
                 DeferredEffects.dropShare(run, effect, id);
             } else {
@@ -95,6 +106,31 @@ final class ModifiedEffect implements Effect {
             return;
         }
         Effects.apply(run.derive().player(now).build(), effect);
+    }
+
+    /**
+     * The written {@code offline} for {@code absent}, a context of the offline {@code player}: {@code skip} audits it,
+     * {@code on-login} keeps the node as a delivery. False when neither was written - the effect goes on as it would.
+     */
+    private boolean keptFromTheAbsent(ExecutionContext absent, UUID player) {
+        String offline = modifiers.getOffline();
+        if ("skip".equals(offline)) {
+            absent.getAudit().add(absent, AuditKind.EFFECT_SKIPPED, effect + " skipped: " + absent.getOwner() + " is offline.");
+            return true;
+        }
+        if (!"on-login".equals(offline)) {
+            return false;
+        }
+        if (node == null) {
+            DeferredEffects.dropShare(absent, effect, player);
+            return true;
+        }
+        Deliveries.get().keepFor(absent, DeliveryPolicy.KEEP_SELF_CONTAINED, null, null, node).exceptionally(failure -> {
+            EverNifeCore.getLog().warning("[" + absent.getCaller() + "] " + effect + " for " + player + ", who is offline, was not kept"
+                    + " for the next login: " + failure);
+            return null;
+        });
+        return true;
     }
 
     private List<ExecutionContext> targets(ExecutionContext ctx) {
@@ -142,8 +178,10 @@ final class ModifiedEffect implements Effect {
 
     @Override
     public Effect withShare(BigDecimal share) {
-        //the node still says the whole amount: a share other than the whole that defers is dropped, never kept at full value
-        return new ModifiedEffect(effect.withShare(share), modifiers, share.compareTo(BigDecimal.ONE) == 0 ? node : null);
+        //the node still says the whole amount: a share other than the whole that defers is dropped, never kept at full value -
+        //unless the effect has no amount to share (it came back as itself), so its node still says what runs
+        Effect shared = effect.withShare(share);
+        return new ModifiedEffect(shared, modifiers, shared == effect || share.compareTo(BigDecimal.ONE) == 0 ? node : null);
     }
 
     @Override
