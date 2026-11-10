@@ -14,9 +14,11 @@ import br.com.finalcraft.evernifecore.conformance.SuiteRunner;
 import br.com.finalcraft.evernifecore.conformance.Verdict;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ActionsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.RealDropCases;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.RewardsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ScreenSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.SelectionClickSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.TextMetricsSuite;
+import br.com.finalcraft.evernifecore.logic.reward.command.RewardCommandNode;
 import br.com.finalcraft.evernifecore.quest.QuestEngine;
 import br.com.finalcraft.evernifecore.quest.command.QuestCommandNode;
 import org.bukkit.Bukkit;
@@ -54,14 +56,18 @@ public class ConformanceCommand {
     @FinalCMD.Node(subcmd = "quest")
     private final QuestCommandNode quest; //the quests suite's commands-round-trip dispatches through it
 
+    @FinalCMD.Node(subcmd = "rewards")
+    private final RewardCommandNode rewards; //the rewards suite's simulate runs its verb
+
     /**
      * @param versionLabel asked only when a suite runs, for its summary line
      * @param log          the plugin logger's {@code info}: markers have to reach the server log one line each
      * @param mainThread   where a run resumes after a case that answered on a later tick
      * @param quests       the engine {@code /ecc quest} acts on
+     * @param rewards      the node {@code /ecc rewards} mounts
      */
     public ConformanceCommand(List<ConformanceSuite> suites, File dataFolder, Supplier<String> versionLabel, Consumer<String> log,
-                              Executor mainThread, QuestEngine quests) {
+                              Executor mainThread, QuestEngine quests, RewardCommandNode rewards) {
         this.suites = suites;
         this.dataFolder = dataFolder;
         this.versionLabel = versionLabel;
@@ -69,6 +75,7 @@ public class ConformanceCommand {
         this.mainThread = mainThread;
         this.markers = new MarkerLine(log);
         this.quest = new QuestCommandNode(quests);
+        this.rewards = rewards;
     }
 
     @FinalCMD.SubCMD(subcmd = "list")
@@ -89,6 +96,12 @@ public class ConformanceCommand {
     @FinalCMD.SubCMD(subcmd = "command-probe")
     public void commandProbe(FCommandSender sender, @Arg("<name>") String name) {
         DeliveryCases.answerCommandProbe(name);
+    }
+
+    /** What the {@code once} step of the {@code rewards} suite's table runs. */
+    @FinalCMD.SubCMD(subcmd = "reward-probe")
+    public void rewardProbe(FCommandSender sender, @Arg("<name>") String name) {
+        RewardsSuite.answerProbe(name);
     }
 
     @FinalCMD.SubCMD(subcmd = "write")

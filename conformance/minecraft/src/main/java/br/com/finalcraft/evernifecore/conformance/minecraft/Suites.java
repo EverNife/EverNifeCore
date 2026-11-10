@@ -19,6 +19,7 @@ import br.com.finalcraft.evernifecore.conformance.minecraft.suite.PlatformSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.PlayerDataSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.QuestsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.RegionsSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.RewardsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.SchedulerSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.SelectionClickSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.TextMetricsSuite;
@@ -41,8 +42,9 @@ public final class Suites {
      *                {@code groups} suite's parties
      * @param regions the plugin's own region manager, for the {@code regions} suite
      * @param loaded  that manager's {@code load()}
+     * @param rewards the suite whose node {@code /ecc rewards} mounts
      */
-    public static List<ConformanceSuite> all(ECPluginData plugin, RegionManager regions, CompletableFuture<Void> loaded) {
+    public static List<ConformanceSuite> all(ECPluginData plugin, RegionManager regions, CompletableFuture<Void> loaded, RewardsSuite rewards) {
         return Arrays.asList(
                 new ItemsSuite(),
                 new NbtSuite(),
@@ -65,6 +67,7 @@ public final class Suites {
                 new HudSuite(),
                 new GroupsSuite(plugin),
                 new NpcsSuite(),
-                new QuestsSuite(plugin));
+                new QuestsSuite(plugin),
+                rewards);
     }
 }

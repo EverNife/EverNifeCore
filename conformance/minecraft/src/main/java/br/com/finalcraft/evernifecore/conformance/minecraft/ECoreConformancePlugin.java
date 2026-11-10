@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
 import br.com.finalcraft.evernifecore.conformance.QuestCases;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.HooksSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.PlayerDataSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.RewardsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.SelectionClickSuite;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.minecraft.ecplugin.ECBukkitPlugin;
@@ -37,9 +38,10 @@ public final class ECoreConformancePlugin extends ECBukkitPlugin {
         PlayerController.registerPDSectionCfg(getPluginData(), PlayerDataSuite.Section.class, PlayerDataSuite.SECTION_ID);
         getServer().getPluginManager().registerEvents(new SelectionClickSuite.Recorder(), this);
         HooksSuite.registerPlaceholders(getPluginData());
-        FinalCMDManager.registerCommand(getPluginData(), new ConformanceCommand(Suites.all(getPluginData(), regions, loaded), getDataFolder(),
+        RewardsSuite rewards = new RewardsSuite(getPluginData());
+        FinalCMDManager.registerCommand(getPluginData(), new ConformanceCommand(Suites.all(getPluginData(), regions, loaded, rewards), getDataFolder(),
                 () -> MCDetailedVersion.getCurrent() + " " + Bukkit.getVersion(), getLogger()::info,
-                task -> Bukkit.getScheduler().runTask(this, task), QuestCases.engine(getPluginData())));
+                task -> Bukkit.getScheduler().runTask(this, task), QuestCases.engine(getPluginData()), rewards.getNode()));
     }
 
     @Override

@@ -12,6 +12,7 @@ import org.bukkit.entity.Player;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 /** Cases that act on the {@code --player}: without one they are SKIPPED, and nothing Bukkit is touched. */
 final class PlayerCases {
@@ -68,5 +69,18 @@ final class PlayerCases {
     /** {@link Verdict#since} with the version a feature starts at, written as the server reports it. */
     static Verdict since(MCDetailedVersion since, Callable<Verdict> body) {
         return Verdict.since(MCVersion.isHigherEquals(since), since.getLowestRelease(), body);
+    }
+
+    /** {@code task} on the main thread {@code ticks} from now. */
+    static <T> CompletableFuture<T> afterTicks(long ticks, Supplier<T> task) {
+        CompletableFuture<T> answer = new CompletableFuture<>();
+        Bukkit.getScheduler().runTaskLater(Bukkit.getPluginManager().getPlugin("ECoreConformance"), () -> {
+            try {
+                answer.complete(task.get());
+            } catch (RuntimeException failed) {
+                answer.completeExceptionally(failed);
+            }
+        }, ticks);
+        return answer;
     }
 }

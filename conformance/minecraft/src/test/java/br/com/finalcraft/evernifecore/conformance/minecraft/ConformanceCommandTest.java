@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.conformance.minecraft;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
 import br.com.finalcraft.evernifecore.conformance.SuiteRunner;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.RewardsSuite;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.quest.QuestEngine;
 import br.com.finalcraft.evernifecore.testing.Commands;
@@ -39,13 +40,15 @@ class ConformanceCommandTest {
     private ECPluginData quests;
     private FinalCMDPluginCommand command;
     private TestCommandSender console;
+    private RewardsSuite rewards;
 
     @BeforeEach
     void setUp() {
         harness = Commands.harness("Ecc", dataFolder);
         quests = Plugins.fakePluginData("EccQuests", dataFolder.resolve("quests").toFile());
+        rewards = new RewardsSuite(quests);
         command = harness.register(new ConformanceCommand(suites(), dataFolder.toFile(), () -> "test-server", log::add, Runnable::run,
-                QuestEngine.of(quests)));
+                QuestEngine.of(quests), rewards.getNode()));
         console = Senders.console().grant("evernifecore.conformance");
     }
 
@@ -57,8 +60,8 @@ class ConformanceCommandTest {
     }
 
     /** No case runs a region here, so the regions suite needs no manager. */
-    private static List<ConformanceSuite> suites() {
-        return Suites.all(null, null, CompletableFuture.completedFuture(null));
+    private List<ConformanceSuite> suites() {
+        return Suites.all(null, null, CompletableFuture.completedFuture(null), rewards);
     }
 
     private List<String> markers(String event) {
@@ -99,6 +102,15 @@ class ConformanceCommandTest {
     }
 
     @Test
+    void theRewardsSuiteNeedsAPlayerAndItsVerbsAreMounted() {
+        harness.dispatch(command, console, "run rewards --cid c-7");
+
+        String end = markers("suite_end").get(0);
+        assertTrue(end.contains("\"passed\":0,\"failed\":0,\"skipped\":2,"), end);
+        assertTrue(harness.tab(command, console, "rewards", "").containsAll(Arrays.asList("export", "simulate")));
+    }
+
+    @Test
     void aHalfNoSuiteHasIsSaidSoAndRunsNothing() {
         harness.dispatch(command, console, "write items");
 
@@ -120,6 +132,6 @@ class ConformanceCommandTest {
         List<String> ids = suites().stream().map(ConformanceSuite::getId).collect(Collectors.toList());
 
         assertEquals(Arrays.asList("items", "nbt", "platform", "version", "commands", "screen", "scheduler", "playerdata",
-                "events", "selection-click", "particles", "text-metrics", "hooks", "nms", "regions", "logic", "actions", "deliveries", "hud", "groups", "npcs", "quests"), ids);
+                "events", "selection-click", "particles", "text-metrics", "hooks", "nms", "regions", "logic", "actions", "deliveries", "hud", "groups", "npcs", "quests", "rewards"), ids);
     }
 }

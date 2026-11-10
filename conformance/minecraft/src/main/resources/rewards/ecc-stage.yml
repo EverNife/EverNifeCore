@@ -1,0 +1,13 @@
+# The rewards suite's table, keyed by stage: no money, since no matrix server has an economy.
+5:
+  - name: congrats
+    effects:
+      - {type: message, text: "ECC stage {stage} beaten, {player}!"}
+  - name: loot
+    eligibility: {type: mark, mark: alive}
+    effects:
+      - {type: give-item, item: "minecraft:stone", amount: 3}
+  - name: broadcast
+    once: true
+    effects:
+      - {type: command, command: "ecc reward-probe stage-{stage}"}

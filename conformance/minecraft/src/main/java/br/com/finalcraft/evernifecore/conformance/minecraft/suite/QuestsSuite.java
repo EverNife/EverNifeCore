@@ -17,12 +17,9 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.Plugin;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
 
 /**
  * The quest engine on a Bukkit server, over the plugin's in-memory engine ({@link QuestCases}): three
@@ -51,7 +48,7 @@ public final class QuestsSuite implements ConformanceSuite {
     public List<ConformanceCase> getCases(ConformanceContext ctx) {
         return Arrays.asList(
                 PlayerCases.later("break-block-progresses", ctx, player -> PlayerCases.within(
-                        QuestCases.breakBlockProgresses(plugin, FCBukkitUtil.adapt(player), () -> later(5, () -> {
+                        QuestCases.breakBlockProgresses(plugin, FCBukkitUtil.adapt(player), () -> PlayerCases.afterTicks(5, () -> {
                             Block under = player.getLocation().getBlock().getRelative(0, -2, 0);
                             for (int i = 0; i < QuestCases.MINE_GOAL; i++) {
                                 Bukkit.getPluginManager().callEvent(new BlockBreakEvent(under.getRelative(i, 0, 0), player));
@@ -59,13 +56,13 @@ public final class QuestsSuite implements ConformanceSuite {
                             return null;
                         })), TIMEOUT_MILLIS)),
                 PlayerCases.later("pickup-counts-stack", ctx, player -> PlayerCases.within(
-                        QuestCases.pickupCountsStack(plugin, FCBukkitUtil.adapt(player), () -> later(5, () -> {
+                        QuestCases.pickupCountsStack(plugin, FCBukkitUtil.adapt(player), () -> PlayerCases.afterTicks(5, () -> {
                             player.getWorld().dropItem(player.getLocation(), new ItemStack(Material.COBBLESTONE, QuestCases.PICKUP_GOAL));
                             return null;
-                        }).thenCompose(dropped -> later(PICKUP_WAIT_TICKS, () -> null))), TIMEOUT_MILLIS)),
+                        }).thenCompose(dropped -> PlayerCases.afterTicks(PICKUP_WAIT_TICKS, () -> null))), TIMEOUT_MILLIS)),
                 PlayerCases.later("commands-round-trip", ctx, player -> PlayerCases.within(
                         QuestCases.commandsRoundTrip(plugin, FCBukkitUtil.adapt(player), "ecc quest",
-                                line -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), line), read -> later(2, read)), TIMEOUT_MILLIS)),
+                                line -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), line), read -> PlayerCases.afterTicks(2, read)), TIMEOUT_MILLIS)),
                 PlayerCases.of("placeholder-answers", ctx, this::placeholderAnswers));
     }
 
@@ -81,19 +78,5 @@ public final class QuestsSuite implements ConformanceSuite {
         String placeholder = "%ecc_quest_[" + QuestCases.COMMAND + "]_progress_[tally]%";
         String parsed = EverNifeCore.getPlatform().parse(FCBukkitUtil.adapt(player), placeholder);
         return Verdict.of("4".equals(parsed), placeholder + " -> " + parsed);
-    }
-
-    /** {@code task} on the main thread {@code ticks} from now. */
-    private static <T> CompletableFuture<T> later(long ticks, Supplier<T> task) {
-        CompletableFuture<T> answer = new CompletableFuture<>();
-        Plugin self = Bukkit.getPluginManager().getPlugin("ECoreConformance");
-        Bukkit.getScheduler().runTaskLater(self, () -> {
-            try {
-                answer.complete(task.get());
-            } catch (RuntimeException failed) {
-                answer.completeExceptionally(failed);
-            }
-        }, ticks);
-        return answer;
     }
 }

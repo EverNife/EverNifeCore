@@ -59,7 +59,7 @@ SCREENS = ["basic", "hopper", "dispenser", "workbench", "nav", "storage", "promp
            "title-long", "layout", "confirm",
            "deliveries", "ranking", "input", "progress", "choice", "reactive"]
 SUITE_ORDER = ["items", "nbt", "platform", "version", "commands", "screen", "scheduler", "playerdata",
-               "events", "selection-click", "particles", "text-metrics", "hooks", "nms", "regions", "logic", "actions", "deliveries", "hud", "groups", "npcs", "quests"]
+               "events", "selection-click", "particles", "text-metrics", "hooks", "nms", "regions", "logic", "actions", "deliveries", "hud", "groups", "npcs", "quests", "rewards"]
 HALVES = ("run", "write", "read")
 # playerdata runs only in the write/read halves; every other suite ends once in `run`. Derived, so a new suite
 # cannot leave the driver waiting out WAIT_SECONDS for an end that never comes.
