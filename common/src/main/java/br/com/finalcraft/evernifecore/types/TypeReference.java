@@ -2,12 +2,17 @@ package br.com.finalcraft.evernifecore.types;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.action.EventSource;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.annotation.Nullable;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.math.BigDecimal;
 import java.nio.file.Files;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -72,6 +77,9 @@ public final class TypeReference {
         page.append(cell(descriptor.getDescription())).append("\n\n");
         page.append("| | |\n|---|---|\n");
         page.append("| Registered by | ").append(cell(registry.getOwner(descriptor).map(owner -> owner.getMetaInfo().getName()).orElse("-"))).append(" |\n");
+        if (descriptor.getCategory() != null) {
+            page.append("| Category | ").append(cell(descriptor.getCategory())).append(" |\n");
+        }
         page.append("| Aliases | ").append(listOrDash(descriptor.getAliases())).append(" |\n");
         page.append("| Platforms | ").append(descriptor.getPlatforms().isEmpty() ? "every platform" : cell(String.join(", ", descriptor.getPlatforms()))).append(" |\n");
         page.append("| Sources | ").append(listOrDash(descriptor.getNeeds().stream().map(EventSource::toString).collect(Collectors.toList()))).append(" |\n");
@@ -89,6 +97,63 @@ public final class TypeReference {
                     .append(" | ").append(param.isRequired() ? "yes" : "no")
                     .append(" | ").append(param.getDefault() == null ? "-" : cell(String.valueOf(param.getDefault())))
                     .append(" | ").append(cell(param.getDescription())).append(" |\n");
+        }
+    }
+
+    /**
+     * {@code descriptor} as data, the same facts the markdown page shows: {@code key}, {@code name}, {@code category}
+     * (null when none), {@code registered-by}, {@code aliases}, {@code description}, {@code platforms} (empty = every one),
+     * {@code sources}, {@code capabilities}, {@code unsupported} (why this platform cannot run it, null when it can) and
+     * {@code params}, each as {@link #toJson(ParamSpec)}.
+     */
+    public static ObjectNode toJson(TypeRegistry<?> registry, TypeDescriptor<?> descriptor) {
+        ObjectNode type = JsonNodeFactory.instance.objectNode();
+        type.put("key", descriptor.getKey());
+        type.put("name", descriptor.getName());
+        type.put("category", descriptor.getCategory());
+        type.put("registered-by", registry.getOwner(descriptor).map(owner -> owner.getMetaInfo().getName()).orElse(null));
+        strings(type.putArray("aliases"), descriptor.getAliases());
+        type.put("description", descriptor.getDescription());
+        strings(type.putArray("platforms"), descriptor.getPlatforms());
+        strings(type.putArray("sources"), descriptor.getNeeds().stream().map(EventSource::toString).collect(Collectors.toList()));
+        strings(type.putArray("capabilities"), descriptor.getNeededCapabilities().stream().map(Enum::name).collect(Collectors.toList()));
+        type.put("unsupported", registry.getUnsupported(descriptor).orElse(null));
+        ArrayNode params = type.putArray("params");
+        for (ParamSpec param : descriptor.getParams()) {
+            params.add(toJson(param));
+        }
+        return type;
+    }
+
+    /**
+     * {@code param} as data: {@code name}, {@code kind} ({@link ParamSpec.Kind} name), {@code required}, {@code default}
+     * (null for none; a duration in seconds, {@code "600s"}), {@code one-of} (empty = any value), {@code nested} (the kind
+     * name of a node parameter's registry, else null) and {@code description}.
+     */
+    public static ObjectNode toJson(ParamSpec param) {
+        ObjectNode json = JsonNodeFactory.instance.objectNode();
+        json.put("name", param.getName());
+        json.put("kind", param.getKind().name());
+        json.put("required", param.isRequired());
+        Object value = param.getDefault();
+        if (value instanceof Number) {
+            json.put("default", new BigDecimal(value.toString()));
+        } else if (value instanceof Boolean) {
+            json.put("default", (Boolean) value);
+        } else if (value instanceof Duration) {
+            json.put("default", ((Duration) value).getSeconds() + "s");
+        } else {
+            json.put("default", value == null ? null : String.valueOf(value));
+        }
+        strings(json.putArray("one-of"), param.getAccepted());
+        json.put("nested", param.getNested() == null ? null : param.getNested().getKindName());
+        json.put("description", param.getDescription());
+        return json;
+    }
+
+    private static void strings(ArrayNode array, Collection<String> values) {
+        for (String value : values) {
+            array.add(value);
         }
     }
 

@@ -107,64 +107,65 @@ public final class CoreRewardPieces {
     /** Registers the 24 pieces under {@code core}, the EverNifeCore plugin data. */
     public static void registerAll(ECPluginData core) {
         // eligibility (12)
-        register(core, "any-member", "Every member of the owner, offline included, and whoever contributed while the leaver keeps.",
+        register(core, RewardPiece.Role.ELIGIBILITY, "any-member", "Every member of the owner, offline included, and whoever contributed while the leaver keeps.",
                 params -> ANY_MEMBER);
-        register(core, "online", "The members online when the reward pays.", params -> ONLINE);
-        register(core, "present", "The members standing in the owner's region or world; the online ones for a group or a player.",
+        register(core, RewardPiece.Role.ELIGIBILITY, "online", "The members online when the reward pays.", params -> ONLINE);
+        register(core, RewardPiece.Role.ELIGIBILITY, "present", "The members standing in the owner's region or world; the online ones for a group or a player.",
                 params -> PRESENT);
-        register(core, LAST_ACTOR_NAME, "Only whose action closed it, as the caller names it; nobody when it names none.", params -> LAST_ACTOR);
-        register(core, "role", "The group's leader (role: leader) or the members holding a role of the group's kind. Group owners only.",
+        register(core, RewardPiece.Role.ELIGIBILITY, LAST_ACTOR_NAME, "Only whose action closed it, as the caller names it; nobody when it names none.", params -> LAST_ACTOR);
+        register(core, RewardPiece.Role.ELIGIBILITY, "role", "The group's leader (role: leader) or the members holding a role of the group's kind. Group owners only.",
                 params -> role(params.getString("role")),
                 ParamSpec.required("role", ParamSpec.Kind.STRING, "leader, or the name of a role of the group's kind."));
-        register(core, "contribution-at-least", "The members who contributed at least this much.",
+        register(core, RewardPiece.Role.ELIGIBILITY, "contribution-at-least", "The members who contributed at least this much.",
                 params -> contributionAtLeast(params.getNumber("min")),
                 ParamSpec.required("min", ParamSpec.Kind.NUMBER, "The least contribution, e.g. 1."));
-        register(core, "contribution-share", "The members who contributed at least this part of the fair share (total / contributors).",
+        register(core, RewardPiece.Role.ELIGIBILITY, "contribution-share", "The members who contributed at least this part of the fair share (total / contributors).",
                 params -> contributionShare(fraction(params.getString("at-least"))),
                 ParamSpec.required("at-least", ParamSpec.Kind.STRING, "A part of the fair share: 60% or 0.6."));
-        register(core, "top", "The members with the highest contributions.",
+        register(core, RewardPiece.Role.ELIGIBILITY, "top", "The members with the highest contributions.",
                 params -> top(params.getNumber("count").intValueExact()),
                 ParamSpec.required("count", ParamSpec.Kind.NUMBER, "How many, e.g. 3."));
-        register(core, "condition", "The members for whom a condition passes.",
+        register(core, RewardPiece.Role.ELIGIBILITY, "condition", "The members for whom a condition passes.",
                 params -> condition(Conditions.of(params.<Condition>getPending("condition"))),
                 ParamSpec.required("condition", ParamSpec.Kind.NODE, "The condition, run for the member.").nested(Conditions.registry()));
-        register(core, "mark", "The participants of the scene carrying a mark; only on a rule read under an occasion that declares it.",
+        register(core, RewardPiece.Role.ELIGIBILITY, "mark", "The participants of the scene carrying a mark; only on a rule read under an occasion that declares it.",
                 params -> mark(params.getString("mark")),
                 ParamSpec.required("mark", ParamSpec.Kind.ID, "A mark the occasion declares, e.g. alive."));
-        register(core, "any-of", "The members at least one of the listed eligibilities accepts.",
+        register(core, RewardPiece.Role.ELIGIBILITY, "any-of", "The members at least one of the listed eligibilities accepts.",
                 params -> anyOf(children(params.<RewardPiece>getPendingNodes("of"))),
                 ParamSpec.required("of", ParamSpec.Kind.NODE_LIST, "The eligibilities, e.g. [{type: mark, mark: mvp}, {type: top, count: 3}].")
                         .nested(Rewards.registry()));
-        register(core, "not", "The members the given eligibility does not accept.",
+        register(core, RewardPiece.Role.ELIGIBILITY, "not", "The members the given eligibility does not accept.",
                 params -> not(children(Collections.singletonList(params.<RewardPiece>getPending("of"))).get(0)),
                 ParamSpec.required("of", ParamSpec.Kind.NODE, "The eligibility turned around, e.g. {type: mark, mark: alive}.")
                         .nested(Rewards.registry()));
         // distribution (5)
-        register(core, "each", "The whole reward to every eligible member.", params -> EACH);
-        register(core, "split-equal", "The reward split equally among the eligible.", params -> SPLIT_EQUAL);
-        register(core, "proportional", "The reward split by contribution.", params -> PROPORTIONAL);
-        register(core, "top-takes-all", "The whole reward to the highest contribution.", params -> TOP_TAKES_ALL);
-        register(core, "tiers", "A part of the reward per position, highest contribution first; positions past the list get nothing.",
+        register(core, RewardPiece.Role.DISTRIBUTION, "each", "The whole reward to every eligible member.", params -> EACH);
+        register(core, RewardPiece.Role.DISTRIBUTION, "split-equal", "The reward split equally among the eligible.", params -> SPLIT_EQUAL);
+        register(core, RewardPiece.Role.DISTRIBUTION, "proportional", "The reward split by contribution.", params -> PROPORTIONAL);
+        register(core, RewardPiece.Role.DISTRIBUTION, "top-takes-all", "The whole reward to the highest contribution.", params -> TOP_TAKES_ALL);
+        register(core, RewardPiece.Role.DISTRIBUTION, "tiers", "A part of the reward per position, highest contribution first; positions past the list get nothing.",
                 params -> tiers(fractions(params.getList("tiers"))),
                 ParamSpec.required("tiers", ParamSpec.Kind.LIST, "The part of each position, e.g. [50%, 30%, 20%]."));
         // absence (3)
-        register(core, "deliver", "An offline member's share waits as a pending delivery.", params -> DELIVER);
-        register(core, "forfeit", "An offline member's share is lost.", params -> FORFEIT);
-        register(core, "redistribute", "An offline member's share is split among the online eligible.", params -> REDISTRIBUTE);
+        register(core, RewardPiece.Role.ABSENCE, "deliver", "An offline member's share waits as a pending delivery.", params -> DELIVER);
+        register(core, RewardPiece.Role.ABSENCE, "forfeit", "An offline member's share is lost.", params -> FORFEIT);
+        register(core, RewardPiece.Role.ABSENCE, "redistribute", "An offline member's share is split among the online eligible.", params -> REDISTRIBUTE);
         // moment (3)
-        register(core, "on-complete", "Pays when what it was for is done.", params -> ON_COMPLETE);
-        register(core, "on-window-end", "Pays when its time window closes.", params -> ON_WINDOW_END);
-        register(core, "on-owner-gone", "Pays, in part, when its owner is gone.", params -> ON_OWNER_GONE);
+        register(core, RewardPiece.Role.MOMENT, "on-complete", "Pays when what it was for is done.", params -> ON_COMPLETE);
+        register(core, RewardPiece.Role.MOMENT, "on-window-end", "Pays when its time window closes.", params -> ON_WINDOW_END);
+        register(core, RewardPiece.Role.MOMENT, "on-owner-gone", "Pays, in part, when its owner is gone.", params -> ON_OWNER_GONE);
         // leaver / joiner (1)
-        register(core, "membership", "Whether a member who left keeps a contribution, and whether one who joined late inherits.",
+        register(core, RewardPiece.Role.MEMBERSHIP, "membership", "Whether a member who left keeps a contribution, and whether one who joined late inherits.",
                 params -> membership("keeps".equals(params.getString("leaver")), "inherits-zero".equals(params.getString("joiner"))),
                 ParamSpec.optional("leaver", ParamSpec.Kind.STRING, "keeps", "keeps or forfeits.").oneOf("keeps", "forfeits"),
                 ParamSpec.optional("joiner", ParamSpec.Kind.STRING, "from-now", "from-now or inherits-zero.").oneOf("from-now", "inherits-zero"));
     }
 
-    private static void register(ECPluginData core, String name, String description, Function<ParsedParams, RewardPiece> factory,
+    private static void register(ECPluginData core, RewardPiece.Role role, String name, String description, Function<ParsedParams, RewardPiece> factory,
                                  ParamSpec... params) {
-        TypeDescriptor.Builder<RewardPiece> descriptor = TypeDescriptor.<RewardPiece>of("evernifecore:" + name).describe(description);
+        TypeDescriptor.Builder<RewardPiece> descriptor = TypeDescriptor.<RewardPiece>of("evernifecore:" + name).describe(description)
+                .category(role.name());
         for (ParamSpec param : params) {
             descriptor.param(param);
         }

@@ -134,6 +134,16 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   member (`Effect.getAmount`, answered by `money`) and its part of the step, 0-1. Every occasion accepts them.
 - **`RewardOccasion.Builder.phase(...)` and `sample(...)`**: what the occasion's phases count (`stage`, `wave`,
   `position`) and a sample scene, built and checked with the occasion.
+- **`RewardCommandNode`** (`logic.reward.command`): the reward verbs a plugin mounts under its own command,
+  `new RewardCommandNode(plugin, permissionBase).occasion(occasion, () -> config.getNode(...))`. `export` writes
+  `<plugin data folder>/export/rewards.json` (`format` 1): every registered effect, condition and variable, each reward
+  piece under its role, the effect modifiers with their accepted values, and the node's occasions with their sample
+  scene and current config - the reward editor's input. `simulate <occasion> <phase>` prints the receipt of that phase's
+  `preview` on the occasion's sample, applying nothing. The core mounts it nowhere.
+- **`TypeDescriptor.Builder.category(...)`**: the part of its kind a type plays; every core reward piece declares its
+  role (`eligibility`, `distribution`, `absence`, `moment`, `membership`), and a plugin's piece should too. The types
+  reference shows it. `TypeReference.toJson(registry, descriptor)` / `toJson(param)` describe a type as data, and
+  `EffectModifiers.getParams()` the keys every effect takes.
 
 ### Changed
 

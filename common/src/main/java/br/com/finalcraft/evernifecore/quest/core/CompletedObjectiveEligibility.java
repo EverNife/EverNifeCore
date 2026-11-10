@@ -32,6 +32,7 @@ public final class CompletedObjectiveEligibility implements Eligibility {
     public static void register(ECPluginData core) {
         Rewards.registry().register(core, TypeDescriptor.<RewardPiece>of("evernifecore:" + NAME)
                 .describe("The members who contributed to an objective of the quest being paid.")
+                .category(RewardPiece.Role.ELIGIBILITY.name())
                 .param(ParamSpec.required("id", ParamSpec.Kind.STRING, "The objective's id in the quest, e.g. mobs."))
                 .factory(params -> new CompletedObjectiveEligibility(params.getString("id")))
                 .build());

@@ -34,6 +34,7 @@ public final class TypeDescriptor<T> {
     private final Set<String> platforms;
     private final Set<IPlayerStateAccess.Capability> capabilities;
     private final Set<EventSource> needs;
+    private final @Nullable String category;
     private final Function<ParsedParams, T> factory;
 
     private TypeDescriptor(Builder<T> builder) {
@@ -47,6 +48,7 @@ public final class TypeDescriptor<T> {
         this.capabilities = builder.capabilities.isEmpty() ? Collections.<IPlayerStateAccess.Capability>emptySet()
                 : Collections.unmodifiableSet(EnumSet.copyOf(builder.capabilities));
         this.needs = Collections.unmodifiableSet(new LinkedHashSet<>(builder.needs));
+        this.category = builder.category;
         this.factory = builder.factory;
     }
 
@@ -133,6 +135,11 @@ public final class TypeDescriptor<T> {
         return needs;
     }
 
+    /** Which part of its kind the type plays - a reward piece's role ({@code eligibility}, {@code absence}...); null when the kind has no parts. */
+    public @Nullable String getCategory() {
+        return category;
+    }
+
     /**
      * Builds the type from validated parameters.
      *
@@ -162,6 +169,7 @@ public final class TypeDescriptor<T> {
         private final Set<String> platforms = new LinkedHashSet<>();
         private final Set<IPlayerStateAccess.Capability> capabilities = EnumSet.noneOf(IPlayerStateAccess.Capability.class);
         private final Set<EventSource> needs = new LinkedHashSet<>();
+        private @Nullable String category;
         private Function<ParsedParams, T> factory;
 
         private Builder(String owner, String name) {
@@ -205,6 +213,12 @@ public final class TypeDescriptor<T> {
 
         public Builder<T> needs(EventSource... sources) {
             needs.addAll(Arrays.asList(sources));
+            return this;
+        }
+
+        /** See {@link TypeDescriptor#getCategory()}; stored lowercase. */
+        public Builder<T> category(String category) {
+            this.category = category.trim().toLowerCase(Locale.ROOT);
             return this;
         }
 

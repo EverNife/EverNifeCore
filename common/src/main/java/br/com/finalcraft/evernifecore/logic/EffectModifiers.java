@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.logic;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
+import br.com.finalcraft.evernifecore.types.ParamSpec;
 import br.com.finalcraft.evernifecore.types.TypeRegistryException;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.annotation.Nullable;
@@ -34,6 +35,9 @@ public final class EffectModifiers {
     public static final String DESTINATION_ATTRIBUTE = "evernifecore:to";
 
     public static final List<String> TARGETS = Arrays.asList("self", "group", "region-players", "world-players", "online-players");
+    private static final List<String> SENDERS = Arrays.asList("player", "console");
+    private static final List<String> SCOPES = Arrays.asList("permanent", "held");
+    private static final List<String> OFFLINE = Arrays.asList("run", "skip", "on-login");
 
     private static final EffectModifiers NONE = new EffectModifiers(null, null, null, 1, null, null, "self", EffectScope.PERMANENT, null, null);
 
@@ -61,6 +65,25 @@ public final class EffectModifiers {
         this.scope = scope;
         this.destination = destination;
         this.offline = offline;
+    }
+
+    /**
+     * Each of the {@link #KEYS} as a parameter - kind, default, accepted values, one sentence - for what describes the
+     * effects to an editor. Built on each call: it names the condition registry.
+     */
+    public static List<ParamSpec> getParams() {
+        return Arrays.asList(
+                ParamSpec.optional("delay", ParamSpec.Kind.DURATION, null, "Waits this long before applying the effect."),
+                ParamSpec.optional("chance", ParamSpec.Kind.NUMBER, null, "From 0 (never) to 1 (always): how likely the effect applies."),
+                ParamSpec.optional("if", ParamSpec.Kind.NODE, null, "A condition that must pass for the effect to apply.").nested(Conditions.registry()),
+                ParamSpec.optional("repeat", ParamSpec.Kind.NUMBER, 1, "How many times the effect runs; more than 1 needs every."),
+                ParamSpec.optional("every", ParamSpec.Kind.DURATION, null, "The time between the runs of repeat."),
+                ParamSpec.optional("as", ParamSpec.Kind.STRING, null, "Who runs it, for an effect that takes a sender (command).").oneOf(SENDERS.toArray(new String[0])),
+                ParamSpec.optional("target", ParamSpec.Kind.STRING, "self", "Who receives it.").oneOf(TARGETS.toArray(new String[0])),
+                ParamSpec.optional("scope", ParamSpec.Kind.STRING, "permanent", "held lasts only while the condition that gave it holds.").oneOf(SCOPES.toArray(new String[0])),
+                ParamSpec.optional("to", ParamSpec.Kind.ID, null, "The delivery destination, for an effect that takes one, e.g. pending."),
+                ParamSpec.optional("offline", ParamSpec.Kind.STRING, "run", "With the player offline: apply now, skip it, or wait for the"
+                        + " next login; a command run as: player waits by default.").oneOf(OFFLINE.toArray(new String[0])));
     }
 
     public static EffectModifiers none() {
@@ -112,11 +135,11 @@ public final class EffectModifiers {
             throw new TypeRegistryException("The effect '" + type + "' repeats " + repeat + " times but says no every: write how long"
                     + " between runs, e.g. repeat: " + repeat + ", every: 10s.");
         }
-        String sender = choice(type, node, "as", Arrays.asList("player", "console"));
+        String sender = choice(type, node, "as", SENDERS);
         String target = choice(type, node, "target", TARGETS);
-        String scopeText = choice(type, node, "scope", Arrays.asList("permanent", "held"));
+        String scopeText = choice(type, node, "scope", SCOPES);
         EffectScope scope = "held".equals(scopeText) ? EffectScope.HELD : EffectScope.PERMANENT;
-        String offline = choice(type, node, "offline", Arrays.asList("run", "skip", "on-login"));
+        String offline = choice(type, node, "offline", OFFLINE);
         if ("run".equals(offline) && "player".equals(sender)) {
             throw new TypeRegistryException("The effect '" + type + "' writes offline: run, which applies it now, and as: player, which"
                     + " needs the player online to run as. Write offline: on-login to wait for the next login, or as: console to run it now.");

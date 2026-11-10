@@ -50,7 +50,11 @@ public final class Rewards {
     private Rewards() {
     }
 
-    /** {@code reward-piece}: every role of piece; a plugin registers {@code <plugin>:<name>} here. */
+    /**
+     * {@code reward-piece}: every role of piece; a plugin registers {@code <plugin>:<name>} here, with its role as the
+     * descriptor's {@link br.com.finalcraft.evernifecore.types.TypeDescriptor.Builder#category category}
+     * ({@code .category(RewardPiece.Role.ELIGIBILITY.name())}) so the rewards export files it under that role.
+     */
     public static TypeRegistry<RewardPiece> registry() {
         return REGISTRY;
     }

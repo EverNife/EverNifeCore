@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.group.command.CoreGroupCommands;
 import br.com.finalcraft.evernifecore.dialogue.command.CoreDialogueCommands;
 import br.com.finalcraft.evernifecore.group.command.GroupCommandNode;
 import br.com.finalcraft.evernifecore.logic.audit.command.AuditCommandNode;
+import br.com.finalcraft.evernifecore.logic.reward.command.RewardCommandNode;
 import br.com.finalcraft.evernifecore.logic.command.CoreLogicCommands;
 import br.com.finalcraft.evernifecore.logic.delivery.command.CoreDeliveriesCommands;
 import br.com.finalcraft.evernifecore.logic.delivery.command.DeliveriesCommandNode;
@@ -61,6 +62,7 @@ public class ConfigManager {
             CoreDialogueCommands.class,
             CoreLogicCommands.class,
             AuditCommandNode.class,
+            RewardCommandNode.class,
             DeliveriesCommandNode.class,
             CoreDeliveriesCommands.class,
             DefaultIcons.class,
