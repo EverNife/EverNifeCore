@@ -201,9 +201,17 @@ public class TestPlatform extends AbstractTestPlatform {
      * The main thread {@link ECoreTestWorld} installs on {@code ECScheduler} for its life: with
      * {@code mainThreadInline()} both forms run the task in place (tests have no server thread and no tick, which
      * keeps a boot sequence such as the first-tick legacy import deterministic); without it, strict, both throw.
+     * The thread that builds the world (the test's own) plays the server thread for {@code isServerThread}, so a test
+     * can block it, or another thread, on purpose; without {@code mainThreadInline()} no thread is one.
      */
     ECScheduler.MainThread mainThread() {
+        Thread serverThread = Thread.currentThread();
         return new ECScheduler.MainThread() {
+            @Override
+            public boolean isServerThread() {
+                return mainThreadInline != null && worldThreadAnswer == null && Thread.currentThread() == serverThread;
+            }
+
             @Override
             public <T> CompletableFuture<T> onMainThread(Supplier<T> task) {
                 if (mainThreadInline == null) {

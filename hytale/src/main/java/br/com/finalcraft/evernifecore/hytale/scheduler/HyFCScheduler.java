@@ -102,6 +102,24 @@ public class HyFCScheduler implements ECScheduler.MainThread {
         return future;
     }
 
+    /** The core's main thread, or the ticking thread of any loaded world. */
+    @Override
+    public boolean isServerThread() {
+        if (Thread.currentThread() == mainThreadRef) {
+            return true;
+        }
+        Universe universe = Universe.get();
+        if (universe == null) {
+            return false;
+        }
+        for (World world : universe.getWorlds().values()) {
+            if (world.isInThread()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     //Created on the first task, so loading the class (INSTANCE) in a test that never hops starts no thread.
     private synchronized ExecutorService mainThread() {
         if (mainThread == null) {

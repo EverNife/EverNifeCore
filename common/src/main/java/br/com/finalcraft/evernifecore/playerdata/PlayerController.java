@@ -38,6 +38,7 @@ import br.com.finalcraft.evernifecore.storage.config.PlayerDataAdminConfig;
 import br.com.finalcraft.evernifecore.storage.config.SectionFamily;
 import br.com.finalcraft.evernifecore.storage.config.StorageYamlDefaults;
 import br.com.finalcraft.evernifecore.storage.config.StorageYamlParser;
+import br.com.finalcraft.evernifecore.time.BlockingJoinWarning;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.everyconfig.config.Config;
@@ -165,7 +166,7 @@ public class PlayerController {
     private final ECRegistries ecRegistries = ECRegistries.get();
     private volatile PlayerDataBinding playerDataBinding; //swapped by transferPlayerData
     private final Map<Class<? extends PDSection>, PDSectionBinding<? extends PDSection>> bindings = new ConcurrentHashMap<>();
-    private final CompletableFuture<Void> ready = new CompletableFuture<>(); //gate that holds storage access during the legacy import
+    private final CompletableFuture<Void> ready = BlockingJoinWarning.newFuture(); //gate that holds storage access during the legacy import; what derives from it warns on a blocking join
     /** Logins currently resolving, so a timeout can print what was still loading when time ran out. */
     private final Map<UUID, LoginTimings> loginsInFlight = new ConcurrentHashMap<>();
 

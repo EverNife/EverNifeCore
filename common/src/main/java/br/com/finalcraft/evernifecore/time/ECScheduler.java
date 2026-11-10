@@ -32,6 +32,12 @@ public final class ECScheduler {
 
         /** Runs the task on the main thread, never in place. */
         <T> CompletableFuture<T> onMainThreadLater(Supplier<T> task);
+
+        /**
+         * Whether the calling thread is one the server ticks on, where a wait stalls the game. Bukkit: the server
+         * thread. Hytale: the core's main thread or any world's thread. Never throws.
+         */
+        boolean isServerThread();
     }
 
     /**
@@ -161,7 +167,7 @@ public final class ECScheduler {
      * stays visible even when the caller ignores the future.
      */
     public static <T> CompletableFuture<T> supplyAsyncFuture(Supplier<T> supplier){
-        CompletableFuture<T> future = new CompletableFuture<>();
+        CompletableFuture<T> future = BlockingJoinWarning.newFuture();
         scheduler.execute(() -> {
             try {
                 future.complete(supplier.get());
@@ -216,6 +222,12 @@ public final class ECScheduler {
     /** Installs the platform's main thread; each platform calls it before any bootstrap hook. Null removes it. */
     public static void setMainThread(@Nullable MainThread newMainThread) {
         mainThread = newMainThread;
+    }
+
+    /** Whether the calling thread is a server thread ({@link MainThread#isServerThread()}); false before a platform installed one. */
+    public static boolean isServerThread() {
+        MainThread installed = mainThread;
+        return installed != null && installed.isServerThread();
     }
 
     /** The installed main thread, or {@code null} before a platform installed one. */

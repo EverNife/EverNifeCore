@@ -95,6 +95,11 @@ class IECPluginBootstrapTest {
                 deliveredLater.add(task);
                 return new CompletableFuture<>();
             }
+
+            @Override
+            public boolean isServerThread() {
+                return false;
+            }
         });
         try {
             boot.runECPluginEnable();

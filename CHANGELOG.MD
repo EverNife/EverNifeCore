@@ -145,6 +145,20 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   reference shows it. `TypeReference.toJson(registry, descriptor)` / `toJson(param)` describe a type as data, and
   `EffectModifiers.getParams()` the keys every effect takes.
 
+#### Threading
+
+- **A `join()` or `get()` that blocks the server thread on a core future logs a warning**: once the wait ends, one WARN
+  line names the frame that called it and the milliseconds the server stood still, and says how to leave it
+  (`thenAccept` + `ECScheduler.onMainThread`). An already complete future, or a wait on any other thread, logs nothing.
+  One line per calling frame per 60 s; the next one counts the waits in between. Watched: what `PlayerController` and
+  `PlayerData` hand out (sections, account sections, lookups, logins, saves), `ECScheduler.supplyAsyncFuture` /
+  `runAsyncFuture`, and what derives from them (`thenApply`, `thenCompose`, ...). The return types stay
+  `CompletableFuture`. `BlockingJoinWarning.watch(future)` / `newFuture()` give the same to any future.
+- **`ECScheduler.MainThread.isServerThread()`** (a new method every main thread implements) and
+  `ECScheduler.isServerThread()`: whether the calling thread is one the server ticks on - Bukkit's server thread, or on
+  Hytale the core's main thread or any world's thread. In tests, with `mainThreadInline()`, the thread that built the
+  `ECoreTestWorld` plays it.
+
 ### Changed
 
 #### Screens

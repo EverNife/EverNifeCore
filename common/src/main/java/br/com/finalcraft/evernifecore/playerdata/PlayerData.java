@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.playerdata;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.time.BlockingJoinWarning;
 import br.com.finalcraft.everydatabase.manager.writeback.PersistedState;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchema;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
@@ -131,7 +132,7 @@ public class PlayerData implements IPlayerData, EntitySchema {
             return PlayerController.failedFuture(new IllegalStateException(
                     "PlayerController is not bootstrapped yet!"));
         }
-        return controller.resolveSection(this, pdSectionClass);
+        return BlockingJoinWarning.watch(controller.resolveSection(this, pdSectionClass));
     }
 
     @Override
@@ -141,7 +142,7 @@ public class PlayerData implements IPlayerData, EntitySchema {
             return PlayerController.failedFuture(new IllegalStateException(
                     "PlayerController is not bootstrapped yet!"));
         }
-        return controller.resolveSectionIfPresent(this, pdSectionClass);
+        return BlockingJoinWarning.watch(controller.resolveSectionIfPresent(this, pdSectionClass));
     }
 
     @Override
@@ -151,7 +152,7 @@ public class PlayerData implements IPlayerData, EntitySchema {
             return PlayerController.failedFuture(new IllegalStateException(
                     "PlayerController is not bootstrapped yet!"));
         }
-        return controller.hasSection(this.uuid, pdSectionClass);
+        return BlockingJoinWarning.watch(controller.hasSection(this.uuid, pdSectionClass));
     }
 
     @Override
@@ -182,7 +183,7 @@ public class PlayerData implements IPlayerData, EntitySchema {
             return PlayerController.failedFuture(new IllegalStateException(
                     "PlayerController is not bootstrapped yet!"));
         }
-        return controller.accountEngine().resolve(sectionClass, getAccountId());
+        return BlockingJoinWarning.watch(controller.accountEngine().resolve(sectionClass, getAccountId()));
     }
 
     /** Presence-only variant of {@link #getAccountSection(Class)}: no default is seeded. */
@@ -192,7 +193,7 @@ public class PlayerData implements IPlayerData, EntitySchema {
             return PlayerController.failedFuture(new IllegalStateException(
                     "PlayerController is not bootstrapped yet!"));
         }
-        return controller.accountEngine().resolveIfPresent(sectionClass, getAccountId());
+        return BlockingJoinWarning.watch(controller.accountEngine().resolveIfPresent(sectionClass, getAccountId()));
     }
 
     /** The cached account-wide section, or null when it is not in memory (never touches storage). */
@@ -227,7 +228,7 @@ public class PlayerData implements IPlayerData, EntitySchema {
             return PlayerController.failedFuture(new IllegalStateException(
                     "PlayerController is not bootstrapped yet!"));
         }
-        return controller.flushPlayer(this);
+        return BlockingJoinWarning.watch(controller.flushPlayer(this));
     }
 
     /**

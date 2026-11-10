@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.scheduler;
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
+import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -104,6 +105,12 @@ public class McFCScheduler implements ECScheduler.MainThread {
      * returns, and one asked during enable fires on the first tick, after every plugin has enabled. A throwable is
      * also printed.
      */
+    /** The server thread; false while no server is running (a unit test). */
+    @Override
+    public boolean isServerThread() {
+        return Bukkit.getServer() != null && Bukkit.getServer().isPrimaryThread();
+    }
+
     @Override
     public <T> CompletableFuture<T> onMainThreadLater(Supplier<T> task) {
         //zero delay on purpose: a one-tick delay would reorder the first tick against the tasks held until the core enables
