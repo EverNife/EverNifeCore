@@ -150,7 +150,7 @@ public final class BoosterManager implements BoosterSource {
         AuditLog.ofIfPresent(plugin).ifPresent(log -> log.record(AuditEntry.builder(AuditKind.BOOSTER_GRANTED,
                         kept.getOrigin() != null ? kept.getOrigin() : Caller.of(plugin, "booster"))
                 .owner(kept.getOwner())
-                .subject(kept.getVariableId())
+                .subject(kept.getDomainId())
                 .amount(kept.getFactor() != null ? kept.getFactor() : kept.getBonus())
                 .text(kept.toString())
                 .build()));
@@ -194,10 +194,10 @@ public final class BoosterManager implements BoosterSource {
     }
 
     @Override
-    public Collection<Booster> boostersFor(ExecutionContext ctx, String variableId) {
+    public Collection<Booster> boostersFor(ExecutionContext ctx, BoosterDomain domain) {
         List<Booster> found = new ArrayList<>();
         for (Booster booster : boosters.values()) {
-            if (booster.getVariableId().equals(variableId) && Boosters.appliesTo(booster.getOwner(), ctx)) {
+            if (booster.getDomainId().equals(domain.getId()) && Boosters.appliesTo(booster.getOwner(), ctx)) {
                 found.add(booster);
             }
         }
@@ -270,7 +270,7 @@ public final class BoosterManager implements BoosterSource {
         static Row of(Booster booster) {
             Row row = new Row();
             row.id = booster.getId().toString();
-            row.on = booster.getVariableId();
+            row.on = booster.getDomainId();
             row.owner = booster.getOwner().toString();
             row.factor = booster.getFactor() == null ? null : booster.getFactor().toPlainString();
             row.bonus = booster.getBonus() == null ? null : booster.getBonus().toPlainString();
@@ -286,7 +286,7 @@ public final class BoosterManager implements BoosterSource {
         }
 
         Booster toBooster(ECPluginData plugin) {
-            Booster.Builder builder = Booster.on(on).forOwner(ProgressOwner.parse(owner))
+            Booster.Builder builder = Booster.onId(on).forOwner(ProgressOwner.parse(owner))
                     .until(until == null ? null : Instant.ofEpochMilli(until))
                     .from(origin == null ? null : Caller.of(plugin, origin));
             if (seasonId != null) {

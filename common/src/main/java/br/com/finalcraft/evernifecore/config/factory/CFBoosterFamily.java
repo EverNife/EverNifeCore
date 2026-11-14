@@ -1,25 +1,19 @@
 package br.com.finalcraft.evernifecore.config.factory;
 
 import br.com.finalcraft.evernifecore.booster.Booster;
-import br.com.finalcraft.evernifecore.booster.Boosters;
+import br.com.finalcraft.evernifecore.booster.BoosterConfigCodec;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
-import br.com.finalcraft.evernifecore.logic.ProgressOwner;
 import br.com.finalcraft.evernifecore.logic.value.DynamicValueSpec;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
-import br.com.finalcraft.evernifecore.time.Season;
 import jakarta.annotation.Nullable;
 
 import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * A {@link Booster} in a plugin's config - {@code {on: money, factor: 1.5, owner: global, lasting: 1h}}, with
- * {@code bonus} instead of {@code factor}, {@code until} (an instant) instead of {@code lasting}, and an optional
- * {@code season: {id, from, to}} - and a {@link DynamicValueSpec} - {@code {base: 100, min: 40, max: 400, step: 5,
- * decay: {amount: 10, every: 1h}}}. A booster read from a config has no origin; whoever grants it names one.
+ * A {@link Booster} in a plugin's config (its codec is {@link BoosterConfigCodec}) and a {@link DynamicValueSpec} -
+ * {@code {base: 100, min: 40, max: 400, step: 5, decay: {amount: 10, every: 1h}}}.
  */
 final class CFBoosterFamily {
 
@@ -27,62 +21,8 @@ final class CFBoosterFamily {
     }
 
     static void register() {
-        ConfigFactory.register(Booster.class).asMap(CFBoosterFamily::encode, CFBoosterFamily::decode);
+        BoosterConfigCodec.register();
         ConfigFactory.register(DynamicValueSpec.class).asMap(CFBoosterFamily::encodeSpec, CFBoosterFamily::decodeSpec);
-    }
-
-    private static Map<String, Object> encode(Booster booster) {
-        Map<String, Object> map = new LinkedHashMap<>();
-        map.put("on", Boosters.shortForm(booster.getVariableId()));
-        if (booster.getFactor() != null) {
-            map.put("factor", booster.getFactor());
-        } else {
-            map.put("bonus", booster.getBonus());
-        }
-        map.put("owner", booster.getOwner().toString());
-        if (booster.getUntil() != null) {
-            map.put("until", booster.getUntil().toString());
-        }
-        Season season = booster.getSeason();
-        if (season != null) {
-            Map<String, Object> written = new LinkedHashMap<>();
-            written.put("id", season.getId());
-            written.put("from", season.getFrom().toString());
-            written.put("to", season.getTo().toString());
-            map.put("season", written);
-        }
-        return map;
-    }
-
-    private static Booster decode(Map<String, Object> map) {
-        Object on = map.get("on");
-        if (on == null) {
-            throw new IllegalArgumentException("A booster names what it boosts: { on: money, factor: 1.5 } or { on: finaljobs:money, bonus: 0.25 }.");
-        }
-        Booster.Builder builder = Booster.on(String.valueOf(on));
-        BigDecimal factor = number(map.get("factor"));
-        BigDecimal bonus = number(map.get("bonus"));
-        if (factor != null) {
-            builder.factor(factor);
-        }
-        if (bonus != null) {
-            builder.bonus(bonus);
-        }
-        if (map.get("owner") != null) {
-            builder.forOwner(ProgressOwner.parse(String.valueOf(map.get("owner"))));
-        }
-        if (map.get("lasting") != null) {
-            builder.lasting(FCTimeFrame.fromConfigString(String.valueOf(map.get("lasting"))).toDuration());
-        } else if (map.get("until") != null) {
-            builder.until(Instant.parse(String.valueOf(map.get("until")).trim()));
-        }
-        Object season = map.get("season");
-        if (season instanceof Map) {
-            Map<?, ?> written = (Map<?, ?>) season;
-            builder.during(Season.of(String.valueOf(written.get("id")), ZonedDateTime.parse(String.valueOf(written.get("from"))),
-                    ZonedDateTime.parse(String.valueOf(written.get("to")))));
-        }
-        return builder.build();
     }
 
     private static Map<String, Object> encodeSpec(DynamicValueSpec spec) {

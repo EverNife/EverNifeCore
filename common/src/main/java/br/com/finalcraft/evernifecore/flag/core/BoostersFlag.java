@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * {@code boosters}: what standing in the region (or belonging to a holder that follows the player) boosts. Nothing in
  * the flag system applies it: the booster engine reads {@code RegionLookup.get().resolve(CoreFlags.BOOSTERS, player)}
- * and treats each {@link BoosterEntry} as a booster of its own.
+ * and treats each {@link BoosterEntry} as a booster of the domain its {@code on} names ({@code duels:win}).
  */
 public final class BoostersFlag extends Flag<List<BoosterEntry>> {
 
@@ -26,8 +26,8 @@ public final class BoostersFlag extends Flag<List<BoosterEntry>> {
 
     @Override
     public String getDescription() {
-        return "What the region boosts for whoever stands in it: on=<gain> factor=<n> multiplies a gain, on=<gain> bonus=<n> adds to its"
-                + " multiplier; entries separated by ','. The booster engine applies them.";
+        return "What the region boosts for whoever stands in it: on=<plugin>:<domain> factor=<n> multiplies a plugin's booster domain,"
+                + " on=<plugin>:<domain> bonus=<n> adds to its multiplier; entries separated by ','. The plugin that pays the domain applies them.";
     }
 
     @Override

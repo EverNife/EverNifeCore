@@ -14,8 +14,8 @@ public interface BoosterSource {
     String getId();
 
     /**
-     * The boosters of {@code variableId} (a full {@code owner:name} id) that count for {@code ctx}; inactive ones may be
-     * included, {@link Boosters#resolve} drops them.
+     * The boosters of {@code domain} that count for {@code ctx}; inactive ones, or ones of another domain, may be
+     * included, {@link BoosterDomain#resolve} drops them.
      */
-    Collection<Booster> boostersFor(ExecutionContext ctx, String variableId);
+    Collection<Booster> boostersFor(ExecutionContext ctx, BoosterDomain domain);
 }

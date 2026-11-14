@@ -13,15 +13,15 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * A boost of one gain ({@link #getVariableId()}, e.g. {@code evernifecore:money}): a {@link #getFactor() factor} that
- * multiplies it or a {@link #getBonus() bonus} added to its multiplier, for an owner, optionally until an instant or
- * while a season lasts. The booster itself multiplies nothing: {@link Boosters#resolve} joins the boosters of a context
- * and the source of the gain applies the result. Immutable; any thread.
+ * A boost of one {@link BoosterDomain} ({@link #getDomainId()}, e.g. {@code duels:win}): a {@link #getFactor() factor}
+ * that multiplies its gain or a {@link #getBonus() bonus} added to its multiplier, for an owner, optionally until an
+ * instant or while a season lasts. The booster itself multiplies nothing: {@link BoosterDomain#resolve} joins the
+ * boosters of a context and whoever pays the gain applies the result. Immutable; any thread.
  */
 public final class Booster {
 
     private final @Nullable UUID id;
-    private final String variableId;
+    private final String domainId;
     private final ProgressOwner owner;
     private final @Nullable BigDecimal factor;
     private final @Nullable BigDecimal bonus;
@@ -29,10 +29,10 @@ public final class Booster {
     private final @Nullable Season season;
     private final @Nullable Caller origin;
 
-    private Booster(@Nullable UUID id, String variableId, ProgressOwner owner, @Nullable BigDecimal factor, @Nullable BigDecimal bonus,
+    private Booster(@Nullable UUID id, String domainId, ProgressOwner owner, @Nullable BigDecimal factor, @Nullable BigDecimal bonus,
                     @Nullable Instant until, @Nullable Season season, @Nullable Caller origin) {
         this.id = id;
-        this.variableId = variableId;
+        this.domainId = domainId;
         this.owner = owner;
         this.factor = factor;
         this.bonus = bonus;
@@ -41,14 +41,19 @@ public final class Booster {
         this.origin = origin;
     }
 
-    /** A booster of {@code variableId}: a variable or currency id, bare for the core's own ({@code money}, {@code exp-points}). */
-    public static Builder on(String variableId) {
-        return new Builder(Boosters.normalize(variableId));
+    /** A booster of {@code domain}. */
+    public static Builder on(BoosterDomain domain) {
+        return new Builder(domain.getId());
+    }
+
+    /** A booster of the domain written {@code domainId}, declared or not yet: what a storage, a config or a region flag read. */
+    static Builder onId(String domainId) {
+        return new Builder(Boosters.normalize(domainId));
     }
 
     /** This booster under {@code id}; what a {@link BoosterManager} hands back from {@code grant}. */
     Booster withId(UUID id) {
-        return new Booster(id, variableId, owner, factor, bonus, until, season, origin);
+        return new Booster(id, domainId, owner, factor, bonus, until, season, origin);
     }
 
     /** Assigned by the {@link BoosterManager} that keeps it; null for a booster a stateless source derived. */
@@ -56,9 +61,9 @@ public final class Booster {
         return id;
     }
 
-    /** The full id, {@code owner:name}. */
-    public String getVariableId() {
-        return variableId;
+    /** The {@link BoosterDomain#getId() domain's id}, {@code <plugin>:<name>}. */
+    public String getDomainId() {
+        return domainId;
     }
 
     /** Who it boosts: a player, a group, a region's or a world's players, or everyone ({@code global}). */
@@ -111,7 +116,7 @@ public final class Booster {
 
     @Override
     public String toString() {
-        return variableId + (factor != null ? " x" + factor.toPlainString() : " +" + bonus.toPlainString()) + " for " + owner
+        return domainId + (factor != null ? " x" + factor.toPlainString() : " +" + bonus.toPlainString()) + " for " + owner
                 + (until != null ? " until " + until : "") + (season != null ? " during " + season.getId() : "")
                 + (origin != null ? " from " + origin : "");
     }
@@ -122,18 +127,18 @@ public final class Booster {
             return false;
         }
         Booster that = (Booster) other;
-        return Objects.equals(id, that.id) && variableId.equals(that.variableId) && owner.equals(that.owner)
+        return Objects.equals(id, that.id) && domainId.equals(that.domainId) && owner.equals(that.owner)
                 && Objects.equals(factor, that.factor) && Objects.equals(bonus, that.bonus) && Objects.equals(until, that.until)
                 && Objects.equals(season, that.season) && Objects.equals(origin, that.origin);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, variableId, owner, factor, bonus, until, season);
+        return Objects.hash(id, domainId, owner, factor, bonus, until, season);
     }
 
     public static final class Builder {
-        private final String variableId;
+        private final String domainId;
         private @Nullable BigDecimal factor;
         private @Nullable BigDecimal bonus;
         private ProgressOwner owner = ProgressOwner.global();
@@ -142,8 +147,8 @@ public final class Booster {
         private @Nullable Season season;
         private @Nullable Caller origin;
 
-        private Builder(String variableId) {
-            this.variableId = variableId;
+        private Builder(String domainId) {
+            this.domainId = domainId;
         }
 
         /** Multiplies the gain: {@code 1.5} is x1.5. Exclusive with {@link #bonus}. */
@@ -200,16 +205,16 @@ public final class Booster {
         /** @throws IllegalArgumentException when not exactly one of factor and bonus is set, or the multiplier would be negative */
         public Booster build() {
             if ((factor == null) == (bonus == null)) {
-                throw new IllegalArgumentException("The booster on " + variableId + " sets " + (factor == null ? "neither factor nor bonus"
+                throw new IllegalArgumentException("The booster on " + domainId + " sets " + (factor == null ? "neither factor nor bonus"
                         : "both factor and bonus") + ": set exactly one - factor(1.25) multiplies the gain, bonus(0.5) adds to its multiplier.");
             }
             BigDecimal multiplier = factor != null ? factor : BigDecimal.ONE.add(bonus);
             if (multiplier.signum() < 0) {
-                throw new IllegalArgumentException("The booster on " + variableId + " would multiply the gain by " + multiplier.toPlainString()
+                throw new IllegalArgumentException("The booster on " + domainId + " would multiply the gain by " + multiplier.toPlainString()
                         + ": a booster cannot turn a gain into a loss - a factor is at least 0, a bonus at least -1.");
             }
             Instant end = lasting != null ? ECClock.now().plus(lasting) : until;
-            return new Booster(null, variableId, owner, factor, bonus, end, season, origin);
+            return new Booster(null, domainId, owner, factor, bonus, end, season, origin);
         }
     }
 }

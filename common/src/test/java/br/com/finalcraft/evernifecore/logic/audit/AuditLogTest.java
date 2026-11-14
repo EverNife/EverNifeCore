@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.logic.audit;
 
 import br.com.finalcraft.evernifecore.booster.Booster;
+import br.com.finalcraft.evernifecore.booster.BoosterDomain;
 import br.com.finalcraft.evernifecore.economy.Currency;
 import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
 import br.com.finalcraft.evernifecore.logic.Gate;
@@ -149,7 +150,7 @@ class AuditLogTest {
         world.withCurrency(shop.getOwner(), gold);
         Contribution<Currency> vault = shop.contributions().define("vault", ProgressOwner.global(), CurrencyRequirement.of(gold, new BigDecimal(30)));
 
-        await(shop.boosters().grant(Booster.on("fakeshop:gold").factor(2).forOwner(ProgressOwner.player(alex.getUniqueId())).build()));
+        await(shop.boosters().grant(Booster.on(BoosterDomain.of(shop.getOwner(), "gold").register()).factor(2).forOwner(ProgressOwner.player(alex.getUniqueId())).build()));
         vault.deposit(shop.context(alex).build());
 
         List<AuditEntry> granted = query(log, new AuditQuery().kind(AuditKind.BOOSTER_GRANTED));

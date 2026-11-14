@@ -34,8 +34,9 @@ import java.util.stream.Collectors;
 
 /**
  * The stock cost and effect {@code money}: a cost takes an amount of a currency from the context owner's wallet (and
- * gives it back on a refund), never boosted; an effect gives it, multiplied by {@code ctx.getMultiplier(currency)}
- * unless {@code boosted: false}. Both resolve the currency when they run, so a currency registered later is found.
+ * gives it back on a refund); an effect gives it. Neither multiplies by a booster: a booster belongs to a plugin's
+ * domain, and whoever pays the gain applies it. Both resolve the currency when they run, so a currency registered later
+ * is found.
  */
 final class StockEconomy {
 
@@ -54,12 +55,10 @@ final class StockEconomy {
                 .factory(params -> new MoneyCost(params.getString("amount"), params.getString("currency")))
                 .build());
         Effects.registry().register(core, TypeDescriptor.<Effect>of("evernifecore:money")
-                .describe("Gives an amount of a currency to the owner's wallet, multiplied by the owner's boosters of that currency.")
+                .describe("Gives an amount of a currency to the owner's wallet.")
                 .param(ParamSpec.required("amount", ParamSpec.Kind.STRING, "The amount: a number, or a {variable}."))
                 .param(ParamSpec.optional("currency", ParamSpec.Kind.ID, DEFAULT_CURRENCY, "The currency, e.g. money or finaleconomy:gold."))
-                .param(ParamSpec.optional("boosted", ParamSpec.Kind.BOOLEAN, true, "Whether the boosters of the currency multiply it."))
-                .factory(params -> new MoneyEffect(params.getString("amount"), params.getString("currency"), params.getBoolean("boosted"),
-                        BigDecimal.ONE))
+                .factory(params -> new MoneyEffect(params.getString("amount"), params.getString("currency"), BigDecimal.ONE))
                 .build());
     }
 
@@ -192,13 +191,11 @@ final class StockEconomy {
     private static final class MoneyEffect implements Effect {
         private final String amount;
         private final String currencyId;
-        private final boolean boosted;
         private final BigDecimal share;
 
-        MoneyEffect(String amount, String currencyId, boolean boosted, BigDecimal share) {
+        MoneyEffect(String amount, String currencyId, BigDecimal share) {
             this.amount = amount;
             this.currencyId = currencyId;
-            this.boosted = boosted;
             this.share = share;
         }
 
@@ -210,7 +207,7 @@ final class StockEconomy {
         /**
          * A currency that is not registered, or a wallet that is missing or cannot move, is audited and logged, never
          * thrown: the other effects still apply, and a claim keeps the node pending. A
-         * {@code to:} that names no registered destination keeps the amount, already multiplied, as a pending delivery.
+         * {@code to:} that names no registered destination keeps the amount as a pending delivery.
          */
         @Override
         public void apply(ExecutionContext ctx) {
@@ -224,9 +221,6 @@ final class StockEconomy {
                     EverNifeCore.getLog().warning("[" + ctx.getCaller() + "] " + what + " was not given: " + missing(id));
                 }
                 return;
-            }
-            if (boosted) {
-                given = given.multiply(ctx.getMultiplier(currency.getId()));
             }
             String to = ctx.getAttribute(EffectModifiers.DESTINATION_ATTRIBUTE, String.class);
             if (to != null) {
@@ -269,12 +263,12 @@ final class StockEconomy {
 
         @Override
         public Effect withShare(BigDecimal newShare) {
-            return new MoneyEffect(amount, currencyId, boosted, share.multiply(newShare));
+            return new MoneyEffect(amount, currencyId, share.multiply(newShare));
         }
 
         @Override
         public String toString() {
-            return "money(" + amount + " " + currencyId + (boosted ? "" : ", not boosted")
+            return "money(" + amount + " " + currencyId
                     + (share.compareTo(BigDecimal.ONE) == 0 ? ")" : " x " + share + ")");
         }
     }

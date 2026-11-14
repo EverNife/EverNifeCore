@@ -56,13 +56,12 @@ public final class PendingDestination implements DeliveryDestination {
         return node;
     }
 
-    /** {@code {type: evernifecore:money, amount: <n>, currency: <id>, boosted: false}}: kept already multiplied, it is not boosted twice. */
+    /** {@code {type: evernifecore:money, amount: <n>, currency: <id>}}. */
     public static JsonNode moneyNode(Currency currency, BigDecimal amount) {
         ObjectNode node = JsonNodeFactory.instance.objectNode();
         node.put("type", "evernifecore:money");
         node.put("amount", amount.toPlainString());
         node.put("currency", currency.getId());
-        node.put("boosted", false);
         return node;
     }
 

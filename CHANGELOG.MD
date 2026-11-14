@@ -161,6 +161,30 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+#### Boosters
+
+- **A booster boosts a `BoosterDomain`, one gain of one plugin declared in code**:
+  `BoosterDomain.of(plugin, "win").join(BoosterJoin.sumBonus().cap(3), BoosterJoin.max()).permission("duels.booster.win", 2, 4).register()`,
+  id `<plugin>:<name>` (lowercase), gone with its plugin; registering the same id twice is refused. `Boosters.findDomain(id)` and
+  `Boosters.getDomains(plugin)` find them. `domain.resolve(ctx)` joins its boosters; `domain.resolve(uuid)` answers an offline
+  player with the boosters a `BoosterManager` granted (a permission booster counts online only). `Booster.on(BoosterDomain)`
+  replaces `Booster.on(String)`, `BoosterSource.boostersFor` receives the domain, `BoosterResult.getDomain()` replaces
+  `getVariableId()`, and `Boosters.declareJoin`/`getJoin`/`resolve(ctx, id)` gave way to the domain's builder and `resolve`.
+- **No booster crosses plugins**: the global permission `vip.booster.<gain>.<factor>` is gone; a domain that declares
+  `permission(prefix, factors...)` is boosted by `<prefix>.<factor>` (`duels.booster.win.2` or `.2.0`) for the factors
+  the plugin listed there (a prefix with none is refused by `register()`; a plugin that wants them configurable reads its
+  own config). `config.yml` `Boosters.permission-factors` is gone. `Boosters.join` is now keyed by domain id
+  (`duels:win: {strategy: max}`) and seeded empty; a key of a domain nobody registered is never read.
+- **`BoosterResult.applyToCount(base, CountRounding)`** boosts a count: `FLOOR`, `ROUND` (half up) or `CHANCE` (the
+  fraction is the chance of one more; an overload takes the random source). `apply(BigDecimal)` boosts an amount.
+- **The `money` effect no longer multiplies by anything** and lost its `boosted` param (a pending money delivery no longer
+  writes it): whoever pays a domain's gain applies its booster. `ExecutionContext.getMultiplier`, `Multipliers` and
+  `MultiplierProvider` are gone - a rank bonus is a `BoosterSource`.
+- **A shop sale is boosted only by the domains its offer names**: `Offer.Builder.boostedBy(BoosterDomain...)` (their
+  multipliers multiply; none by default, a BUY refuses it), instead of every price line by its currency's boosters.
+- The `boosters` region flag names a domain (`on=duels:win factor=1.5`); an entry that is not `<plugin>:<domain>` is
+  refused, one naming an undeclared domain boosts nothing. A `Booster` in a config writes `on: <plugin>:<domain>`.
+
 #### Screens
 
 - **`LayoutDiff` returns data and `/ecore screen diff` says it in the core's language**: `Entry.getDetail()` is

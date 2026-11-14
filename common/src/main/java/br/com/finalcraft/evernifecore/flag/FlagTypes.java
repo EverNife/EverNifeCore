@@ -86,8 +86,8 @@ public final class FlagTypes {
     public static final FlagType<List<EffectLevel>> EFFECT_LIST = listOf(EFFECT, ",");
 
     /**
-     * What a region boosts for whoever stands in it, typed {@code on=finaljobs:money factor=1.25, on=exp-points bonus=0.5};
-     * each entry names exactly one of {@code factor} and {@code bonus}.
+     * What a region boosts for whoever stands in it, typed {@code on=finaljobs:money factor=1.25, on=duels:win bonus=0.5};
+     * each entry names a booster domain ({@code <plugin>:<domain>}) and exactly one of {@code factor} and {@code bonus}.
      */
     public static final FlagType<List<BoosterEntry>> BOOSTERS = listOf(checked(jackson("booster", BoosterEntry.class), BoosterEntry::check), ",");
 

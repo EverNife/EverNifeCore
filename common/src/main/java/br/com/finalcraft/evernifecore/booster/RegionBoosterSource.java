@@ -17,7 +17,8 @@ import java.util.List;
 
 /**
  * {@code evernifecore:region}: the {@code boosters} flag where the player stands (and on the holders that follow
- * them), each {@link BoosterEntry} a booster of the player's gain while it resolves there.
+ * them), each {@link BoosterEntry} a booster of the domain its {@code on} names ({@code duels:win}) while it resolves there.
+ * An entry naming a domain nobody declared is asked by nobody, so it boosts nothing.
  */
 public final class RegionBoosterSource implements BoosterSource {
 
@@ -33,7 +34,7 @@ public final class RegionBoosterSource implements BoosterSource {
     }
 
     @Override
-    public Collection<Booster> boostersFor(ExecutionContext ctx, String variableId) {
+    public Collection<Booster> boostersFor(ExecutionContext ctx, BoosterDomain domain) {
         FPlayer player = ctx.getPlayer();
         if (player == null) {
             return Collections.emptyList();
@@ -44,10 +45,10 @@ public final class RegionBoosterSource implements BoosterSource {
         }
         List<Booster> boosters = new ArrayList<>();
         for (BoosterEntry entry : entries) {
-            if (entry.getOn() == null || !Boosters.normalize(entry.getOn()).equals(variableId)) {
+            if (entry.getOn() == null || !entry.getOn().trim().equalsIgnoreCase(domain.getId())) {
                 continue;
             }
-            Booster.Builder builder = Booster.on(entry.getOn()).forOwner(ProgressOwner.player(player.getUniqueId())).from(origin);
+            Booster.Builder builder = Booster.on(domain).forOwner(ProgressOwner.player(player.getUniqueId())).from(origin);
             boosters.add((entry.getFactor() != null ? builder.factor(BigDecimal.valueOf(entry.getFactor()))
                     : builder.bonus(BigDecimal.valueOf(entry.getBonus()))).build());
         }

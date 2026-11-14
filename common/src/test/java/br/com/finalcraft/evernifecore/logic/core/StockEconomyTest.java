@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.logic.core;
 
 import br.com.finalcraft.evernifecore.booster.Booster;
+import br.com.finalcraft.evernifecore.booster.BoosterDomain;
 import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
 import br.com.finalcraft.evernifecore.logic.Condition;
 import br.com.finalcraft.evernifecore.logic.ConditionResult;
@@ -34,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** The stock {@code money} cost and effect: the effect is boosted at the source of the gain, the cost never is. */
+/** The stock {@code money} cost and effect: neither multiplies by a booster - the domain's payer does. */
 class StockEconomyTest {
 
     @TempDir
@@ -83,13 +84,17 @@ class StockEconomyTest {
     }
 
     @Test
-    void theEffectIsMultipliedByTheGainsBoostersAndTheCostIsNot() {
-        shop.boosters().grant(Booster.on("fakeshop:gold").factor(2).forOwner(ProgressOwner.player(alex.getUniqueId())).build()).join();
+    void neitherTheEffectNorTheCostReadsABoosterOfADomainNamedAfterTheCurrency() {
+        BoosterDomain gold = BoosterDomain.of(shop.getOwner(), "gold").register();
+        shop.boosters().grant(Booster.on(gold).factor(2).forOwner(ProgressOwner.player(alex.getUniqueId())).build()).join();
         ExecutionContext ctx = shop.context(alex).build();
 
         effect("{'type': 'money', 'amount': 10, 'currency': 'fakeshop:gold'}").apply(ctx);
-        assertBalance("120");
-        effect("{'type': 'money', 'amount': 10, 'currency': 'fakeshop:gold', 'boosted': false}").apply(ctx);
+        assertBalance("110");
+        assertEquals(0, new BigDecimal(2).compareTo(gold.resolve(ctx).getMultiplier()), "the booster is there, nobody asked it");
+        assertFalse(Effects.registry().find("evernifecore:money").get().getParams().stream().anyMatch(param -> param.getName().equals("boosted")),
+                "the money effect has no boosted param");
+        effect("{'type': 'money', 'amount': 20, 'currency': 'fakeshop:gold'}").apply(ctx);
         assertBalance("130");
 
         Cost cost = cost("{'type': 'money', 'amount': 30, 'currency': 'fakeshop:gold'}");
@@ -120,7 +125,7 @@ class StockEconomyTest {
         assertTrue(cost.test(ctx).isPassed());
         assertTrue(cost.take(ctx));
         assertBalance("70");
-        effect("{'type': 'money', 'amount': 5, 'currency': 'fakeshop:{cur}', 'boosted': false}").apply(ctx);
+        effect("{'type': 'money', 'amount': 5, 'currency': 'fakeshop:{cur}'}").apply(ctx);
         assertBalance("75");
         assertTrue(cost.describe(ctx).toPlainText().contains("30"), cost.describe(ctx).toPlainText());
         assertTrue(String.valueOf(cost).contains("fakeshop:{cur}"), "toString keeps what was written: " + cost);

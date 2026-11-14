@@ -23,13 +23,12 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** The {@code boosters} flag where the player stands becomes boosters of the player's gain, and only of the gain it names. */
+/** The {@code boosters} flag where the player stands becomes boosters of the domain each entry names, and of no other. */
 @ECoreTest
 class RegionBoosterSourceTest {
 
@@ -41,6 +40,7 @@ class RegionBoosterSourceTest {
     private ECoreTestWorld world;
     private ECPluginData core;
     private RegionWorld regions;
+    private ECPluginData duels;
     private TestFPlayerSender alice;
 
     @BeforeEach
@@ -49,30 +49,38 @@ class RegionBoosterSourceTest {
         world = Platforms.lenient().onlinePlayers(Collections.<FPlayer>singletonList(alice)).install();
         core = Plugins.fakeCore(tempDir.resolve("core").toFile());
         CoreFlags.registerAll(core);
+        Boosters.addSource(core, new RegionBoosterSource(core));
         regions = RegionWorld.open("Farms", tempDir.resolve("farms"));
+        duels = Plugins.fakePluginData("Duels", tempDir.resolve("duels").toFile());
     }
 
     @AfterEach
     void close() {
+        Plugins.forget("Duels");
         FlagRegistry.get().unregisterAll(core);
+        Boosters.unregisterAll(core);
         Plugins.forget(Plugins.CORE);
         regions.close();
         world.close();
     }
 
     @Test
-    void eachEntryOfTheFlagWhereThePlayerStandsIsABoosterOfThatGain() {
+    void eachEntryOfTheFlagWhereThePlayerStandsBoostsTheDomainItNamesAndNoOther() {
+        BoosterDomain win = BoosterDomain.of(duels, "win").register();
+        BoosterDomain kill = BoosterDomain.of(duels, "kill").register();
+        BoosterDomain loss = BoosterDomain.of(duels, "loss").register();
         Region farm = regions.cuboid("farm", WORLD, 0, 0, 0, 10, 10, 10);
-        farm.setFlag(CoreFlags.BOOSTERS, Arrays.asList(BoosterEntry.factor("money", 1.5), BoosterEntry.bonus("exp-points", 0.5)));
-        RegionBoosterSource source = new RegionBoosterSource(core);
+        farm.setFlag(CoreFlags.BOOSTERS, Arrays.asList(BoosterEntry.factor("Duels:Win", 1.5), BoosterEntry.bonus("duels:kill", 0.5),
+                BoosterEntry.factor("ghost:money", 4)));
         ExecutionContext ctx = ExecutionContext.builder(Caller.of(core, "test")).player(alice).build();
 
-        Collection<Booster> money = source.boostersFor(ctx, "evernifecore:money");
-        assertEquals(1, money.size());
-        assertEquals(0, new BigDecimal("1.5").compareTo(money.iterator().next().getMultiplier()));
-        assertEquals(1, source.boostersFor(ctx, "evernifecore:exp-points").size());
+        BoosterResult boosted = win.resolve(ctx);
+        assertEquals(0, new BigDecimal("1.5").compareTo(boosted.getMultiplier()), boosted.toString());
+        assertEquals("duels:win", boosted.getParcels().get(0).getDomainId());
+        assertEquals(0, new BigDecimal("1.5").compareTo(kill.resolve(ctx).getMultiplier()));
+        assertEquals(0, BigDecimal.ONE.compareTo(loss.resolve(ctx).getMultiplier()), "no entry names duels:loss");
 
         alice.at(WORLD, 50, 5, 50);
-        assertTrue(source.boostersFor(ctx, "evernifecore:money").isEmpty(), "outside the region the flag no longer counts");
+        assertEquals(0, BigDecimal.ONE.compareTo(win.resolve(ctx).getMultiplier()), "outside the region the flag no longer counts");
     }
 }

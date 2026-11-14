@@ -40,7 +40,6 @@ class ExecutionContextTest {
 
     @AfterEach
     void tearDown() {
-        Multipliers.unregisterAll(shop.getOwner());
         shop.close();
         world.close();
     }
@@ -130,18 +129,6 @@ class ExecutionContextTest {
         assertEquals(Locale.CANADA, derived.getLocale());
         assertEquals("x", derived.getAttribute("screen", String.class));
         assertSame(ctx.getAudit(), derived.getAudit());
-    }
-
-    @Test
-    void getMultiplierIsTheProductOfTheRegisteredProvidersAndOneWithoutAny() {
-        ExecutionContext ctx = shop.context().build();
-        assertEquals(0, BigDecimal.ONE.compareTo(ctx.getMultiplier("money")));
-
-        Multipliers.register(shop.getOwner(), (context, variable) -> variable.equals("money") ? new BigDecimal("1.5") : BigDecimal.ONE);
-        Multipliers.register(shop.getOwner(), (context, variable) -> new BigDecimal("2"));
-
-        assertEquals(0, new BigDecimal("3").compareTo(ctx.getMultiplier("money")));
-        assertEquals(0, new BigDecimal("2").compareTo(ctx.getMultiplier("exp")));
     }
 
     @Test

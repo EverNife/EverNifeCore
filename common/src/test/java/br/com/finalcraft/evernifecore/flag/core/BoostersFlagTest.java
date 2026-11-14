@@ -65,7 +65,7 @@ class BoostersFlagTest {
     void theRegionsAndThePartysBoostersJoinByConcat() {
         Region farm = regions.cuboid("farm", WORLD, 0, 0, 0, 10, 10, 10);
         BoosterEntry money = BoosterEntry.factor("finaljobs:money", 1.25);
-        BoosterEntry exp = BoosterEntry.bonus("exp-points", 0.5);
+        BoosterEntry exp = BoosterEntry.bonus("duels:win", 0.5);
         farm.setFlag(CoreFlags.BOOSTERS, Collections.singletonList(money));
         regions.actorHolder("party", alice.getUniqueId()).setFlag(CoreFlags.BOOSTERS, Collections.singletonList(exp));
 
@@ -82,15 +82,18 @@ class BoostersFlagTest {
         assertTrue(typed.getMessage().contains("exactly one"), typed.getMessage());
 
         com.fasterxml.jackson.databind.node.ArrayNode stored = JsonNodeFactory.instance.arrayNode();
-        stored.addObject().put("on", "exp-points");
+        stored.addObject().put("on", "duels:win");
         FlagParseException neither = assertThrows(FlagParseException.class, () -> FlagTypes.BOOSTERS.fromJson(stored));
         assertTrue(neither.getMessage().contains("neither factor nor bonus"), neither.getMessage());
+
+        FlagParseException bare = assertThrows(FlagParseException.class, () -> FlagTypes.BOOSTERS.parse("on=money factor=2"));
+        assertTrue(bare.getMessage().contains("on=<plugin>:<domain>"), bare.getMessage());
     }
 
     @Test
     void theTypedFormReadsBackAsItIsShown() throws Exception {
-        List<BoosterEntry> typed = FlagTypes.BOOSTERS.parse("on=finaljobs:money factor=1.25, on=exp-points bonus=0.5");
-        assertEquals(Arrays.asList(BoosterEntry.factor("finaljobs:money", 1.25), BoosterEntry.bonus("exp-points", 0.5)), typed);
+        List<BoosterEntry> typed = FlagTypes.BOOSTERS.parse("on=finaljobs:money factor=1.25, on=duels:win bonus=0.5");
+        assertEquals(Arrays.asList(BoosterEntry.factor("finaljobs:money", 1.25), BoosterEntry.bonus("duels:win", 0.5)), typed);
         assertEquals(typed, FlagTypes.BOOSTERS.parse(FlagTypes.BOOSTERS.format(typed)));
         assertEquals(typed, FlagTypes.BOOSTERS.fromJson(FlagTypes.BOOSTERS.toJson(typed)));
     }

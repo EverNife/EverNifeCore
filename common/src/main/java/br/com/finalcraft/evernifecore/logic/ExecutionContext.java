@@ -111,11 +111,6 @@ public final class ExecutionContext {
         return variables;
     }
 
-    /** The product of every registered {@link MultiplierProvider}'s factor for {@code variableId}; {@code ONE} without one. */
-    public BigDecimal getMultiplier(String variableId) {
-        return Multipliers.of(this, variableId);
-    }
-
     /** The attribute under {@code key}; null when absent or of another type. */
     public <V> @Nullable V getAttribute(String key, Class<V> type) {
         Object value = attributes.get(key);

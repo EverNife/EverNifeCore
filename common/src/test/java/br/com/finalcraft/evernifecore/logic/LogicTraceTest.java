@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.logic;
 
 import br.com.finalcraft.evernifecore.api.events.player.ECPlayerQuitEvent;
+import br.com.finalcraft.evernifecore.booster.Booster;
+import br.com.finalcraft.evernifecore.booster.BoosterDomain;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.logic.LogicFixtures.JournalCost;
 import br.com.finalcraft.evernifecore.logic.LogicFixtures.RecordingEffect;
@@ -45,7 +47,6 @@ class LogicTraceTest {
 
     @AfterEach
     void tearDown() {
-        Multipliers.unregisterAll(shop.getOwner());
         shop.close();
         world.close();
     }
@@ -93,24 +94,15 @@ class LogicTraceTest {
     }
 
     @Test
-    void aTracePrintsEachMultiplierProviderAndItsFactor() {
+    void aTracePrintsEachBoosterOfADomainAndItsSource() {
         List<String> lines = shop.trace(alex);
-        Multipliers.register(shop.getOwner(), new MultiplierProvider() {
-            @Override
-            public BigDecimal getMultiplier(ExecutionContext ctx, String variableId) {
-                return new BigDecimal("2");
-            }
+        BoosterDomain xp = BoosterDomain.of(shop.getOwner(), "xp").register();
+        shop.boosters().grant(Booster.on(xp).factor(2).build()).join();
 
-            @Override
-            public String toString() {
-                return "double-xp";
-            }
-        });
-
-        BigDecimal factor = shop.context(alex).build().getMultiplier("exp-points");
+        BigDecimal factor = xp.resolve(shop.context(alex).build()).getMultiplier();
 
         assertEquals(0, new BigDecimal("2").compareTo(factor));
-        assertTrue(anyContains(lines, "multiplier exp-points: double-xp x2"), lines.toString());
+        assertTrue(anyContains(lines, "booster fakeshop:xp x2.0 for global (fakeshop:manager)"), lines.toString());
     }
 
     @Test

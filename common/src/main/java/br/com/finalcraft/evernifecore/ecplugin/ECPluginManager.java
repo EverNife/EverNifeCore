@@ -22,7 +22,6 @@ import br.com.finalcraft.evernifecore.group.Groups;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.locale.LocaleOverlay;
 import br.com.finalcraft.evernifecore.logic.CustomVariables;
-import br.com.finalcraft.evernifecore.logic.Multipliers;
 import br.com.finalcraft.evernifecore.logic.audit.AuditLog;
 import br.com.finalcraft.evernifecore.logic.delivery.DeliveryDestinations;
 import br.com.finalcraft.evernifecore.logic.value.Contributions;
@@ -236,8 +235,7 @@ public class ECPluginManager {
         step(plugin, "currencies", () -> Currencies.unregisterAll(plugin));
         step(plugin, "delivery destinations", () -> DeliveryDestinations.unregisterAll(plugin));
         step(plugin, "types", () -> TypeRegistries.unregisterAll(plugin));
-        step(plugin, "multipliers", () -> Multipliers.unregisterAll(plugin));
-        step(plugin, "booster sources", () -> Boosters.unregisterAll(plugin));
+        step(plugin, "booster sources and domains", () -> Boosters.unregisterAll(plugin));
         step(plugin, "event sources", () -> EventSource.unregisterAll(plugin));
         step(plugin, "event source watches", () -> EventSourceUsage.stopAll(plugin));
         step(plugin, "listeners", () -> ECListener.unregisterAll(plugin));

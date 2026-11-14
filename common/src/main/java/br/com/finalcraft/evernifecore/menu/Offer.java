@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.menu;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.booster.BoosterDomain;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.cooldown.Cooldowns;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
@@ -11,6 +12,9 @@ import br.com.finalcraft.evernifecore.region.RegionId;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
 import jakarta.annotation.Nullable;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -37,8 +41,10 @@ public final class Offer {
     private final NoSpacePolicy noSpacePolicy;
     private final @Nullable ItemSpec icon;
     private final @Nullable Function<FPlayer, ItemSpec> iconFor;
+    private final List<BoosterDomain> boostedBy;
 
     private Offer(Builder builder) {
+        this.boostedBy = Collections.unmodifiableList(new ArrayList<>(builder.boostedBy));
         this.icon = builder.icon;
         this.iconFor = builder.iconFor;
         this.type = builder.type;
@@ -144,6 +150,11 @@ public final class Offer {
         return own != null ? own : getIcon();
     }
 
+    /** The booster domains whose multiplier a sale pays; empty when the sale pays its price as it is. */
+    public List<BoosterDomain> getBoostedBy() {
+        return boostedBy;
+    }
+
     /** Whether the icon is asked per viewer ({@link Builder#icon(Function)}). */
     public boolean hasViewerIcon() {
         return iconFor != null;
@@ -169,6 +180,7 @@ public final class Offer {
         private NoSpacePolicy noSpacePolicy = NoSpacePolicy.DELIVER_LATER;
         private ItemSpec icon;
         private Function<FPlayer, ItemSpec> iconFor;
+        private final List<BoosterDomain> boostedBy = new ArrayList<>();
 
         private Builder(Type type, Goods goods, Price price) {
             this.type = type;
@@ -235,8 +247,23 @@ public final class Offer {
             return this;
         }
 
-        /** @throws IllegalArgumentException on a SELL whose price has a line that cannot be paid */
+        /**
+         * A sale pays its price times the player's multiplier of each of {@code domains} (their product): a job shop's
+         * {@code BoosterDomain} of its sales. Without it a sale pays the price as it is; a BUY takes none.
+         */
+        public Builder boostedBy(BoosterDomain... domains) {
+            for (BoosterDomain domain : domains) {
+                boostedBy.add(Objects.requireNonNull(domain, "domain"));
+            }
+            return this;
+        }
+
+        /** @throws IllegalArgumentException on a SELL whose price has a line that cannot be paid, or a BUY boosted by a domain */
         public Offer build() {
+            if (type == Type.BUY && !boostedBy.isEmpty()) {
+                throw new IllegalArgumentException("The BUY offer of " + goods + " is boosted by " + boostedBy + ". A booster multiplies what"
+                        + " the player gains, and a BUY charges them - move boostedBy to the SELL offer, or drop it.");
+            }
             if (type == Type.SELL) {
                 for (PriceLine line : price.getLines()) {
                     if (!line.canPay()) {

@@ -8,8 +8,8 @@ import java.util.Locale;
 import java.util.Objects;
 
 /**
- * How the boosters of one gain join into its multiplier, optionally capped. Declared by whoever declares the gain
- * ({@link Boosters#declareJoin}); {@code config.yml} may swap it within what the declaration accepts. Immutable.
+ * How the boosters of one domain join into its multiplier, optionally capped. Declared with the domain
+ * ({@link BoosterDomain.Builder#join}); {@code config.yml} may swap it within what the declaration accepts. Immutable.
  */
 public final class BoosterJoin {
 

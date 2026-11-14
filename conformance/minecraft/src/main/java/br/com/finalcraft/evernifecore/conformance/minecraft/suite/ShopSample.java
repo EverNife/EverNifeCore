@@ -11,8 +11,6 @@ import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.item.ItemMatcher;
-import br.com.finalcraft.evernifecore.logic.Caller;
-import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.logic.delivery.DeliveryDestinations;
 import br.com.finalcraft.evernifecore.menu.Goods;
@@ -83,7 +81,7 @@ final class ShopSample {
         return menu.getScreen().debounce(0);
     }
 
-    /** Left buys one (tokens 100 -> 90, a diamond more), right sells it back (+4 times the player's boosters, the diamond gone): two TransactionEvents. */
+    /** Left buys one (tokens 100 -> 90, a diamond more), right sells it back (+4, the diamond gone): two TransactionEvents. */
     static String exercise(ECPluginData plugin, FPlayer viewer, ScreenView view, List<String> problems) {
         check(problems, viewer.getName().equals(ScreenSuite.drawnName(view, VIEWER_ICON_SLOT)),
                 "the per-viewer offer drew " + ScreenSuite.drawnName(view, VIEWER_ICON_SLOT) + ", not its viewer's " + viewer.getName());
@@ -101,15 +99,13 @@ final class ShopSample {
             int soldDiamonds = diamonds(viewer);
             check(problems, afterBuy.compareTo(new BigDecimal("90")) == 0 && boughtDiamonds == before + 1,
                     "the left click left " + afterBuy + " tokens and " + boughtDiamonds + " diamonds (from 100 and " + before + ")");
-            //a sale pays what the player's boosters of the currency say: the bot is an operator, so permission boosters apply
-            BigDecimal boost = ExecutionContext.builder(Caller.of(plugin, "screen/shop")).player(viewer).build().getMultiplier(tokens.getId());
-            BigDecimal expectedAfterSell = afterBuy.add(new BigDecimal("4").multiply(boost));
+            //the sale declares no booster domain: it pays its price as it is
+            BigDecimal expectedAfterSell = afterBuy.add(new BigDecimal("4"));
             check(problems, afterSell.compareTo(expectedAfterSell) == 0 && soldDiamonds == before,
-                    "the right click left " + afterSell + " tokens and " + soldDiamonds + " diamonds (expected " + expectedAfterSell
-                            + ", the sale boosted x" + boost.toPlainString() + ")");
+                    "the right click left " + afterSell + " tokens and " + soldDiamonds + " diamonds (expected " + expectedAfterSell + ")");
             check(problems, seen.size() == 2, seen.size() + " TransactionEvent(s), 2 expected");
             return "tokens 100->" + afterBuy.toPlainString() + "->" + afterSell.toPlainString() + " diamonds " + before + "->" + boughtDiamonds
-                    + "->" + soldDiamonds + " sale-boost=x" + boost.stripTrailingZeros().toPlainString() + " events=" + seen.size();
+                    + "->" + soldDiamonds + " events=" + seen.size();
         } finally {
             listening.unsubscribe();
         }

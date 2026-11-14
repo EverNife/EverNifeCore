@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.menu;
 
+import br.com.finalcraft.evernifecore.booster.BoosterDomain;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.item.ItemMatcher;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
@@ -157,6 +158,29 @@ class TransactionsTest extends MenuTestWorlds {
         assertTrue(sold.isSuccess(), sold.toString());
         assertEquals(3, ores.getHeld());
         assertAmount("60", menus.balance(menus.coins(), alex));
+    }
+
+    @Test
+    void aSaleBoostedByADomainPaysItsMultiplierAndTheSameSaleWithoutPaysTheBase() {
+        TestFPlayerSender alex = menus.player("Alex", 0);
+        BoosterDomain sales = BoosterDomain.of(shop.getOwner(), "sales").permission("fakeshop.booster.sales", 2).register();
+        BoosterDomain other = BoosterDomain.of(shop.getOwner(), "other").permission("fakeshop.booster.other", 1.5).register();
+        alex.grant("fakeshop.booster.sales.2").grant("fakeshop.booster.other.1.5");
+        CountedGoods ores = Menus.counted("ore", 10);
+
+        TransactionResult boosted = Transactions.sell(menus.context(alex), menus.sell(ores, 30).boostedBy(sales).build(), 1);
+        assertTrue(boosted.isSuccess(), boosted.toString());
+        assertAmount("60", menus.balance(menus.coins(), alex));
+        assertAmount("60", boosted.getQuote().getTotal(menus.coins().getId()));
+
+        Transactions.sell(menus.context(alex), menus.sell(ores, 30).build(), 1);
+        assertAmount("90", menus.balance(menus.coins(), alex));
+
+        Transactions.sell(menus.context(alex), menus.sell(ores, 30).boostedBy(sales, other).build(), 1);
+        assertAmount("180", menus.balance(menus.coins(), alex));
+
+        IllegalArgumentException buy = assertThrows(IllegalArgumentException.class, () -> menus.buy(ores, 30).boostedBy(sales).build());
+        assertTrue(buy.getMessage().contains("move boostedBy to the SELL offer"), buy.getMessage());
     }
 
     @Test

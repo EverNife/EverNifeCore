@@ -329,7 +329,7 @@
         "category": null,
         "registered-by": "EverNifeCore",
         "aliases": [],
-        "description": "Gives an amount of a currency to the owner's wallet, multiplied by the owner's boosters of that currency.",
+        "description": "Gives an amount of a currency to the owner's wallet.",
         "platforms": [],
         "sources": [],
         "capabilities": [],
@@ -352,15 +352,6 @@
             "one-of": [],
             "nested": null,
             "description": "The currency, e.g. money or finaleconomy:gold."
-          },
-          {
-            "name": "boosted",
-            "kind": "BOOLEAN",
-            "required": false,
-            "default": true,
-            "one-of": [],
-            "nested": null,
-            "description": "Whether the boosters of the currency multiply it."
           }
         ]
       },

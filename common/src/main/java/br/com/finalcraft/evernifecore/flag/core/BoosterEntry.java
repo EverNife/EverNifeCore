@@ -5,8 +5,8 @@ import jakarta.annotation.Nullable;
 import java.util.Objects;
 
 /**
- * One entry of {@link BoostersFlag}: what it boosts ({@code on}, the booster engine's id of a gain, e.g.
- * {@code finaljobs:money}) and by how much - a {@code factor} that multiplies the gain, or a {@code bonus} added to the
+ * One entry of {@link BoostersFlag}: what it boosts ({@code on}, the id of a booster domain a plugin declared, e.g.
+ * {@code duels:win}) and by how much - a {@code factor} that multiplies the gain, or a {@code bonus} added to the
  * multiplier, exactly one of the two.
  */
 public final class BoosterEntry {
@@ -56,10 +56,19 @@ public final class BoosterEntry {
         this.bonus = bonus;
     }
 
-    /** @throws IllegalArgumentException when {@code on} is missing, or not exactly one of {@code factor} and {@code bonus} is set */
+    /**
+     * @throws IllegalArgumentException when {@code on} is missing or not {@code <plugin>:<domain>}, or not exactly one of
+     *                                  {@code factor} and {@code bonus} is set
+     */
     public void check() {
         if (on == null || on.trim().isEmpty()) {
-            throw new IllegalArgumentException("A booster names what it boosts: write on=<gain>, e.g. on=finaljobs:money factor=1.25.");
+            throw new IllegalArgumentException("A booster names the domain it boosts: write on=<plugin>:<domain>, e.g. on=duels:win factor=1.25.");
+        }
+        String id = on.trim();
+        int colon = id.indexOf(':');
+        if (colon <= 0 || colon == id.length() - 1 || id.indexOf(':', colon + 1) >= 0) {
+            throw new IllegalArgumentException("on=" + on + " names no booster domain: write on=<plugin>:<domain>, e.g. on=duels:win."
+                    + " A plugin's domains are listed by its export.");
         }
         if ((factor == null) == (bonus == null)) {
             throw new IllegalArgumentException("The booster on " + on + " writes " + (factor == null ? "neither factor nor bonus" : "both factor and bonus")

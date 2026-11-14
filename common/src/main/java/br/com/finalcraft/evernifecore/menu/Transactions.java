@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.menu;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.booster.BoosterDomain;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.economy.EcoResponse;
@@ -382,9 +383,13 @@ public final class Transactions {
             refundInReverse(ctx, offer.getGate().getCosts(), "the goods could not be taken");
             return TransactionResult.failed(TransactionResult.Failure.NO_ITEMS, offer, units, quote, FancyText.of(fewer.getMessage()));
         }
+        BigDecimal multiplier = BigDecimal.ONE;
+        for (BoosterDomain domain : offer.getBoostedBy()) {
+            multiplier = multiplier.multiply(domain.resolve(ctx).getMultiplier());
+        }
         List<PriceLine> paidLines = new ArrayList<>();
         for (PriceLine line : quote.getLines()) {
-            BigDecimal total = quote.getTotal(line.getId()).multiply(ctx.getMultiplier(line.getId()));
+            BigDecimal total = quote.getTotal(line.getId()).multiply(multiplier);
             quote.setTotal(line.getId(), total);
             EcoResponse response = line.pay(ctx, total);
             if (!response.isSuccess()) {
