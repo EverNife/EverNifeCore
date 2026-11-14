@@ -26,7 +26,6 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** The {@code boosters} flag where the player stands becomes boosters of the domain each entry names, and of no other. */
 @ECoreTest

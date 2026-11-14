@@ -1,7 +1,5 @@
 package br.com.finalcraft.evernifecore.booster;
 
-import br.com.finalcraft.evernifecore.config.ConfigFactory;
-import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.logic.ProgressOwner;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
@@ -14,10 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
@@ -49,7 +44,6 @@ class BoosterDomainTest {
 
     @AfterEach
     void close() {
-        Boosters.applySettings(Collections.<String, BoosterJoin>emptyMap());
         Plugins.forget("Jobs");
         duels.close();
         world.close();
@@ -102,26 +96,21 @@ class BoosterDomainTest {
     }
 
     @Test
-    void theBuildersJoinCountsAndTheConfigSwapsItOnlyForAnAcceptedOne() throws IOException {
-        BoosterDomain win = BoosterDomain.of(duels.getOwner(), "win").join(BoosterJoin.sumBonus(), BoosterJoin.max()).register();
-        BoosterDomain kill = BoosterDomain.of(duels.getOwner(), "kill").join(BoosterJoin.product().cap(new BigDecimal("2.5"))).register();
+    void theBuildersJoinIsTheOneTheDomainResolvesBy() {
+        BoosterDomain win = BoosterDomain.of(duels.getOwner(), "win").register();
+        BoosterDomain kill = BoosterDomain.of(duels.getOwner(), "kill").join(BoosterJoin.max()).register();
+        BoosterDomain streak = BoosterDomain.of(duels.getOwner(), "streak").join(BoosterJoin.product().cap(new BigDecimal("2.5"))).register();
         BoosterManager boosters = duels.boosters();
-        for (BoosterDomain domain : new BoosterDomain[]{win, kill}) {
+        for (BoosterDomain domain : new BoosterDomain[]{win, kill, streak}) {
             boosters.grant(Booster.on(domain).factor(2).forOwner(ProgressOwner.player(alex.getUniqueId())).build()).join();
             boosters.grant(Booster.on(domain).factor(1.5).build()).join();
         }
+
+        assertEquals(BoosterJoin.sumBonus(), win.getJoin(), "sum-bonus when the builder names none");
         assertMultiplier("2.5", multiplierOf(win));
-        assertMultiplier("2.5", multiplierOf(kill)); //product 3, capped
-
-        Files.write(tempDir.resolve("config.yml"), ("Boosters:\n  join:\n    duels:win:\n      strategy: max\n"
-                + "    duels:kill:\n      strategy: sum-bonus\n").getBytes(StandardCharsets.UTF_8));
-        ECSettings.loadBoosterSettings(ConfigFactory.open(tempDir.resolve("config.yml")));
-        assertEquals(BoosterJoin.max(), win.getJoin());
-        assertMultiplier("2", multiplierOf(win));
-        assertEquals(BoosterJoin.product().cap(new BigDecimal("2.5")), kill.getJoin(), "sum-bonus is not accepted: the declared join stays");
-
-        Boosters.applySettings(Collections.singletonMap("duels:win", BoosterJoin.product()));
-        assertEquals(BoosterJoin.sumBonus(), win.getJoin(), "product is not accepted either");
+        assertMultiplier("2", multiplierOf(kill));
+        assertMultiplier("2.5", multiplierOf(streak)); //product 3, capped
+        assertEquals(BoosterJoin.max(), kill.resolve(duels.context(alex).build()).getJoin());
     }
 
     @Test

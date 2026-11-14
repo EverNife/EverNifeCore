@@ -49,7 +49,6 @@ class BoostersTest {
 
     @AfterEach
     void close() {
-        Boosters.applySettings(Collections.<String, BoosterJoin>emptyMap());
         shop.close();
         world.close();
     }

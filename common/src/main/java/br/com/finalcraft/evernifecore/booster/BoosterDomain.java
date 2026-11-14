@@ -12,11 +12,9 @@ import jakarta.annotation.Nullable;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -31,7 +29,6 @@ public final class BoosterDomain {
     private final String name;
     private final String id;
     private final BoosterJoin join;
-    private final Set<BoosterJoin.Strategy> accepted;
     private final @Nullable String permissionPrefix;
     private final List<BigDecimal> permissionFactors;
     private final Caller caller;
@@ -41,7 +38,6 @@ public final class BoosterDomain {
         this.name = builder.name;
         this.id = builder.owner.getMetaInfo().getName().toLowerCase(Locale.ROOT) + ":" + builder.name;
         this.join = builder.join;
-        this.accepted = Collections.unmodifiableSet(builder.accepted);
         this.permissionPrefix = builder.permissionPrefix;
         List<BigDecimal> factors = new ArrayList<>(builder.permissionFactors);
         Collections.sort(factors);
@@ -72,19 +68,9 @@ public final class BoosterDomain {
         return owner;
     }
 
-    /** The join the plugin declared; {@link #getJoin()} is the one in use. */
-    public BoosterJoin getDefaultJoin() {
-        return join;
-    }
-
-    /** The strategies {@code config.yml} {@code Boosters.join.<id>} may swap the declared join for; the declared one included. */
-    public Set<BoosterJoin.Strategy> getAcceptedStrategies() {
-        return accepted;
-    }
-
-    /** The configured join when the declaration accepts it, else the declared one. */
+    /** How its boosters join, as the plugin declared it. */
     public BoosterJoin getJoin() {
-        return Boosters.getJoin(this);
+        return join;
     }
 
     /** {@code duels.booster.win}: {@code <prefix>.<factor>} boosts this domain; null when no permission does. */
@@ -128,7 +114,6 @@ public final class BoosterDomain {
         private final ECPluginData owner;
         private final String name;
         private BoosterJoin join = BoosterJoin.sumBonus();
-        private final Set<BoosterJoin.Strategy> accepted = EnumSet.of(BoosterJoin.Strategy.SUM_BONUS);
         private @Nullable String permissionPrefix;
         private final List<BigDecimal> permissionFactors = new ArrayList<>();
 
@@ -138,16 +123,11 @@ public final class BoosterDomain {
         }
 
         /**
-         * How the boosters join (default {@link BoosterJoin#sumBonus()}), and which other strategies {@code config.yml}
-         * ({@code Boosters.join.<id>}) may swap it for.
+         * How the boosters join; default {@link BoosterJoin#sumBonus()}. The core keeps no setting of its own for it: a
+         * plugin that wants it configurable reads its own config and passes the join here.
          */
-        public Builder join(BoosterJoin defaultJoin, BoosterJoin... accepted) {
-            this.join = Objects.requireNonNull(defaultJoin, "defaultJoin");
-            this.accepted.clear();
-            this.accepted.add(defaultJoin.getStrategy());
-            for (BoosterJoin other : accepted) {
-                this.accepted.add(other.getStrategy());
-            }
+        public Builder join(BoosterJoin join) {
+            this.join = Objects.requireNonNull(join, "join");
             return this;
         }
 

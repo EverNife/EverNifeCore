@@ -1,8 +1,6 @@
 package br.com.finalcraft.evernifecore.config.settings;
 
 import br.com.finalcraft.evernifecore.action.EventSourceUsage;
-import br.com.finalcraft.evernifecore.booster.BoosterJoin;
-import br.com.finalcraft.evernifecore.booster.Boosters;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpWords;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
 import br.com.finalcraft.evernifecore.cooldown.CooldownRetention;
@@ -18,7 +16,6 @@ import br.com.finalcraft.evernifecore.waypoint.Waypoints;
 import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.everylibs.util.FCTimeUtil;
 
-import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -203,7 +200,6 @@ public class ECSettings {
         loadProvenanceSettings(ConfigManager.getMainConfig());
         loadNotifySettings(ConfigManager.getMainConfig());
         loadWaypointSettings(ConfigManager.getMainConfig());
-        loadBoosterSettings(ConfigManager.getMainConfig());
 
         if (ConfigManager.getMainConfig().hasNewSeededDefaults()){
             ConfigManager.getMainConfig().save();
@@ -388,32 +384,6 @@ public class ECSettings {
         WAYPOINT_CHANNELS = Collections.unmodifiableList(new ArrayList<>(channels));
         WAYPOINT_REFRESH_TICKS = Math.max(1, refreshTicks);
         WAYPOINT_PARTICLE_PATH_LENGTH = Math.max(1, pathLength);
-    }
-
-    /**
-     * Reads {@code Boosters.join} of {@code config}, seeding it when absent, and hands it to {@link Boosters}.
-     *
-     * @throws IllegalArgumentException when a join names no strategy
-     */
-    public static void loadBoosterSettings(Config config){
-        config.getOrSetValueIfAbsent("Boosters.join", new LinkedHashMap<String, Object>(),
-                "How the boosters of a plugin's domain join, keyed by the domain id: duels:win: {strategy: max, cap: 3.0}." +
-                        "\nsum-bonus (1 + every bonus), max (the largest alone) or product (every factor multiplied), optionally" +
-                        "\ncapped. Only within what the plugin of the domain accepts; outside it, a warning names what it accepts" +
-                        "\nand its own choice stays. A plugin lists its domains in its export.");
-        Map<String, BoosterJoin> joins = new LinkedHashMap<>();
-        for (String gain : config.getKeys("Boosters.join")) {
-            String path = "Boosters.join." + gain;
-            BoosterJoin join;
-            try {
-                join = BoosterJoin.parse(String.valueOf(config.getValue(path + ".strategy")));
-            } catch (IllegalArgumentException invalid) {
-                throw new IllegalArgumentException(path + ".strategy: " + invalid.getMessage());
-            }
-            Object cap = config.getValue(path + ".cap");
-            joins.put(gain, cap == null ? join : join.cap(new BigDecimal(String.valueOf(cap).trim())));
-        }
-        Boosters.applySettings(joins);
     }
 
     private static NotifyChain readChain(Config config, String key, NotifyKind kind, String comment){

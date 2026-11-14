@@ -10,18 +10,14 @@ import br.com.finalcraft.evernifecore.logic.ProgressOwners;
 import br.com.finalcraft.evernifecore.logic.audit.LogicTrace;
 import br.com.finalcraft.evernifecore.time.ECClock;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -34,8 +30,6 @@ public final class Boosters {
 
     private static final List<Registered> SOURCES = new CopyOnWriteArrayList<>();
     private static final Map<String, BoosterDomain> DOMAINS = new ConcurrentHashMap<>();
-    private static final Set<String> WARNED = ConcurrentHashMap.newKeySet();
-    private static volatile Map<String, BoosterJoin> configured = Collections.emptyMap();
 
     private Boosters() {
     }
@@ -96,30 +90,6 @@ public final class Boosters {
         return owned;
     }
 
-    /**
-     * The join {@code domain} uses now: the one {@code config.yml} {@code Boosters.join.<id>} names when the domain
-     * accepts it, else the declared one. A key of a domain nobody registered is never read, so it warns nobody.
-     */
-    static BoosterJoin getJoin(BoosterDomain domain) {
-        BoosterJoin wanted = configured.get(domain.getId());
-        if (wanted == null) {
-            return domain.getDefaultJoin();
-        }
-        if (domain.getAcceptedStrategies().contains(wanted.getStrategy())) {
-            return wanted;
-        }
-        if (WARNED.add(domain.getId() + "=" + wanted)) {
-            List<String> names = new ArrayList<>();
-            for (BoosterJoin.Strategy strategy : domain.getAcceptedStrategies()) {
-                names.add(strategy.name().toLowerCase(Locale.ROOT).replace('_', '-'));
-            }
-            EverNifeCore.getLog().warning("config.yml Boosters.join." + domain.getId() + " asks for " + wanted + ", but "
-                    + domain.getOwner().getMetaInfo().getName() + " lets the boosters of " + domain.getId() + " join only by "
-                    + String.join(", ", names) + ": keeping " + domain.getDefaultJoin() + ". Write one of those strategies there.");
-        }
-        return domain.getDefaultJoin();
-    }
-
     /** Every source's active boosters of {@code domain} in {@code ctx}, joined, each parcel traced; a source that throws is skipped with a warning. */
     static BoosterResult resolve(ExecutionContext ctx, BoosterDomain domain) {
         Instant now = ECClock.now();
@@ -140,7 +110,7 @@ public final class Boosters {
                 }
             }
         }
-        BoosterJoin join = getJoin(domain);
+        BoosterJoin join = domain.getJoin();
         return new BoosterResult(domain, join.join(parcels), parcels, join);
     }
 
@@ -181,16 +151,6 @@ public final class Boosters {
                     + " A plugin's domains are listed by its export.");
         }
         return id;
-    }
-
-    /** Applies {@code Boosters.join} of the core's {@code config.yml}, keyed by domain id ({@code duels:win}). */
-    public static void applySettings(Map<String, BoosterJoin> joins) {
-        Map<String, BoosterJoin> normalized = new LinkedHashMap<>();
-        for (Map.Entry<String, BoosterJoin> entry : joins.entrySet()) {
-            normalized.put(entry.getKey().trim().toLowerCase(Locale.ROOT), entry.getValue());
-        }
-        configured = Collections.unmodifiableMap(normalized);
-        WARNED.clear();
     }
 
     private static final class Registered {
