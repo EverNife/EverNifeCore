@@ -1,10 +1,14 @@
 package br.com.finalcraft.evernifecore.logic.reward.command;
 
+import br.com.finalcraft.evernifecore.booster.Booster;
+import br.com.finalcraft.evernifecore.booster.BoosterDomain;
+import br.com.finalcraft.evernifecore.booster.BoosterJoin;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.economy.Currencies;
 import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
+import br.com.finalcraft.evernifecore.logic.ProgressOwner;
 import br.com.finalcraft.evernifecore.logic.reward.RewardOccasion;
 import br.com.finalcraft.evernifecore.logic.reward.RewardPaidEvent;
 import br.com.finalcraft.evernifecore.testing.Commands;
@@ -73,6 +77,16 @@ class RewardCommandNodeTest {
         final RewardCommandNode rewards;
 
         Arena_Cmd(RewardCommandNode rewards) {
+            this.rewards = rewards;
+        }
+    }
+
+    @FinalCMD(aliases = "duel")
+    public static class Duel_Cmd {
+        @FinalCMD.Node(subcmd = "rewards", permission = "fakeduels.rewards")
+        final RewardCommandNode rewards;
+
+        Duel_Cmd(RewardCommandNode rewards) {
             this.rewards = rewards;
         }
     }
@@ -181,14 +195,44 @@ class RewardCommandNodeTest {
         List<String> said = plain(admin.getMessages());
         assertTrue(said.get(0).contains("stage-won") && said.get(0).contains("stage 5") && said.get(0).contains("key 5"), said.toString());
         assertTrue(said.contains(" #1 pool: 3 member(s)"), said.toString());
-        assertTrue(said.contains("    Ana: share 0.5294117647, amount 1058.8235294, online"), said.toString());
-        assertTrue(said.contains("    Duda: share 0.1176470588, amount 235.2941176, delivered"), said.toString());
+        assertTrue(said.contains("    Ana: share 0.5294117647, amount 1058.8235294 × 1 = 1058.8235294, online"), said.toString());
+        assertTrue(said.contains("    Duda: share 0.1176470588, amount 235.2941176 × 1 = 235.2941176, delivered"), said.toString());
         assertTrue(said.contains(" #3 dead: 1 member(s)"), said.toString());
         assertTrue(said.contains(" #4 broadcast: once, from the console"), said.toString());
 
         ana.assertNoMessageSent();
         assertTrue(raid.deliveries().listOf(duda).get(5, TimeUnit.SECONDS).isEmpty(), "no delivery kept");
         assertTrue(raid.recorded(RewardPaidEvent.class).isEmpty(), "no RewardPaidEvent");
+    }
+
+    @Test
+    void simulateShowsTheBaseTimesTheMultiplierOfABoostedParticipant() throws Exception {
+        try (Duels duels = new Duels()) {
+            ana.grant("fakeduels.booster.win.2");
+            duels.world.boosters().grant(Booster.on(duels.win).bonus(0.5).forOwner(ProgressOwner.player(ana.getUniqueId())).build())
+                    .get(5, TimeUnit.SECONDS);
+
+            harness.dispatch(duels.cmd, duels.admin, "rewards simulate duel-won 1");
+
+            List<String> said = plain(duels.admin.getMessages());
+            assertTrue(said.contains("    Ana: share 1, amount 500 × 2.5 = 1250, online"), said.toString());
+            assertBalanceUntouched();
+        }
+    }
+
+    @Test
+    void theExportListsThePluginsDomainsAndWhichBoostEachOccasion() throws IOException {
+        try (Duels duels = new Duels()) {
+            harness.dispatch(duels.cmd, duels.admin, "rewards export");
+
+            JsonNode export = read(tempDir.resolve("duels").resolve("export").resolve("rewards.json").toFile());
+            JsonNode win = byId(export.path("domains"), "fakeduels:win");
+            assertEquals("sum-bonus cap 3", win.path("join").asText());
+            assertEquals("fakeduels.booster.win", win.path("permission-prefix").asText());
+            assertEquals(2, win.path("permission-factors").get(0).asInt());
+            assertEquals("[\"fakeduels:win\"]", byId(export.path("occasions"), "duel-won").path("boosted-by").toString());
+            assertTrue(export.path("always-accepted").toString().contains("\"base-amount\""));
+        }
     }
 
     @Test
@@ -211,6 +255,42 @@ class RewardCommandNodeTest {
     }
 
     // ------------------------------------------------------------------
+
+    /** A duel plugin whose win is boosted by its domain {@code fakeduels:win}, its node mounted under {@code /duel}. */
+    private final class Duels implements AutoCloseable {
+        final LogicWorld world = LogicWorld.open("FakeDuels", tempDir.resolve("duels"));
+        final BoosterDomain win = BoosterDomain.of(world.getOwner(), "win").join(BoosterJoin.sumBonus().cap(new BigDecimal(3)))
+                .permission("fakeduels.booster.win", 2).register();
+        final TestCommandSender admin = Senders.console("duel-admin").grant("fakeduels.rewards");
+        final FinalCMDPluginCommand cmd;
+
+        Duels() {
+            RewardOccasion duelWon = RewardOccasion.builder(world.getOwner(), "duel-won").phase("round")
+                    .sample(scene -> scene.participant(ana.getUniqueId(), "Ana", BigDecimal.ONE))
+                    .build();
+            JsonNode rewards = json("{'1': [{'effects': [{'type': 'money', 'amount': 500, 'currency': 'fakeraid:gold'}]}]}");
+            cmd = harness.register(new Duel_Cmd(new RewardCommandNode(world.getOwner()).occasion(duelWon, () -> rewards, win)));
+        }
+
+        @Override
+        public void close() {
+            world.close();
+        }
+    }
+
+    private void assertBalanceUntouched() {
+        assertEquals(0, BigDecimal.ZERO.compareTo(Currencies.find("fakeraid:gold").get().getBalance(CurrencyOwner.player(ana.getUniqueId()))),
+                "simulate pays nothing");
+    }
+
+    private static JsonNode byId(JsonNode array, String id) {
+        for (JsonNode each : array) {
+            if (id.equals(each.path("id").asText())) {
+                return each;
+            }
+        }
+        throw new AssertionError("no " + id + " in " + array);
+    }
 
     private static List<String> plain(List<String> messages) {
         List<String> plain = new ArrayList<>();

@@ -26,11 +26,11 @@ public final class RewardOccasion {
 
     /**
      * What every reward text reads, whatever the occasion: {@code ExecutionContext.resolve} answers the first four, and a
-     * member's payment writes {@code {amount}} (what the step's effects with an amount give it) and {@code {share}} (its
-     * part, 0-1).
+     * member's payment writes {@code {amount}} (what the step's effects with an amount give it, boosters included),
+     * {@code {base-amount}} (the same before boosters) and {@code {share}} (its part, 0-1).
      */
     public static final List<String> ALWAYS_ACCEPTED = Collections.unmodifiableList(Arrays.asList("player", "player-uuid", "owner", "caller",
-            "amount", "share"));
+            "amount", "base-amount", "share"));
 
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{([A-Za-z0-9_.:-]+)}");
 

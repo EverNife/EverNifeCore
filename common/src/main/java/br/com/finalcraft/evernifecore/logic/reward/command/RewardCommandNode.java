@@ -2,6 +2,8 @@ package br.com.finalcraft.evernifecore.logic.reward.command;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
+import br.com.finalcraft.evernifecore.booster.BoosterDomain;
+import br.com.finalcraft.evernifecore.booster.Boosters;
 import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.NodeVerbAccess;
 import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.VerbPermissionBase;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
@@ -45,6 +47,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -59,11 +62,11 @@ import java.util.stream.Collectors;
  * <pre>{@code
  * @FinalCMD.Node(subcmd = {"rewards"}, permission = "raid.rewards")
  * private final RewardCommandNode rewards = new RewardCommandNode(ecPluginData, "raid.rewards")
- *         .occasion(STAGE_WON, () -> config.getNode("Rewards.stage-won"));
+ *         .occasion(STAGE_WON, () -> config.getNode("Rewards.stage-won"), WIN);
  * }</pre>
- * {@code export} writes {@code <data folder>/export/rewards.json} - every type a reward can use, this node's occasions
- * and their current config - for the reward editor; {@code simulate <occasion> <phase>} previews the table of that
- * phase on the occasion's sample scene and applies nothing. The node sees only what the plugin handed it. The mount's
+ * {@code export} writes {@code <data folder>/export/rewards.json} - every type a reward can use, the plugin's booster
+ * domains, this node's occasions and their current config - for the reward editor; {@code simulate <occasion> <phase>}
+ * previews the table of that phase on the occasion's sample scene, boosted as the plugin pays it, and applies nothing. The node sees only what the plugin handed it. The mount's
  * permission is the door; a {@code permissionBase} adds {@code <base>.<verb>} per verb. Runs on the dispatching thread.
  */
 public final class RewardCommandNode implements VerbPermissionBase {
@@ -111,8 +114,8 @@ public final class RewardCommandNode implements VerbPermissionBase {
     @FCLocale(lang = LocaleType.PT_BR, text = "§7 #${index} §f${step}§7: não paga neste momento")
     public static LocaleMessage STEP_NOT_NOW;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§7    ${player}: share §f${share}§7, amount §f${amount}§7, ${status}")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§7    ${player}: parte §f${share}§7, quantia §f${amount}§7, ${status}")
+    @FCLocale(lang = LocaleType.EN_US, text = "§7    ${player}: share §f${share}§7, amount §f${base_amount} × ${multiplier} = ${amount}§7, ${status}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7    ${player}: parte §f${share}§7, quantia §f${base_amount} × ${multiplier} = ${amount}§7, ${status}")
     public static LocaleMessage LINE;
 
     private final ECPluginData plugin;
@@ -132,10 +135,12 @@ public final class RewardCommandNode implements VerbPermissionBase {
     /**
      * Adds an occasion of this node's plugin and where its rewards are read from: a map of phase keys, as
      * {@link PhasedRewardTable#parse} reads it, asked again on every verb so an edited and reloaded file is what shows.
+     * {@code boostedBy} are the domains the plugin's payment of it names ({@link RewardContext.Builder#boostedBy}), so
+     * {@code simulate} multiplies as the payment does.
      *
      * @throws IllegalArgumentException when the occasion is another plugin's, or its id is already added
      */
-    public synchronized RewardCommandNode occasion(RewardOccasion occasion, Supplier<JsonNode> rewards) {
+    public synchronized RewardCommandNode occasion(RewardOccasion occasion, Supplier<JsonNode> rewards, BoosterDomain... boostedBy) {
         if (occasion.getPlugin() != plugin) {
             throw new IllegalArgumentException("The occasion '" + occasion.getId() + "' belongs to " + occasion.getPlugin().getMetaInfo().getName()
                     + ", and this node to " + pluginName() + ": a node shows only its own plugin's occasions. Mount a node in "
@@ -144,7 +149,10 @@ public final class RewardCommandNode implements VerbPermissionBase {
         if (occasions.containsKey(occasion.getId())) {
             throw new IllegalArgumentException("The occasion '" + occasion.getId() + "' is already on this node - add each occasion once.");
         }
-        occasions.put(occasion.getId(), new Mounted(occasion, Objects.requireNonNull(rewards, "rewards")));
+        for (BoosterDomain domain : boostedBy) {
+            Objects.requireNonNull(domain, "domain");
+        }
+        occasions.put(occasion.getId(), new Mounted(occasion, Objects.requireNonNull(rewards, "rewards"), Arrays.asList(boostedBy)));
         return this;
     }
 
@@ -213,7 +221,7 @@ public final class RewardCommandNode implements VerbPermissionBase {
                 return;
             }
             receipt = table.getTable(phase).preview(RewardContext.builder(Caller.of(plugin, "rewards simulate " + occasion.getId()),
-                    ProgressOwner.global()).scene(sample).build());
+                    ProgressOwner.global()).scene(sample).boostedBy(mounted.boostedBy.toArray(new BoosterDomain[0])).build());
         } catch (TypeRegistryException | IllegalArgumentException refused) {
             UNREADABLE.addPlaceholder("occasion", occasion.getId()).addPlaceholder("reason", refused.getMessage()).send(sender);
             return;
@@ -235,7 +243,8 @@ public final class RewardCommandNode implements VerbPermissionBase {
                 for (RewardReceipt.Line line : step.getLines()) {
                     RewardScene.Participant participant = sample.getParticipant(line.getMember());
                     LINE.addPlaceholder("player", participant == null ? line.getMember().toString() : participant.getName())
-                            .addPlaceholder("share", plain(line.getShare())).addPlaceholder("amount", plain(line.getAmount()))
+                            .addPlaceholder("share", plain(line.getShare())).addPlaceholder("base_amount", plain(line.getBaseAmount()))
+                            .addPlaceholder("multiplier", plain(line.getMultiplier())).addPlaceholder("amount", plain(line.getAmount()))
                             .addPlaceholder("status", line.getStatus().name().toLowerCase(Locale.ROOT)).send(sender);
                 }
             }
@@ -251,8 +260,9 @@ public final class RewardCommandNode implements VerbPermissionBase {
      * registered {@code effect}, {@code condition} and {@code variable}, and each reward piece under its role, as
      * {@link TypeReference#toJson(TypeRegistry, TypeDescriptor)} writes one), {@code effect-modifiers} (the keys every
      * effect takes, as {@link TypeReference#toJson(ParamSpec)}), {@code always-accepted} (the {@code {variables}} every
-     * reward text reads) and {@code occasions} (this node's, each with its marks, variables, phase, sample scene and
-     * current {@code rewards} config). The wiki's Rewards page is the contract, field by field.
+     * reward text reads), {@code domains} (the plugin's registered {@link BoosterDomain}s: id, join, permission prefix and
+     * factors) and {@code occasions} (this node's, each with its marks, variables, phase, sample scene, the ids of the
+     * domains that boost it and current {@code rewards} config). The wiki's Rewards page is the contract, field by field.
      *
      * @throws RuntimeException as an occasion's rewards supplier does
      */
@@ -279,6 +289,16 @@ public final class RewardCommandNode implements VerbPermissionBase {
         }
         ArrayNode always = export.putArray("always-accepted");
         RewardOccasion.ALWAYS_ACCEPTED.forEach(always::add);
+        ArrayNode domains = export.putArray("domains");
+        for (BoosterDomain domain : Boosters.getDomains(plugin)) {
+            ObjectNode one = domains.addObject();
+            one.put("id", domain.getId());
+            one.put("join", domain.getJoin().toString());
+            one.put("permission-prefix", domain.getPermissionPrefix());
+            ArrayNode factors = one.putArray("permission-factors");
+            //2, not 2.0: the number a JSON reader writes back, so the editor's copy compares equal
+            domain.getPermissionFactors().forEach(factor -> factors.add(new BigDecimal(factor.stripTrailingZeros().toPlainString())));
+        }
         ArrayNode list = export.putArray("occasions");
         List<Mounted> mounted;
         synchronized (this) {
@@ -325,6 +345,8 @@ public final class RewardCommandNode implements VerbPermissionBase {
         }
         ObjectNode sampleVariables = sample.putObject("variables");
         occasion.getSample().getVariables().forEach(sampleVariables::put);
+        ArrayNode boostedBy = json.putArray("boosted-by");
+        mounted.boostedBy.forEach(domain -> boostedBy.add(domain.getId()));
         JsonNode rewards = mounted.rewards.get();
         json.set("rewards", rewards == null ? JsonNodeFactory.instance.nullNode() : rewards.deepCopy());
         return json;
@@ -346,10 +368,12 @@ public final class RewardCommandNode implements VerbPermissionBase {
     private static final class Mounted {
         private final RewardOccasion occasion;
         private final Supplier<JsonNode> rewards;
+        private final List<BoosterDomain> boostedBy;
 
-        Mounted(RewardOccasion occasion, Supplier<JsonNode> rewards) {
+        Mounted(RewardOccasion occasion, Supplier<JsonNode> rewards, List<BoosterDomain> boostedBy) {
             this.occasion = occasion;
             this.rewards = rewards;
+            this.boostedBy = boostedBy;
         }
     }
 

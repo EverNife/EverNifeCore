@@ -1,13 +1,16 @@
 package br.com.finalcraft.evernifecore.logic.reward;
 
+import br.com.finalcraft.evernifecore.booster.BoosterDomain;
 import br.com.finalcraft.evernifecore.logic.Caller;
 import br.com.finalcraft.evernifecore.logic.ProgressOwner;
 import jakarta.annotation.Nullable;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -27,6 +30,7 @@ public final class RewardContext {
     private final @Nullable UUID lastActor;
     private final Map<String, Object> attributes;
     private final @Nullable RewardScene scene;
+    private final List<BoosterDomain> boostedBy;
 
     private RewardContext(Builder builder) {
         this.caller = builder.caller;
@@ -40,6 +44,7 @@ public final class RewardContext {
         this.contributions = Collections.unmodifiableMap(new LinkedHashMap<>(scene != null ? scene.getContributions() : builder.contributions));
         this.lastActor = builder.lastActor;
         this.attributes = Collections.unmodifiableMap(new HashMap<>(builder.attributes));
+        this.boostedBy = Collections.unmodifiableList(new ArrayList<>(builder.boostedBy));
     }
 
     public static Builder builder(Caller caller, ProgressOwner owner) {
@@ -89,6 +94,11 @@ public final class RewardContext {
         return scene;
     }
 
+    /** The domains whose boosters multiply this payment's amounts; empty = nothing multiplies. Read-only. */
+    public List<BoosterDomain> getBoostedBy() {
+        return boostedBy;
+    }
+
     @Override
     public String toString() {
         return "RewardContext{" + caller + " for " + owner + " at " + trigger + "}";
@@ -102,6 +112,7 @@ public final class RewardContext {
         private @Nullable UUID lastActor;
         private final Map<String, Object> attributes = new HashMap<>();
         private @Nullable RewardScene scene;
+        private final List<BoosterDomain> boostedBy = new ArrayList<>();
 
         private Builder(Caller caller, ProgressOwner owner) {
             this.caller = Objects.requireNonNull(caller, "caller");
@@ -143,6 +154,18 @@ public final class RewardContext {
          */
         public Builder scene(@Nullable RewardScene scene) {
             this.scene = scene;
+            return this;
+        }
+
+        /**
+         * Each member's {@code {amount}} is its {@code {base-amount}} times its multiplier of each of {@code domains} (their
+         * product), resolved once per member and step when the receipt is settled and frozen there: the {@code money}
+         * effect pays that number, a pending delivery keeps it. Without it nothing multiplies.
+         */
+        public Builder boostedBy(BoosterDomain... domains) {
+            for (BoosterDomain domain : domains) {
+                boostedBy.add(Objects.requireNonNull(domain, "domain"));
+            }
             return this;
         }
 

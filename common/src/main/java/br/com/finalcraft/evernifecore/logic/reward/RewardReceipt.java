@@ -49,7 +49,7 @@ public final class RewardReceipt {
         return steps.get(index);
     }
 
-    /** What every step paid {@code member} ({@link Status#isPaid() paid} lines only); ZERO when nothing. */
+    /** What every step paid {@code member} ({@link Status#isPaid() paid} lines only), boosters included; ZERO when nothing. */
     public BigDecimal getAmount(UUID member) {
         BigDecimal total = BigDecimal.ZERO;
         for (Step step : steps) {
@@ -137,13 +137,17 @@ public final class RewardReceipt {
     public static final class Line {
         private final UUID member;
         private final BigDecimal share;
+        private final BigDecimal baseAmount;
+        private final BigDecimal multiplier;
         private final BigDecimal amount;
         private final Status status;
 
-        Line(UUID member, BigDecimal share, BigDecimal amount, Status status) {
+        Line(UUID member, BigDecimal share, BigDecimal baseAmount, BigDecimal multiplier, Status status) {
             this.member = member;
             this.share = share;
-            this.amount = amount;
+            this.baseAmount = baseAmount;
+            this.multiplier = multiplier;
+            this.amount = baseAmount.multiply(multiplier);
             this.status = status;
         }
 
@@ -156,7 +160,20 @@ public final class RewardReceipt {
             return share;
         }
 
-        /** What the step's effects with an amount give for that share ({@code {amount}}); ZERO when none has one. */
+        /** What the step's effects with an amount give for that share, before boosters ({@code {base-amount}}); ZERO when none has one. */
+        public BigDecimal getBaseAmount() {
+            return baseAmount;
+        }
+
+        /**
+         * The product of the member's multipliers of the payment's {@link RewardContext#getBoostedBy() domains}, frozen
+         * when the step was settled; {@code ONE} when no domain boosts it.
+         */
+        public BigDecimal getMultiplier() {
+            return multiplier;
+        }
+
+        /** {@link #getBaseAmount()} times {@link #getMultiplier()} ({@code {amount}}): what the wallet gets, now or on login. */
         public BigDecimal getAmount() {
             return amount;
         }
@@ -168,6 +185,7 @@ public final class RewardReceipt {
         @Override
         public String toString() {
             return member + " " + status + " share " + share.stripTrailingZeros().toPlainString() + " amount "
+                    + baseAmount.stripTrailingZeros().toPlainString() + " x " + multiplier.stripTrailingZeros().toPlainString() + " = "
                     + amount.stripTrailingZeros().toPlainString();
         }
     }

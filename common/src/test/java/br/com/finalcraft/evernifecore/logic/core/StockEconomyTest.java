@@ -104,6 +104,18 @@ class StockEconomyTest {
     }
 
     @Test
+    void aMoneyEffectOutsideARewardPaysItsAmountToAPlayerHoldingTheDomainsPermission() {
+        BoosterDomain sales = BoosterDomain.of(shop.getOwner(), "sales").permission("fakeshop.booster.sales", 2).register();
+        alex.grant("fakeshop.booster.sales.2");
+        ExecutionContext ctx = shop.context(alex).build();
+
+        Effects.apply(ctx, effect("{'type': 'money', 'amount': 10, 'currency': 'fakeshop:gold'}"));
+
+        assertBalance("110");
+        assertEquals(0, new BigDecimal(2).compareTo(sales.resolve(ctx).getMultiplier()), "the permission boosts the domain, nobody asked it");
+    }
+
+    @Test
     void theBalanceVariableReadsTheOwnersWallet() {
         ExecutionContext ctx = shop.context(alex).build();
         Condition enough = Conditions.parse(shop.getOwner(), node("{'type': 'compare', 'variable': 'fakeshop:gold', 'op': '>=', 'amount': 100}"),

@@ -20,6 +20,7 @@ import br.com.finalcraft.evernifecore.logic.delivery.DeliveryDestination;
 import br.com.finalcraft.evernifecore.logic.delivery.DeliveryDestinations;
 import br.com.finalcraft.evernifecore.logic.delivery.DeliveryPolicy;
 import br.com.finalcraft.evernifecore.logic.delivery.PendingDestination;
+import br.com.finalcraft.evernifecore.logic.reward.Rewards;
 import br.com.finalcraft.evernifecore.types.ParamSpec;
 import br.com.finalcraft.evernifecore.types.TypeDescriptor;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
@@ -34,9 +35,9 @@ import java.util.stream.Collectors;
 
 /**
  * The stock cost and effect {@code money}: a cost takes an amount of a currency from the context owner's wallet (and
- * gives it back on a refund); an effect gives it. Neither multiplies by a booster: a booster belongs to a plugin's
- * domain, and whoever pays the gain applies it. Both resolve the currency when they run, so a currency registered later
- * is found.
+ * gives it back on a refund); an effect gives it. Neither resolves a booster: the effect multiplies only by the
+ * multiplier a boosted reward payment froze on its receipt ({@link Rewards#MULTIPLIER_ATTRIBUTE}), so anywhere else it
+ * pays what it says. Both resolve the currency when they run, so a currency registered later is found.
  */
 final class StockEconomy {
 
@@ -212,7 +213,7 @@ final class StockEconomy {
         @Override
         public void apply(ExecutionContext ctx) {
             Currency currency = currency(ctx, currencyId);
-            BigDecimal given = amount(ctx, amount).multiply(share);
+            BigDecimal given = given(ctx);
             if (currency == null) {
                 String id = ctx.resolve(currencyId);
                 String what = "money " + given.toPlainString() + " " + id + " to " + ctx.getOwner();
@@ -255,10 +256,17 @@ final class StockEconomy {
         @Override
         public @Nullable BigDecimal getAmount(ExecutionContext ctx) {
             try {
-                return amount(ctx, amount).multiply(share);
+                return given(ctx);
             } catch (IllegalStateException notANumber) {
                 return null;
             }
+        }
+
+        /** The amount times the share, times the reward payment's frozen multiplier when there is one. */
+        private BigDecimal given(ExecutionContext ctx) {
+            BigDecimal given = amount(ctx, amount).multiply(share);
+            BigDecimal multiplier = ctx.getAttribute(Rewards.MULTIPLIER_ATTRIBUTE, BigDecimal.class);
+            return multiplier == null ? given : given.multiply(multiplier);
         }
 
         @Override

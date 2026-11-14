@@ -49,8 +49,9 @@ public interface Effect {
     }
 
     /**
-     * The amount it gives in {@code ctx}, its share already applied and before any player multiplier - what a reward's
-     * {@code {amount}} sums; null for an effect without an amount, which is this default. Never applies anything.
+     * The amount it gives in {@code ctx}, its share already applied - what a reward's {@code {base-amount}} sums (its
+     * {@code {amount}} is that times the frozen multiplier); null for an effect without an amount, which is this
+     * default. Never applies anything.
      */
     default @Nullable BigDecimal getAmount(ExecutionContext ctx) {
         return null;

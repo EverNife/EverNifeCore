@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.logic.reward;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
+import br.com.finalcraft.evernifecore.booster.BoosterDomain;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.group.GroupId;
 import br.com.finalcraft.evernifecore.group.GroupLookup;
@@ -44,6 +45,13 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class Rewards {
 
+    /**
+     * The attribute under which a member's payment carries its frozen multiplier (a {@link BigDecimal}, the
+     * {@link RewardReceipt.Line#getMultiplier() line's}): the {@code money} effect multiplies by it, and so may a
+     * plugin's own effect with an amount, so what it gives is {@code {amount}}. Absent outside a boosted payment.
+     */
+    public static final String MULTIPLIER_ATTRIBUTE = "evernifecore:reward-multiplier";
+
     private static final TypeRegistry<RewardPiece> REGISTRY = TypeRegistry.of(RewardPiece.class, "reward-piece");
     private static final Set<Caller> TOLD_NO_LAST_ACTOR = ConcurrentHashMap.newKeySet();
 
@@ -64,7 +72,8 @@ public final class Rewards {
      * through. Nothing is paid or posted when the rule's moment does not take the context's trigger. Otherwise the
      * candidates (a {@link RewardScene}'s participants; without one, the owner's members, offline included, plus whoever
      * contributed while the leaver keeps) pass every eligibility, the distribution gives each a share, and each eligible
-     * member gets the rule's effects multiplied by its share, reading {@code {amount}} and {@code {share}}: applied on the
+     * member gets the rule's effects multiplied by its share, reading {@code {amount}}, {@code {base-amount}} and
+     * {@code {share}} (an amount boosted by the context's {@link RewardContext#getBoostedBy() domains}): applied on the
      * member's thread when online; when offline, as the absence says - a pending delivery, nothing, or split among the
      * online eligible. Every payment posts a {@link RewardPaidEvent} and lands in the caller plugin's {@link AuditLog}
      * when it has one open. A {@link RewardRule#isOnce() once} rule skips all of that: its effects apply one time on the
@@ -168,19 +177,31 @@ public final class Rewards {
         for (UUID member : order) {
             if (paid.containsKey(member)) {
                 boolean waits = delivered.contains(member);
-                lines.add(new RewardReceipt.Line(member, paid.get(member), amountOf(rule, ctx, member, paid.get(member), waits),
+                ExecutionContext of = contextOf(ctx, member, waits);
+                lines.add(new RewardReceipt.Line(member, paid.get(member), amountOf(rule, of, paid.get(member)), multiplierOf(ctx, of),
                         waits ? RewardReceipt.Status.DELIVERED : RewardReceipt.Status.ONLINE));
             } else if (unpaid.containsKey(member)) {
-                lines.add(new RewardReceipt.Line(member, shares.get(member), amountOf(rule, ctx, member, shares.get(member), true), unpaid.get(member)));
+                ExecutionContext of = contextOf(ctx, member, true);
+                lines.add(new RewardReceipt.Line(member, shares.get(member), amountOf(rule, of, shares.get(member)), multiplierOf(ctx, of),
+                        unpaid.get(member)));
             }
         }
         return new RewardReceipt.Step(index, rule.getName(), false, true, lines);
     }
 
-    /** What the rule's effects with an amount give {@code member} for {@code share}; ZERO when none has one. */
-    private static BigDecimal amountOf(RewardRule rule, RewardContext ctx, UUID member, BigDecimal share, boolean delivered) {
-        BigDecimal amount = rule.getEffects().withShare(share).getAmount(contextOf(ctx, member, delivered));
+    /** What the rule's effects with an amount give the member of {@code member} for {@code share}, unboosted; ZERO when none has one. */
+    private static BigDecimal amountOf(RewardRule rule, ExecutionContext member, BigDecimal share) {
+        BigDecimal amount = rule.getEffects().withShare(share).getAmount(member);
         return amount == null ? BigDecimal.ZERO : amount;
+    }
+
+    /** The product of the member's multipliers of every domain the payment is boosted by: the one resolution of the step. */
+    private static BigDecimal multiplierOf(RewardContext ctx, ExecutionContext member) {
+        BigDecimal multiplier = BigDecimal.ONE;
+        for (BoosterDomain domain : ctx.getBoostedBy()) {
+            multiplier = multiplier.multiply(domain.resolve(member).getMultiplier());
+        }
+        return multiplier;
     }
 
     /**
@@ -276,10 +297,15 @@ public final class Rewards {
         boolean delivered = line.getStatus() == RewardReceipt.Status.DELIVERED;
         EffectList shared = (EffectList) rule.getEffects().withShare(share);
         Runnable task = () -> {
-            ExecutionContext paying = contextOf(ctx, member, delivered).derive()
+            ExecutionContext.Builder builder = contextOf(ctx, member, delivered).derive()
                     .variable("amount", plain(line.getAmount()))
-                    .variable("share", plain(share))
-                    .build();
+                    .variable("base-amount", plain(line.getBaseAmount()))
+                    .variable("share", plain(share));
+            if (line.getMultiplier().compareTo(BigDecimal.ONE) != 0) {
+                //the multiplier the receipt froze, so no effect resolves a booster again
+                builder.attribute(MULTIPLIER_ATTRIBUTE, line.getMultiplier());
+            }
+            ExecutionContext paying = builder.build();
             shared.apply(paying);
             ECEventBus.global().postIfListened(RewardPaidEvent.class,
                     () -> new RewardPaidEvent(ctx.getCaller(), ctx.getOwner(), member, share, rule, delivered));

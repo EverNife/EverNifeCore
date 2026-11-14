@@ -130,8 +130,16 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **`PhasedRewardTable`**: a table per phase of an occasion, keyed `5`, `4-10`, `10+`, `every 5` or `default`; the most
   specific key wins (exact, the narrowest range, the highest `N+`, the largest `every N`, `default`), and two keys of
   one kind that take a common phase without nesting (`4-10` and `8-12`) are refused on load, naming both and the phase.
-- **`{amount}` and `{share}`** in every effect of a member's payment: what the step's effects with an amount give that
-  member (`Effect.getAmount`, answered by `money`) and its part of the step, 0-1. Every occasion accepts them.
+- **`{amount}`, `{base-amount}` and `{share}`** in every effect of a member's payment: what the step's effects with an
+  amount give that member (`Effect.getAmount`, answered by `money`) after and before boosters, and its part of the step,
+  0-1. Every occasion accepts them.
+- **`RewardContext.Builder.boostedBy(BoosterDomain...)`**: a reward paid with it multiplies each member's amount by
+  their multiplier of those domains (two domains multiply together), resolved once per member and step when the receipt
+  is settled and frozen on its line (`RewardReceipt.Line.getBaseAmount()`, `getMultiplier()`, `getAmount()` = base x
+  multiplier). The `money` effect pays exactly that `{amount}` - it reads the frozen multiplier
+  (`Rewards.MULTIPLIER_ATTRIBUTE`), never a booster - and an offline member's pending delivery keeps it, so the login
+  pays the number of the payment even after the booster ended. Without `boostedBy` nothing multiplies, and `money`
+  outside a reward never does.
 - **`RewardOccasion.Builder.phase(...)` and `sample(...)`**: what the occasion's phases count (`stage`, `wave`,
   `position`) and a sample scene, built and checked with the occasion.
 - **`RewardCommandNode`** (`logic.reward.command`): the reward verbs a plugin mounts under its own command,
@@ -139,7 +147,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `<plugin data folder>/export/rewards.json` (`format` 1): every registered effect, condition and variable, each reward
   piece under its role, the effect modifiers with their accepted values, and the node's occasions with their sample
   scene and current config - the reward editor's input. `simulate <occasion> <phase>` prints the receipt of that phase's
-  `preview` on the occasion's sample, applying nothing. The core mounts it nowhere.
+  `preview` on the occasion's sample, applying nothing. The core mounts it nowhere. `occasion(occasion, rewards,
+  domains...)` names the booster domains the plugin pays the occasion with: `simulate` prints each line as
+  `500 × 2.5 = 1250` (`{base-amount}` × multiplier = `{amount}`), and the export lists the plugin's `domains` (id,
+  join, permission prefix and factors), each occasion's `boosted-by` and `base-amount` among `always-accepted`
+  (still `format` 1: only fields were added).
 - **`TypeDescriptor.Builder.category(...)`**: the part of its kind a type plays; every core reward piece declares its
   role (`eligibility`, `distribution`, `absence`, `moment`, `membership`), and a plugin's piece should too. The types
   reference shows it. `TypeReference.toJson(registry, descriptor)` / `toJson(param)` describe a type as data, and
@@ -178,8 +190,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   that wants it configurable reads its own config and passes it.
 - **`BoosterResult.applyToCount(base, CountRounding)`** boosts a count: `FLOOR`, `ROUND` (half up) or `CHANCE` (the
   fraction is the chance of one more; an overload takes the random source). `apply(BigDecimal)` boosts an amount.
-- **The `money` effect no longer multiplies by anything** and lost its `boosted` param (a pending money delivery no longer
-  writes it): whoever pays a domain's gain applies its booster. `ExecutionContext.getMultiplier`, `Multipliers` and
+- **The `money` effect never resolves a booster** and lost its `boosted` param (a pending money delivery no longer
+  writes it; one kept with `boosted: false` before this no longer reads and stays pending, logged at each claim): it
+  multiplies only inside a reward paid with `boostedBy`, by the multiplier the receipt froze. `ExecutionContext.getMultiplier`, `Multipliers` and
   `MultiplierProvider` are gone - a rank bonus is a `BoosterSource`.
 - **A shop sale is boosted only by the domains its offer names**: `Offer.Builder.boostedBy(BoosterDomain...)` (their
   multipliers multiply; none by default, a BUY refuses it), instead of every price line by its currency's boosters.

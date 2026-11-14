@@ -2,6 +2,8 @@ package br.com.finalcraft.evernifecore.logic.reward;
 
 import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
 import br.com.finalcraft.evernifecore.logic.ProgressOwner;
+import br.com.finalcraft.evernifecore.booster.BoosterDomain;
+import br.com.finalcraft.evernifecore.booster.BoosterJoin;
 import br.com.finalcraft.evernifecore.logic.reward.command.RewardCommandNode;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Economies;
@@ -78,7 +80,9 @@ class RewardEditorRoundTripTest {
     @Test
     void theEditorsExportFixtureIsWhatTheNodeWritesToday() throws IOException {
         JsonNode raidRewards = yaml("raid-stage-5.yml");
-        ObjectNode export = new RewardCommandNode(raid.getOwner()).occasion(stageWon, () -> raidRewards).toJson();
+        BoosterDomain stage = BoosterDomain.of(raid.getOwner(), "stage").join(BoosterJoin.sumBonus().cap(new BigDecimal(3)))
+                .permission("fakeraid.booster.stage", 2, 3).register();
+        ObjectNode export = new RewardCommandNode(raid.getOwner()).occasion(stageWon, () -> raidRewards, stage).toJson();
         FRESH_EXPORT.getAbsoluteFile().getParentFile().mkdirs();
         new ObjectMapper().writerWithDefaultPrettyPrinter().writeValue(FRESH_EXPORT, export);
         JsonNode fresh = new ObjectMapper().readTree(FRESH_EXPORT); //as a reader sees it: a number node of the file's own type
@@ -86,7 +90,7 @@ class RewardEditorRoundTripTest {
         JsonNode fixture = editorFixture("rewards-export.json");
         String wayOut = "the editor's export fixture is stale: run this test, then node reward-editor/base/tools/write-fixtures.js "
                 + FRESH_EXPORT.getAbsolutePath() + " common/src/test/resources/rewards/editor";
-        for (String field : new String[]{"format", "plugin", "effect-modifiers", "always-accepted", "occasions"}) {
+        for (String field : new String[]{"format", "plugin", "effect-modifiers", "always-accepted", "domains", "occasions"}) {
             assertEquals(fresh.get(field), fixture.get(field), field + ": " + wayOut);
         }
         //another test of this JVM may have registered types of its own; the core's are the stable part

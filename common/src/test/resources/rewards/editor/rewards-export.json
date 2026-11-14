@@ -1978,7 +1978,19 @@
     "owner",
     "caller",
     "amount",
+    "base-amount",
     "share"
+  ],
+  "domains": [
+    {
+      "id": "fakeraid:stage",
+      "join": "sum-bonus cap 3",
+      "permission-prefix": "fakeraid.booster.stage",
+      "permission-factors": [
+        2,
+        3
+      ]
+    }
   ],
   "occasions": [
     {
@@ -2034,6 +2046,9 @@
           "boss": "MewTwo"
         }
       },
+      "boosted-by": [
+        "fakeraid:stage"
+      ],
       "rewards": {
         "5": [
           {
