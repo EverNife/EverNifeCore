@@ -360,6 +360,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 - **What a `give-item` could not fit is never lost in silence**: when the deliveries store refuses it (the players' data
   not loaded), the effect logs a warning and audits `DELIVERY_DISCARDED`; it used to vanish.
+- **A delivery left by a screen names the screen, not its title**: the emitter is `screen:<id>` (`Screen.getId()`: the
+  key, else the layout's name, else the title without colour codes) instead of `screen:§2Woodcutter`.
 - **A pending `money` keeps the number its texts show**: `PendingDestination.moneyNode` writes `1250`, not `1250.0`.
 - **A delivery keeps the variables of the context that kept it** (`Delivery.getVariables()`): an offline participant's
   `on-login` message or command claimed with `{stage}` and `{player}` raw, or with the login's name; the claim now

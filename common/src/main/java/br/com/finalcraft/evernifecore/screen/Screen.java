@@ -527,6 +527,18 @@ public class Screen<L extends Layout> {
         return replacer.isEmpty() ? resolved : replacer.apply(resolved);
     }
 
+    /**
+     * The id logic run from this screen is emitted by ({@code screen:<id>}, the emitter of a delivery it leaves): its key,
+     * else its layout's name, else its title without colour codes - never a text that changes with the formatting.
+     */
+    @Nonnull
+    public String getId() {
+        if (key != null) {
+            return key.toString();
+        }
+        return layout != null ? layout.getLayoutName() : FCColorUtil.stripColor(getTitle());
+    }
+
     /** How a message names this screen: its key, or its title. */
     @Nonnull
     public String describe() {

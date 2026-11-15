@@ -325,13 +325,14 @@ public final class ScreenView {
     }
 
     /**
-     * A context for logic run on behalf of this view: the screen's owner as the caller (the core when it has none), the
+     * A context for logic run on behalf of this view: the screen's owner as the caller (the core when it has none) at
+     * {@code screen:<id>} ({@link Screen#getId()}), the
      * viewer as the player, this view as the attribute {@code ScreenView.class.getName()}.
      */
     @Nonnull
     public ExecutionContext.Builder newExecutionContext() {
         ECPluginData owner = screen.getOwner() != null ? screen.getOwner() : EverNifeCore.getEcPluginData();
-        return ExecutionContext.builder(Caller.of(owner, "screen:" + screen.describe()))
+        return ExecutionContext.builder(Caller.of(owner, "screen:" + screen.getId()))
                 .player(viewer)
                 .attribute(ScreenView.class.getName(), this);
     }
