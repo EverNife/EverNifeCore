@@ -467,6 +467,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   takes them back in its shutdown: `OntimeManager.removeProvider`, `ECConsoleFilter.removeProvider` and
   `ECIgnores.removeProvider` are gone (the release runs `unregister(owner)` / `unregisterAll(owner)` /
   `unregisterSpawn(owner)`), and a plugin already replaced leaves its successor in place.
+- **`FCEcoUtil` moves money on the plugin's `Caller`**: `ecoGive`, `ecoTake` and `ecoSet` take a `Caller` first
+  (`Caller.of(plugin, "shop/buy")`), which the `BalanceChangeEvent` and an audit log name; the reads are unchanged.
 
 #### Build and dependencies
 

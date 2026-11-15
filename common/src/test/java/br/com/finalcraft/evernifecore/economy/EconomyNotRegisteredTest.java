@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.economy;
 
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
+import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.logic.Caller;
 import br.com.finalcraft.evernifecore.util.FCEcoUtil;
 import org.junit.jupiter.api.Test;
 
@@ -21,12 +23,12 @@ public class EconomyNotRegisteredTest {
 
     @Test
     void everyMutationIsRefusedAsAWiringBug() {
-        EcoResponse take = FCEcoUtil.ecoTake(PLAYER_UUID, 1);
+        EcoResponse take = FCEcoUtil.ecoTake(caller(), PLAYER_UUID, 1);
 
         assertEquals(EcoResponse.Reason.UNAVAILABLE, take.getReason());
         assertTrue(take.getDetail().contains("No economy provider registered"), take.getDetail());
-        assertEquals(EcoResponse.Reason.UNAVAILABLE, FCEcoUtil.ecoGive(PLAYER_UUID, 1).getReason());
-        assertEquals(EcoResponse.Reason.UNAVAILABLE, FCEcoUtil.ecoSet(PLAYER_UUID, 1).getReason());
+        assertEquals(EcoResponse.Reason.UNAVAILABLE, FCEcoUtil.ecoGive(caller(), PLAYER_UUID, 1).getReason());
+        assertEquals(EcoResponse.Reason.UNAVAILABLE, FCEcoUtil.ecoSet(caller(), PLAYER_UUID, 1).getReason());
     }
 
     @Test
@@ -36,4 +38,7 @@ public class EconomyNotRegisteredTest {
         assertFalse(FCEcoUtil.ecoHasEnough(PLAYER_UUID, 1));
     }
 
+    private static Caller caller() {
+        return Caller.of(EverNifeCore.getEcPluginData(), "test");
+    }
 }

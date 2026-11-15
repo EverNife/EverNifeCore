@@ -110,7 +110,7 @@ public final class EcoResponse {
      * amount is not the player's problem to read about.</p>
      *
      * @return {@link #isSuccess()}, so a charge reads as one line:
-     *         {@code if (!FCEcoUtil.ecoTake(player, 500).warnIfInsufficient(player)) return;}
+     *         {@code if (!FCEcoUtil.ecoTake(caller, player, 500).warnIfInsufficient(player)) return;}
      */
     public boolean warnIfInsufficient(FPlayer player) {
         if (reason == Reason.INSUFFICIENT_FUNDS) {

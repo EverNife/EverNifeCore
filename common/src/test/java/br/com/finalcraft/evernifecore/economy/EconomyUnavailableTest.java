@@ -3,6 +3,8 @@ package br.com.finalcraft.evernifecore.economy;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Economies;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
+import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.logic.Caller;
 import br.com.finalcraft.evernifecore.util.FCEcoUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,13 +33,13 @@ public class EconomyUnavailableTest {
 
     @Test
     void everyMutationAnswersUnavailableWithoutThrowingAndPointsAtTheFix() {
-        EcoResponse give = FCEcoUtil.ecoGive(PLAYER_UUID, 1);
+        EcoResponse give = FCEcoUtil.ecoGive(caller(), PLAYER_UUID, 1);
 
         assertEquals(EcoResponse.Reason.UNAVAILABLE, give.getReason());
         assertTrue(give.getDetail().contains("install Vault and an economy plugin"), give.getDetail());
         assertEquals(Currencies.money(), give.getCurrency());
-        assertEquals(EcoResponse.Reason.UNAVAILABLE, FCEcoUtil.ecoTake(PLAYER_UUID, 1).getReason());
-        assertEquals(EcoResponse.Reason.UNAVAILABLE, FCEcoUtil.ecoSet(PLAYER_UUID, 1).getReason());
+        assertEquals(EcoResponse.Reason.UNAVAILABLE, FCEcoUtil.ecoTake(caller(), PLAYER_UUID, 1).getReason());
+        assertEquals(EcoResponse.Reason.UNAVAILABLE, FCEcoUtil.ecoSet(caller(), PLAYER_UUID, 1).getReason());
     }
 
     @Test
@@ -48,4 +50,7 @@ public class EconomyUnavailableTest {
         assertEquals("10.00 money", FCEcoUtil.ecoFormat(BigDecimal.TEN), "without an economy plugin the amount is printed plain");
     }
 
+    private static Caller caller() {
+        return Caller.of(EverNifeCore.getEcPluginData(), "test");
+    }
 }

@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.screen;
 
+import br.com.finalcraft.evernifecore.logic.Caller;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
@@ -64,7 +65,7 @@ class ChestSaleFlowTest {
         Screen<Layout> screen = Screen.of(3);
         screen.icon(13, Icon.of("minecraft:diamond")).onClick(click -> {
             if (FCInventoryUtil.contains(player.asPlayer(), diamond, 1) && FCInventoryUtil.removeFrom(player.asPlayer(), diamond, 1)) {
-                FCEcoUtil.ecoGive(click.getViewer(), 25);
+                FCEcoUtil.ecoGive(Caller.of(world.getPluginData(), "chest/sale"), click.getViewer(), 25);
             }
         });
         world.open(screen, player);
