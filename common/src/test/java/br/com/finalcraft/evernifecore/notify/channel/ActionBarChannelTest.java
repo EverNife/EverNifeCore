@@ -182,6 +182,7 @@ class ActionBarChannelTest {
 
     @Test
     void ticksAndSecondsAgreeOnHowLongTheyAre() {
+        serverWithActionBar(true, false);
         Duration bySeconds = Notification.of(core, NotifyKind.INFO).duration(Duration.ofSeconds(1)).build().getDuration();
         Duration byTicks = Notification.of(core, NotifyKind.INFO).ticks(20).build().getDuration();
 
