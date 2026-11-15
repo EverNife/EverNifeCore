@@ -1,6 +1,9 @@
 package br.com.finalcraft.evernifecore.quest;
 
+import br.com.finalcraft.evernifecore.action.provenance.OriginKind;
+import br.com.finalcraft.evernifecore.action.provenance.ProvenanceTracker;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.Plugins;
@@ -113,16 +116,22 @@ class QuestProvenanceTest {
     }
 
     @Test
-    void aTransientEngineRefusesAProvenanceTestNamingTheWayOut() {
+    void anEngineWithoutStorageReadsOriginsFromTheOneRecord() {
         ECPluginData arena = Plugins.fakePluginData("ArenaQuests", tempDir.resolve("arena").toFile());
         try {
             QuestEngine transientEngine = QuestEngine.of(arena);
-            QuestDefinition ores = QuestDefinitions.parseYaml(arena, NATURAL_ORE);
-            IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> transientEngine.register(ores));
-            assertTrue(refused.getMessage().contains("arenaquests:ores") && refused.getMessage().contains("ProvenanceTracker.open"),
-                    refused.getMessage());
+            transientEngine.register(QuestDefinitions.parseYaml(arena, NATURAL_ORE));
+            engine.register(quests.parse(NATURAL_ORE));
+
+            ProvenanceTracker arenas = ProvenanceTracker.ofIfPresent(arena);
+            assertNotNull(arenas, "the engine opened the record on the built-in settings");
+            assertTrue(arenas.isRecording());
+            quests.post(quests.contexts().place(alex, "world", 0, 64, 0, "minecraft:iron_ore"));
+            assertEquals(OriginKind.PLAYER_PLACED, arenas.getOrigin(WorldBlockPos.of(0, 64, 0, "world")).join().getKind(),
+                    "a block the other engine's record saw");
         } finally {
             QuestEngine.closeOwnedBy(arena);
+            ProvenanceTracker.closeOwnedBy(arena);
             Plugins.forget("ArenaQuests");
         }
     }

@@ -15,7 +15,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 /**
- * Internal: where a {@link ProvenanceTracker} keeps what it recorded. Blocks go to the owner's storage per chunk, written
+ * Internal: where the one provenance record keeps what it recorded. Blocks go to the record's storage per chunk, written
  * back on the flush - a placed block is a mutation of the cached chunk, nothing per block reaches the backend. Entities
  * and items live in memory only.
  */
@@ -36,7 +36,7 @@ final class ProvenanceStore implements AutoCloseable {
     };
 
     ProvenanceStore(ECStorage storage, Supplier<Duration> retention) {
-        //ISOLATED: the owner may keep its own SHARED block manager, and the plugin's Ref graph has nothing to find here
+        //ISOLATED: the core may keep its own SHARED block manager on that backend, and no Ref graph has anything to find here
         this.blocks = SVWorldDataManager.targeting(Provenance.class)
                 .on(storage, COLLECTION)
                 .refs(RefParticipation.ISOLATED)

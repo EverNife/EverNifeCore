@@ -15,8 +15,10 @@ import br.com.finalcraft.evernifecore.action.TypeKey;
 import br.com.finalcraft.evernifecore.action.provenance.ProvenanceTracker;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.platoverride.entity.NativeEntity;
+import br.com.finalcraft.evernifecore.config.plugin.ProvenanceSettings;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.everydatabase.Storages;
 
 import java.nio.file.Path;
 import java.util.UUID;
@@ -24,7 +26,8 @@ import java.util.UUID;
 /**
  * The game's actions for a test, with no Bukkit nor Hytale: one plugin ({@link RegionWorld} - owner, scripted storage,
  * clock), the global {@link EventSourceUsage}, the two steps every native listener takes ({@link #pre}, {@link #post}),
- * contexts to feed them ({@link #contexts()}) and the owner's {@link ProvenanceTracker} on the same storage.
+ * contexts to feed them ({@link #contexts()}) and the owner's access to the one {@link ProvenanceTracker} record, which
+ * lives in a fresh in-memory storage while a test world is open.
  * Needs a platform with {@code mainThreadInline()} and {@code worldEvents()}.
  *
  * <pre>{@code
@@ -41,6 +44,16 @@ public final class ActionWorld implements AutoCloseable {
 
     private ActionWorld(RegionWorld regions) {
         this.regions = regions;
+        recordProvenanceInMemory();
+    }
+
+    /** Has the next provenance record open on a fresh in-memory storage instead of EverNifeCore's backend. */
+    static void recordProvenanceInMemory() {
+        ProvenanceTracker.useStorage(() -> {
+            ScriptedStorage backend = ScriptedStorage.wrapping(Storages.createInMemory());
+            backend.init().join();
+            return backend.asECStorage();
+        });
     }
 
     /** Opens the actions of a fake plugin named {@code ownerName} whose data folder is {@code dataFolder}. */
@@ -76,19 +89,26 @@ public final class ActionWorld implements AutoCloseable {
         Actions.post(context.getSource(), () -> context);
     }
 
-    /** The owner's tracker on this world's storage - the shared one while a test opened it. */
+    /** The owner's access to the one record: the one it opened, else one opened on the built-in settings. */
     public ProvenanceTracker provenance() {
-        return ProvenanceTracker.open(getOwner(), regions.getStorage());
+        ProvenanceTracker opened = ProvenanceTracker.ofIfPresent(getOwner());
+        return opened != null ? opened : provenance(new ProvenanceSettings());
+    }
+
+    /** Opens the record for the owner with {@code settings}; an access it already has takes them, as a reload does. */
+    public ProvenanceTracker provenance(ProvenanceSettings settings) {
+        return ProvenanceTracker.open(getOwner(), settings);
     }
 
     public Contexts contexts() {
         return contexts;
     }
 
-    /** Closes the owner's tracker, then its regions and storage. */
+    /** Lets go of the owner's access to the record (the last one closes it), then closes its regions and storage. */
     @Override
     public void close() {
         ProvenanceTracker.closeOwnedBy(getOwner());
+        ProvenanceTracker.useStorage(null);
         regions.close();
     }
 

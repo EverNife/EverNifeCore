@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.action.provenance;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/** Keeps a {@link ProvenanceTracker} recording until closed; closing twice is closing once. */
+/** Keeps the provenance record recording until closed, or until its plugin leaves; closing twice is closing once. */
 public final class ProvenanceHold implements AutoCloseable {
 
     private final ProvenanceTracker tracker;
@@ -19,7 +19,7 @@ public final class ProvenanceHold implements AutoCloseable {
     @Override
     public void close() {
         if (open.compareAndSet(true, false)) {
-            tracker.release();
+            tracker.release(this);
         }
     }
 }

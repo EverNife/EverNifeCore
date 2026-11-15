@@ -203,7 +203,7 @@ public class ECPluginManager {
      * write what is pending (the plugin's storage is still open) or discard it.
      */
     static void releaseEverythingOf(ECPluginData plugin, boolean writePending) {
-        //the writers first: provenance and regions write to the plugin's storage, which the plugin closes right after
+        //the writers first: the regions write to the plugin's storage, which the plugin closes right after; provenance lets go of the one record
         step(plugin, "provenance", () -> ProvenanceTracker.closeOwnedBy(plugin));
         step(plugin, "regions", () -> {
             if (writePending) RegionManager.closeOwnedBy(plugin); else RegionManager.discardOwnedBy(plugin);

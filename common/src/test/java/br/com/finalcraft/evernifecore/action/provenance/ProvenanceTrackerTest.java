@@ -4,7 +4,7 @@ import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.event.BreakActionEvent;
 import br.com.finalcraft.evernifecore.action.event.KillActionEvent;
 import br.com.finalcraft.evernifecore.action.event.PickupActionEvent;
-import br.com.finalcraft.evernifecore.config.settings.ECSettings;
+import br.com.finalcraft.evernifecore.config.plugin.ProvenanceSettings;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** A tracker records origins only while held, as a subscriber of the action events, and answers them back. */
+/** The record keeps origins only while held, as a subscriber of the action events, and answers them back. */
 @ECoreTest
 class ProvenanceTrackerTest {
 
@@ -55,7 +55,6 @@ class ProvenanceTrackerTest {
 
     @AfterEach
     void close() {
-        ECSettings.PROVENANCE_ALWAYS = false;
         actions.close();
         world.close();
     }
@@ -176,22 +175,13 @@ class ProvenanceTrackerTest {
     }
 
     @Test
-    void alwaysRecordsFromOpen() {
-        ECSettings.PROVENANCE_ALWAYS = true;
-        ProvenanceTracker tracker = actions.provenance();
-
-        place();
-
-        assertTrue(tracker.isRecording());
-        assertEquals(OriginKind.PLAYER_PLACED, tracker.getOrigin(STONE).join().getKind());
-    }
-
-    @Test
     void anEntryPastRetentionReadsNatural() {
-        ProvenanceTracker tracker = actions.provenance();
+        ProvenanceSettings settings = new ProvenanceSettings();
+        settings.getRetention().setPlayerPlaced(Duration.ofDays(7));
+        ProvenanceTracker tracker = actions.provenance(settings);
         try (ProvenanceHold ignored = tracker.record()) {
             place();
-            actions.regions().advance(ECSettings.PROVENANCE_RETENTION_PLAYER_PLACED.minus(Duration.ofMinutes(1)));
+            actions.regions().advance(Duration.ofDays(7).minus(Duration.ofMinutes(1)));
             assertEquals(OriginKind.PLAYER_PLACED, tracker.getOrigin(STONE).join().getKind());
 
             actions.regions().advance(Duration.ofMinutes(2));

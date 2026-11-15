@@ -85,6 +85,7 @@ public final class QuestWorld implements AutoCloseable {
 
     private QuestWorld(String ownerName, Path dataFolder) {
         this.logic = LogicWorld.open(ownerName, dataFolder);
+        ActionWorld.recordProvenanceInMemory();
         logic.deliveries(); //boots the PlayerData layer the quest section binds to
         this.engine = QuestEngine.of(logic.getOwner(), logic.getStorage(), TestQuestSection.class);
         engine.load().join();
@@ -198,7 +199,7 @@ public final class QuestWorld implements AutoCloseable {
         return contexts;
     }
 
-    /** The tracker an origin test of this world's quests reads; null until a quest with {@code provenance:} is registered. */
+    /** The owner's access to the one record that origin tests read; null until a quest with {@code provenance:} is registered. */
     public @Nullable ProvenanceTracker provenance() {
         return ProvenanceTracker.ofIfPresent(getOwner());
     }
@@ -288,6 +289,7 @@ public final class QuestWorld implements AutoCloseable {
         closed = true;
         QuestEngine.closeOwnedBy(getOwner());
         ProvenanceTracker.closeOwnedBy(getOwner());
+        ProvenanceTracker.useStorage(null);
         for (FPlayer player : positions.keySet()) {
             RegionMovementTracker.get().onQuit(player);
         }

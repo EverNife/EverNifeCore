@@ -98,7 +98,7 @@ class PluginSettingsBindingTest {
                 "notify:", "chains:", "progress:", "- title+sound", "durations:", "complete: 5s",
                 "waypoints:", "- particle-path", "particle-path-length: 16",
                 "regions:", "disabled-worlds: []", "flag-settings-files: false", "view-time: 10s", "live-preview: false", "idle-time: 5m",
-                "provenance:", "player-placed: 30d", "record-from-boot: false",
+                "provenance:", "player-placed: 30d",
                 "cooldowns:", "retention-days:", "retention-overrides:",
                 "boosters:", "woodcutter:", "permission-factors:",
                 "# How long an outline asked for by a 'view' command stays on screen.",
@@ -138,7 +138,7 @@ class PluginSettingsBindingTest {
         assertEquals(Duration.ofDays(30), settings.provenance.getRetention().getPlayerPlaced());
         String text = text();
         assertTrue(text.contains("view-time: 30s"), text);
-        assertTrue(text.contains("record-from-boot: false"), text);
+        assertTrue(text.contains("player-placed: 30d"), text);
     }
 
     @Test

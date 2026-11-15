@@ -57,11 +57,6 @@ public class ECSettings {
     public static int REGIONS_VISUALIZER_POINTS_PER_TICK = 300;
     public static boolean REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = false;
 
-    //Provenance - shipped defaults, for the same reason
-    public static boolean PROVENANCE_SHARED = false;
-    public static boolean PROVENANCE_ALWAYS = false;
-    public static Duration PROVENANCE_RETENTION_PLAYER_PLACED = Duration.ofDays(30);
-
     //Waypoint - shipped defaults, for the same reason
     public static int WAYPOINT_REFRESH_TICKS = 10;
 
@@ -162,7 +157,6 @@ public class ECSettings {
 
         loadRegionSettings(ConfigManager.getMainConfig());
         applyRegionSettings();
-        loadProvenanceSettings(ConfigManager.getMainConfig());
         loadWaypointSettings(ConfigManager.getMainConfig());
 
         if (ConfigManager.getMainConfig().hasNewSeededDefaults()){
@@ -222,25 +216,6 @@ public class ECSettings {
                         "\nbuilt-in settings plus what each region overrides, and a file left behind is ignored (the log says so)." +
                         "\nA plugin's flags follow regions.flag-settings-files in that plugin's own config; a flag may also force" +
                         "\nits own file on or off. A reload of EverNifeCore applies a change."
-        );
-    }
-
-    /** Reads every {@code Provenance.*} key of {@code config} into the fields above, seeding what is absent. */
-    public static void loadProvenanceSettings(Config config){
-        PROVENANCE_SHARED = config.getOrSetValueIfAbsent(
-                "Provenance.shared", false,
-                "true: one record of who placed, spawned or dropped what, kept in EverNifeCore's own storage, answers every" +
-                        "\nplugin that asks (one source of truth for a network of plugins); false: each plugin keeps its own, in its" +
-                        "\nown storage (redundant, isolated). Applied on the next restart."
-        );
-        PROVENANCE_ALWAYS = config.getOrSetValueIfAbsent(
-                "Provenance.always", false,
-                "true: record from boot on; false: record only while some plugin asks for origins (a quest that counts only" +
-                        "\nnatural blocks, a job that pays nothing for placed ones) - a block placed before then reads as natural."
-        );
-        PROVENANCE_RETENTION_PLAYER_PLACED = readDuration(config,
-                "Provenance.retention.player-placed", Duration.ofDays(30),
-                "How long a placed block remembers who placed it; an older record reads as natural and is dropped."
         );
     }
 

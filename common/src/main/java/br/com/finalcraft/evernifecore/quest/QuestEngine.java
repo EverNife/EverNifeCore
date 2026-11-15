@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.event.ActionEvent;
 import br.com.finalcraft.evernifecore.action.provenance.ProvenanceHold;
 import br.com.finalcraft.evernifecore.action.provenance.ProvenanceTracker;
+import br.com.finalcraft.evernifecore.config.plugin.ProvenanceSettings;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.events.base.ECCancellable;
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
@@ -619,7 +620,7 @@ public final class QuestEngine {
         requireNoCycle(next);
         for (QuestDefinition definition : added) {
             if (hasProvenanceTest(definition)) {
-                requireProvenance(definition);
+                requireProvenance();
             }
         }
         Map<QuestId, QuestDefinition> previous = definitions;
@@ -683,19 +684,16 @@ public final class QuestEngine {
         return false;
     }
 
-    /** The tracker the origin tests of {@code definition} read: the owner's on this engine's storage, or the shared one. */
-    private void requireProvenance(QuestDefinition definition) {
+    /**
+     * The access the origin tests read: the one the owner opened with its own settings, else one opened on the built-in
+     * {@link ProvenanceSettings}.
+     */
+    private void requireProvenance() {
         if (provenance != null) {
             return;
         }
-        ProvenanceTracker tracker = storage != null ? ProvenanceTracker.open(owner, storage) : ProvenanceTracker.ofIfPresent(owner);
-        if (tracker == null) {
-            throw new IllegalArgumentException("Quest '" + definition.getId() + "' has an objective with a provenance test, and this engine keeps"
-                    + " everything in memory, so it has no storage to record origins in: open the engine on a storage"
-                    + " (QuestEngine.of(owner, storage, ...)), open the owner's tracker first (ProvenanceTracker.open(owner, storage)),"
-                    + " or turn the shared tracker on (Provenance.shared in the core's settings).");
-        }
-        provenance = tracker;
+        ProvenanceTracker opened = ProvenanceTracker.ofIfPresent(owner);
+        provenance = opened != null ? opened : ProvenanceTracker.open(owner, new ProvenanceSettings());
     }
 
     /** Records origins while a registered quest tests them, and stops when none does. */

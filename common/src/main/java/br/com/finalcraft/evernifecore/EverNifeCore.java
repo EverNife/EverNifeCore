@@ -22,9 +22,7 @@ import br.com.finalcraft.evernifecore.waypoint.Waypoints;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.logger.ECFallbackLog;
 import br.com.finalcraft.evernifecore.logger.ECLogger;
-import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
-import br.com.finalcraft.evernifecore.storage.ECStorage;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.ranking.RankedPlaceholders;
@@ -84,12 +82,6 @@ public class EverNifeCore {
         getLog().info("§aLoading up Configurations...");
         ConfigManager.initialize(getEcPluginData());
 
-        if (ECSettings.PROVENANCE_SHARED) {
-            //its own handle on the backend the core's player data uses: a core reload rebuilds the PlayerController's
-            //storages, and the shared record must outlive that
-            ProvenanceTracker.openShared(getEcPluginData(), ECStorage.open(PlayerController.getDefaultBackendDefinition()).join());
-        }
-
         getLog().info("§aLoading up Cooldown System!");
         Cooldowns.loadServerFile();
 
@@ -135,7 +127,7 @@ public class EverNifeCore {
     }
 
     public void onUnload() {
-        ProvenanceTracker.closeShared();
+        ProvenanceTracker.closeAll(); //before the player data: the record writes to the core's backend
         Deliveries.closeAll();
         QuestEngine.closeAll(); //before the regions: a quest owner may be a region
         RegionManager.closeAll(); //what no plugin shutdown closed, and the region system's hold on the global bus

@@ -10,8 +10,9 @@ import java.time.Duration;
 
 /**
  * The provenance block a plugin that asks for origins keeps as the {@value #SECTION} section of its own
- * {@code config.yml}: how long its records last and whether it records from boot. A plugin binds it as a field of its
- * settings bean and may extend it with keys of its own.
+ * {@code config.yml}: how long a placed block is remembered. The one record keeps the longest retention among the plugins
+ * that have it open. A plugin that wants history from boot opens the record and calls {@code record()} in its enable. A
+ * plugin binds it as a field of its settings bean and may extend it with keys of its own.
  */
 public class ProvenanceSettings {
 
@@ -19,12 +20,6 @@ public class ProvenanceSettings {
 
     @JsonProperty
     private Retention retention = new Retention();
-
-    @Key("record-from-boot")
-    @Comment({"true: record who placed, spawned or dropped what from boot on; false: record only while this plugin asks",
-            "for origins - a block placed before then reads as natural."})
-    @JsonProperty
-    private boolean recordFromBoot = false;
 
     @JsonIgnore
     public Retention getRetention() {
@@ -36,21 +31,12 @@ public class ProvenanceSettings {
         this.retention = retention;
     }
 
-    @JsonIgnore
-    public boolean isRecordFromBoot() {
-        return recordFromBoot;
-    }
-
-    @JsonIgnore
-    public void setRecordFromBoot(boolean recordFromBoot) {
-        this.recordFromBoot = recordFromBoot;
-    }
-
     /** How long each kind of record is kept. */
     public static class Retention {
 
         @Key("player-placed")
-        @Comment("How long a placed block remembers who placed it; an older record reads as natural and is dropped.")
+        @Comment({"How long a placed block remembers who placed it; an older record reads as natural and is dropped. The record",
+                "is shared by every plugin that asks for origins and keeps the longest of their retentions."})
         @JsonProperty
         private FCTimeFrame playerPlaced = FCTimeFrame.of(Duration.ofDays(30));
 

@@ -24,7 +24,7 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   (`waypoints`), `RegionSettings` (`regions`), `ProvenanceSettings` (`provenance`), `CooldownSettings` (`cooldowns`) and
   `BoosterSettings` (`boosters`), each with its keys, comments and defaults (times as `FCTimeFrame`, `10s`). A plugin binds
   one as a field of its settings bean under `@Key(X.SECTION)` and may extend it with keys of its own; never a file per
-  block. Nothing reads them yet except boosters, notify, waypoints and regions: the core's own keys stay where they were.
+  block. Nothing reads them yet except boosters, notify, waypoints, regions and provenance: the core's own keys stay where they were.
 - **`BoosterDomain.Builder.permission(prefix, BoosterSettings)`** reads the domain's factors from the `boosters` block
   (`boosters.domains.<name>.permission-factors`); no entry or an empty list leaves the domain with no permission booster.
   A plugin that kept its own factors key moves it under that block, and the admin rewrites the value there by hand.
@@ -229,6 +229,21 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `Settings.Waypoint.channels` and `Settings.Waypoint.particle-path-length` are gone (`ECSettings.WAYPOINT_CHANNELS`,
   `WAYPOINT_PARTICLE_PATH_LENGTH`): the admin rewrites a customised value by hand under `waypoints:` in the `config.yml`
   of each plugin that shows waypoints, and deletes the two keys from the core's. `Settings.Waypoint.refresh-ticks` stays.
+
+#### Provenance
+
+- **One provenance record, in EverNifeCore's storage, open only while a plugin asks.** `ProvenanceTracker.open(owner,
+  ProvenanceSettings)` replaces `open(owner, storage)`: it gives the plugin its access to the one record, opening the record
+  (on the core's backend) when nobody had it open; opening again replaces the settings, and `closeOwnedBy` (run when the
+  plugin leaves) closes its recordings, the last one closing the record and its subscriptions. The record keeps a placed
+  block for the longest `retention.player-placed` among the plugins open (`ProvenanceTracker.getRetention()`); when that
+  plugin leaves, older blocks read as natural on their next read. `isOpen()` tells whether anyone has it open, and a
+  plugin that wants history from boot calls `record()` in its enable. `openShared`/`closeShared`, the core's
+  `Provenance.shared`, `Provenance.always` and `Provenance.retention.player-placed` (`ECSettings.PROVENANCE_*`,
+  `loadProvenanceSettings`) and `ProvenanceSettings.recordFromBoot` (`record-from-boot`) are gone. A `QuestEngine` with an
+  origin test opens the record itself (the owner's settings when it opened one, else the built-in ones), so an engine
+  without storage takes origin tests too. `ActionWorld.provenance(settings)` is new in the test engine, which keeps the
+  record in memory.
 
 #### Boosters
 
