@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.booster;
 
 import br.com.finalcraft.evernifecore.api.common.player.IOfflinePermissions;
+import br.com.finalcraft.evernifecore.config.plugin.BoosterSettings;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.logic.ProgressOwner;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
@@ -188,5 +189,22 @@ class BoosterDomainTest {
 
         assertMultiplier("2.5", result.getMultiplier());
         assertEquals(2, result.getParcels().size(), result.toString());
+    }
+
+    @Test
+    void theFactorsComeFromTheDomainsEntryOfTheBoosterBlock() {
+        BoosterSettings block = new BoosterSettings().addDomain("win", 2, 4).addDomain("kill");
+        BoosterDomain win = BoosterDomain.of(duels.getOwner(), "win").permission("duels.booster.win", block).register();
+        BoosterDomain kill = BoosterDomain.of(duels.getOwner(), "kill").permission("duels.booster.kill", block).register();
+        BoosterDomain absent = BoosterDomain.of(duels.getOwner(), "loss").permission("duels.booster.loss", block).register();
+
+        assertEquals(Arrays.asList(new BigDecimal("2.0"), new BigDecimal("4.0")), win.getPermissionFactors());
+        assertEquals("duels.booster.win", win.getPermissionPrefix());
+        alex.grant("duels.booster.win.4");
+        assertMultiplier("4", multiplierOf(win));
+
+        assertTrue(kill.getPermissionFactors().isEmpty());
+        assertEquals(null, kill.getPermissionPrefix());
+        assertEquals(null, absent.getPermissionPrefix());
     }
 }

@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.booster;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.config.plugin.BoosterSettings;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.logic.Caller;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
@@ -134,8 +135,8 @@ public final class BoosterDomain {
         /**
          * The permission {@code <prefix>.<factor>} ({@code duels.booster.win.2}, or {@code .2.0}) boosts this domain by
          * that factor, for each of {@code factors}; the largest held counts. A platform cannot list a player's
-         * permissions, so a factor not declared here is never seen - a plugin that wants them configurable reads its own
-         * config and passes them. Without it (or with a null prefix) no permission boosts the domain.
+         * permissions, so a factor not declared here is never seen - a plugin that wants them configurable declares them
+         * from its {@link BoosterSettings} section ({@link #permission(String, BoosterSettings)}). Without it (or with a null prefix) no permission boosts the domain.
          *
          * @throws IllegalArgumentException when a factor is negative
          */
@@ -160,6 +161,21 @@ public final class BoosterDomain {
         }
 
         /**
+         * {@link #permission(String, double...)} with the factors {@code block} lists for this domain's name: the plugin
+         * binds its {@link BoosterSettings} section and declares each domain from it. A block with no entry for the
+         * name, or an empty list, leaves the domain with no permission booster.
+         */
+        public Builder permission(String prefix, BoosterSettings block) {
+            BoosterSettings.Domain entry = block.getDomain(name);
+            List<Double> factors = entry == null ? Collections.<Double>emptyList() : entry.getPermissionFactors();
+            double[] declared = new double[factors.size()];
+            for (int i = 0; i < declared.length; i++) {
+                declared[i] = factors.get(i);
+            }
+            return permission(declared.length == 0 ? null : prefix, declared);
+        }
+
+        /**
          * Makes the domain count until its plugin shuts down.
          *
          * @throws IllegalArgumentException when a permission prefix lists no factor
@@ -171,7 +187,7 @@ public final class BoosterDomain {
                 throw new IllegalArgumentException("The booster domain " + domain.getId() + " declares the permission prefix "
                         + permissionPrefix + " with no factor, so no node could ever boost it. List the factors a permission may"
                         + " grant: permission(\"" + permissionPrefix + "\", 2, 4, 6) makes " + permissionPrefix + ".2 double it;"
-                        + " read them from your own config to make them configurable.");
+                        + " permission(prefix, settings.getBoosters()) reads them from the plugin's BoosterSettings section.");
             }
             Boosters.register(domain);
             return domain;

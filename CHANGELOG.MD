@@ -18,6 +18,17 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+#### Plugin config blocks
+
+- **Config blocks a plugin keeps in its own `config.yml`** (`config.plugin`): `NotifySettings` (`notify`), `WaypointSettings`
+  (`waypoints`), `RegionSettings` (`regions`), `ProvenanceSettings` (`provenance`), `CooldownSettings` (`cooldowns`) and
+  `BoosterSettings` (`boosters`), each with its keys, comments and defaults (times as `FCTimeFrame`, `10s`). A plugin binds
+  one as a field of its settings bean under `@Key(X.SECTION)` and may extend it with keys of its own; never a file per
+  block. Nothing reads them yet except boosters: the core's own keys stay where they were.
+- **`BoosterDomain.Builder.permission(prefix, BoosterSettings)`** reads the domain's factors from the `boosters` block
+  (`boosters.domains.<name>.permission-factors`); no entry or an empty list leaves the domain with no permission booster.
+  A plugin that kept its own factors key moves it under that block, and the admin rewrites the value there by hand.
+
 #### Placeholders
 
 - **`PlaceholderArgs.bareWordsAsTrue(flags...)`**: a copy where a bare word naming a flag reads as `flag=true`
