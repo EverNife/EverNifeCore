@@ -1,11 +1,11 @@
 package br.com.finalcraft.evernifecore.minecraft.util;
 
+import br.com.finalcraft.evernifecore.item.ItemOverflow;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
-import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
@@ -141,23 +141,24 @@ public class FCBukkitUtil {
     //===========================================================================================
 
     /**
-     * Puts items into a player's inventory; any leftover items are dropped on the ground.
+     * Puts items into a player's inventory; any leftover items are dropped on the ground and the player is told so
+     * ({@link ItemOverflow#DROP_AND_WARN}).
      *
      * @param player the player who will receive the items
      * @param itemStacks the items to deliver
      */
     public static void giveItemsTo(Player player, ItemStack... itemStacks) {
-        giveItemsTo(player, true, itemStacks);
+        giveItemsTo(player, ItemOverflow.DROP_AND_WARN, itemStacks);
     }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §eYou received items but did not have inventory space. The extra items were dropped on the ground!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §eVocê recebeu itens mas não tinha espaço suficiente no inventário. Os itens foram dropados no chão!")
     private static LocaleMessage YOU_RECEIVED_EXTRA_ITEMS_THAT_WERE_DROPED;
-    public static void giveItemsTo(Player player, boolean dropIfExceeded, ItemStack... itemStacks) {
+    /** Puts items into a player's inventory; what did not fit goes where {@code overflow} says. */
+    public static void giveItemsTo(Player player, ItemOverflow overflow, ItemStack... itemStacks) {
         HashMap<Integer, ItemStack> exceededItems = player.getInventory().addItem(itemStacks);
-        if (exceededItems.size() > 0 && dropIfExceeded) {
-            YOU_RECEIVED_EXTRA_ITEMS_THAT_WERE_DROPED
-                    .sendIf(ECSettings.WARN_PLAYERS_WHEN_RECEIVED_ITEMS_WERE_SEND_TO_THE_GROUND, adapt(player));
+        if (exceededItems.size() > 0 && overflow.drops()) {
+            YOU_RECEIVED_EXTRA_ITEMS_THAT_WERE_DROPED.sendIf(overflow.warns(), adapt(player));
 
             final World world = player.getWorld();
             final Location location = player.getLocation();

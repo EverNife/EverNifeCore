@@ -1,10 +1,10 @@
 package br.com.finalcraft.evernifecore.hytale.util;
 
+import br.com.finalcraft.evernifecore.item.ItemOverflow;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.hytale.api.HytaleFCommandSender;
 import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
@@ -150,19 +150,21 @@ public class FCHytaleUtil {
     }
 
     /**
-     * Puts items into a player's inventory; items that overflow are dropped on the ground!
+     * Puts items into a player's inventory; items that overflow are dropped on the ground and the player is told so
+     * ({@link ItemOverflow#DROP_AND_WARN}).
      *
      * @param player The player who receives the items
      * @param itemStacks The items to give
      */
     public static void giveItemsTo(FPlayer player, List<ItemStack> itemStacks) {
-        giveItemsTo(player, true, itemStacks);
+        giveItemsTo(player, ItemOverflow.DROP_AND_WARN, itemStacks);
     }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §eYou received items but did not have inventory space. \n - §7(§6${itens_droped} §7x §6Itens dropped on the ground!§7)")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §eVocê recebeu itens mas não tinha espaço suficiente no inventário. \n - §7(§6${itens_droped} §7x §6Itens dropados no chão!§7)")
     private static LocaleMessage YOU_RECEIVED_EXTRA_ITEMS_THAT_WERE_DROPED;
-    public static void giveItemsTo(FPlayer player, boolean dropIfExceeded, List<ItemStack> itemStacks) {
+    /** Puts items into a player's inventory; what overflows goes where {@code overflow} says. */
+    public static void giveItemsTo(FPlayer player, ItemOverflow overflow, List<ItemStack> itemStacks) {
         HytaleFPlayer hytaleFPlayer = (HytaleFPlayer) player;
 
         final World world = hytaleFPlayer.getWorld();
@@ -191,7 +193,7 @@ public class FCHytaleUtil {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-            if (exceededItems.size() > 0 && dropIfExceeded) {
+            if (exceededItems.size() > 0 && overflow.drops()) {
 
                 Store<EntityStore> store = world.getEntityStore().getStore();
 
@@ -222,7 +224,7 @@ public class FCHytaleUtil {
 
                 YOU_RECEIVED_EXTRA_ITEMS_THAT_WERE_DROPED
                     .addPlaceholder("itens_droped", exceededItems.size())
-                    .sendIf(ECSettings.WARN_PLAYERS_WHEN_RECEIVED_ITEMS_WERE_SEND_TO_THE_GROUND, player);
+                    .sendIf(overflow.warns(), player);
             }
         });
 

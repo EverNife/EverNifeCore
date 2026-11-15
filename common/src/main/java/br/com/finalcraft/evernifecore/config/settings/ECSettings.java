@@ -18,9 +18,6 @@ import java.util.List;
 
 public class ECSettings {
 
-    //FCBukkitUtil
-    public static boolean WARN_PLAYERS_WHEN_RECEIVED_ITEMS_WERE_SEND_TO_THE_GROUND;
-
     //Time Related
     public static String ZONE_ID_OF_DAY_OF_TODAY;
     public static DateTimeFormatter SIMPLE_DATE_FORMAT = FCTimeUtil.FORMATTER_DATE_REVERSE;
@@ -83,14 +80,6 @@ public class ECSettings {
                         "\nand messages are rendered in that language instead of the plugin's default." +
                         "\nWhile disabled (the default), no per-player language section is registered and" +
                         "\nevery message uses the plugin's configured locale, exactly as before."
-        );
-
-        WARN_PLAYERS_WHEN_RECEIVED_ITEMS_WERE_SEND_TO_THE_GROUND = ConfigManager.getMainConfig().getOrSetValueIfAbsent("Settings.FCBukkitUtil.warnWhenPlayersCannotReceiveItensOnItsInventory",
-                true,
-                "Plugins that use EverNifeCore as dependency, and use the method 'FCBukkitUtil.giveItemsTo'" +
-                        "\nto give items to player might want to disable the warn that is send to him " +
-                        "\nwhen there is no inventory space available on its inventory. Here you can disable" +
-                        "\nthat message."
         );
 
         COOLDOWN_RETENTION_DAYS = ConfigManager.getMainConfig().getOrSetValueIfAbsent(

@@ -469,6 +469,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `unregisterSpawn(owner)`), and a plugin already replaced leaves its successor in place.
 - **`FCEcoUtil` moves money on the plugin's `Caller`**: `ecoGive`, `ecoTake` and `ecoSet` take a `Caller` first
   (`Caller.of(plugin, "shop/buy")`), which the `BalanceChangeEvent` and an audit log name; the reads are unchanged.
+- **The giver decides about items that did not fit**: `FCBukkitUtil.giveItemsTo(player, ItemOverflow, items...)` and
+  `FCHytaleUtil.giveItemsTo(player, ItemOverflow, items)` replace the `boolean dropIfExceeded` form - `DROP_AND_WARN`
+  (the default of the form without it), `DROP`, `DISCARD`. The core key
+  `Settings.FCBukkitUtil.warnWhenPlayersCannotReceiveItensOnItsInventory` is gone.
 
 #### Build and dependencies
 

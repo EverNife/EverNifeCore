@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.util;
 
+import br.com.finalcraft.evernifecore.item.ItemOverflow;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.testing.minecraft.screen.BukkitScreenWorld;
 import br.com.finalcraft.evernifecore.testing.minecraft.screen.PlayerDouble;
@@ -100,9 +101,29 @@ class ItemsThatDoNotFitTest {
     void aCallerThatRefusesTheDropLosesTheExcessInstead() {
         player.withFullInventory(stackOf(Material.DIRT, 1));
 
-        FCBukkitUtil.giveItemsTo(player.asPlayer(), false, stackOf(Material.DIAMOND, 5));
+        FCBukkitUtil.giveItemsTo(player.asPlayer(), ItemOverflow.DISCARD, stackOf(Material.DIAMOND, 5));
 
         assertTrue(player.getDrops().isEmpty(), "nothing may reach the ground: " + player.getDrops());
+    }
+
+    @Test
+    void theDefaultDropTellsThePlayer() {
+        player.withFullInventory(stackOf(Material.DIRT, 1));
+
+        FCBukkitUtil.giveItemsTo(player.asPlayer(), stackOf(Material.DIAMOND, 5));
+
+        assertTrue(player.getMessages().stream().anyMatch(line -> line.contains("dropped on the ground")), player.getMessages().toString());
+    }
+
+    /** The giver that tells the player itself drops without the core's line. */
+    @Test
+    void aSilentDropDropsWithoutAWord() {
+        player.withFullInventory(stackOf(Material.DIRT, 1));
+
+        FCBukkitUtil.giveItemsTo(player.asPlayer(), ItemOverflow.DROP, stackOf(Material.DIAMOND, 5));
+
+        assertEquals(1, player.getDrops().size(), "the excess still falls: " + player.getDrops());
+        assertTrue(player.getMessages().isEmpty(), "and nobody is told: " + player.getMessages());
     }
 
     @Test
