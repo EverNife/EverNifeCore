@@ -27,7 +27,7 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   block. Nothing reads them yet except boosters, notify, waypoints, regions, provenance and cooldowns: the core's own keys stay where they were.
 - **`BoosterDomain.Builder.permission(prefix, BoosterSettings)`** reads the domain's factors from the `boosters` block
   (`boosters.domains.<name>.permission-factors`); no entry or an empty list leaves the domain with no permission booster.
-  A plugin that kept its own factors key moves it under that block, and the admin rewrites the value there by hand.
+  A plugin that kept its own factors key reads them from that block instead.
 
 #### Placeholders
 
@@ -214,8 +214,7 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   it, and what is already on screen keeps the duration it was shown with. A plugin that registers none, the core
   included, takes the built-in chains. A chain naming an unknown channel, or a key that is no kind, fails the
   `register` naming the key. The core's `Settings.Notify.*` keys are gone (`ECSettings.getNotifyChain`,
-  `getNotifyDuration`, `loadNotifySettings`): the admin rewrites a customised chain or duration by hand under `notify:` in
-  the `config.yml` of each plugin that sends it, and deletes the old block from the core's. The default quest presenter's
+  `getNotifyDuration`, `loadNotifySettings`). The default quest presenter's
   ids lost their `quest-` prefix (`progress:<quest>`, `tracked:<quest>`, ...); `NotifyChannel.clear` gets the handle.
 
 #### Waypoints
@@ -227,8 +226,7 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   A channel nobody registered fails the `register` naming the key. `Waypoint.Builder.particlePathLength(n)` sets the
   length on one waypoint, and `ParticlePathWaypointChannel` reads it from the waypoint. The core's
   `Settings.Waypoint.channels` and `Settings.Waypoint.particle-path-length` are gone (`ECSettings.WAYPOINT_CHANNELS`,
-  `WAYPOINT_PARTICLE_PATH_LENGTH`): the admin rewrites a customised value by hand under `waypoints:` in the `config.yml`
-  of each plugin that shows waypoints, and deletes the two keys from the core's. `Settings.Waypoint.refresh-ticks` stays.
+  `WAYPOINT_PARTICLE_PATH_LENGTH`). `Settings.Waypoint.refresh-ticks` stays.
 
 #### Provenance
 
@@ -356,9 +354,7 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   (`SelectionSpec.withDefaults(selection)`, `withShapeType(type)`; with neither, the built-in `false`/`5m`). The core's
   `Regions.disabled-worlds`, `Regions.visualizer.view-time` and `Regions.selection.*` are gone (`ECSettings.REGIONS_DISABLED_WORLDS`,
   `REGIONS_VISUALIZER_VIEW_TIME`, `REGIONS_SELECTION_LIVE_PREVIEW`, `REGIONS_SELECTION_IDLE_TIME`), and so is the
-  dropping of `Regions` keys named for a unit: the admin moves a disabled world, a view time or a selection setting by
-  hand under `regions:` in the `config.yml` of each plugin that owns regions, turns `regions.flag-settings-files` on
-  there to keep tuning that plugin's flags in `regions/flags/`, and deletes the old keys from the core's config. A plugin
+  dropping of `Regions` keys named for a unit. A plugin
   author binds a `RegionSettings` (or a subclass) in its settings bean and passes it to `RegionManager.of`.
 - **The time left in the region and group commands reads from the locale** (`CoreRegionCommands.REMAINING`, `${time} left`);
   `CoreRegionCommands.remaining` now takes the viewer.
