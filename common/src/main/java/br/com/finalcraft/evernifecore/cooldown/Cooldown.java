@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.cooldown.player.PlayerCooldownsLocal;
 import br.com.finalcraft.evernifecore.cooldown.player.PlayerCooldownsNetwork;
 import br.com.finalcraft.evernifecore.cooldown.server.ServerCooldowns;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
@@ -384,51 +385,63 @@ public final class Cooldown {
     // Factories
     // ------------------------------------------------------------------
 
-    /** The server's own LOCAL cooldown {@code identifier}, kept in {@code Cooldowns.yml} while persistent. */
-    public static Cooldown of(String identifier) {
-        return Cooldowns.server(identifier);
+    // Every factory but inMemory takes the owner: the counter is stored as <owner>#<identifier> (Cooldowns.keyOf), so two
+    // plugins never share one. A server-wide counter nobody else owns names the core: EverNifeCore.getEcPluginData().
+
+    /**
+     * {@code owner}'s LOCAL server cooldown {@code identifier}, kept while persistent in the {@code Cooldowns.yml} of
+     * {@code owner}'s own folder.
+     */
+    public static Cooldown of(ECPluginData owner, String identifier) {
+        return Cooldowns.server(owner, identifier);
     }
 
     /**
-     * The server's NETWORK cooldown {@code identifier}: a handle over its row on the shared backend, born persistent.
-     * Synchronous - the collection is warm. Collapses to the local {@link #of(String)} when the network storage is not
-     * bootstrapped: one server is then the whole network.
+     * {@code owner}'s NETWORK server cooldown {@code identifier}: a handle over its row on the shared backend, born
+     * persistent. Synchronous - the collection is warm. Collapses to the local {@link #of(ECPluginData, String)} when
+     * the network storage is not bootstrapped: one server is then the whole network.
      */
-    public static Cooldown network(String identifier) {
+    public static Cooldown network(ECPluginData owner, String identifier) {
         ServerCooldowns store = ServerCooldowns.get();
-        return store == null ? of(identifier) : store.resolve(identifier, RepeatPolicy.unlimited());
+        return store == null ? of(owner, identifier) : store.resolve(Cooldowns.keyOf(owner, identifier), RepeatPolicy.unlimited());
     }
 
     /**
-     * {@code uuid}'s LOCAL cooldown {@code identifier}, over the player's {@link PlayerCooldownsLocal} row. Async because
-     * the row may have to be read on a cache miss; {@code .join()} is a cache hit for an online player. Not persistent
-     * by default - {@code .setPersist(true)} makes it outlive a restart.
+     * {@code uuid}'s LOCAL cooldown {@code identifier} of {@code owner}, over the player's {@link PlayerCooldownsLocal}
+     * row. Async because the row may have to be read on a cache miss; {@code .join()} is a cache hit for an online
+     * player. Not persistent by default - {@code .setPersist(true)} makes it outlive a restart.
      */
-    public static CompletableFuture<Cooldown> of(UUID uuid, String identifier) {
-        return of(uuid, identifier, RepeatPolicy.unlimited());
+    public static CompletableFuture<Cooldown> of(ECPluginData owner, UUID uuid, String identifier) {
+        return of(owner, uuid, identifier, RepeatPolicy.unlimited());
     }
 
-    /** {@code uuid}'s LOCAL counter {@code identifier} under {@code policy}; persistent when the policy is. */
-    public static CompletableFuture<Cooldown> of(UUID uuid, String identifier, RepeatPolicy policy) {
+    /** {@code uuid}'s LOCAL counter {@code identifier} of {@code owner} under {@code policy}; persistent when the policy is. */
+    public static CompletableFuture<Cooldown> of(ECPluginData owner, UUID uuid, String identifier, RepeatPolicy policy) {
+        String key = Cooldowns.keyOf(owner, identifier);
         return PlayerController.getPDSection(uuid, PlayerCooldownsLocal.class)
-                .thenApply(section -> section.cooldown(identifier, policy));
+                .thenApply(section -> section.cooldown(key, policy));
     }
 
     /**
-     * {@code uuid}'s NETWORK cooldown {@code identifier}, over the human's account-shared {@link PlayerCooldownsNetwork}
-     * row, seen by every server. Born persistent; async like {@link #of(UUID, String)}.
+     * {@code uuid}'s NETWORK cooldown {@code identifier} of {@code owner}, over the human's account-shared
+     * {@link PlayerCooldownsNetwork} row, seen by every server. Born persistent; async like
+     * {@link #of(ECPluginData, UUID, String)}.
      */
-    public static CompletableFuture<Cooldown> network(UUID uuid, String identifier) {
-        return network(uuid, identifier, RepeatPolicy.unlimited());
+    public static CompletableFuture<Cooldown> network(ECPluginData owner, UUID uuid, String identifier) {
+        return network(owner, uuid, identifier, RepeatPolicy.unlimited());
     }
 
-    /** {@code uuid}'s NETWORK counter {@code identifier} under {@code policy}. */
-    public static CompletableFuture<Cooldown> network(UUID uuid, String identifier, RepeatPolicy policy) {
+    /** {@code uuid}'s NETWORK counter {@code identifier} of {@code owner} under {@code policy}. */
+    public static CompletableFuture<Cooldown> network(ECPluginData owner, UUID uuid, String identifier, RepeatPolicy policy) {
+        String key = Cooldowns.keyOf(owner, identifier);
         return PlayerController.getAccountSection(uuid, PlayerCooldownsNetwork.class)
-                .thenApply(section -> section.cooldown(identifier, policy));
+                .thenApply(section -> section.cooldown(key, policy));
     }
 
-    /** A handle kept in memory only: never stored, never listed - one per command, a parser's throttle. */
+    /**
+     * A handle kept in memory only: never stored, never listed, reachable only through the object returned - one per
+     * command, a parser's throttle. No owner: nothing else can name it.
+     */
     public static Cooldown inMemory(String identifier) {
         return new Cooldown(identifier, new CooldownEntry(), RepeatPolicy.unlimited(), null);
     }

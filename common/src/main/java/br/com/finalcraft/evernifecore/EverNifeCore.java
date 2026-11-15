@@ -82,9 +82,6 @@ public class EverNifeCore {
         getLog().info("§aLoading up Configurations...");
         ConfigManager.initialize(getEcPluginData());
 
-        getLog().info("§aLoading up Cooldown System!");
-        Cooldowns.loadServerFile();
-
         CoreFlags.registerAll(getEcPluginData());
         CoreLogic.registerAll(getEcPluginData());
         CoreGroups.registerAll(getEcPluginData());
@@ -137,7 +134,7 @@ public class EverNifeCore {
     @ECPlugin.Reload
     public void onReload(){
         ConfigManager.initialize(ecPluginData);
-        ConfigManager.reloadCooldownConfig();
+        Cooldowns.reloadServerFiles();
     }
 
 }

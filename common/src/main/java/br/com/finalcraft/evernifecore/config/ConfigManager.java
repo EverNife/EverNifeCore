@@ -21,13 +21,11 @@ import br.com.finalcraft.evernifecore.region.command.CoreRegionCommands;
 import br.com.finalcraft.evernifecore.region.command.RegionCommandNode;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSession;
 import br.com.finalcraft.evernifecore.region.selection.SelectionTool;
-import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.FCDefaultExecutor;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
-import br.com.finalcraft.evernifecore.cooldown.Cooldowns;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
@@ -85,19 +83,13 @@ public class ConfigManager {
     };
 
     private static Config mainConfig;
-    private static Config cooldowns;
 
     public static Config getMainConfig(){
         return mainConfig;
     }
 
-    public static Config getCooldowns(){
-        return cooldowns;
-    }
-
     public static void initialize(ECPluginData ecPluginData){
         mainConfig      = ConfigFactory.open(ecPluginData, "config.yml");
-        cooldowns       = ConfigFactory.open(ecPluginData, "Cooldowns.yml");
 
         ECSettings.initialize();
 
@@ -106,11 +98,6 @@ public class ConfigManager {
         FCLocaleManager.updateEverNifeCoreLocale();
 
         PlayerController.initialize();
-    }
-
-    public static void reloadCooldownConfig(){
-        cooldowns = ConfigFactory.open(EverNifeCore.instance.getEcPluginData(), "Cooldowns.yml");
-        Cooldowns.loadServerFile();
     }
 
 }

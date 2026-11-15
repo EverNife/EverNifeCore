@@ -5,7 +5,6 @@ import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.PermissionNodes;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.commands.misc.CMDECCooldown;
-import br.com.finalcraft.evernifecore.config.ConfigManager;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.testing.TestCommandSender;
@@ -65,22 +64,22 @@ class CMDECCooldownDogfoodTest {
         return harness;
     }
 
+    //The full key of the harness plugin's cooldown id, as /eccooldown names it.
+    private String key(String id) {
+        return harness.ecPluginData.getMetaInfo().getName() + "#" + id;
+    }
+
     private static TestCommandSender consoleWithPermission() {
         return new TestCommandSender("console").grant(PermissionNodes.EVERNIFECORE_COMMAND_COOLDOWN);
     }
 
     /**
-     * {@code set}'s local branch (a server-owned cooldown) calls {@code setPersist(true)} then
-     * {@code sendSetConfirmation} formats the remaining time through {@link FCTimeFrame} - two things
-     * FinalCmdTestHarness deliberately never touches, staying command-only (see its own javadoc):
-     * {@code ConfigManager.getCooldowns()} ("Cooldowns.yml", opened here through
-     * {@link ConfigManager#reloadCooldownConfig()}, the same narrow entry point
-     * {@code CMDECCooldown.reload} uses in production) and {@link FCTimeFrame}'s own {@code @FCLocale}
-     * static fields (loaded the same way the real {@code ConfigManager.initialize} does).
+     * {@code set}'s confirmation formats the remaining time through {@link FCTimeFrame}, whose own
+     * {@code @FCLocale} static fields FinalCmdTestHarness deliberately never touches, staying command-only
+     * (see its own javadoc): they are loaded here the same way the real {@code ConfigManager.initialize} does.
      */
     private FinalCMDPluginCommand registerCooldownCommand() {
         FinalCMDPluginCommand command = newHarness().register(new CMDECCooldown());
-        ConfigManager.reloadCooldownConfig();
         FCLocaleManager.loadLocale(harness.ecPluginData, FCTimeFrame.class);
         return command;
     }
@@ -115,11 +114,11 @@ class CMDECCooldownDogfoodTest {
         TestCommandSender sender = consoleWithPermission();
         String cooldownId = "dogfood_local_" + UNIQUE_SUFFIX.incrementAndGet();
 
-        harness.dispatch(command, sender, "set " + cooldownId + " 300");
+        harness.dispatch(command, sender, "set " + key(cooldownId) + " 300");
 
         sender.assertAnyMessageContains("SERVER");
         sender.assertAnyMessageContains("LOCAL");
-        assertTrue(Cooldown.of(cooldownId).isInCooldown(), "set must have actually started the cooldown");
+        assertTrue(Cooldown.of(harness.ecPluginData, cooldownId).isInCooldown(), "set must have actually started the cooldown");
     }
 
     @Test
@@ -128,11 +127,11 @@ class CMDECCooldownDogfoodTest {
         TestCommandSender sender = consoleWithPermission();
         String cooldownId = "dogfood_net_" + UNIQUE_SUFFIX.incrementAndGet();
 
-        harness.dispatch(command, sender, "set " + cooldownId + " 300 --network");
+        harness.dispatch(command, sender, "set " + key(cooldownId) + " 300 --network");
 
         sender.assertAnyMessageContains("SERVER");
         sender.assertAnyMessageContains("NETWORK");
-        assertTrue(Cooldown.network(cooldownId).isInCooldown());
+        assertTrue(Cooldown.network(harness.ecPluginData, cooldownId).isInCooldown());
     }
 
     @Test
@@ -141,9 +140,23 @@ class CMDECCooldownDogfoodTest {
         TestCommandSender sender = consoleWithPermission();
         String cooldownId = "dogfood_alias_" + UNIQUE_SUFFIX.incrementAndGet();
 
-        harness.dispatch(command, sender, "set " + cooldownId + " 300 -n");
+        harness.dispatch(command, sender, "set " + key(cooldownId) + " 300 -n");
 
         sender.assertAnyMessageContains("NETWORK");
+    }
+
+    @Test
+    void aCooldownNamedWithoutALoadedPluginIsRefusedWithTheFormToUse() {
+        FinalCMDPluginCommand command = registerCooldownCommand();
+        TestCommandSender sender = consoleWithPermission();
+
+        harness.dispatch(command, sender, "set daily 300");
+        sender.assertAnyMessageContains("<Plugin>#<id>");
+        assertFalse(sender.anyMessageContains("LOCAL"), "a bare id starts nothing");
+
+        TestCommandSender other = consoleWithPermission();
+        harness.dispatch(command, other, "set NoSuchPlugin#daily 300");
+        other.assertAnyMessageContains(key(""));
     }
 
     @Test
@@ -152,10 +165,10 @@ class CMDECCooldownDogfoodTest {
         TestCommandSender sender = consoleWithPermission();
         String cooldownId = "dogfood_invalid_" + UNIQUE_SUFFIX.incrementAndGet();
 
-        harness.dispatch(command, sender, "set " + cooldownId + " notADuration");
+        harness.dispatch(command, sender, "set " + key(cooldownId) + " notADuration");
 
         sender.assertAnyMessageContains("Invalid duration");
-        assertFalse(Cooldown.of(cooldownId).isInCooldown());
+        assertFalse(Cooldown.of(harness.ecPluginData, cooldownId).isInCooldown());
     }
 
     // ------------------------------------------------------------------
@@ -176,12 +189,12 @@ class CMDECCooldownDogfoodTest {
         TestCommandSender sender = consoleWithPermission();
         String cooldownId = "kit";
 
-        harness.dispatch(command, sender, "setplayer Vip " + cooldownId + " 300");
+        harness.dispatch(command, sender, "setplayer Vip " + key(cooldownId) + " 300");
         waitUntil(() -> sender.anyMessageContains("PLAYER"));
 
         sender.assertAnyMessageContains("LOCAL");
         PlayerData playerData = PlayerController.getLoaded(uuid);
-        assertTrue(playerData.getCooldown(cooldownId).join().isInCooldown());
+        assertTrue(playerData.getCooldown(harness.ecPluginData, cooldownId).join().isInCooldown());
     }
 
     @Test
@@ -194,12 +207,12 @@ class CMDECCooldownDogfoodTest {
         TestCommandSender sender = consoleWithPermission();
         String cooldownId = "vip";
 
-        harness.dispatch(command, sender, "setplayer Vip " + cooldownId + " 300 --network");
+        harness.dispatch(command, sender, "setplayer Vip " + key(cooldownId) + " 300 --network");
         waitUntil(() -> sender.anyMessageContains("PLAYER"));
 
         sender.assertAnyMessageContains("NETWORK");
         PlayerData playerData = PlayerController.getLoaded(uuid);
-        assertTrue(playerData.getNetworkCooldown(cooldownId).join().isInCooldown());
+        assertTrue(playerData.getNetworkCooldown(harness.ecPluginData, cooldownId).join().isInCooldown());
     }
 
     @Test
@@ -208,7 +221,7 @@ class CMDECCooldownDogfoodTest {
         PlayerController.initialize(writeStorageYml("dogfood_setplayer_unknown"));
         TestCommandSender sender = consoleWithPermission();
 
-        harness.dispatch(command, sender, "setplayer GhostPlayer kit 300");
+        harness.dispatch(command, sender, "setplayer GhostPlayer " + key("kit") + " 300");
 
         //synchronous: an unresolved <player> aborts inside the @Arg parser itself, before any
         //PlayerController-async branch is ever reached - no waitUntil needed here

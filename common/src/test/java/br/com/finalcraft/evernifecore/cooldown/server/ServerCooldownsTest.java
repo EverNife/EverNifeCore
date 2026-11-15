@@ -1,11 +1,14 @@
 package br.com.finalcraft.evernifecore.cooldown.server;
 
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
+import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.cooldown.CooldownEntry;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -21,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The server-cooldown quadrants: the network reach of {@link Cooldown#network(String)} seen across
+ * The server-cooldown quadrants: the network reach of {@link Cooldown#network(ECPluginData, String)} seen across
  * two servers, the born-persistent handle, the stop a later resolve must not revive, and the
  * {@link ServerCooldownRow} convergence by {@link CooldownEntry#latest}. Backend: H2 in-memory (the
  * same durable DB across two bootstraps stands in for two servers).
@@ -33,8 +36,16 @@ class ServerCooldownsTest {
     @TempDir
     Path tempDir;
 
+    private ECPluginData events;
+
+    @BeforeEach
+    void setup() {
+        events = Plugins.fakeOther("FakeEvents", tempDir.resolve("events").toFile());
+    }
+
     @AfterEach
     void teardown() {
+        Plugins.forget("FakeEvents");
         PlayerDataWorld.tearDown();
     }
 
@@ -48,12 +59,12 @@ class ServerCooldownsTest {
         File storageYml = writeStorageYml("srv_net_two_servers");
         PlayerController.initialize(storageYml);
 
-        Cooldown.network("global_event").setPersist(true).startWith(300);
+        Cooldown.network(events, "global_event").setPersist(true).startWith(300);
         PlayerController.get().flushAll().join(); //awaits the network cooldown's in-flight writes
 
         //a fresh controller over the same durable backend stands in for the other server
         PlayerController.initialize(storageYml);
-        assertTrue(Cooldown.network("global_event").isInCooldown(),
+        assertTrue(Cooldown.network(events, "global_event").isInCooldown(),
                 "the other server must see the server-wide network cooldown this one started");
     }
 
@@ -63,7 +74,7 @@ class ServerCooldownsTest {
         PlayerController.initialize(storageYml);
 
         //no explicit setPersist(true): the server-network handle must be born persistent on its own
-        Cooldown handle = Cooldown.network("global_event");
+        Cooldown handle = Cooldown.network(events, "global_event");
         assertTrue(handle.isPersistent(),
                 "a server-network cooldown handle must be born persistent, no external setPersist needed");
         handle.startWith(300);
@@ -71,7 +82,7 @@ class ServerCooldownsTest {
 
         //a fresh controller over the same durable backend stands in for the other server
         PlayerController.initialize(storageYml);
-        assertTrue(Cooldown.network("global_event").isInCooldown(),
+        assertTrue(Cooldown.network(events, "global_event").isInCooldown(),
                 "the other server must see a network cooldown started without a manual setPersist");
     }
 
@@ -80,11 +91,11 @@ class ServerCooldownsTest {
         File storageYml = writeStorageYml("srv_net_stop_then_resolve");
         PlayerController.initialize(storageYml);
 
-        Cooldown.network("global_event").startWith(300);
-        Cooldown.network("global_event").stop();
+        Cooldown.network(events, "global_event").startWith(300);
+        Cooldown.network(events, "global_event").stop();
         //resolve() re-asserts persist=true on the shared entry; that must not revive a stopped cooldown,
         //since isInCooldown is gated on timeStart (a stop zeroes it), not on the persist flag
-        assertFalse(Cooldown.network("global_event").isInCooldown(),
+        assertFalse(Cooldown.network(events, "global_event").isInCooldown(),
                 "a stopped server cooldown must stay free even after resolve re-marks the entry persistent");
     }
 

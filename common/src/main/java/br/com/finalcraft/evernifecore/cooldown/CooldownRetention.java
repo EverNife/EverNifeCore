@@ -1,9 +1,13 @@
 package br.com.finalcraft.evernifecore.cooldown;
 
-import java.util.Collections;
+import br.com.finalcraft.evernifecore.config.plugin.CooldownSettings;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import jakarta.annotation.Nullable;
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -28,30 +32,54 @@ import java.util.concurrent.TimeUnit;
  */
 public final class CooldownRetention {
 
-    /** The retention applied to any id without an override. */
+    /** The server's retention, for a plugin that declares none. */
     private static volatile long defaultRetentionMillis = TimeUnit.DAYS.toMillis(30);
 
-    /** Per-id retention overrides, in millis. Replaced wholesale by {@link #configure}. */
-    private static volatile Map<String, Long> overridesMillis = Collections.emptyMap();
+    /** Each plugin's own retention, by plugin name; see {@link #configure(ECPluginData, CooldownSettings)}. */
+    private static final Map<String, Owned> OWNERS = new ConcurrentHashMap<>();
 
     private CooldownRetention() {
     }
 
-    /**
-     * Installs the admin-configured retention: a default (in days) and per-id overrides (in millis).
-     * Called once as the settings are read; until then the built-in 30-day default applies.
-     */
-    public static void configure(int defaultDays, Map<String, Long> overridesById) {
-        defaultRetentionMillis = TimeUnit.DAYS.toMillis(Math.max(0, defaultDays));
-        overridesMillis = overridesById == null || overridesById.isEmpty()
-                ? Collections.<String, Long>emptyMap()
-                : Collections.unmodifiableMap(new HashMap<>(overridesById));
+    /** Installs the server's retention in days ({@code Settings.Cooldown.RETENTION_DAYS}); until then 30 days apply. */
+    public static void setDefaultDays(int days) {
+        defaultRetentionMillis = TimeUnit.DAYS.toMillis(Math.max(0, days));
     }
 
-    /** The retention window, in millis, that applies to {@code identifier}. */
-    public static long retentionMillisFor(String identifier) {
-        Long override = overridesMillis.get(identifier);
-        return override != null ? override : defaultRetentionMillis;
+    /**
+     * Installs {@code owner}'s retention from its {@code cooldowns} block, replacing what it declared before: its
+     * {@code retention-days} for its counters and {@code retention-overrides} per id. Only {@code owner}'s counters
+     * read it - the same id of another plugin keeps that plugin's. Dropped when the plugin is released.
+     */
+    public static void configure(ECPluginData owner, CooldownSettings settings) {
+        Integer days = settings.getRetentionDays();
+        Map<String, Long> overrides = new HashMap<>();
+        settings.getRetentionOverrides().forEach((id, overrideDays) -> overrides.put(id, TimeUnit.DAYS.toMillis(Math.max(0, overrideDays))));
+        OWNERS.put(owner.getMetaInfo().getName(), new Owned(days == null ? null : TimeUnit.DAYS.toMillis(Math.max(0, days)), overrides));
+    }
+
+    /** Drops what {@code owner} declared; its counters fall back to the server's retention. */
+    public static void forget(ECPluginData owner) {
+        OWNERS.remove(owner.getMetaInfo().getName());
+    }
+
+    /** The retention window, in millis, of the counter {@code id} of the plugin named {@code pluginName}. */
+    public static long retentionMillisFor(String pluginName, String id) {
+        Owned owned = OWNERS.get(pluginName);
+        if (owned == null) {
+            return defaultRetentionMillis;
+        }
+        Long override = owned.overrides.get(id);
+        if (override != null) {
+            return override;
+        }
+        return owned.days != null ? owned.days : defaultRetentionMillis;
+    }
+
+    /** The retention window, in millis, of the counter stored under {@code key} ({@code <plugin>#<id>}). */
+    public static long retentionMillisFor(String key) {
+        int hash = key.indexOf('#');
+        return hash < 0 ? defaultRetentionMillis : retentionMillisFor(key.substring(0, hash), key.substring(hash + 1));
     }
 
     /**
@@ -74,8 +102,8 @@ public final class CooldownRetention {
     }
 
     /**
-     * Removes every entry past its retention horizon at {@code now}, each judged by its own id's
-     * window. Returns whether anything was removed, so a caller can persist the shrink.
+     * Removes every entry past its retention horizon at {@code now}, each judged by the retention of
+     * its own key's plugin and id. Returns whether anything was removed, so a caller can persist the shrink.
      */
     public static boolean prune(Map<String, CooldownEntry> cooldowns, long now) {
         if (cooldowns.isEmpty()) {
@@ -91,5 +119,15 @@ public final class CooldownRetention {
             }
         }
         return removed;
+    }
+
+    private static final class Owned {
+        final @Nullable Long days;
+        final Map<String, Long> overrides;
+
+        Owned(@Nullable Long days, Map<String, Long> overrides) {
+            this.days = days;
+            this.overrides = overrides;
+        }
     }
 }

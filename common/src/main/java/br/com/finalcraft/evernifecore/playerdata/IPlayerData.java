@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.playerdata;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.logic.RepeatPolicy;
 import br.com.finalcraft.everydatabase.manager.cache.IDirtyable;
 
@@ -28,37 +29,37 @@ public interface IPlayerData extends IDirtyable {
     long getLastSaved();
 
     /**
-     * This player's LOCAL (this-server-only) cooldown for {@code identifier}, resolved through the
-     * player's local cooldown row. Async because the cooldown bucket may have to be read from
-     * the backend when it is not cached (an offline target, or a cache miss); for an online player the
-     * bucket is hot-loaded, so {@code .join()} is a cache hit and the safe pattern on the main thread.
-     * For an offline target, bridge the result back with
+     * This player's LOCAL (this-server-only) cooldown {@code identifier} of {@code owner}, resolved through the
+     * player's local cooldown row; two plugins asking the same identifier get two counters. Async because the
+     * cooldown bucket may have to be read from the backend when it is not cached (an offline target, or a cache
+     * miss); for an online player the bucket is hot-loaded, so {@code .join()} is a cache hit and the safe pattern
+     * on the main thread. For an offline target, bridge the result back with
      * {@link PlayerController#whenCompleteOnMainThread(CompletableFuture, java.util.function.BiConsumer)}
      * instead of blocking.
      */
-    default CompletableFuture<Cooldown> getCooldown(String identifier) {
-        return Cooldown.of(getUniqueId(), identifier);
+    default CompletableFuture<Cooldown> getCooldown(ECPluginData owner, String identifier) {
+        return Cooldown.of(owner, getUniqueId(), identifier);
     }
 
-    /** This player's LOCAL counter {@code identifier} under {@code policy}; the async contract of {@link #getCooldown(String)}. */
-    default CompletableFuture<Cooldown> getCooldown(String identifier, RepeatPolicy policy) {
-        return Cooldown.of(getUniqueId(), identifier, policy);
+    /** This player's LOCAL counter {@code identifier} of {@code owner} under {@code policy}; the async contract of {@link #getCooldown(ECPluginData, String)}. */
+    default CompletableFuture<Cooldown> getCooldown(ECPluginData owner, String identifier, RepeatPolicy policy) {
+        return Cooldown.of(owner, getUniqueId(), identifier, policy);
     }
 
     /**
-     * This player's NETWORK-wide cooldown for {@code identifier}: a handle over the human's
+     * This player's NETWORK-wide cooldown {@code identifier} of {@code owner}: a handle over the human's
      * account-shared row, seen by every server of the network - the counterpart of
-     * {@link #getCooldown(String)}, with the same async contract. Unlike the local one it is born
+     * {@link #getCooldown(ECPluginData, String)}, with the same async contract. Unlike the local one it is born
      * PERSISTENT (a network cooldown only means anything if it replicates); see
-     * {@link Cooldown#network(UUID, String)}.
+     * {@link Cooldown#network(ECPluginData, UUID, String)}.
      */
-    default CompletableFuture<Cooldown> getNetworkCooldown(String identifier) {
-        return Cooldown.network(getUniqueId(), identifier);
+    default CompletableFuture<Cooldown> getNetworkCooldown(ECPluginData owner, String identifier) {
+        return Cooldown.network(owner, getUniqueId(), identifier);
     }
 
-    /** This player's NETWORK counter {@code identifier} under {@code policy}; the async contract of {@link #getCooldown(String)}. */
-    default CompletableFuture<Cooldown> getNetworkCooldown(String identifier, RepeatPolicy policy) {
-        return Cooldown.network(getUniqueId(), identifier, policy);
+    /** This player's NETWORK counter {@code identifier} of {@code owner} under {@code policy}; the async contract of {@link #getCooldown(ECPluginData, String)}. */
+    default CompletableFuture<Cooldown> getNetworkCooldown(ECPluginData owner, String identifier, RepeatPolicy policy) {
+        return Cooldown.network(owner, getUniqueId(), identifier, policy);
     }
 
     /**

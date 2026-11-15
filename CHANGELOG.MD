@@ -24,7 +24,7 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   (`waypoints`), `RegionSettings` (`regions`), `ProvenanceSettings` (`provenance`), `CooldownSettings` (`cooldowns`) and
   `BoosterSettings` (`boosters`), each with its keys, comments and defaults (times as `FCTimeFrame`, `10s`). A plugin binds
   one as a field of its settings bean under `@Key(X.SECTION)` and may extend it with keys of its own; never a file per
-  block. Nothing reads them yet except boosters, notify, waypoints, regions and provenance: the core's own keys stay where they were.
+  block. Nothing reads them yet except boosters, notify, waypoints, regions, provenance and cooldowns: the core's own keys stay where they were.
 - **`BoosterDomain.Builder.permission(prefix, BoosterSettings)`** reads the domain's factors from the `boosters` block
   (`boosters.domains.<name>.permission-factors`); no entry or an empty list leaves the domain with no permission booster.
   A plugin that kept its own factors key moves it under that block, and the admin rewrites the value there by hand.
@@ -244,6 +244,23 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   origin test opens the record itself (the owner's settings when it opened one, else the built-in ones), so an engine
   without storage takes origin tests too. `ActionWorld.provenance(settings)` is new in the test engine, which keeps the
   record in memory.
+
+#### Cooldowns
+
+- **Every cooldown has an owner.** `Cooldown.of(owner, id)`, `Cooldown.network(owner, id)`, `Cooldown.of(owner, uuid, id[,
+  policy])`, `Cooldown.network(owner, uuid, id[, policy])` and `IPlayerData.getCooldown(owner, id[, policy])` /
+  `getNetworkCooldown(owner, id[, policy])` replace the forms without one: the counter is stored as `<Plugin>#<id>`
+  (`Cooldowns.keyOf`), so two plugins with the same id count apart. A plugin passes its own `ECPluginData`; a server-wide
+  counter of nobody in particular names the core (`EverNifeCore.getEcPluginData()`). `Cooldowns.resolve` stores under the
+  same key. `Cooldown.inMemory(id)` keeps no owner (nothing else can reach it).
+- **A plugin's server cooldowns live in its own folder**, `plugins/<Plugin>/Cooldowns.yml`, opened on its first cooldown and
+  dropped when it leaves; `ConfigManager.getCooldowns()`, `reloadCooldownConfig()` and `Cooldowns.loadServerFile()` are gone
+  (`Cooldowns.reloadServerFiles()`).
+- **Cooldown retention per plugin**: `CooldownRetention.configure(owner, CooldownSettings)` applies the plugin's
+  `cooldowns.retention-days` and `retention-overrides` to its own counters only; `Settings.Cooldown.RETENTION_DAYS` stays the
+  server's default (`CooldownRetention.setDefaultDays`) and `Settings.Cooldown.RETENTION_OVERRIDES` is gone.
+- **`/eccooldown` names a cooldown by its full key** `<Plugin>#<id>` (`reset`, `resetplayer`, `set`, `setplayer`), completing
+  the plugin part; an unknown plugin is refused with the list of loaded ones.
 
 #### Boosters
 

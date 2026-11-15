@@ -14,10 +14,7 @@ import br.com.finalcraft.everylibs.util.FCTimeUtil;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 public class ECSettings {
 
@@ -101,15 +98,9 @@ public class ECSettings {
                 "How long a cooldown entry is kept AFTER its nominal duration ends, before it is pruned." +
                         "\nA read asking for a custom duration beyond this bound is answered as 'free' anyway," +
                         "\nso the entry can no longer change any answer once past it." +
-                        "\nOverride it per cooldown id under Settings.Cooldown.RETENTION_OVERRIDES.<id>."
+                        "\nA plugin declares its own, and one per cooldown id, in the 'cooldowns' section of its config.yml."
         );
-
-        Map<String, Long> retentionOverrides = new LinkedHashMap<>();
-        for (String cooldownId : ConfigManager.getMainConfig().getKeys("Settings.Cooldown.RETENTION_OVERRIDES")) {
-            retentionOverrides.put(cooldownId, TimeUnit.DAYS.toMillis(
-                    ConfigManager.getMainConfig().getInt("Settings.Cooldown.RETENTION_OVERRIDES." + cooldownId)));
-        }
-        CooldownRetention.configure(COOLDOWN_RETENTION_DAYS, retentionOverrides);
+        CooldownRetention.setDefaultDays(COOLDOWN_RETENTION_DAYS);
 
         STOP_SERVER_IF_STORAGE_IS_UNREACHABLE = ConfigManager.getMainConfig().getOrSetValueIfAbsent(
                 "Settings.Storage.STOP_SERVER_IF_STORAGE_IS_UNREACHABLE", true,

@@ -148,7 +148,7 @@ public final class PDSectionYamlWriter {
 
         storageYml.setValue(entryPath + ".collection", collectionValue);
         storageYml.setComment(entryPath, String.join("\n",
-                "Network-wide cooldowns owned by no player - Cooldown.network(id).",
+                "Network-wide cooldowns owned by no player - Cooldown.network(plugin, id).",
                 "Rename 'collection' if another plugin already claimed the name.",
                 "Optional: cache: { policy: TTL, ttlSeconds: 300 }, which bounds how stale",
                 "another server's write may look here when the backend has no change feed."));

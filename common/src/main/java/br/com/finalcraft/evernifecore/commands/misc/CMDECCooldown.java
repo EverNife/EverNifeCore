@@ -7,7 +7,8 @@ import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpLine;
-import br.com.finalcraft.evernifecore.config.ConfigManager;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.ArgParserCooldownKey;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
@@ -28,6 +29,7 @@ import br.com.finalcraft.everylibs.util.FCTimeUtil;
 
 import java.time.Instant;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -48,20 +50,15 @@ public class CMDECCooldown {
 
     @FinalCMD.SubCMD(
             subcmd = "reset",
-            usage = "<CooldownID>",
             locales = {
-                    @FCLocale(lang = LocaleType.EN_US, text = "Reset an specific cooldown!"),
-                    @FCLocale(lang = LocaleType.PT_BR, text = "Reseta um cooldown especifico!")
+                    @FCLocale(lang = LocaleType.EN_US, text = "Reset an specific server cooldown!"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "Reseta um cooldown especifico do servidor!")
             }
     )
-    public void reset(FCommandSender sender, MultiArgumentos argumentos, HelpLine helpLine) {
+    public void reset(FCommandSender sender,
+                      @Arg(value = "<Plugin#CooldownID>", parser = ArgParserCooldownKey.class) String key) {
 
-        if (argumentos.emptyArgs(0)){
-            helpLine.sendTo(sender);
-            return;
-        }
-
-        Cooldown cooldown = Cooldown.of(argumentos.getStringArg(0));
+        Cooldown cooldown = Cooldown.of(Cooldowns.ownerOf(key), idOf(key));
         if (!isHolding(cooldown)){
             COOLDOWN_NOT_IN_COOLDOWN.addPlaceholder("cooldown", cooldown.getIdentifier()).send(sender);
             return;
@@ -73,29 +70,18 @@ public class CMDECCooldown {
 
     @FinalCMD.SubCMD(
             subcmd = "resetplayer",
-            usage = "<player> <CooldownID>",
             locales = {
                     @FCLocale(lang = LocaleType.EN_US, text = "Reset an specific player cooldown!"),
                     @FCLocale(lang = LocaleType.PT_BR, text = "Reseta um cooldown especifico de um jogador!")
             }
     )
-    public void resetPlayer(FCommandSender sender, MultiArgumentos argumentos, HelpLine helpLine) {
-
-        if (argumentos.emptyArgs(0,1)){
-            helpLine.sendTo(sender);
-            return;
-        }
-
-        PlayerData playerData = argumentos.get(0).getPlayerData();
-
-        if (playerData == null){
-            FCMessageUtil.playerDataNotFound(sender, argumentos.getStringArg(0));
-            return;
-        }
+    public void resetPlayer(FCommandSender sender,
+                            @Arg("<player>") PlayerData playerData,
+                            @Arg(value = "<Plugin#CooldownID>", parser = ArgParserCooldownKey.class) String key) {
 
         //the target may be offline, so its cooldown bucket may have to be read from the backend: resolve
         //async and bridge back to the main thread instead of blocking it with a .join()
-        PlayerController.whenCompleteOnMainThread(playerData.getCooldown(argumentos.getStringArg(1)), (cooldown, error) -> {
+        PlayerController.whenCompleteOnMainThread(playerData.getCooldown(Cooldowns.ownerOf(key), idOf(key)), (cooldown, error) -> {
             if (error != null){
                 EverNifeCore.getLog().severe("Failed to read the cooldowns of {}", playerData.getName(), error);
                 return;
@@ -122,7 +108,7 @@ public class CMDECCooldown {
             }
     )
     public void reload(FCommandSender sender) {
-        ConfigManager.reloadCooldownConfig();
+        Cooldowns.reloadServerFiles();
         COOLDOWN_RELOAD.send(sender);
     }
 
@@ -188,7 +174,8 @@ public class CMDECCooldown {
 
         sender.sendMessage("§7 §oLOCAL§7:");
         boolean anyLocal = false;
-        for (Cooldown cooldown : Cooldowns.getMapOfCooldowns().values()){
+        Cooldowns.openServerFiles();
+        for (Cooldown cooldown : new ArrayList<>(Cooldowns.getMapOfCooldowns().values())){
             sender.sendMessage(describeCooldown(cooldown.getIdentifier(), cooldown.getEntry()));
             anyLocal = true;
         }
@@ -220,6 +207,11 @@ public class CMDECCooldown {
         for (Map.Entry<String, CooldownEntry> entry : memoryOnly.entrySet()){
             sender.sendMessage(describeCooldown(entry.getKey(), entry.getValue()));
         }
+    }
+
+    //The id part of a key the parser already validated: <Plugin>#<id>.
+    private static String idOf(String key) {
+        return key.substring(key.indexOf('#') + 1);
     }
 
     //A cooldown still holds something back while its gap runs or a limit counted uses; reset clears both.
@@ -269,7 +261,7 @@ public class CMDECCooldown {
             }
     )
     public void set(FCommandSender sender,
-                     @Arg("<CooldownID>") String cooldownId,
+                     @Arg(value = "<Plugin#CooldownID>", parser = ArgParserCooldownKey.class) String key,
                      @Arg("<duration>") String duration,
                      @Arg.Flag(value = "--network", aliases = "-n", def = "false", locales = {
                              @FCLocale(lang = LocaleType.EN_US, text = "Apply network-wide (follows the account across servers)."),
@@ -283,7 +275,8 @@ public class CMDECCooldown {
             return;
         }
 
-        Cooldown cooldown = network ? Cooldown.network(cooldownId) : Cooldown.of(cooldownId);
+        ECPluginData owner = Cooldowns.ownerOf(key);
+        Cooldown cooldown = network ? Cooldown.network(owner, idOf(key)) : Cooldown.of(owner, idOf(key));
         cooldown.setPersist(true).startWith(millis, TimeUnit.MILLISECONDS);
         sendSetConfirmation(sender, network ? "SERVER · NETWORK" : "SERVER · LOCAL", cooldown.getIdentifier(), cooldown.getEntry(), "viewserver");
     }
@@ -297,7 +290,7 @@ public class CMDECCooldown {
     )
     public void setPlayer(FCommandSender sender,
                            @Arg("<player>") PlayerData playerData,
-                           @Arg("<CooldownID>") String cooldownId,
+                           @Arg(value = "<Plugin#CooldownID>", parser = ArgParserCooldownKey.class) String key,
                            @Arg("<duration>") String duration,
                            @Arg.Flag(value = "--network", aliases = "-n", def = "false", locales = {
                                    @FCLocale(lang = LocaleType.EN_US, text = "Apply network-wide (follows the account across servers)."),
@@ -312,7 +305,8 @@ public class CMDECCooldown {
         }
 
         //the target may be offline, so the bucket may have to be read from the backend: resolve async
-        CompletableFuture<Cooldown> cooldownFuture = network ? playerData.getNetworkCooldown(cooldownId) : playerData.getCooldown(cooldownId);
+        ECPluginData owner = Cooldowns.ownerOf(key);
+        CompletableFuture<Cooldown> cooldownFuture = network ? playerData.getNetworkCooldown(owner, idOf(key)) : playerData.getCooldown(owner, idOf(key));
         PlayerController.whenCompleteOnMainThread(cooldownFuture, (cooldown, error) -> {
             if (error != null){
                 EverNifeCore.getLog().severe("Failed to read the cooldowns of {}", playerData.getName(), error);

@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.cooldown.player;
 
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
+import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.cooldown.CooldownEntry;
@@ -49,6 +51,7 @@ class CooldownSectionsTest {
 
     @AfterEach
     void teardown() {
+        Plugins.forget("FakeKits");
         PlayerDataWorld.tearDown();
     }
 
@@ -223,13 +226,13 @@ class CooldownSectionsTest {
 
         UUID uuid = UUID.randomUUID();
         PlayerData player = PlayerController.handleLogin(uuid, "Vip").join();
-        player.getPDSection(PlayerCooldownsLocal.class).join()
-                .cooldown("kit", RepeatPolicy.unlimited()).setPersist(true).startWith(300);
+        ECPluginData kits = Plugins.fakeOther("FakeKits", tempDir.resolve("kits").toFile());
+        Cooldown.of(kits, uuid, "kit").join().setPersist(true).startWith(300);
         PlayerController.get().flushAll().join();
 
         //a fresh server with a cold cache over the same backend: the bucket is not loaded
         PlayerController.initialize(storageYml);
-        Cooldown fromBackend = Cooldown.of(uuid, "kit").join();
+        Cooldown fromBackend = Cooldown.of(kits, uuid, "kit").join();
         assertTrue(fromBackend.isInCooldown(),
                 "a cold bucket must read the stored cooldown, never report an empty one as free");
     }
@@ -246,8 +249,9 @@ class CooldownSectionsTest {
 
         UUID uuid = UUID.randomUUID();
         PlayerData player = PlayerController.handleLogin(uuid, "Vip").join();
+        ECPluginData kits = Plugins.fakeOther("FakeKits", tempDir.resolve("kits").toFile());
         //getCooldown used to throw UnsupportedOperationException - now it resolves a real handle
-        Cooldown cooldown = player.getCooldown("daily").join();
+        Cooldown cooldown = player.getCooldown(kits, "daily").join();
         assertNotNull(cooldown, "getCooldown must resolve a handle, not throw");
         cooldown.setPersist(true).startWith(600);
         PlayerController.get().flushAll().join();
@@ -255,7 +259,7 @@ class CooldownSectionsTest {
         //reboot: a persistent player cooldown must still be in effect
         PlayerController.initialize(storageYml);
         PlayerData relogged = PlayerController.handleLogin(uuid, "Vip").join();
-        Cooldown afterReboot = relogged.getCooldown("daily").join();
+        Cooldown afterReboot = relogged.getCooldown(kits, "daily").join();
         assertTrue(afterReboot.isInCooldown(), "a persistent player cooldown must survive a reboot");
 
         //the /cooldown resetplayer core (resolve async, then stop) must not blow up and must clear it
