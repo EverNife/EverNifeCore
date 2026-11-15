@@ -92,7 +92,12 @@ public final class BoosterManager implements BoosterSource {
         return opened;
     }
 
-    /** {@code owner}'s open boosters, or ones kept in memory only (they end with the server) when none are open. */
+    /**
+     * {@code owner}'s open boosters, or ones kept in memory only (they end with the server) when none are open. No plugin
+     * needs to call it for in-memory boosters: a {@code BoosterCommandNode} opens it on each verb and a
+     * {@link BoosterDomain} needs nothing opened. A plugin only calls {@link #of(ECPluginData, ECStorage)}, for boosters
+     * that outlive a restart.
+     */
     public static BoosterManager of(ECPluginData owner) {
         BoosterManager existing = OWNED.get(owner.getMetaInfo().getName());
         return existing != null ? existing : open(owner, null);
