@@ -95,6 +95,19 @@ class RegionDisabledWorldsTest {
     }
 
     @Test
+    void noOpenManagerDisablesNoWorld() {
+        arenas.getManager().setSettings(disabling(WORLD));
+        towns.getManager().setSettings(disabling(WORLD));
+        assertTrue(RegionManager.isDisabledEverywhere(WORLD));
+
+        arenas.close();
+        towns.close();
+
+        // A holder that follows the player (a party) still decides where no manager is open.
+        assertFalse(RegionManager.isDisabledEverywhere(WORLD));
+    }
+
+    @Test
     void openingAgainWithSettingsReplacesThemOnTheSameManager() {
         RegionSettings reloaded = disabling(WORLD);
 
