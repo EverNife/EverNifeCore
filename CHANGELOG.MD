@@ -63,6 +63,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `TestTerrain.ITEM` and the stacks of `TestTerrain.spawnItem`).
 - **`Region.removeTemporaryFlag(flag)`** (and `Group.removeTemporaryFlag`, `FlagStore.removeTemporary`): drops only the
   temporary value set with a `Duration`, so the permanent value underneath reads again; `removeFlag` still drops both.
+  `removePermanentFlag(flag)` (`Region`, `Group`, `FlagStore.removePermanent`) is the other way round: the temporary value
+  keeps reading until it expires, and nothing does afterwards.
 
 #### Player state
 

@@ -128,6 +128,24 @@ class RegionFlagValuesTest {
     }
 
     @Test
+    void removingThePermanentValueKeepsTheTemporaryOneUntilItExpires() {
+        region.setFlag(flag, Tristate.TRUE);
+        region.setFlag(flag, Tristate.FALSE, Duration.ofMinutes(15));
+
+        assertTrue(region.removePermanentFlag(flag));
+
+        assertEquals(Tristate.FALSE, region.getFlag(flag), "the temporary value still reads");
+        assertFalse(region.removePermanentFlag(flag), "no permanent value is left to remove");
+        clock.advance(Duration.ofMinutes(16));
+        assertNull(region.getFlagValue(flag), "nothing is underneath once it expires");
+
+        region.setFlag(flag, Tristate.TRUE);
+        region.setFlag(flag, Tristate.FALSE, Duration.ofMinutes(15));
+        assertTrue(region.removeTemporaryFlag(flag));
+        assertEquals(Tristate.TRUE, region.getFlag(flag), "and the other way round, the permanent one stays");
+    }
+
+    @Test
     void anExpiredTemporaryValueIsNotRemovedTwice() {
         region.setFlag(flag, Tristate.TRUE);
         region.setFlag(flag, Tristate.FALSE, Duration.ofMinutes(1));

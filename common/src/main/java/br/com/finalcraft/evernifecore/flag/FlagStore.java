@@ -156,6 +156,27 @@ public final class FlagStore {
         return true;
     }
 
+    /**
+     * Removes the permanent layer only: a live temporary value over it keeps reading until it expires, and nothing reads
+     * afterwards (heard as {@link FlagChangeCause#REMOVED}, the permanent value as the old one). False when there was no
+     * permanent value.
+     */
+    public boolean removePermanent(Flag<?> flag) {
+        Layers[] dropped = new Layers[1];
+        Layers kept = values.computeIfPresent(flag.getKey(), (key, layers) -> {
+            if (layers.permanent == null) {
+                return layers;
+            }
+            dropped[0] = layers;
+            return layers.timed == null || layers.timed.isExpired() ? null : new Layers(layers.flag, null, layers.timed);
+        });
+        if (dropped[0] == null) {
+            return false;
+        }
+        hook.onFlagChanged(flag, dropped[0].permanent, kept == null ? null : kept.timed, FlagChangeCause.REMOVED);
+        return true;
+    }
+
     /** A read-only view of the raw values of flags that are not registered, by {@code owner:name}. */
     public Map<String, JsonNode> getUnknown() {
         return Collections.unmodifiableMap(unknown);
