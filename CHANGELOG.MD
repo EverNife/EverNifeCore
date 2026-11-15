@@ -88,6 +88,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   render (null answer = the icon's own item); text, placeholders and data lines still apply over it.
 - **`RankingRequest.icon(Function<RankedEntry<?>, ItemSpec>)`**: each ranking entry drawn as the item it answers (a
   player's head, the ranked thing's own item) under the layout's `ENTRY` text; a null answer keeps the layout's item.
+- **An editable area is read and written with its screen open**: `StorageView.of(view, binding)` (Bukkit) is the area
+  of an open chest, `getItem(index)` reads what the window shows and `setItem(index, item)` writes the window and the
+  store together, asked and told as a `PLUGIN` change (`false` when the store refuses). A button processes the area
+  without closing the screen; writing the store alone is still undone by the next read-back.
 
 #### Testing
 

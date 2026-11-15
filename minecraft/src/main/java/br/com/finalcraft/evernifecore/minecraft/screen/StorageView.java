@@ -64,6 +64,29 @@ public final class StorageView {
         this.placeFilter = binding.getPlaceFilter();
     }
 
+    /**
+     * The editable area {@code binding} declared, as it is open in {@code view}'s chest right now - where a button's
+     * handler reads and writes it without closing the screen ({@code StorageView.of(click.getView(), input)}).
+     *
+     * @throws IllegalStateException when {@code view} has no chest open, or {@code binding} is not one of its areas
+     */
+    @Nonnull
+    public static StorageView of(@Nonnull ScreenView view, @Nonnull StorageBinding binding) {
+        BukkitScreenSurface surface = ChestScreenRenderer.surfaceOf(view);
+        if (surface == null) {
+            throw new IllegalStateException("[" + view.getScreen().describe() + "] has no chest open for ["
+                    + view.getViewerName() + "]: it closed, or another renderer draws it. Reach the area from a "
+                    + "handler of the open screen (onClick, onChange); once it closed, its store holds what was left.");
+        }
+        for (StorageView storage : surface.getStorages()) {
+            if (storage.binding == binding) {
+                return storage;
+            }
+        }
+        throw new IllegalStateException("The storage region [" + binding.getName() + "] is not an area of ["
+                + view.getScreen().describe() + "]. Pass the StorageBinding that screen's storage(...) returned.");
+    }
+
     private static ItemStore requireStore(ScreenView view, StorageBinding binding) {
         Object backing = binding.getBacking();
         if (backing instanceof ItemStore) {
@@ -107,6 +130,54 @@ public final class StorageView {
     @Nonnull
     public ItemStore getStore() {
         return store;
+    }
+
+    /**
+     * What the area's slot {@code index} shows right now - the window, not the store, which catches up a tick after a
+     * gesture. A copy, or {@code null} for an empty slot.
+     */
+    @Nullable
+    public ItemStack getItem(int index) {
+        ItemStack shown = surface.getItem(slotOf(index));
+        return ItemStore.isEmpty(shown) ? null : shown.clone();
+    }
+
+    /**
+     * Puts {@code item} in the area's slot {@code index} with the screen open: the store is asked and told as for any
+     * {@link UpdateCause#PLUGIN} change, then the window and the store are written together, so the player sees it at
+     * once and the read-back that follows a gesture finds nothing to report. The binding's {@code onChange} is the
+     * player's, and does not hear it. Main thread.
+     *
+     * @return whether it was written - {@code false} when the store refused it
+     * @throws IllegalArgumentException when {@code index} is outside the area or {@code item} is bigger than the slot holds
+     */
+    public boolean setItem(int index, @Nullable ItemStack item) {
+        int slot = slotOf(index);
+        ItemStack next = ItemStore.isEmpty(item) ? null : item.clone();
+        if (next != null && next.getAmount() > store.getMaxStackSize(index, next)) {
+            throw new IllegalArgumentException("A stack of " + next.getAmount() + " does not fit slot " + index
+                    + " of the storage region [" + binding.getName() + "], which holds "
+                    + store.getMaxStackSize(index, next) + " of it. Split it, or give the rest to the player.");
+        }
+        ItemStack shown = getItem(index);
+        if (BukkitScreenSurface.isSameOutput(shown, next)) {
+            return true;
+        }
+        if (!store.mayUpdate(UpdateCause.PLUGIN, index, shown, next)) {
+            return false;
+        }
+        surface.set(slot, next);
+        store.setItemSilently(index, next == null ? null : next.clone());
+        store.reportUpdate(UpdateCause.PLUGIN, index, shown, next == null ? null : next.clone());
+        return true;
+    }
+
+    private int slotOf(int index) {
+        if (index < 0 || index >= slots.length) {
+            throw new IllegalArgumentException("The storage region [" + binding.getName() + "] has " + slots.length
+                    + " slots, numbered 0 to " + (slots.length - 1) + ", and " + index + " is not one of them.");
+        }
+        return slots[index];
     }
 
     /** Whether {@code item} may enter here - see {@link StorageBinding#denyPlace}. Nothing always may. */
