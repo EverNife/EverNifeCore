@@ -1,6 +1,5 @@
 package br.com.finalcraft.evernifecore.logic.core;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
@@ -13,16 +12,13 @@ import br.com.finalcraft.evernifecore.logic.Effect;
 import br.com.finalcraft.evernifecore.logic.EffectModifiers;
 import br.com.finalcraft.evernifecore.logic.Effects;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
-import br.com.finalcraft.evernifecore.logic.audit.AuditKind;
 import br.com.finalcraft.evernifecore.logic.delivery.Deliveries;
 import br.com.finalcraft.evernifecore.logic.delivery.DeliveryDestination;
 import br.com.finalcraft.evernifecore.logic.delivery.DeliveryDestinations;
-import br.com.finalcraft.evernifecore.logic.delivery.DeliveryPolicy;
 import br.com.finalcraft.evernifecore.logic.delivery.InventoryDestination;
 import br.com.finalcraft.evernifecore.logic.delivery.PendingDestination;
 import br.com.finalcraft.evernifecore.types.ParamSpec;
 import br.com.finalcraft.evernifecore.types.TypeDescriptor;
-import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.annotation.Nullable;
 
 import java.math.BigDecimal;
@@ -76,17 +72,6 @@ final class StockItems {
                 + id + "' is registered to take what does not fit: write overflow: as one of " + DeliveryDestinations.getIds()
                 + ", or have the plugin that owns it register it before this effect is read."));
         return found instanceof PendingDestination ? null : found;
-    }
-
-    /** Keeps {@code node} as a pending delivery; a store that refuses it is logged and audited, never lost in silence. */
-    private static void keep(ExecutionContext ctx, @Nullable Duration expires, JsonNode node) {
-        Deliveries.get().keepFor(ctx, DeliveryPolicy.KEEP_SELF_CONTAINED, expires, null, node).exceptionally(failure -> {
-            String lost = node + " for " + ctx.getPlayer() + " did not fit and could not be kept as a delivery, so it is lost: " + failure
-                    + ". The pending deliveries live in the players' data, which must be loaded first.";
-            EverNifeCore.getLog().warning("[" + ctx.getCaller() + "] " + lost);
-            ctx.getAudit().add(ctx, AuditKind.DELIVERY_DISCARDED, lost);
-            return null;
-        });
     }
 
     private static int data(BigDecimal data) {
@@ -146,7 +131,7 @@ final class StockItems {
             } else {
                 Optional<DeliveryDestination> found = DeliveryDestinations.find(to);
                 if (!found.isPresent()) {
-                    keep(ctx, expires, PendingDestination.giveItemNode(item, to));
+                    Deliveries.get().keepOrAudit(ctx, expires, PendingDestination.giveItemNode(item, to));
                     return;
                 }
                 destination = found.get();
@@ -156,7 +141,7 @@ final class StockItems {
                 rest = overflow.deliverItem(ctx, rest);
             }
             if (left(rest)) {
-                keep(ctx, expires, PendingDestination.giveItemNode(rest, null));
+                Deliveries.get().keepOrAudit(ctx, expires, PendingDestination.giveItemNode(rest, null));
             }
         }
 
@@ -202,7 +187,7 @@ final class StockItems {
         public void refund(ExecutionContext ctx) {
             ItemSpec rest = DeliveryDestinations.requireInventory().deliverItem(ctx, matcher.toItem(amount));
             if (left(rest)) {
-                keep(ctx, null, PendingDestination.giveItemNode(rest, null));
+                Deliveries.get().keepOrAudit(ctx, null, PendingDestination.giveItemNode(rest, null));
             }
         }
 

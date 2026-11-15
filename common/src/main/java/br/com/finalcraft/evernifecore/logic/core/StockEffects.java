@@ -15,7 +15,6 @@ import br.com.finalcraft.evernifecore.logic.ProgressOwner;
 import br.com.finalcraft.evernifecore.logic.Variable;
 import br.com.finalcraft.evernifecore.logic.audit.AuditKind;
 import br.com.finalcraft.evernifecore.logic.delivery.Deliveries;
-import br.com.finalcraft.evernifecore.logic.delivery.DeliveryPolicy;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.player.state.ECGameMode;
 import br.com.finalcraft.evernifecore.player.state.EffectLevel;
@@ -220,7 +219,7 @@ final class StockEffects {
                     node.put("type", "evernifecore:command");
                     node.put("command", command);
                     node.put("as", "player");
-                    Deliveries.get().keepFor(ctx, DeliveryPolicy.KEEP_SELF_CONTAINED, null, null, node);
+                    Deliveries.get().keepOrAudit(ctx, null, node);
                     return;
                 }
                 if (command.contains("{player}") && ctx.resolve("{player}").equals("{player}")) {

@@ -182,6 +182,20 @@ public final class Deliveries {
     }
 
     /**
+     * {@link #keepFor} for an effect that has nowhere else to put {@code node} (self-contained, no icon): a store that
+     * refuses it - the players' data not loaded - is logged and audited {@code DELIVERY_DISCARDED}, never lost in silence.
+     */
+    public void keepOrAudit(ExecutionContext ctx, @Nullable Duration ttl, JsonNode node) {
+        keepFor(ctx, DeliveryPolicy.KEEP_SELF_CONTAINED, ttl, null, node).exceptionally(failure -> {
+            String lost = node + " for " + ctx.getPlayer() + " could not be handed over nor kept as a delivery, so it is lost: " + failure
+                    + ". The pending deliveries live in the players' data, which must be loaded first.";
+            EverNifeCore.getLog().warning("[" + ctx.getCaller() + "] " + lost);
+            ctx.getAudit().add(ctx, AuditKind.DELIVERY_DISCARDED, lost);
+            return null;
+        });
+    }
+
+    /**
      * The path of a delayed effect whose player left: keeps only the nodes whose type is the core's, so they can be
      * handed out whatever plugins are loaded later, and audits each other node as {@code DELIVERY_DISCARDED} (posting
      * DISCARDED) - a plugin's effect is only safe to replay by that plugin.

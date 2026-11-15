@@ -366,7 +366,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 #### Deliveries
 
 - **What a `give-item` could not fit is never lost in silence**: when the deliveries store refuses it (the players' data
-  not loaded), the effect logs a warning and audits `DELIVERY_DISCARDED`; it used to vanish.
+  not loaded), the effect logs a warning and audits `DELIVERY_DISCARDED`; it used to vanish. The same now holds for a
+  `money` sent `to:` the `pending` destination or to one nobody registered, and for an offline `command` with
+  `as: player`: `Deliveries.keepOrAudit(ctx, ttl, node)` is the one path, and a plugin's own destination can use it.
 - **A delivery left by a screen names the screen, not its title**: the emitter is `screen:<id>` (`Screen.getId()`: the
   key, else the layout's name, else the title without colour codes) instead of `screen:§2Woodcutter`.
 - **A pending `money` keeps the number its texts show**: `PendingDestination.moneyNode` writes `1250`, not `1250.0`.

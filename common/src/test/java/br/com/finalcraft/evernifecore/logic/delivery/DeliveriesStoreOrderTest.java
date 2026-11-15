@@ -1,9 +1,11 @@
 package br.com.finalcraft.evernifecore.logic.delivery;
 
+import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
 import br.com.finalcraft.evernifecore.logic.Effects;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 import br.com.finalcraft.evernifecore.logic.audit.AuditKind;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
+import br.com.finalcraft.evernifecore.testing.Economies;
 import br.com.finalcraft.evernifecore.testing.LogicWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
@@ -47,6 +49,29 @@ class DeliveriesStoreOrderTest {
                     ZoneOffset.UTC));
 
             assertEquals(1, ctx.getAudit().getEntries(AuditKind.DELIVERY_DISCARDED).size(), ctx.getAudit().getEntries(AuditKind.DELIVERY_DISCARDED).toString());
+        }
+    }
+
+    @Test
+    void moneyToThePendingDestinationWithNoDeliveriesStoreIsAuditedAsLost() {
+        assertMoneyAuditedAsLost("pending");
+    }
+
+    @Test
+    void moneyToAnUnknownDestinationWithNoDeliveriesStoreIsAuditedAsLost() {
+        assertMoneyAuditedAsLost("fakeshop:vault");
+    }
+
+    private void assertMoneyAuditedAsLost(String to) {
+        try (ECoreTestWorld world = platform(); LogicWorld shop = LogicWorld.open("FakeShop", tempDir)) {
+            TestFPlayerSender alex = shop.player("Alex");
+            world.withCurrency(shop.getOwner(), Economies.currency("fakeshop:gold", CurrencyOwner.Kind.PLAYER));
+            ExecutionContext ctx = shop.context(alex).build();
+
+            Effects.apply(ctx, Effects.parse(shop.getOwner(), DeliveriesTest.node("{'type': 'money', 'amount': 25, 'currency': 'fakeshop:gold', 'to': '"
+                    + to + "'}"), ZoneOffset.UTC));
+
+            assertEquals(1, ctx.getAudit().getEntries(AuditKind.DELIVERY_DISCARDED).size(), ctx.getAudit().getEntries().toString());
         }
     }
 }

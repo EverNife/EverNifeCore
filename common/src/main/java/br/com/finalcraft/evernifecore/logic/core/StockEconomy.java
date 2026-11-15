@@ -18,7 +18,6 @@ import br.com.finalcraft.evernifecore.logic.audit.AuditKind;
 import br.com.finalcraft.evernifecore.logic.delivery.Deliveries;
 import br.com.finalcraft.evernifecore.logic.delivery.DeliveryDestination;
 import br.com.finalcraft.evernifecore.logic.delivery.DeliveryDestinations;
-import br.com.finalcraft.evernifecore.logic.delivery.DeliveryPolicy;
 import br.com.finalcraft.evernifecore.logic.delivery.PendingDestination;
 import br.com.finalcraft.evernifecore.logic.reward.Rewards;
 import br.com.finalcraft.evernifecore.types.ParamSpec;
@@ -229,7 +228,7 @@ final class StockEconomy {
                 if (!destination.isPresent()) {
                     ObjectNode kept = (ObjectNode) PendingDestination.moneyNode(currency, given);
                     kept.put("to", to);
-                    Deliveries.get().keepFor(ctx, DeliveryPolicy.KEEP_SELF_CONTAINED, null, null, kept);
+                    Deliveries.get().keepOrAudit(ctx, null, kept);
                     return;
                 }
                 EcoResponse response = destination.get().deliverAmount(ctx, currency, given);

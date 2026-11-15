@@ -31,13 +31,13 @@ public final class PendingDestination implements DeliveryDestination {
 
     @Override
     public @Nullable ItemSpec deliverItem(ExecutionContext ctx, ItemSpec item) {
-        Deliveries.get().keepFor(ctx, DeliveryPolicy.KEEP_SELF_CONTAINED, null, null, giveItemNode(item, null));
+        Deliveries.get().keepOrAudit(ctx, null, giveItemNode(item, null));
         return null;
     }
 
     @Override
     public EcoResponse deliverAmount(ExecutionContext ctx, Currency currency, BigDecimal amount) {
-        Deliveries.get().keepFor(ctx, DeliveryPolicy.KEEP_SELF_CONTAINED, null, null, moneyNode(currency, amount));
+        Deliveries.get().keepOrAudit(ctx, null, moneyNode(currency, amount));
         return EcoResponse.success(amount, BigDecimal.ZERO);
     }
 
