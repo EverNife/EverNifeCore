@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.region;
 
-import br.com.finalcraft.evernifecore.config.settings.ECSettings;
+import br.com.finalcraft.evernifecore.config.plugin.RegionSettings;
 import br.com.finalcraft.evernifecore.flag.core.DenyBlockPlaceFlag;
 import br.com.finalcraft.evernifecore.flag.core.DenyPvpFlag;
 import br.com.finalcraft.evernifecore.math.game.selection.CuboidSelection;
@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
 import java.util.Collections;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -58,22 +57,21 @@ class McRegionProtectionHandlerTest {
     }
 
     @Test
-    void aDisabledWorldAlwaysAllows() {
-        List<String> before = ECSettings.REGIONS_DISABLED_WORLDS;
+    void aWorldEveryManagerDisabledAlwaysAllows() {
         try (RegionServer server = RegionServer.open(tempDir)) {
             server.box("vault", 0, 0, 0, 10, 10, 10, server.flag(new DenyBlockPlaceFlag()),
                     server.flag(new DenyPvpFlag()));
             Player player = server.player("builder", 5, 5, 5);
             assertFalse(handler.canBuild(player, server.at(5, 5, 5)), "denied while the world is protected");
 
-            ECSettings.REGIONS_DISABLED_WORLDS = Collections.singletonList(RegionServer.WORLD);
+            RegionSettings disabled = new RegionSettings();
+            disabled.setDisabledWorlds(Collections.singletonList(RegionServer.WORLD));
+            server.regions.getManager().setSettings(disabled);
 
             assertTrue(handler.canBuild(player, server.at(5, 5, 5)));
             assertTrue(handler.canAttack(player, server.player("inside", 5, 5, 5)));
             assertTrue(handler.canBuildOnRegion(player, server.world, selection(0, 0, 0, 10, 10, 10)));
             assertTrue(handler.canUseAoE(player, server.at(5, 5, 5), 3));
-        } finally {
-            ECSettings.REGIONS_DISABLED_WORLDS = before;
         }
     }
 }

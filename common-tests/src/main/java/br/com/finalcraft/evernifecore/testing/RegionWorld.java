@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.config.plugin.RegionSettings;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
@@ -57,7 +58,7 @@ public final class RegionWorld implements AutoCloseable {
     private final List<TestActorHolder> actorHolders = new CopyOnWriteArrayList<>();
     private boolean closed;
 
-    private RegionWorld(String ownerName, Path dataFolder, boolean load) {
+    private RegionWorld(String ownerName, Path dataFolder, RegionSettings settings, boolean load) {
         this.ownerName = ownerName;
         TestClock.acquire();
         IECPluginExtractor previous = EverNifeCore.getProviders().getBaseProvider().provideOrNull(IECPluginExtractor.class);
@@ -69,7 +70,7 @@ public final class RegionWorld implements AutoCloseable {
         this.backend = ScriptedStorage.wrapping(Storages.createInMemory());
         backend.init().join();
         this.storage = backend.asECStorage();
-        this.manager = RegionManager.of(owner, storage);
+        this.manager = RegionManager.of(owner, storage, settings);
         if (!load) {
             return;
         }
@@ -83,12 +84,20 @@ public final class RegionWorld implements AutoCloseable {
 
     /** Opens the regions of a fake plugin named {@code ownerName} whose data folder is {@code dataFolder}, already loaded. */
     public static RegionWorld open(String ownerName, Path dataFolder) {
-        return new RegionWorld(ownerName, dataFolder, true);
+        return open(ownerName, dataFolder, new RegionSettings());
+    }
+
+    /**
+     * As {@link #open(String, Path)}, the manager running on {@code settings} - the plugin's {@code regions:} section.
+     * Change them mid-test with {@code getManager().setSettings(...)}, as a reload does.
+     */
+    public static RegionWorld open(String ownerName, Path dataFolder, RegionSettings settings) {
+        return new RegionWorld(ownerName, dataFolder, settings, true);
     }
 
     /** As {@link #open}, with the manager never loaded - for what a plugin sees while its regions are still loading. */
     public static RegionWorld openUnloaded(String ownerName, Path dataFolder) {
-        return new RegionWorld(ownerName, dataFolder, false);
+        return new RegionWorld(ownerName, dataFolder, new RegionSettings(), false);
     }
 
     public ECPluginData getOwner() {

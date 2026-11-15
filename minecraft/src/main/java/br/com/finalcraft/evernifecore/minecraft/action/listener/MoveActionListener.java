@@ -3,7 +3,6 @@ package br.com.finalcraft.evernifecore.minecraft.action.listener;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
@@ -220,7 +219,7 @@ public final class MoveActionListener implements ECListener {
         RegionMovementTracker tracker = RegionMovementTracker.get();
         for (FPlayer player : EverNifeCore.getPlatform().getOnlinePlayers()) {
             FLocation at = player.getLocation();
-            if (at != null && !ECSettings.REGIONS_DISABLED_WORLDS.contains(at.getWorldName())) {
+            if (at != null && !McActionContexts.isDisabled(at.getWorldName())) {
                 MoveVerdict verdict = tracker.seedOnline(player, at.getWorldLocPos());
                 if (!verdict.isAllowed()) {
                     player.teleportTo(new FLocation(verdict.getRevertTo(), null));

@@ -18,40 +18,31 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** The {@code Regions:} keys of the core config: their shipped defaults as written, and the keys named for a unit dropped. */
+/** The {@code Regions:} keys of the core config: their shipped defaults as written, and what a plugin decides left out. */
 @ECoreTest
 class ECSettingsRegionsTest {
 
     @TempDir
     Path dir;
 
-    private List<String> disabledWorlds;
     private int hugeChunks;
     private Duration idleTime;
     private Duration sweeperInterval;
-    private Duration viewTime;
-    private Duration selectionIdleTime;
     private boolean generateFiles;
 
     @BeforeEach
     void remember() {
-        disabledWorlds = ECSettings.REGIONS_DISABLED_WORLDS;
         hugeChunks = ECSettings.REGIONS_HUGE_CHUNKS;
         idleTime = ECSettings.REGIONS_LISTENER_IDLE_TIME;
         sweeperInterval = ECSettings.REGIONS_SWEEPER_INTERVAL;
-        viewTime = ECSettings.REGIONS_VISUALIZER_VIEW_TIME;
-        selectionIdleTime = ECSettings.REGIONS_SELECTION_IDLE_TIME;
         generateFiles = ECSettings.REGIONS_GENERATE_GLOBAL_SETTINGS_FILES;
     }
 
     @AfterEach
     void restore() {
-        ECSettings.REGIONS_DISABLED_WORLDS = disabledWorlds;
         ECSettings.REGIONS_HUGE_CHUNKS = hugeChunks;
         ECSettings.REGIONS_LISTENER_IDLE_TIME = idleTime;
         ECSettings.REGIONS_SWEEPER_INTERVAL = sweeperInterval;
-        ECSettings.REGIONS_VISUALIZER_VIEW_TIME = viewTime;
-        ECSettings.REGIONS_SELECTION_IDLE_TIME = selectionIdleTime;
         ECSettings.REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = generateFiles;
     }
 
@@ -69,8 +60,9 @@ class ECSettingsRegionsTest {
 
         assertEquals("3m", written.getString("Regions.listener-idle-time"));
         assertEquals("1s", written.getString("Regions.sweeper-interval"));
-        assertEquals("10s", written.getString("Regions.visualizer.view-time"));
-        assertEquals("5m", written.getString("Regions.selection.idle-time"));
+        for (String pluginKey : new String[]{"disabled-worlds", "visualizer.view-time", "selection"}) {
+            assertFalse(written.contains("Regions." + pluginKey), pluginKey + " is each plugin's, in its own config");
+        }
         assertEquals(Boolean.FALSE, written.getValue("Regions.generate-global-settings-configuration-files"));
         assertEquals(Duration.ofMinutes(3), ECSettings.REGIONS_LISTENER_IDLE_TIME);
         assertEquals(Duration.ofSeconds(1), ECSettings.REGIONS_SWEEPER_INTERVAL);
@@ -80,30 +72,6 @@ class ECSettingsRegionsTest {
         assertTrue(text.startsWith("Regions:") || text.contains("\nRegions:"), text);
         assertTrue(text.contains("  listener-idle-time: 3m"), text);
         assertTrue(text.contains("  generate-global-settings-configuration-files: false"), text);
-    }
-
-    @Test
-    void aTimeKeyNamedForItsUnitIsDroppedUnread() throws Exception {
-        Path file = dir.resolve("config.yml");
-        String[] units = {"ticks", "seconds", "minutes"};
-        StringBuilder before = new StringBuilder("Regions:\n");
-        for (String unit : units) {
-            before.append("  sweeper-interval-").append(unit).append(": 7\n");
-        }
-        before.append("  visualizer:\n");
-        for (String unit : units) {
-            before.append("    view-").append(unit).append(": 30\n");
-        }
-        Files.write(file, before.toString().getBytes(StandardCharsets.UTF_8));
-
-        Config written = load(file);
-
-        for (String unit : units) {
-            assertFalse(written.contains("Regions.sweeper-interval-" + unit), unit);
-            assertFalse(written.contains("Regions.visualizer.view-" + unit), unit);
-        }
-        assertEquals(Duration.ofSeconds(1), ECSettings.REGIONS_SWEEPER_INTERVAL, "the dropped value is not carried over");
-        assertEquals(Duration.ofSeconds(10), ECSettings.REGIONS_VISUALIZER_VIEW_TIME);
     }
 
     @Test

@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.action.ActionSupport;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.api.events.reload.ECPluginReloadEvent;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
+import br.com.finalcraft.evernifecore.config.plugin.RegionSettings;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
@@ -14,6 +15,7 @@ import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionId;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
+import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.group.Group;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.everyconfig.config.Config;
@@ -40,8 +42,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * Every flag the server knows, by key. A flag registers at any time: on registering, every loaded region's raw value
  * for it becomes a live value, and its settings are loaded - from {@code <owner's data folder>/regions/flags/<name>.yml},
  * under {@value #SETTINGS_ROOT}, while {@link Flag#getSettingsFilePolicy()} has the file in use (written with the
- * defaults when absent), else from the code defaults. They load again when the owner reloads, and every flag's when
- * EverNifeCore reloads, since its config decides which files are in use.
+ * defaults when absent), else from the code defaults. They load again when the owner reloads and when the owner's
+ * {@link RegionManager} takes new settings, since those decide whether its files are in use.
  */
 public final class FlagRegistry {
 
@@ -60,7 +62,7 @@ public final class FlagRegistry {
     private final Map<FlagKey, String> warned = new HashMap<>();
 
     private FlagRegistry() {
-        ECEventBus.global().subscribe(ECPluginReloadEvent.Post.class, event -> reloadSettings(event.getECPlugin()));
+        ECEventBus.global().subscribe(ECPluginReloadEvent.Post.class, event -> reloadSettingsOf(event.getECPlugin()));
     }
 
     public static FlagRegistry get() {
@@ -389,10 +391,13 @@ public final class FlagRegistry {
         indexChildren();
     }
 
-    private void reloadSettings(ECPluginData reloaded) {
-        //EverNifeCore's reload may have flipped the key that decides which files every owner's flags read
-        Collection<Flag<?>> affected = reloaded == EverNifeCore.getEcPluginData() ? getAll() : getByOwner(reloaded);
-        for (Flag<?> flag : affected) {
+    /**
+     * Reads the settings of every flag of {@code owner} again - from its file while the file is in use, else the defaults.
+     * Runs on the owner's reload and when its {@code RegionManager} takes new settings; a flag whose new settings it
+     * refuses keeps the ones it had.
+     */
+    public void reloadSettingsOf(ECPluginData owner) {
+        for (Flag<?> flag : getByOwner(owner)) {
             FlagSettings settings = loadSettings(flag);
             try {
                 flag.checkResolve(settings);
@@ -437,8 +442,22 @@ public final class FlagRegistry {
             case NEVER:
                 return false;
             default:
-                return ECSettings.REGIONS_GENERATE_GLOBAL_SETTINGS_FILES;
+                if (isCoreFlag(flag)) {
+                    return ECSettings.REGIONS_GENERATE_GLOBAL_SETTINGS_FILES;
+                }
+                RegionManager manager = RegionManager.ofIfPresent(flag.getOwner());
+                return manager != null && manager.getSettings().isFlagSettingsFiles();
         }
+    }
+
+    private static boolean isCoreFlag(Flag<?> flag) {
+        return flag.getOwner() == EverNifeCore.getEcPluginData();
+    }
+
+    /** Where the owner of {@code flag} turns its settings files on, for a log line. */
+    private static String fileSwitchOf(Flag<?> flag) {
+        return isCoreFlag(flag) ? GENERATE_FILES_KEY + " in EverNifeCore's config.yml"
+                : RegionSettings.SECTION + ".flag-settings-files in " + flag.getOwner().getMetaInfo().getName() + "'s config.yml";
     }
 
     private static FlagSettings loadSettings(Flag<?> flag) {
@@ -447,8 +466,8 @@ public final class FlagRegistry {
             File file = new File(flag.getOwner().getMetaInfo().getDataFolder(), fileName);
             if (file.isFile()) {
                 flag.getOwner().getLog().warning("Ignoring {}: the settings files of region flags are not in use, so flag {} runs on its"
-                        + " defaults and the per-region overrides. Set {} to true in EverNifeCore's config.yml to use the file, or delete it.",
-                        file.getPath(), flag.getKey(), GENERATE_FILES_KEY);
+                        + " defaults and the per-region overrides. Set {} to true to use the file, or delete it.",
+                        file.getPath(), flag.getKey(), fileSwitchOf(flag));
             }
             return flag.newSettings();
         }

@@ -51,7 +51,7 @@ import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.EventSourceUsage;
 import br.com.finalcraft.evernifecore.action.ItemContext;
 import br.com.finalcraft.evernifecore.action.TypeKey;
-import br.com.finalcraft.evernifecore.config.settings.ECSettings;
+import br.com.finalcraft.evernifecore.config.plugin.RegionSettings;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.flag.Decision;
 import br.com.finalcraft.evernifecore.flag.Flag;
@@ -242,18 +242,17 @@ class HyActionSystemsTest {
     }
 
     @Test
-    void aDisabledWorldIsNeverAsked() {
+    void aWorldEveryManagerDisabledIsNeverAsked() {
         vault(CoreFlags.DENY_BLOCK_BREAK);
-        List<String> before = ECSettings.REGIONS_DISABLED_WORLDS;
-        ECSettings.REGIONS_DISABLED_WORLDS = Collections.singletonList(WORLD);
-        try {
-            BreakBlockEvent event = breakEvent(5, 5, 5);
-            assertFalse(HyActionSystems.judge(EventSource.BREAK, WORLD, event,
-                    () -> breakBy(HyActionContexts.actor(miner, null, null, null), 5, 5, 5, event)));
-            assertFalse(event.isCancelled());
-        } finally {
-            ECSettings.REGIONS_DISABLED_WORLDS = before;
-        }
+        RegionSettings disabled = new RegionSettings();
+        disabled.setDisabledWorlds(Collections.singletonList(WORLD));
+        regions.getManager().setSettings(disabled);
+
+        assertTrue(HyActionContexts.isDisabled(WORLD), "the only manager disabled it");
+        BreakBlockEvent event = breakEvent(5, 5, 5);
+        assertFalse(HyActionSystems.judge(EventSource.BREAK, WORLD, event,
+                () -> breakBy(HyActionContexts.actor(miner, null, null, null), 5, 5, 5, event)));
+        assertFalse(event.isCancelled());
     }
 
     @Test

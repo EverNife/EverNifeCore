@@ -13,9 +13,6 @@ import br.com.finalcraft.everylibs.util.FCTimeUtil;
 
 import java.time.Duration;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.regex.Pattern;
-import java.util.Collections;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -51,7 +48,6 @@ public class ECSettings {
     public static boolean COMMAND_LIST_ALIAS = true;
 
     //Regions - initialised to the shipped defaults, since tests and the command harness never run initialize()
-    public static List<String> REGIONS_DISABLED_WORLDS = Collections.emptyList();
     public static int REGIONS_HUGE_CHUNKS = RegionIndex.DEFAULT_HUGE_CHUNKS;
     public static Duration REGIONS_LISTENER_IDLE_TIME = EventSourceUsage.DEFAULT_IDLE_TIME;
     public static Duration REGIONS_SWEEPER_INTERVAL = RegionSweeper.DEFAULT_INTERVAL;
@@ -59,9 +55,6 @@ public class ECSettings {
     public static int REGIONS_VISUALIZER_STEP = 1;
     public static int REGIONS_VISUALIZER_RADIUS = 48;
     public static int REGIONS_VISUALIZER_POINTS_PER_TICK = 300;
-    public static Duration REGIONS_VISUALIZER_VIEW_TIME = Duration.ofSeconds(10);
-    public static boolean REGIONS_SELECTION_LIVE_PREVIEW = false;
-    public static Duration REGIONS_SELECTION_IDLE_TIME = Duration.ofMinutes(5);
     public static boolean REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = false;
 
     //Provenance - shipped defaults, for the same reason
@@ -179,25 +172,10 @@ public class ECSettings {
     }
 
     /**
-     * A region time key named for its unit: from before those keys took a duration and lost the unit. Dropped unread,
-     * so a file never holds two keys for one setting with only one of them working.
+     * Reads every {@code Regions.*} key of {@code config} into the fields above, seeding what is absent: the server-wide
+     * region keys. What a plugin decides for its own regions is its {@code RegionSettings}.
      */
-    private static final Pattern RETIRED_TIME_KEY = Pattern.compile(".*-(ticks|seconds|minutes)");
-
-    /** Reads every {@code Regions.*} key of {@code config} into the fields above, seeding what is absent. */
     public static void loadRegionSettings(Config config){
-        for (String key : new ArrayList<>(config.getKeys("Regions", true))) {
-            if (RETIRED_TIME_KEY.matcher(key).matches()) {
-                config.removeValue("Regions." + key);
-            }
-        }
-        REGIONS_DISABLED_WORLDS = config.getOrSetValueIfAbsent(
-                "Regions.disabled-worlds", Collections.<String>emptyList(),
-                "Worlds where regions are not enforced: no flag of any plugin decides anything there, and the protection" +
-                        "\ncheck other plugins ask (ProtectionAll) answers 'allowed'. Regions in these worlds still exist, load," +
-                        "\nsave and answer the region API. Use it for worlds whose rules come from somewhere else (a minigame" +
-                        "\nmap, a creative world)."
-        );
         REGIONS_HUGE_CHUNKS = config.getOrSetValueIfAbsent(
                 "Regions.huge-chunks", RegionIndex.DEFAULT_HUGE_CHUNKS,
                 "A region spanning more chunks than this is not indexed chunk by chunk: it is checked on every region" +
@@ -237,25 +215,13 @@ public class ECSettings {
                 "Regions.visualizer.points-per-tick", 300,
                 "The most points one frame of an outline may draw for one player."
         );
-        REGIONS_VISUALIZER_VIEW_TIME = readDuration(config,
-                "Regions.visualizer.view-time", Duration.ofSeconds(10),
-                "How long an outline asked for by a 'view' command stays on screen."
-        );
-        REGIONS_SELECTION_LIVE_PREVIEW = config.getOrSetValueIfAbsent(
-                "Regions.selection.live-preview", false,
-                "Draws a selection while it is being made. Needs Regions.visualizer.enabled too - it costs the same particles."
-        );
-        REGIONS_SELECTION_IDLE_TIME = readDuration(config,
-                "Regions.selection.idle-time", Duration.ofMinutes(5),
-                "A selection nobody touched for this long is cancelled."
-        );
         REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = config.getOrSetValueIfAbsent(
                 "Regions.generate-global-settings-configuration-files", false,
-                "Whether region flags keep their server-wide settings in a file: regions/flags/<flag>.yml, in the data" +
-                        "\nfolder of the plugin that owns the flag. While false no such file is written or read - flags run on" +
-                        "\ntheir built-in settings plus what each region overrides, and an old file left behind is ignored (the log" +
-                        "\nsays so). Turn it on to tune a flag for the whole server; a flag may also force its own file on or off." +
-                        "\nA reload of EverNifeCore applies a change to the flags of every plugin."
+                "Whether EverNifeCore's own region flags keep their server-wide settings in a file: regions/flags/<flag>.yml" +
+                        "\nin EverNifeCore's data folder. While false no such file is written or read - the flags run on their" +
+                        "\nbuilt-in settings plus what each region overrides, and a file left behind is ignored (the log says so)." +
+                        "\nA plugin's flags follow regions.flag-settings-files in that plugin's own config; a flag may also force" +
+                        "\nits own file on or off. A reload of EverNifeCore applies a change."
         );
     }
 
@@ -294,8 +260,7 @@ public class ECSettings {
 
     /**
      * Pushes the region keys into the components that hold a copy of them: the listener idle delay, the sweeper
-     * interval and the huge-region threshold. Idempotent; the visualizer and the selection read their fields
-     * when they need them, and the disabled worlds are read by the platform handler.
+     * interval and the huge-region threshold. Idempotent; the visualizer reads its fields when it needs them.
      */
     public static void applyRegionSettings(){
         EventSourceUsage.get().setIdleTime(REGIONS_LISTENER_IDLE_TIME);

@@ -12,7 +12,6 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.ArgParserString;
 import br.com.finalcraft.evernifecore.commands.finalcmd.tab.ITabParser.TabContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.tree.CommandPath;
-import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.flag.Flag;
 import br.com.finalcraft.evernifecore.flag.FlagMode;
 import br.com.finalcraft.evernifecore.flag.FlagParseException;
@@ -42,6 +41,7 @@ import br.com.finalcraft.evernifecore.region.selection.SelectionSpec;
 import br.com.finalcraft.evernifecore.region.selection.SelectionTool;
 import br.com.finalcraft.evernifecore.region.shape.BoundingBox;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
+import br.com.finalcraft.evernifecore.region.shape.ShapeType;
 import br.com.finalcraft.evernifecore.region.shape.WorldShape;
 import br.com.finalcraft.evernifecore.region.terrain.RegionTerrain;
 import br.com.finalcraft.evernifecore.region.visual.RegionVisualizer;
@@ -80,7 +80,8 @@ import java.util.stream.Collectors;
  * The mount's permission is the door; a {@code permissionBase} adds {@code <base>.<verb>} per verb, checked before any
  * argument is read and hiding the verb from tab and help. A bare region name means this node's owner; another owner's
  * region is reached only by {@code owner:name}, and only read unless {@link #allowForeign} lets the node edit it AND
- * that owner accepts edits from other plugins. Every verb runs on the thread that dispatched it.
+ * that owner accepts edits from other plugins. Every verb runs on the thread that dispatched it. How long {@code view}
+ * draws and what the selection spec leaves unset come from the manager's {@code RegionSettings}.
  */
 public class RegionCommandNode implements RegionScope, VerbPermissionBase {
 
@@ -266,8 +267,9 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
     public void select(FPlayer player, CommandPath path, @Arg(value = "[shape]", context = "cuboid|polygon", locales = {
                     @FCLocale(lang = LocaleType.EN_US, text = "cuboid (two corners, the default) or polygon (points and a height range)"),
                     @FCLocale(lang = LocaleType.PT_BR, text = "cuboid (dois cantos, o padrão) ou polygon (pontos e uma faixa de altura)")}) String shape) {
-        SelectionSpec spec = shape == null ? selectionSpec
-                : shape.equalsIgnoreCase("polygon") ? copyShape(SelectionSpec.polygon()) : copyShape(SelectionSpec.cuboid());
+        SelectionSpec spec = (shape == null ? selectionSpec
+                : selectionSpec.withShapeType(shape.equalsIgnoreCase("polygon") ? ShapeType.POLYGON : ShapeType.CUBOID))
+                .withDefaults(manager.getSettings().getSelection());
         String defineCommand = nodeCommand(path) + " define";
         confirmedSelections.remove(player.getUniqueId());
         SelectionSession[] started = new SelectionSession[1];
@@ -601,7 +603,7 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
             return;
         }
         VisualStyle style = region.getManager() == manager ? VisualStyle.OWN : VisualStyle.OTHER_OWNER;
-        RegionVisualizer.get().show(player, region.getWorld(), region.getShape(), style, ECSettings.REGIONS_VISUALIZER_VIEW_TIME);
+        RegionVisualizer.get().show(player, region.getWorld(), region.getShape(), style, manager.getSettings().getViewTime());
     }
 
     @FinalCMD.SubCMD(subcmd = "tag", validation = NodeVerbAccess.class, locales = {
@@ -1217,10 +1219,6 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
         if (session != null) {
             session.finish();
         }
-    }
-
-    private SelectionSpec copyShape(SelectionSpec shaped) {
-        return shaped.withTool(selectionSpec.getTool()).withLivePreview(selectionSpec.isLivePreview()).withTimeout(selectionSpec.getTimeout());
     }
 
     /** {@code /<label> <path to this node>}, from the path of one of its verbs. */

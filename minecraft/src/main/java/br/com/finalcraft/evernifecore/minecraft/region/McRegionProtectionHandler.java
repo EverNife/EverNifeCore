@@ -17,8 +17,8 @@ import org.bukkit.entity.Player;
 
 /**
  * EverNifeCore's own regions answering whoever already asks {@code ProtectionAll}: each check is the action the region
- * flags would decide, with no event behind it. An area is sampled at its center and its eight corners. A world in
- * {@code Regions.disabled-worlds} allows everything.
+ * flags would decide, with no event behind it. An area is sampled at its center and its eight corners. A world every
+ * {@code RegionManager} disabled allows everything, and a region whose own manager disabled its world has no say.
  */
 public final class McRegionProtectionHandler implements ProtectionHandler {
 

@@ -300,7 +300,7 @@ public abstract class Flag<T> implements StateHolder {
      * defaults of {@link #getSettingsType()} and on the overrides a region sets ({@code Region.setFlagSettings}).
      */
     public SettingsFilePolicy getSettingsFilePolicy() {
-        return SettingsFilePolicy.FOLLOW_SERVER;
+        return SettingsFilePolicy.FOLLOW_OWNER;
     }
 
     /**

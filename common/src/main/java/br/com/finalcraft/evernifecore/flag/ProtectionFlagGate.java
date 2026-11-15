@@ -42,7 +42,7 @@ public final class ProtectionFlagGate {
     }
 
     public static Decision decide(RegionLookup lookup, ActionContext context) {
-        List<Region> here = lookup.at(context.getPosition());
+        List<Region> here = RegionLookup.enforced(lookup.at(context.getPosition()));
         //outside every region only a holder that follows the actor or the victim can speak (a party's invincible in the open field)
         if (here.isEmpty() && !followed(context.getPlayer()) && !(context instanceof DamageContext
                 && followed(((DamageContext) context).getVictim().getRootPlayer()))) {

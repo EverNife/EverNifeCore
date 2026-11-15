@@ -24,7 +24,7 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   (`waypoints`), `RegionSettings` (`regions`), `ProvenanceSettings` (`provenance`), `CooldownSettings` (`cooldowns`) and
   `BoosterSettings` (`boosters`), each with its keys, comments and defaults (times as `FCTimeFrame`, `10s`). A plugin binds
   one as a field of its settings bean under `@Key(X.SECTION)` and may extend it with keys of its own; never a file per
-  block. Nothing reads them yet except boosters, notify and waypoints: the core's own keys stay where they were.
+  block. Nothing reads them yet except boosters, notify, waypoints and regions: the core's own keys stay where they were.
 - **`BoosterDomain.Builder.permission(prefix, BoosterSettings)`** reads the domain's factors from the `boosters` block
   (`boosters.domains.<name>.permission-factors`); no entry or an empty list leaves the domain with no permission booster.
   A plugin that kept its own factors key moves it under that block, and the admin rewrites the value there by hand.
@@ -309,6 +309,25 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 #### Regions
 
+- **Each plugin's regions run on its own `RegionSettings`** (the `regions:` section of its `config.yml`):
+  `RegionManager.of(owner, storage, settings)` / `of(owner, settings)`; opening again with settings (a reload) or
+  `setSettings` replaces them, `getSettings()` reads them, and the plain `of` forms run on the built-in ones. A region
+  whose own manager lists its world in `disabled-worlds` gives no value to any lookup (`decide`, `resolve`, `explain`,
+  session flags, `ProtectionAll`) while another plugin's region in that world still decides; it keeps existing and
+  answering `at`/`in`/`by*` (`RegionLookup.enforced(regions)` is the cut, `RegionManager.isActiveIn(world)` the test).
+  A platform listener skips a world only when every open manager disabled it (`RegionManager.isDisabledEverywhere`).
+  `SettingsFilePolicy.FOLLOW_SERVER` became `FOLLOW_OWNER`: a core flag follows the core's
+  `Regions.generate-global-settings-configuration-files`, a plugin's flag follows `regions.flag-settings-files` of its
+  manager (off with no manager), and `setSettings` reloads that plugin's flags (`FlagRegistry.reloadSettingsOf(owner)`;
+  the core's reload no longer reloads every plugin's flags). The `view` verb of `RegionCommandNode` lasts the manager's
+  `view-time`, and what a `SelectionSpec` leaves unset comes from its `selection.live-preview`/`selection.idle-time`
+  (`SelectionSpec.withDefaults(selection)`, `withShapeType(type)`; with neither, the built-in `false`/`5m`). The core's
+  `Regions.disabled-worlds`, `Regions.visualizer.view-time` and `Regions.selection.*` are gone (`ECSettings.REGIONS_DISABLED_WORLDS`,
+  `REGIONS_VISUALIZER_VIEW_TIME`, `REGIONS_SELECTION_LIVE_PREVIEW`, `REGIONS_SELECTION_IDLE_TIME`), and so is the
+  dropping of `Regions` keys named for a unit: the admin moves a disabled world, a view time or a selection setting by
+  hand under `regions:` in the `config.yml` of each plugin that owns regions, turns `regions.flag-settings-files` on
+  there to keep tuning that plugin's flags in `regions/flags/`, and deletes the old keys from the core's config. A plugin
+  author binds a `RegionSettings` (or a subclass) in its settings bean and passes it to `RegionManager.of`.
 - **The time left in the region and group commands reads from the locale** (`CoreRegionCommands.REMAINING`, `${time} left`);
   `CoreRegionCommands.remaining` now takes the viewer.
 - **A flag the platform cannot serve is silent and out of sight** (`FlagRegistry.isSupported`, derived from what the

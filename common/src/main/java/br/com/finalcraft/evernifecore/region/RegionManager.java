@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.region;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.action.EventSourceUsage;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
+import br.com.finalcraft.evernifecore.config.plugin.RegionSettings;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.flag.Flag;
@@ -65,7 +66,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * and posts a region event for every change. The core never creates a region by itself.
  *
  * <pre>{@code
- * RegionManager regions = RegionManager.of(pluginData, storage);
+ * RegionManager regions = RegionManager.of(pluginData, storage, settings.getRegions());   //the plugin's regions: section
  * regions.load(RetryPolicy.attempts(5).every(Duration.ofSeconds(2))).join();
  * CreationResult result = regions.create("arena", "world", shape, RegionOptions.defaults().withPriority(10));
  * }</pre>
@@ -105,6 +106,7 @@ public final class RegionManager {
     private final Object loadLock = new Object();
     private @Nullable LoadRun run;
     private volatile boolean foreignAccess = true;
+    private volatile RegionSettings settings = new RegionSettings();
     private final RegionTerrain terrain = new RegionTerrain(this);
 
     /** @param storage null for a manager that writes nothing: {@link #of(ECPluginData)}, and tests that only need regions to exist */
@@ -122,7 +124,8 @@ public final class RegionManager {
      * The manager of {@code owner} that writes nothing, created on first call: it keeps only
      * {@link Persistence#TRANSIENT TRANSIENT} regions, which go when the owner shuts down or their world unloads, and
      * refuses to create a {@link Persistence#PERSISTENT PERSISTENT} one. When the owner already has a manager, on a
-     * storage or not, that one is returned (a manager on a storage keeps transient regions too). Any thread.
+     * storage or not, that one is returned (a manager on a storage keeps transient regions too) with its settings; a new
+     * one runs on the built-in {@link RegionSettings}. Any thread.
      */
     public static RegionManager of(ECPluginData owner) {
         Objects.requireNonNull(owner, "'owner' cannot be null when opening a RegionManager!");
@@ -138,9 +141,29 @@ public final class RegionManager {
         }
     }
 
+    /** {@link #of(ECPluginData)} running on {@code settings}, which replace those of an existing manager ({@link #setSettings}). */
+    public static RegionManager of(ECPluginData owner, RegionSettings settings) {
+        Objects.requireNonNull(settings, "'settings' cannot be null when opening a RegionManager!");
+        RegionManager manager = of(owner);
+        manager.setSettings(settings);
+        return manager;
+    }
+
     /**
-     * The manager of {@code owner}, created on first call; later calls with the same storage return the same
-     * manager. Any thread.
+     * {@link #of(ECPluginData, ECStorage)} running on {@code settings} - the {@value RegionSettings#SECTION} section of the
+     * owner's config. Called again on the same storage (a reload), the manager takes them in place of its own
+     * ({@link #setSettings}).
+     */
+    public static RegionManager of(ECPluginData owner, ECStorage storage, RegionSettings settings) {
+        Objects.requireNonNull(settings, "'settings' cannot be null when opening a RegionManager!");
+        RegionManager manager = of(owner, storage);
+        manager.setSettings(settings);
+        return manager;
+    }
+
+    /**
+     * The manager of {@code owner}, created on first call on the built-in {@link RegionSettings}; later calls with the
+     * same storage return the same manager, with its settings. Any thread.
      *
      * @throws IllegalStateException when {@code owner} already has a manager without storage ({@link #of(ECPluginData)})
      *                               or on another storage, or another plugin already keeps its regions in {@code storage}
@@ -181,6 +204,42 @@ public final class RegionManager {
 
     public ECPluginData getOwner() {
         return owner;
+    }
+
+    /** The settings this manager runs on: the owner's {@value RegionSettings#SECTION} section, or the built-in ones. */
+    public RegionSettings getSettings() {
+        return settings;
+    }
+
+    /**
+     * Replaces the settings - what an owner's reload does. They apply from the next lookup, and the owner's flags read
+     * their settings again, since {@link RegionSettings#isFlagSettingsFiles()} may have flipped. An outline or a
+     * selection already on screen keeps the time it started with.
+     */
+    public void setSettings(RegionSettings settings) {
+        this.settings = Objects.requireNonNull(settings, "settings");
+        FlagRegistry.get().reloadSettingsOf(owner);
+    }
+
+    /** Whether this manager's regions decide anything in {@code world}: false in a world its settings disabled. */
+    public boolean isActiveIn(String world) {
+        return !settings.getDisabledWorlds().contains(world);
+    }
+
+    /**
+     * Whether no region decides anything in {@code world}: at least one manager is open and every open one disabled it.
+     * With no manager open it is false, so a holder that follows a player still speaks there. What a platform listener
+     * asks before building a context. Any thread.
+     */
+    public static boolean isDisabledEverywhere(String world) {
+        boolean anyOpen = false;
+        for (RegionManager manager : MANAGERS.values()) {
+            if (manager.isActiveIn(world)) {
+                return false;
+            }
+            anyOpen = true;
+        }
+        return anyOpen;
     }
 
     /** The owner's storage; null only for a manager that writes nothing. */

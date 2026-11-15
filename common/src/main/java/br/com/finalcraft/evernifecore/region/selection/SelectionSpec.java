@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.region.selection;
 
-import br.com.finalcraft.evernifecore.config.settings.ECSettings;
+import br.com.finalcraft.evernifecore.config.plugin.RegionSettings;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.region.shape.ShapeType;
 import jakarta.annotation.Nullable;
@@ -10,13 +10,17 @@ import java.util.Objects;
 
 /**
  * What a selection collects: the shape type (and so how many points it needs), the tool handed out, whether it is
- * drawn while being made, and how long it may sit untouched. Immutable; every {@code with} returns a copy.
+ * drawn while being made, and how long it may sit untouched. Immutable; every {@code with} returns a copy. What is not
+ * set comes from the settings of the {@code RegionManager} whose node starts the selection ({@link #withDefaults}), else
+ * from the built-in {@link RegionSettings.Selection}.
  *
  * <pre>{@code
  * SelectionSpec.polygon().withTool(MY_WAND).withTimeout(Duration.ofMinutes(10))
  * }</pre>
  */
 public final class SelectionSpec {
+
+    private static final RegionSettings.Selection BUILT_IN = new RegionSettings.Selection();
 
     private final ShapeType shapeType;
     private final ItemSpec tool;
@@ -52,6 +56,17 @@ public final class SelectionSpec {
         return new SelectionSpec(shapeType, tool, livePreview, Objects.requireNonNull(timeout, "timeout"));
     }
 
+    /** This spec collecting another shape type, everything else as set. */
+    public SelectionSpec withShapeType(ShapeType shapeType) {
+        return new SelectionSpec(Objects.requireNonNull(shapeType, "shapeType"), tool, livePreview, timeout);
+    }
+
+    /** This spec with what it does not set taken from {@code defaults}; what it sets stays. */
+    public SelectionSpec withDefaults(RegionSettings.Selection defaults) {
+        return new SelectionSpec(shapeType, tool, livePreview != null ? livePreview : defaults.isLivePreview(),
+                timeout != null ? timeout : defaults.getIdleTime());
+    }
+
     public ShapeType getShapeType() {
         return shapeType;
     }
@@ -65,14 +80,14 @@ public final class SelectionSpec {
         return tool;
     }
 
-    /** As set, or {@code Regions.selection.live-preview} from the core config. */
+    /** As set, or the built-in {@code selection.live-preview} of {@link RegionSettings}. */
     public boolean isLivePreview() {
-        return livePreview != null ? livePreview : ECSettings.REGIONS_SELECTION_LIVE_PREVIEW;
+        return livePreview != null ? livePreview : BUILT_IN.isLivePreview();
     }
 
-    /** As set, or {@code Regions.selection.idle-time} from the core config. */
+    /** As set, or the built-in {@code selection.idle-time} of {@link RegionSettings}. */
     public Duration getTimeout() {
-        return timeout != null ? timeout : ECSettings.REGIONS_SELECTION_IDLE_TIME;
+        return timeout != null ? timeout : BUILT_IN.getIdleTime();
     }
 
     @Override

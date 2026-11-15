@@ -5,7 +5,7 @@ import br.com.finalcraft.evernifecore.action.ECEntityType;
 import br.com.finalcraft.evernifecore.action.TypeKey;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.platoverride.entity.NativeEntity;
-import br.com.finalcraft.evernifecore.config.settings.ECSettings;
+import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.hytale.npc.HyNpcProvider;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
@@ -40,9 +40,12 @@ public final class HyActionContexts {
     private HyActionContexts() {
     }
 
-    /** The only reader of {@code Regions.disabled-worlds} on Hytale: nothing in such a world is asked of a region. */
+    /**
+     * Whether a system skips {@code world}: every open {@code RegionManager} disabled it in its settings
+     * ({@link RegionManager#isDisabledEverywhere}), so nothing there is asked of a region.
+     */
     public static boolean isDisabled(String world) {
-        return ECSettings.REGIONS_DISABLED_WORLDS.contains(world);
+        return RegionManager.isDisabledEverywhere(world);
     }
 
     public static WorldLocPos position(String world, Vector3i block) {

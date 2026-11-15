@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.action.listener;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.EventSourceUsage;
 import br.com.finalcraft.evernifecore.action.UsageWatch;
-import br.com.finalcraft.evernifecore.config.settings.ECSettings;
+import br.com.finalcraft.evernifecore.config.plugin.RegionSettings;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.flag.FlagKey;
 import br.com.finalcraft.evernifecore.flag.FlagRegistry;
@@ -55,7 +55,6 @@ import org.junit.jupiter.api.Test;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Collections;
-import java.util.List;
 
 import static br.com.finalcraft.evernifecore.minecraft.testkit.BukkitEventWorld.isRegistered;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -133,8 +132,7 @@ class ActionListenersTest {
     }
 
     @Test
-    void aDisabledWorldSkipsEveryHandler() {
-        List<String> before = ECSettings.REGIONS_DISABLED_WORLDS;
+    void aWorldEveryManagerDisabledSkipsEveryHandler() {
         try (RegionServer server = RegionServer.open(tempDir)) {
             server.box("plots", 0, 0, 0, 10, 10, 10,
                     server.flag(new DenyBlockBreakFlag()), server.flag(new DenyBlockPlaceFlag()),
@@ -145,7 +143,11 @@ class ActionListenersTest {
                 assertTrue(server.call(new BlockBreakEvent(server.world.getBlockAt(5, 5, 5), player)).isCancelled(),
                         "the world is protected before it is disabled");
 
-                ECSettings.REGIONS_DISABLED_WORLDS = Collections.singletonList(RegionServer.WORLD);
+                assertFalse(McActionContexts.isDisabled(RegionServer.WORLD));
+                RegionSettings disabled = new RegionSettings();
+                disabled.setDisabledWorlds(Collections.singletonList(RegionServer.WORLD));
+                server.regions.getManager().setSettings(disabled);
+                assertTrue(McActionContexts.isDisabled(RegionServer.WORLD), "the only manager disabled it");
 
                 assertFalse(server.call(new BlockBreakEvent(server.world.getBlockAt(5, 5, 5), player)).isCancelled());
                 assertFalse(server.call(new BlockPlaceEvent(server.world.getBlockAt(5, 5, 5), null, server.world.getBlockAt(5, 4, 5),
@@ -159,8 +161,6 @@ class ActionListenersTest {
             } finally {
                 bridge.stop();
             }
-        } finally {
-            ECSettings.REGIONS_DISABLED_WORLDS = before;
         }
     }
 

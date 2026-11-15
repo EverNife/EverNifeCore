@@ -5,11 +5,13 @@ import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.TriggerThrottle;
 import br.com.finalcraft.evernifecore.api.events.reload.ECPluginReloadEvent;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
+import br.com.finalcraft.evernifecore.config.plugin.RegionSettings;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.flag.core.MoveDenySettings;
 import br.com.finalcraft.evernifecore.flag.core.TypeFilterSettings;
+import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.region.TestRegions;
 import br.com.finalcraft.evernifecore.region.TestRegions.ManualClock;
 import br.com.finalcraft.evernifecore.testing.Plugins;
@@ -88,26 +90,34 @@ class FlagSettingsTest {
     private ECPluginData other;
     private GlowFlag flag;
     private File file;
+    private RegionManager regions;
     private boolean generateFiles;
 
     @BeforeEach
     void setUp() {
         generateFiles = ECSettings.REGIONS_GENERATE_GLOBAL_SETTINGS_FILES;
-        ECSettings.REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = true;
         owner = Plugins.fakePluginData(OWNER, tempDir.resolve("owner").toFile());
         other = Plugins.fakePluginData(OTHER, tempDir.resolve("other").toFile());
-        flag = new GlowFlag(owner, SettingsFilePolicy.FOLLOW_SERVER);
+        regions = RegionManager.of(owner, flagFiles(true));
+        flag = new GlowFlag(owner, SettingsFilePolicy.FOLLOW_OWNER);
         file = tempDir.resolve("owner").resolve("regions").resolve("flags").resolve("glow.yml").toFile();
     }
 
     @AfterEach
     void tearDown() {
         ECSettings.REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = generateFiles;
+        RegionManager.closeOwnedBy(owner);
         FlagRegistry.get().reset();
         TestRegions.restoreClock();
         Plugins.forget(OWNER);
         Plugins.forget(OTHER);
         Plugins.forget(CORE);
+    }
+
+    private static RegionSettings flagFiles(boolean on) {
+        RegionSettings settings = new RegionSettings();
+        settings.setFlagSettingsFiles(on);
+        return settings;
     }
 
     private String text() throws Exception {
@@ -181,8 +191,8 @@ class FlagSettingsTest {
     }
 
     @Test
-    void serverKeyOffAndAFlagThatFollowsItWritesNoFile() {
-        ECSettings.REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = false;
+    void ownersSwitchOffAndAFlagThatFollowsItWritesNoFile() {
+        regions.setSettings(flagFiles(false));
         FlagRegistry.get().register(owner, flag);
 
         assertFalse(file.exists());
@@ -190,7 +200,7 @@ class FlagSettingsTest {
     }
 
     @Test
-    void serverKeyOnWritesAndReadsTheFile() throws Exception {
+    void ownersSwitchOnWritesAndReadsTheFile() throws Exception {
         FlagRegistry.get().register(owner, flag);
         assertTrue(file.exists());
 
@@ -200,8 +210,8 @@ class FlagSettingsTest {
     }
 
     @Test
-    void aFlagForcingItsFileHasItWithTheServerKeyOff() throws Exception {
-        ECSettings.REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = false;
+    void aFlagForcingItsFileHasItWithTheOwnersSwitchOff() throws Exception {
+        regions.setSettings(flagFiles(false));
         flag = new GlowFlag(owner, SettingsFilePolicy.ALWAYS);
         FlagRegistry.get().register(owner, flag);
         assertTrue(file.exists());
@@ -212,7 +222,7 @@ class FlagSettingsTest {
     }
 
     @Test
-    void aFlagRefusingItsFileHasNoneWithTheServerKeyOn() {
+    void aFlagRefusingItsFileHasNoneWithTheOwnersSwitchOn() {
         flag = new GlowFlag(owner, SettingsFilePolicy.NEVER);
         FlagRegistry.get().register(owner, flag);
 
@@ -225,41 +235,43 @@ class FlagSettingsTest {
         FlagRegistry.get().register(owner, flag);
         edit("brightness: 7", "brightness: 9");
         FlagRegistry.get().reset();
-        ECSettings.REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = false;
+        regions.setSettings(flagFiles(false));
         platform.getLoggedMessages().clear();
 
         FlagRegistry.get().register(owner, flag);
 
         assertEquals(7, flag.<GlowSettings>getSettings().getBrightness(), "the file is not read");
-        assertEquals(1, linesNaming(platform, file.getPath(), "generate-global-settings-configuration-files"), platform.getLoggedMessages().toString());
+        String ownersSwitch = "regions.flag-settings-files in " + OWNER + "'s config.yml";
+        assertEquals(1, linesNaming(platform, file.getPath(), ownersSwitch), platform.getLoggedMessages().toString());
         ECEventBus.global().post(new ECPluginReloadEvent.Post(owner));
-        assertEquals(2, linesNaming(platform, file.getPath(), "generate-global-settings-configuration-files"), "one more for the reload");
+        assertEquals(2, linesNaming(platform, file.getPath(), ownersSwitch), "one more for the reload");
         assertEquals(7, flag.<GlowSettings>getSettings().getBrightness());
     }
 
     @Test
-    void theCoresReloadAppliesTheServerKeyToEveryOwnersFlags() throws Exception {
+    void aPluginsFlagFollowsItsOwnSwitchAndACoreFlagTheCoresKey() throws Exception {
         Field coreData = EverNifeCore.class.getDeclaredField("ecPluginData");
         coreData.setAccessible(true);
         Object previous = coreData.get(EverNifeCore.instance);
         ECPluginData core = Plugins.fakePluginData(CORE, tempDir.resolve("core").toFile());
         coreData.set(EverNifeCore.instance, core);
+        File coreFile = tempDir.resolve("core").resolve("regions").resolve("flags").resolve("glow.yml").toFile();
         try {
             ECSettings.REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = false;
             FlagRegistry.get().register(owner, flag);
-            assertFalse(file.exists());
+            FlagRegistry.get().register(core, new GlowFlag(core, SettingsFilePolicy.FOLLOW_OWNER));
+            assertTrue(file.exists(), "the plugin's switch is on, the core's key off");
+            assertFalse(coreFile.exists());
 
             ECSettings.REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = true;
-            ECEventBus.global().post(new ECPluginReloadEvent.Post(core));
-            assertTrue(file.exists(), "written by the core's reload, the owner never reloaded");
-
+            regions.setSettings(flagFiles(false));
             edit("triggerInterval: 0s", "triggerInterval: 5s");
             ECEventBus.global().post(new ECPluginReloadEvent.Post(core));
-            assertEquals(Duration.ofSeconds(5), flag.getSettings().getTriggerInterval());
+            assertTrue(coreFile.exists(), "written by the core's reload");
+            assertEquals(Duration.ZERO, flag.getSettings().getTriggerInterval(), "the plugin's file is out of use");
 
-            ECSettings.REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = false;
-            ECEventBus.global().post(new ECPluginReloadEvent.Post(core));
-            assertEquals(Duration.ZERO, flag.getSettings().getTriggerInterval(), "the file is out of use again");
+            regions.setSettings(flagFiles(true));
+            assertEquals(Duration.ofSeconds(5), flag.getSettings().getTriggerInterval(), "new settings read the file at once");
         } finally {
             coreData.set(EverNifeCore.instance, previous);
         }
@@ -267,16 +279,14 @@ class FlagSettingsTest {
 
     @Test
     void aFlagSeedsItsOwnTriggerIntervalIntoItsDefaultsAndItsFile() throws Exception {
-        GlowFlag paced = new GlowFlag(owner, SettingsFilePolicy.FOLLOW_SERVER) {
+        GlowFlag paced = new GlowFlag(owner, SettingsFilePolicy.FOLLOW_OWNER) {
             @Override
             public Duration getDefaultTriggerInterval() {
                 return Duration.ofMillis(250);
             }
         };
-        ECSettings.REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = false;
         assertEquals(Duration.ofMillis(250), paced.getSettings().getTriggerInterval(), "the defaults, with no file");
 
-        ECSettings.REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = true;
         FlagRegistry.get().register(owner, paced);
 
         assertTrue(text().contains("  triggerInterval: 250ms"), text());

@@ -10,7 +10,7 @@ import br.com.finalcraft.evernifecore.api.platoverride.entity.NativeEntity;
 import br.com.finalcraft.evernifecore.minecraft.npc.CitizensNpcProvider;
 import br.com.finalcraft.evernifecore.minecraft.npc.McNpcProviders;
 import br.com.finalcraft.evernifecore.npc.NpcRef;
-import br.com.finalcraft.evernifecore.config.settings.ECSettings;
+import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.minecraft.screen.ChestItems;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
@@ -52,13 +52,16 @@ public final class McActionContexts {
     private McActionContexts() {
     }
 
-    /** The only reader of {@code Regions.disabled-worlds}: nothing in such a world is asked of a region. */
+    /**
+     * Whether a listener skips {@code world}: every open {@code RegionManager} disabled it in its settings
+     * ({@link RegionManager#isDisabledEverywhere}), so nothing there is asked of a region.
+     */
     public static boolean isDisabled(World world) {
         return isDisabled(world.getName());
     }
 
     public static boolean isDisabled(String worldName) {
-        return ECSettings.REGIONS_DISABLED_WORLDS.contains(worldName);
+        return RegionManager.isDisabledEverywhere(worldName);
     }
 
     public static WorldLocPos position(Location at) {

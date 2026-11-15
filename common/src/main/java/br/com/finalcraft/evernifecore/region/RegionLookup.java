@@ -62,6 +62,10 @@ import java.util.function.Function;
  * {@code evernifecore.region.bypass.<owner>.<name>} reads the default of every {@link Flag#isBypassable()
  * bypassable} flag - both nodes are checked literally, since plain SuperPerms does not expand the wildcard - and so
  * does one holding the {@link FlagSettings#getBypassPermission() extra node} the flag's settings name where it is read.</p>
+ *
+ * <p>A region whose {@link RegionManager} disabled its world ({@link RegionManager#isActiveIn}) gives no layer to any
+ * value query - resolve, explain, decide, the session flags: it still exists and answers {@code at}, {@code in} and
+ * the {@code by} queries.</p>
  */
 public final class RegionLookup {
 
@@ -332,8 +336,12 @@ public final class RegionLookup {
         return asked;
     }
 
-    /** Collects the layers of {@code flag} itself, without climbing to its ancestors, and joins them. */
-    private <T> Resolution<T> join(Flag<T> flag, List<Region> at, @Nullable FPlayer subject, boolean withActors) {
+    /**
+     * Collects the layers of {@code flag} itself, without climbing to its ancestors, and joins them. The one place a
+     * region of a manager that disabled its world is set aside ({@link #enforced}): every value query passes here.
+     */
+    private <T> Resolution<T> join(Flag<T> flag, List<Region> candidates, @Nullable FPlayer subject, boolean withActors) {
+        List<Region> at = enforced(candidates);
         if (bypasses(subject, flag, at)) {
             return Resolution.ofDefault(flag, Resolution.Reason.BYPASS);
         }
@@ -432,6 +440,24 @@ public final class RegionLookup {
             }
         }
         return new Resolution<>(flag, resolved.getValue(), Resolution.Reason.DEFAULT, resolver, ordered);
+    }
+
+    /**
+     * {@code regions} without those whose {@link RegionManager} disabled their world ({@link RegionManager#isActiveIn}):
+     * such a region still exists and answers {@link #at}, but no flag value of it is read. The same list when none is cut.
+     */
+    public static List<Region> enforced(List<Region> regions) {
+        List<Region> kept = null;
+        for (int i = 0; i < regions.size(); i++) {
+            Region region = regions.get(i);
+            boolean active = region.getManager().isActiveIn(region.getWorld());
+            if (!active && kept == null) {
+                kept = new ArrayList<>(regions.subList(0, i));
+            } else if (active && kept != null) {
+                kept.add(region);
+            }
+        }
+        return kept == null ? regions : kept;
     }
 
     private static boolean isAncestorOfAny(Region region, List<Region> regions) {
