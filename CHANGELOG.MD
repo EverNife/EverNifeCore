@@ -24,7 +24,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   (`waypoints`), `RegionSettings` (`regions`), `ProvenanceSettings` (`provenance`), `CooldownSettings` (`cooldowns`) and
   `BoosterSettings` (`boosters`), each with its keys, comments and defaults (times as `FCTimeFrame`, `10s`). A plugin binds
   one as a field of its settings bean under `@Key(X.SECTION)` and may extend it with keys of its own; never a file per
-  block. Nothing reads them yet except boosters, notify, waypoints, regions, provenance and cooldowns: the core's own keys stay where they were.
+  block. Each is read by its subsystem (`BoosterDomain.Builder.permission`, `NotifyProfile.register`,
+  `WaypointProfile.register`, `RegionManager.of`, `ProvenanceTracker.open`, `CooldownRetention.configure`).
 - **`BoosterDomain.Builder.permission(prefix, BoosterSettings)`** reads the domain's factors from the `boosters` block
   (`boosters.domains.<name>.permission-factors`); no entry or an empty list leaves the domain with no permission booster.
   A plugin that kept its own factors key reads them from that block instead.
