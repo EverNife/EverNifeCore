@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 import br.com.finalcraft.evernifecore.logic.ProgressOwner;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.LogicWorld;
+import br.com.finalcraft.evernifecore.testing.PlatformNotConfiguredException;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
 import br.com.finalcraft.everyconfig.config.Config;
@@ -19,8 +20,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -63,6 +66,26 @@ class BoostersTest {
 
     private static void assertMultiplier(String expected, BigDecimal actual) {
         assertEquals(0, new BigDecimal(expected).compareTo(actual), "expected x" + expected + ", got x" + actual);
+    }
+
+    @Test
+    void anUntaughtPlatformRefusalReachesTheCallerWhileABrokenSourceIsSkipped() {
+        Boosters.addSource(shop.getOwner(), new BoosterSource() {
+            @Override
+            public String getId() {
+                return "fakeshop:broken";
+            }
+
+            @Override
+            public Collection<Booster> boostersFor(ExecutionContext ctx, BoosterDomain domain) {
+                throw new IllegalStateException("broken on purpose");
+            }
+        });
+        assertMultiplier("1", multiplier(points));
+
+        //this strict world never taught getOfflinePermissions; an offline player's permission booster asks it
+        PlatformNotConfiguredException refused = assertThrows(PlatformNotConfiguredException.class, () -> gold.resolve(UUID.randomUUID()));
+        assertTrue(refused.getMessage().contains("Platforms.strict().offlinePermissions()"), refused.getMessage());
     }
 
     @Test

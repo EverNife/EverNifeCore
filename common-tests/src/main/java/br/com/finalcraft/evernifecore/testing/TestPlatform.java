@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
@@ -77,6 +78,8 @@ public class TestPlatform extends AbstractTestPlatform {
     Boolean listenersIgnored;
     Boolean configTypesIgnored;
     Boolean mainThreadInline;
+    Boolean mainThreadQueued;
+    private final ConcurrentLinkedQueue<Runnable> queuedMainThreadTasks = new ConcurrentLinkedQueue<>();
     Boolean worldEvents;
     Boolean worldThreadAnswer;
     Boolean capturingCommands;
@@ -221,6 +224,9 @@ public class TestPlatform extends AbstractTestPlatform {
                 if (mainThreadInline == null) {
                     throw notConfigured("ECScheduler.onMainThread", "Platforms.strict().mainThreadInline()");
                 }
+                if (mainThreadQueued != null && Thread.currentThread() != serverThread) {
+                    return queue(task);
+                }
                 mainThreadRuns.incrementAndGet();
                 return CompletableFuture.completedFuture(task.get());
             }
@@ -234,6 +240,37 @@ public class TestPlatform extends AbstractTestPlatform {
                 return CompletableFuture.completedFuture(task.get());
             }
         };
+    }
+
+    private <T> CompletableFuture<T> queue(Supplier<T> task) {
+        CompletableFuture<T> done = new CompletableFuture<>();
+        queuedMainThreadTasks.add(() -> {
+            mainThreadRuns.incrementAndGet();
+            try {
+                done.complete(task.get());
+            } catch (RuntimeException | Error failure) {
+                done.completeExceptionally(failure);
+            }
+        });
+        return done;
+    }
+
+    /**
+     * Under {@link Platforms#mainThreadQueued()}: runs, on the calling thread (the test's, the server thread), every task
+     * another thread asked the main thread for, in order, those they queue included; how many ran.
+     */
+    public int runQueuedMainThreadTasks() {
+        int ran = 0;
+        for (Runnable task = queuedMainThreadTasks.poll(); task != null; task = queuedMainThreadTasks.poll()) {
+            task.run();
+            ran++;
+        }
+        return ran;
+    }
+
+    /** How many tasks wait for {@link #runQueuedMainThreadTasks()}. */
+    public int getQueuedMainThreadTasks() {
+        return queuedMainThreadTasks.size();
     }
 
     /** Fires every {@code onWorldLoaded} listener with {@code worldName}, as a real platform does when a world loads. */
@@ -271,6 +308,7 @@ public class TestPlatform extends AbstractTestPlatform {
         consoleCommands.clear();
         senderCommands.clear();
         testHud.reset();
+        queuedMainThreadTasks.clear();
         testOfflinePermissions.reset();
         infoMessages.clear();
         loggedMessages.clear();

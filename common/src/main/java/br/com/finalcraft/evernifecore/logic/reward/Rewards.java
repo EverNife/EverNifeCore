@@ -79,8 +79,8 @@ public final class Rewards {
      * online eligible. Every payment posts a {@link RewardPaidEvent} and lands in the caller plugin's {@link AuditLog}
      * when it has one open. A {@link RewardRule#isOnce() once} rule skips all of that: its effects apply one time on the
      * main thread, from the console, with the reward's attributes and the scene's variables, and only the audit line is
-     * written. A boosted step first loads the permissions of its offline candidates ({@link Boosters#loadPermissions}),
-     * so the step settles once they are in memory - on the thread that loaded the last of them. Any thread.
+     * written. A boosted step first loads the permissions of its offline candidates ({@link Boosters#loadPermissions});
+     * when one had to be loaded, the step settles once they are in memory, on the main thread. Any thread.
      *
      * @return completes, once every effect applied or was kept, with the step's receipt
      * @throws IllegalArgumentException when the rule asks for a group role and the owner is not a group
@@ -91,7 +91,12 @@ public final class Rewards {
         }
         checkRoles(rule, ctx);
         //an offline member's permission booster is read only from memory: never a blocking load inside settle
-        return Boosters.loadPermissions(ctx.getBoostedBy(), candidatesOf(rule, ctx)).thenCompose(loaded -> settleAndPay(rule, ctx, index));
+        CompletableFuture<Void> loaded = Boosters.loadPermissions(ctx.getBoostedBy(), candidatesOf(rule, ctx));
+        if (loaded.isDone()) {
+            return settleAndPay(rule, ctx, index);
+        }
+        //the load ends on the permission store's thread; settling reads players and boosters, so it goes back to the main thread
+        return loaded.thenCompose(done -> ECScheduler.onMainThread(() -> settleAndPay(rule, ctx, index))).thenCompose(step -> step);
     }
 
     private static CompletableFuture<RewardReceipt.Step> settleAndPay(RewardRule rule, RewardContext ctx, int index) {

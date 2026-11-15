@@ -324,6 +324,16 @@ public final class Platforms {
     }
 
     /**
+     * {@link #mainThreadInline()} where the server thread is the one that installs the world: a main-thread task asked
+     * from it runs in place, one asked from any other thread waits until the test runs
+     * {@link TestPlatform#runQueuedMainThreadTasks()} - the hop back a real server makes after async work.
+     */
+    public Platforms mainThreadQueued() {
+        platform.mainThreadQueued = Boolean.TRUE;
+        return mainThreadInline();
+    }
+
+    /**
      * Answers {@code isWorldThread} with false for every world while {@code runOnWorldThread} still runs inline - the
      * caller that should have been on a world's thread and is not.
      */

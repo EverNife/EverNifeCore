@@ -1,9 +1,12 @@
 package br.com.finalcraft.evernifecore.logic.reward;
 
+import br.com.finalcraft.evernifecore.booster.Booster;
 import br.com.finalcraft.evernifecore.booster.BoosterDomain;
 import br.com.finalcraft.evernifecore.booster.BoosterJoin;
+import br.com.finalcraft.evernifecore.booster.BoosterSource;
 import br.com.finalcraft.evernifecore.booster.Boosters;
 import br.com.finalcraft.evernifecore.economy.CurrencyOwner;
+import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 import br.com.finalcraft.evernifecore.logic.ProgressOwner;
 import br.com.finalcraft.evernifecore.logic.delivery.Delivery;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
@@ -14,6 +17,7 @@ import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.TestCurrency;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
 import br.com.finalcraft.evernifecore.testing.TestOfflinePermissions;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,9 +25,11 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.math.BigDecimal;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -36,7 +42,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * A duel winner who already left is paid with the permission booster their permission store holds: the payment loads
  * their permissions off the server thread first, and never waits on that load where the server would stand still. A
- * server that cannot read them pays the base, and the explanation says why. The test's thread plays the server thread.
+ * server that cannot read them pays the base, and the explanation says why. The test's thread plays the server thread
+ * and runs the main-thread tasks other threads queue.
  */
 class OfflineBoostedRewardTest {
 
@@ -55,7 +62,7 @@ class OfflineBoostedRewardTest {
 
     @BeforeEach
     void open() {
-        world = Platforms.lenient().mainThreadInline().install();
+        world = Platforms.lenient().mainThreadQueued().install();
         duels = LogicWorld.open("FakeDuels", tempDir.resolve("duels"));
         gold = Economies.currency(GOLD, CurrencyOwner.Kind.PLAYER);
         world.withCurrency(duels.getOwner(), gold);
@@ -77,7 +84,7 @@ class OfflineBoostedRewardTest {
         TestOfflinePermissions store = world.platform().useTestOfflinePermissions().grant(cris.getUniqueId(), NODE);
         assertFalse(store.isLoaded(cris.getUniqueId()), "left long ago: not in memory");
 
-        RewardReceipt receipt = await(winTable().pay(context().boostedBy(win).build()));
+        RewardReceipt receipt = onTheServer(winTable().pay(context().boostedBy(win).build()));
 
         RewardReceipt.Line line = receipt.getStep(0).getLine(cris.getUniqueId());
         assertEquals(RewardReceipt.Status.DELIVERED, line.getStatus());
@@ -122,7 +129,65 @@ class OfflineBoostedRewardTest {
         assertNumber("3", paid.get().getStep(0).getLine(cris.getUniqueId()).getMultiplier());
     }
 
+    @Test
+    void afterALoadTheStepSettlesBackOnTheServerThread() {
+        world.platform().useTestOfflinePermissions().grant(cris.getUniqueId(), NODE);
+        List<Boolean> settledOnTheServer = new CopyOnWriteArrayList<>();
+        Boosters.addSource(duels.getOwner(), new BoosterSource() {
+            @Override
+            public String getId() {
+                return "fakeduels:thread-probe";
+            }
+
+            @Override
+            public Collection<Booster> boostersFor(ExecutionContext ctx, BoosterDomain domain) {
+                settledOnTheServer.add(ECScheduler.isServerThread());
+                return Collections.emptyList();
+            }
+        });
+
+        CompletableFuture<RewardReceipt> paying = winTable().pay(context().boostedBy(win).build());
+        assertFalse(paying.isDone(), "the load is still on the store's thread");
+        RewardReceipt receipt = onTheServer(paying);
+
+        assertEquals(Collections.singletonList(true), settledOnTheServer, "resolved once, on the server thread");
+        assertNumber("3", receipt.getStep(0).getLine(cris.getUniqueId()).getMultiplier());
+    }
+
+    @Test
+    void aPaymentWithNothingToLoadStaysSynchronous() {
+        world.platform().useTestOfflinePermissions();
+        TestFPlayerSender ana = duels.player("Ana");
+        ana.grant(NODE);
+        RewardScene scene = RewardScene.builder(won).participant(ana.getUniqueId(), "Ana", BigDecimal.ONE).build();
+
+        CompletableFuture<RewardReceipt> paying = winTable().pay(RewardContext.builder(duels.caller("duel"), ProgressOwner.global())
+                .scene(scene).boostedBy(win).build());
+
+        assertTrue(paying.isDone(), "settled and paid before pay returned");
+        assertEquals(0, world.platform().getQueuedMainThreadTasks());
+        assertNumber("3", paying.join().getStep(0).getLine(ana.getUniqueId()).getMultiplier());
+    }
+
     // ------------------------------------------------------------------
+
+    /** Runs the main-thread tasks other threads queue, on this (the server) thread, until {@code future} completes. */
+    private RewardReceipt onTheServer(CompletableFuture<RewardReceipt> future) {
+        long until = System.currentTimeMillis() + 5000;
+        while (!future.isDone()) {
+            world.platform().runQueuedMainThreadTasks();
+            if (System.currentTimeMillis() > until) {
+                throw new AssertionError("the payment never completed; queued: " + world.platform().getQueuedMainThreadTasks());
+            }
+            try {
+                Thread.sleep(5);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw new AssertionError(interrupted);
+            }
+        }
+        return future.join();
+    }
 
     private RewardTable winTable() {
         return RewardTable.parse(duels.getOwner(), won, node("[{'effects': ["

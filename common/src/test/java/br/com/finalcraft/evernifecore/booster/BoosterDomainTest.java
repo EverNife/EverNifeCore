@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.booster;
 
+import br.com.finalcraft.evernifecore.api.common.player.IOfflinePermissions;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.logic.ProgressOwner;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
@@ -36,7 +37,8 @@ class BoosterDomainTest {
 
     @BeforeEach
     void open() {
-        world = Platforms.strict().ignoringPlatformRegistrations().mainThreadInline().loggingToStdout().install();
+        world = Platforms.strict().ignoringPlatformRegistrations().mainThreadInline().loggingToStdout()
+                .offlinePermissions(IOfflinePermissions.NONE).install();
         duels = LogicWorld.open("Duels", tempDir.resolve("duels"));
         jobs = Plugins.fakePluginData("Jobs", tempDir.resolve("jobs").toFile());
         alex = duels.player("Alex");

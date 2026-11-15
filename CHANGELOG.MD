@@ -204,9 +204,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **A permission booster counts for an offline player** without blocking the server thread: `IPlatform.getOfflinePermissions()`
   (`IOfflinePermissions`: `isSupported`, `isLoaded`, `load`, `holds`) reads LuckPerms' in-memory users on Bukkit (none
   without LuckPerms) and the permissions module on Hytale. A boosted reward step loads its offline candidates first
-  (`Boosters.loadPermissions(domains, players)`, on LuckPerms' threads); `BoosterResult.getUnread()`, and the `! not read`
-  line of `explain()`, say when a source could not read them. `BoosterSource.getUnreadReason` is the hook; `common-tests`
-  adds `Platforms.offlinePermissions()` / `TestOfflinePermissions` and the conformance check.
+  (`Boosters.loadPermissions(domains, players)`, on LuckPerms' threads) and, when it had to load one, settles back on the
+  main thread; `BoosterResult.getUnread()`, and the `! not read` line of `explain()`, say when a source could not read
+  them. `BoosterSource.getUnreadReason` is the hook. A source's `UnsupportedOperationException` (a platform refusing
+  the call) now reaches the caller of `resolve`; any other failure is still logged and skipped. `common-tests` adds
+  `Platforms.offlinePermissions()` / `TestOfflinePermissions`, `Platforms.mainThreadQueued()` (a main-thread task asked
+  off the test thread waits for `TestPlatform.runQueuedMainThreadTasks()`) and the conformance check.
 
 #### Screens
 

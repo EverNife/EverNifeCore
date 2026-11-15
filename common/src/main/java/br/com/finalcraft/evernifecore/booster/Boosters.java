@@ -93,7 +93,10 @@ public final class Boosters {
         return owned;
     }
 
-    /** Every source's active boosters of {@code domain} in {@code ctx}, joined, each parcel traced; a source that throws is skipped with a warning. */
+    /**
+     * Every source's active boosters of {@code domain} in {@code ctx}, joined, each parcel traced; a source that throws is
+     * skipped with a warning, except for an {@link UnsupportedOperationException}, which reaches the caller.
+     */
     static BoosterResult resolve(ExecutionContext ctx, BoosterDomain domain) {
         Instant now = ECClock.now();
         List<Booster> parcels = new ArrayList<>();
@@ -106,6 +109,8 @@ public final class Boosters {
                 if (reason != null) {
                     unread.add(registered.source.getId() + ": " + reason);
                 }
+            } catch (UnsupportedOperationException refused) {
+                throw refused; //the platform refused a call the source made: a setup defect (an untaught test double), not a broken source
             } catch (RuntimeException broken) {
                 EverNifeCore.getLog().warning("The booster source " + registered.source.getId() + " of "
                         + registered.owner.getMetaInfo().getName() + " failed for " + domain + " and was skipped: " + broken);
