@@ -12,6 +12,7 @@ import br.com.finalcraft.evernifecore.logger.ECLogLevel;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
+import br.com.finalcraft.evernifecore.api.common.player.IOfflinePermissions;
 import br.com.finalcraft.evernifecore.notify.IHudAccess;
 import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
@@ -102,6 +103,9 @@ public class TestPlatform extends AbstractTestPlatform {
     IHudAccess hud;
     Boolean hudConfigured;
     final TestHud testHud = new TestHud();
+    IOfflinePermissions offlinePermissions;
+    Boolean offlinePermissionsConfigured;
+    final TestOfflinePermissions testOfflinePermissions = new TestOfflinePermissions();
     TestInventory testInventory;
     TestGlow testGlow;
     ISelectionItems selectionItems;
@@ -267,6 +271,7 @@ public class TestPlatform extends AbstractTestPlatform {
         consoleCommands.clear();
         senderCommands.clear();
         testHud.reset();
+        testOfflinePermissions.reset();
         infoMessages.clear();
         loggedMessages.clear();
         shutdownReasons.clear();
@@ -566,6 +571,26 @@ public class TestPlatform extends AbstractTestPlatform {
     @Override
     public IHudAccess getHud() {
         return hudConfigured != null ? hud : super.getHud();
+    }
+
+    @Override
+    public IOfflinePermissions getOfflinePermissions() {
+        return offlinePermissionsConfigured != null ? offlinePermissions : super.getOfflinePermissions();
+    }
+
+    /** The permission store {@link Platforms#offlinePermissions()} puts behind {@code getOfflinePermissions}. */
+    public TestOfflinePermissions getTestOfflinePermissions() {
+        return testOfflinePermissions;
+    }
+
+    /**
+     * Puts {@link #getTestOfflinePermissions()} behind {@code getOfflinePermissions} on a platform already built - the
+     * one a command harness installed - and returns it.
+     */
+    public TestOfflinePermissions useTestOfflinePermissions() {
+        offlinePermissionsConfigured = Boolean.TRUE;
+        offlinePermissions = testOfflinePermissions;
+        return testOfflinePermissions;
     }
 
     /** The in-memory screen {@link Platforms#hud()} put behind {@code getHud}: every call it received, by capability. */

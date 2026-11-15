@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.hytale.loader.imp;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.api.common.player.IOfflinePermissions;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformChatAdapter;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVecAdapter;
@@ -18,6 +19,7 @@ import br.com.finalcraft.evernifecore.hytale.commands.finalcmd.implementation.Hy
 import br.com.finalcraft.evernifecore.hytale.integration.placeholders.HyPAPIIntegration;
 import br.com.finalcraft.evernifecore.hytale.region.HyParticleOutlineRenderer;
 import br.com.finalcraft.evernifecore.hytale.notify.HyHudAccess;
+import br.com.finalcraft.evernifecore.hytale.integration.HyOfflinePermissions;
 import br.com.finalcraft.evernifecore.hytale.region.HyPlayerStateAccess;
 import br.com.finalcraft.evernifecore.hytale.region.HySelectionItems;
 import br.com.finalcraft.evernifecore.hytale.region.HyTerrainAccess;
@@ -351,6 +353,7 @@ public class HyPlatform implements IPlatform {
     private static final ITerrainAccess TERRAIN_ACCESS = new HyTerrainAccess();
     public static final HyPlayerStateAccess PLAYER_STATE = new HyPlayerStateAccess();
     private static final HyHudAccess HUD = new HyHudAccess();
+    private static final IOfflinePermissions OFFLINE_PERMISSIONS = new HyOfflinePermissions();
 
     @Override
     public IHudAccess getHud() {
@@ -360,6 +363,11 @@ public class HyPlatform implements IPlatform {
     @Override
     public IPlayerStateAccess getPlayerState() {
         return PLAYER_STATE;
+    }
+
+    @Override
+    public IOfflinePermissions getOfflinePermissions() {
+        return OFFLINE_PERMISSIONS;
     }
 
     @Override

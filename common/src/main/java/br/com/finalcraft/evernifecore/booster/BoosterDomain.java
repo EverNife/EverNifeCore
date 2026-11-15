@@ -90,8 +90,9 @@ public final class BoosterDomain {
 
     /**
      * The boosters of this domain for the player {@code playerId}: as {@link #resolve(ExecutionContext)} for them when
-     * online; offline, only the sources that need no player answer - the boosters a {@link BoosterManager} granted to
-     * them or to everyone.
+     * online; offline, the boosters a {@link BoosterManager} granted to them or to everyone, and their permission booster
+     * when the platform holds their permissions in memory ({@link Boosters#loadPermissions} loads them; the result's
+     * {@link BoosterResult#getUnread()} says when it did not). Never blocks.
      */
     public BoosterResult resolve(UUID playerId) {
         FPlayer online = EverNifeCore.getPlatform().getPlayer(playerId);
@@ -99,7 +100,6 @@ public final class BoosterDomain {
         if (online != null && online.isOnline()) {
             ctx.player(online);
         } else {
-            // reason-detre: an offline player's permission nodes are not read, so a permission booster counts only online; read them offline through the permission plugin when one is present
             ctx.owner(ProgressOwner.player(playerId));
         }
         return resolve(ctx.build());

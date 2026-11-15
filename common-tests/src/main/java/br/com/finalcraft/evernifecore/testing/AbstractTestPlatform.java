@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.api.common.player.IOfflinePermissions;
 import br.com.finalcraft.evernifecore.notify.IHudAccess;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
@@ -197,6 +198,11 @@ public abstract class AbstractTestPlatform implements IPlatform {
     @Override
     public IHudAccess getHud() {
         throw notConfigured("getHud", "Platforms.strict().hud()");
+    }
+
+    @Override
+    public IOfflinePermissions getOfflinePermissions() {
+        throw notConfigured("getOfflinePermissions", "Platforms.strict().offlinePermissions()");
     }
 
     @Override

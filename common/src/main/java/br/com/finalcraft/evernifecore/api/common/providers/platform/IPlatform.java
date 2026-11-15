@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.api.common.providers.platform;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.api.common.player.IOfflinePermissions;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
@@ -149,6 +150,12 @@ public interface IPlatform {
      * nothing; {@code null} is a violation.
      */
     public IHudAccess getHud();
+
+    /**
+     * The permissions of players who are not online. {@link IOfflinePermissions#NONE} is the honest answer of a platform
+     * that cannot read them; {@code null} is a violation.
+     */
+    public IOfflinePermissions getOfflinePermissions();
 
     /**
      * Registers the platform's config types (Bukkit {@code ItemStack}/{@code Location}, Hytale vectors, ...)

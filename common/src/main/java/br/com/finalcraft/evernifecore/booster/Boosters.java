@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.booster;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.api.common.player.IOfflinePermissions;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 import br.com.finalcraft.evernifecore.logic.ProgressOwner;
@@ -18,6 +19,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -94,10 +97,15 @@ public final class Boosters {
     static BoosterResult resolve(ExecutionContext ctx, BoosterDomain domain) {
         Instant now = ECClock.now();
         List<Booster> parcels = new ArrayList<>();
+        List<String> unread = new ArrayList<>();
         for (Registered registered : SOURCES) {
             Collection<Booster> offered;
             try {
                 offered = registered.source.boostersFor(ctx, domain);
+                String reason = registered.source.getUnreadReason(ctx, domain);
+                if (reason != null) {
+                    unread.add(registered.source.getId() + ": " + reason);
+                }
             } catch (RuntimeException broken) {
                 EverNifeCore.getLog().warning("The booster source " + registered.source.getId() + " of "
                         + registered.owner.getMetaInfo().getName() + " failed for " + domain + " and was skipped: " + broken);
@@ -111,7 +119,39 @@ public final class Boosters {
             }
         }
         BoosterJoin join = domain.getJoin();
-        return new BoosterResult(domain, join.join(parcels), parcels, join);
+        return new BoosterResult(domain, join.join(parcels), parcels, join, unread);
+    }
+
+    /**
+     * Loads, off the calling thread, the permissions of each of {@code players} who is offline and not in memory, when
+     * one of {@code domains} is boosted by a permission - so a {@link BoosterDomain#resolve} right after reads their
+     * permission boosters without blocking. Completes at once when there is nothing to load; never fails (a player whose
+     * load failed stays unread, and {@link BoosterResult#explain()} says so). A reward payment does it by itself.
+     */
+    public static CompletableFuture<Void> loadPermissions(Collection<BoosterDomain> domains, Collection<UUID> players) {
+        boolean asked = false;
+        for (BoosterDomain domain : domains) {
+            asked |= domain.getPermissionPrefix() != null;
+        }
+        if (!asked) {
+            return CompletableFuture.completedFuture(null);
+        }
+        IOfflinePermissions permissions = EverNifeCore.getPlatform().getOfflinePermissions();
+        if (!permissions.isSupported()) {
+            return CompletableFuture.completedFuture(null);
+        }
+        List<CompletableFuture<?>> loads = new ArrayList<>();
+        for (UUID player : players) {
+            FPlayer online = EverNifeCore.getPlatform().getPlayer(player);
+            if ((online == null || !online.isOnline()) && !permissions.isLoaded(player)) {
+                loads.add(permissions.load(player).exceptionally(failed -> {
+                    EverNifeCore.getLog().warning("The permissions of the offline player " + player + " did not load, so no permission"
+                            + " booster counts for them now: " + failed);
+                    return false;
+                }));
+            }
+        }
+        return CompletableFuture.allOf(loads.toArray(new CompletableFuture<?>[0]));
     }
 
     /** Whether a booster of {@code owner} counts for {@code ctx}: its own owner, everyone, or a group/region/world the player is in. */

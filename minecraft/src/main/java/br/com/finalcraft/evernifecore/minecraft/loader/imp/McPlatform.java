@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.loader.imp;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.api.common.player.IOfflinePermissions;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformChatAdapter;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVecAdapter;
@@ -18,6 +19,7 @@ import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFPlayer;
 import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.MinecraftArgParsers;
 import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.implementation.McFinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.minecraft.eventbus.McECEventHandlers;
+import br.com.finalcraft.evernifecore.minecraft.integration.McOfflinePermissions;
 import br.com.finalcraft.evernifecore.minecraft.integration.placeholders.McPAPIIntegration;
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
 import br.com.finalcraft.evernifecore.minecraft.notify.McHudAccess;
@@ -372,6 +374,13 @@ public class McPlatform implements IPlatform {
     @Override
     public IHudAccess getHud() {
         return hud;
+    }
+
+    private final IOfflinePermissions offlinePermissions = new McOfflinePermissions();
+
+    @Override
+    public IOfflinePermissions getOfflinePermissions() {
+        return offlinePermissions;
     }
 
     private final IPlayerStateAccess playerState = new McPlayerStateAccess();

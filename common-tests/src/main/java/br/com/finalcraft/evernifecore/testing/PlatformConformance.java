@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.testing;
 
+import br.com.finalcraft.evernifecore.api.common.player.IOfflinePermissions;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.PlatformId;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
@@ -14,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -228,6 +230,25 @@ public final class PlatformConformance {
         if (hud != null) {
             checkHud(hud, failures);
         }
+
+        call(platform, "getOfflinePermissions", failures, new Call<Object>() {
+            @Override
+            public Object run(IPlatform target) throws Exception {
+                IOfflinePermissions answer = target.getOfflinePermissions();
+                if (answer == null) {
+                    throw new IllegalStateException("returned null; a platform that reads no offline permission answers IOfflinePermissions.NONE");
+                }
+                if (!answer.isSupported()) {
+                    UUID nobody = new UUID(0L, 0L);
+                    CompletableFuture<Boolean> load = answer.load(nobody);
+                    if (load == null || !load.isDone() || load.get() || answer.isLoaded(nobody)) {
+                        throw new IllegalStateException("is not supported, yet a load did not answer false at once - a store it cannot"
+                                + " read loads nothing, so the caller can tell \"not read\" from \"not held\"");
+                    }
+                }
+                return null;
+            }
+        });
 
         return Collections.unmodifiableList(failures);
     }

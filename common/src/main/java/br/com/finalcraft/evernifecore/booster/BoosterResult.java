@@ -17,12 +17,14 @@ public final class BoosterResult {
     private final BigDecimal multiplier;
     private final List<Booster> parcels;
     private final BoosterJoin join;
+    private final List<String> unread;
 
-    BoosterResult(BoosterDomain domain, BigDecimal multiplier, List<Booster> parcels, BoosterJoin join) {
+    BoosterResult(BoosterDomain domain, BigDecimal multiplier, List<Booster> parcels, BoosterJoin join, List<String> unread) {
         this.domain = domain;
         this.multiplier = multiplier;
         this.parcels = Collections.unmodifiableList(parcels);
         this.join = join;
+        this.unread = Collections.unmodifiableList(unread);
     }
 
     public BoosterDomain getDomain() {
@@ -81,7 +83,12 @@ public final class BoosterResult {
         return join;
     }
 
-    /** {@code duels:win x1.75 (sum-bonus cap 3): x1.5 from ..., +0.25 from ...}, one parcel per line. */
+    /** What a source could not read, so a booster may be missing from the multiplier; empty when every source read all. */
+    public List<String> getUnread() {
+        return unread;
+    }
+
+    /** {@code duels:win x1.75 (sum-bonus cap 3): x1.5 from ..., +0.25 from ...}, one parcel per line, then what was not read. */
     public FancyText explain() {
         StringBuilder text = new StringBuilder(domain.getId()).append(" x").append(multiplier.stripTrailingZeros().toPlainString())
                 .append(" (").append(join).append(")");
@@ -90,6 +97,9 @@ public final class BoosterResult {
         }
         for (Booster parcel : parcels) {
             text.append("\n - ").append(parcel);
+        }
+        for (String reason : unread) {
+            text.append("\n ! not read: ").append(reason);
         }
         return FancyText.of(text.toString());
     }

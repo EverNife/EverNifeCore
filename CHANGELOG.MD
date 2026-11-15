@@ -179,7 +179,7 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `BoosterDomain.of(plugin, "win").join(BoosterJoin.sumBonus().cap(3)).permission("duels.booster.win", 2, 4).register()`,
   id `<plugin>:<name>` (lowercase), gone with its plugin; registering the same id twice is refused. `Boosters.findDomain(id)` and
   `Boosters.getDomains(plugin)` find them. `domain.resolve(ctx)` joins its boosters; `domain.resolve(uuid)` answers an offline
-  player with the boosters a `BoosterManager` granted (a permission booster counts online only). `Booster.on(BoosterDomain)`
+  player with the boosters a `BoosterManager` granted and the permission booster their permissions in memory hold. `Booster.on(BoosterDomain)`
   replaces `Booster.on(String)`, `BoosterSource.boostersFor` receives the domain, `BoosterResult.getDomain()` replaces
   `getVariableId()`, and `Boosters.declareJoin`/`getJoin`/`resolve(ctx, id)` gave way to the domain's builder and `resolve`.
 - **No booster crosses plugins**: the global permission `vip.booster.<gain>.<factor>` is gone; a domain that declares
@@ -190,14 +190,23 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   that wants it configurable reads its own config and passes it.
 - **`BoosterResult.applyToCount(base, CountRounding)`** boosts a count: `FLOOR`, `ROUND` (half up) or `CHANCE` (the
   fraction is the chance of one more; an overload takes the random source). `apply(BigDecimal)` boosts an amount.
-- **The `money` effect never resolves a booster** and lost its `boosted` param (a pending money delivery no longer
-  writes it; one kept with `boosted: false` before this no longer reads and stays pending, logged at each claim): it
+- **The `money` effect never resolves a booster** and lost its `boosted` param: it
   multiplies only inside a reward paid with `boostedBy`, by the multiplier the receipt froze. `ExecutionContext.getMultiplier`, `Multipliers` and
   `MultiplierProvider` are gone - a rank bonus is a `BoosterSource`.
 - **A shop sale is boosted only by the domains its offer names**: `Offer.Builder.boostedBy(BoosterDomain...)` (their
   multipliers multiply; none by default, a BUY refuses it), instead of every price line by its currency's boosters.
 - The `boosters` region flag names a domain (`on=duels:win factor=1.5`); an entry that is not `<plugin>:<domain>` is
   refused, one naming an undeclared domain boosts nothing. A `Booster` in a config writes `on: <plugin>:<domain>`.
+- **`BoosterCommandNode(plugin[, permissionBase])`**, mounted by a plugin under its own command (the core mounts it
+  nowhere): `give <player> <domain> <boost> <duration>` (`2`/`x2` a factor, `+0.5`/`+50%` a bonus) grants through the
+  plugin's `BoosterManager`, which audits it; `list [player]`, `revoke <id>` and `explain <player> <domain>` (the
+  multiplier, each parcel and what could not be read). Only the plugin's own domains are taken; `<base>.<verb>` per verb.
+- **A permission booster counts for an offline player** without blocking the server thread: `IPlatform.getOfflinePermissions()`
+  (`IOfflinePermissions`: `isSupported`, `isLoaded`, `load`, `holds`) reads LuckPerms' in-memory users on Bukkit (none
+  without LuckPerms) and the permissions module on Hytale. A boosted reward step loads its offline candidates first
+  (`Boosters.loadPermissions(domains, players)`, on LuckPerms' threads); `BoosterResult.getUnread()`, and the `! not read`
+  line of `explain()`, say when a source could not read them. `BoosterSource.getUnreadReason` is the hook; `common-tests`
+  adds `Platforms.offlinePermissions()` / `TestOfflinePermissions` and the conformance check.
 
 #### Screens
 

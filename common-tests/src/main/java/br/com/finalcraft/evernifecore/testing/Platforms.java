@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.testing;
 
 import java.util.HashMap;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.api.common.player.IOfflinePermissions;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformChatAdapter;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVecAdapter;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
@@ -50,7 +51,7 @@ public final class Platforms {
      * chat/vec adapter, listeners and config types ignored, main thread inline (every world thread too),
      * world load/unload events kept for the test to fire, shutdown recorded, every world 0..255 high, no outline
      * renderer and no selection item ({@code NONE} for both), and a recording screen with every HUD capability
-     * ({@link #hud()}).
+     * ({@link #hud()}), and no offline permission ({@code IOfflinePermissions.NONE}).
      */
     public static Platforms lenient() {
         return strict()
@@ -79,7 +80,8 @@ public final class Platforms {
                 .selectionItems(ISelectionItems.NONE)
                 .terrain()
                 .playerState()
-                .hud();
+                .hud()
+                .offlinePermissions(IOfflinePermissions.NONE);
     }
 
     /**
@@ -252,6 +254,21 @@ public final class Platforms {
     public Platforms hudWithout(IHudAccess.Capability... capabilities) {
         platform.testHud.without(capabilities);
         return hud();
+    }
+
+    /** What {@code getOfflinePermissions} answers; {@code null} is kept, as the violation a conformance test needs. */
+    public Platforms offlinePermissions(IOfflinePermissions permissions) {
+        platform.offlinePermissionsConfigured = Boolean.TRUE;
+        platform.offlinePermissions = permissions;
+        return this;
+    }
+
+    /**
+     * An in-memory permission store behind {@code getOfflinePermissions} that loads a player on another thread, as
+     * LuckPerms does: grant nodes and preload players through {@link TestPlatform#getTestOfflinePermissions()}.
+     */
+    public Platforms offlinePermissions() {
+        return offlinePermissions(platform.testOfflinePermissions);
     }
 
     /** Keeps every tool handed out for {@link TestPlatform#getSelectionItemsGiven()} instead of giving it. */

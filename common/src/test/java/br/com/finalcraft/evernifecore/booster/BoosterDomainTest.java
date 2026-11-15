@@ -131,13 +131,13 @@ class BoosterDomainTest {
     @Test
     void applyToCountMakesTheBoostedCountWholeByTheRoundingAsked() {
         BoosterDomain planks = BoosterDomain.of(duels.getOwner(), "planks").register();
-        BoosterResult twice = new BoosterResult(planks, new BigDecimal("2"), Collections.<Booster>emptyList(), BoosterJoin.sumBonus());
+        BoosterResult twice = new BoosterResult(planks, new BigDecimal("2"), Collections.<Booster>emptyList(), BoosterJoin.sumBonus(), Collections.<String>emptyList());
         for (CountRounding rounding : CountRounding.values()) {
             assertEquals(8, twice.applyToCount(4, rounding, () -> 0.0), rounding.name());
             assertEquals(8, twice.applyToCount(4, rounding, () -> 0.99), rounding.name());
         }
 
-        BoosterResult half = new BoosterResult(planks, new BigDecimal("1.5"), Collections.<Booster>emptyList(), BoosterJoin.sumBonus());
+        BoosterResult half = new BoosterResult(planks, new BigDecimal("1.5"), Collections.<Booster>emptyList(), BoosterJoin.sumBonus(), Collections.<String>emptyList());
         assertEquals(4, half.applyToCount(3, CountRounding.FLOOR));
         assertEquals(5, half.applyToCount(3, CountRounding.ROUND));
         assertEquals(5, half.applyToCount(3, CountRounding.CHANCE, () -> 0.49), "below the fraction: the extra one comes");

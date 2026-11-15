@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.config;
 
+import br.com.finalcraft.evernifecore.booster.command.BoosterCommandNode;
 import br.com.finalcraft.evernifecore.quest.command.ArgParserQuest;
 import br.com.finalcraft.evernifecore.quest.command.QuestCommandNode;
 import br.com.finalcraft.evernifecore.quest.screen.QuestJournalScreen;
@@ -63,6 +64,7 @@ public class ConfigManager {
             CoreLogicCommands.class,
             AuditCommandNode.class,
             RewardCommandNode.class,
+            BoosterCommandNode.class,
             DeliveriesCommandNode.class,
             CoreDeliveriesCommands.class,
             DefaultIcons.class,

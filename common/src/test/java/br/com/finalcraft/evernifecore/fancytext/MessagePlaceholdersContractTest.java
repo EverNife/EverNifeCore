@@ -24,6 +24,7 @@ import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
+import br.com.finalcraft.evernifecore.api.common.player.IOfflinePermissions;
 import br.com.finalcraft.evernifecore.notify.IHudAccess;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -189,6 +190,7 @@ public class MessagePlaceholdersContractTest {
         @Override public String parse(@Nullable FPlayer player, @Nonnull String text) { return delegate.parse(player, text); }
         @Override public <P extends IPlayerData> RegexReplacer<P> createPlaceholderIntegration(@Nonnull ECPluginData plugin, @Nonnull String pluginBaseID, @Nonnull Class<P> playerDataType) { return delegate.createPlaceholderIntegration(plugin, pluginBaseID, playerDataType); }
         @Override public IHudAccess getHud() { return delegate.getHud(); }
+        @Override public IOfflinePermissions getOfflinePermissions() { return delegate.getOfflinePermissions(); }
         @Override public IPlatformVecAdapter getVecAdapter() { return delegate.getVecAdapter(); }
         @Override public IPlatformChatAdapter getChatAdapter() { return delegate.getChatAdapter(); }
         @Override public void registerConfigTypes() { delegate.registerConfigTypes(); }

@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.booster.BoosterDomain;
+import br.com.finalcraft.evernifecore.booster.Boosters;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.group.GroupId;
 import br.com.finalcraft.evernifecore.group.GroupLookup;
@@ -78,12 +79,22 @@ public final class Rewards {
      * online eligible. Every payment posts a {@link RewardPaidEvent} and lands in the caller plugin's {@link AuditLog}
      * when it has one open. A {@link RewardRule#isOnce() once} rule skips all of that: its effects apply one time on the
      * main thread, from the console, with the reward's attributes and the scene's variables, and only the audit line is
-     * written. Any thread.
+     * written. A boosted step first loads the permissions of its offline candidates ({@link Boosters#loadPermissions}),
+     * so the step settles once they are in memory - on the thread that loaded the last of them. Any thread.
      *
      * @return completes, once every effect applied or was kept, with the step's receipt
      * @throws IllegalArgumentException when the rule asks for a group role and the owner is not a group
      */
     static CompletableFuture<RewardReceipt.Step> payStep(RewardRule rule, RewardContext ctx, int index) {
+        if (rule.isOnce() || ctx.getBoostedBy().isEmpty() || !rule.getMoment().paysAt(ctx.getTrigger())) {
+            return settleAndPay(rule, ctx, index);
+        }
+        checkRoles(rule, ctx);
+        //an offline member's permission booster is read only from memory: never a blocking load inside settle
+        return Boosters.loadPermissions(ctx.getBoostedBy(), candidatesOf(rule, ctx)).thenCompose(loaded -> settleAndPay(rule, ctx, index));
+    }
+
+    private static CompletableFuture<RewardReceipt.Step> settleAndPay(RewardRule rule, RewardContext ctx, int index) {
         RewardReceipt.Step step = settle(rule, ctx, index);
         if (!step.isRun()) {
             return CompletableFuture.completedFuture(step);
