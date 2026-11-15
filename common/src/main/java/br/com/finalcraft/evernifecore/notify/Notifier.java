@@ -3,7 +3,6 @@ package br.com.finalcraft.evernifecore.notify;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.events.player.ECPlayerQuitEvent;
-import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.notify.channel.ActionBarChannel;
@@ -33,7 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Delivers a {@link Notification} through the first step of its chain this platform supports: the chain set on the
- * notification, else the kind's ({@code Settings.Notify.chains.<kind>}). Channels live in a {@link TypeRegistry}
+ * notification, else the kind's in its owner's {@link NotifyProfile}. Channels live in a {@link TypeRegistry}
  * ({@link #registry()}); the core registers chat, action bar, title, sound, boss bar, sidebar, toast and tracker, and a
  * plugin adds its own with {@link #register}. A player who quits is forgotten by every channel.
  */
@@ -133,9 +132,9 @@ public final class Notifier {
         return names;
     }
 
-    /** The configured chain of {@code kind} ({@code Settings.Notify.chains.<kind>}). */
-    public NotifyChain getChain(NotifyKind kind) {
-        return ECSettings.getNotifyChain(kind);
+    /** The chain of {@code kind} in {@code owner}'s {@link NotifyProfile}, the built-in one when it registered none. */
+    public NotifyChain getChain(ECPluginData owner, NotifyKind kind) {
+        return NotifyProfile.of(owner).getChain(kind);
     }
 
     /**
@@ -161,12 +160,13 @@ public final class Notifier {
     }
 
     /**
-     * Delivers through the first supported step of the notification's chain (its own, else its kind's). Never throws
+     * Delivers through the first supported step of the notification's chain (its own, else its kind's in its owner's
+     * profile, read now: a profile registered later changes the next notification, not this one). Never throws
      * for a platform without a supported step: it delivers nothing and logs once per chain and platform -
      * {@link #validate} is the load-time check that keeps that from happening. Thread: any.
      */
     public void notify(FPlayer player, Notification notification) {
-        NotifyChain chain = notification.getChannels() != null ? notification.getChannels() : getChain(notification.getKind());
+        NotifyChain chain = notification.getChannels() != null ? notification.getChannels() : getChain(notification.getOwner(), notification.getKind());
         List<NotifyChannel> step = resolve(chain);
         if (step == null) {
             String platform = EverNifeCore.getPlatform().getPlatformProviderId();
@@ -189,10 +189,15 @@ public final class Notifier {
         }
     }
 
-    /** Drops what {@code id} shows {@code player} on every channel: a boss bar, a tracker, a queued action bar or title. Thread: any. */
-    public void clear(FPlayer player, String id) {
+    /**
+     * Drops what {@code owner}'s {@code id} shows {@code player} on every channel: a boss bar, a tracker, a queued action
+     * bar or title. Another plugin's notification with the same id stays; a null id is {@code owner}'s anonymous one.
+     * Thread: any.
+     */
+    public void clear(FPlayer player, ECPluginData owner, @Nullable String id) {
+        String handle = Notification.handleOf(owner, id);
         for (NotifyChannel channel : getChannels()) {
-            channel.clear(player, id);
+            channel.clear(player, handle);
         }
     }
 

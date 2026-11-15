@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.notify.channel;
 
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.notify.BossBarColor;
 import br.com.finalcraft.evernifecore.notify.Notification;
@@ -34,6 +35,7 @@ class HudChannelsTest {
     Path dir;
 
     private ECoreTestWorld world;
+    private ECPluginData core;
     private TestHud hud;
     private final TestFPlayerSender player = new TestFPlayerSender("Steve");
 
@@ -41,7 +43,8 @@ class HudChannelsTest {
     void setup() {
         world = Platforms.lenient().install();
         hud = world.platform().getTestHud();
-        Notifier.get().registerStock(Plugins.fakeCore(dir.resolve("core").toFile()));
+        core = Plugins.fakeCore(dir.resolve("core").toFile());
+        Notifier.get().registerStock(core);
         TestClock.acquire();
     }
 
@@ -54,7 +57,7 @@ class HudChannelsTest {
 
     @Test
     void aTitleIsSentOnceWithItsTimesAndClearedWhenItEnds() {
-        Notifier.get().notify(player, Notification.of(NotifyKind.COMPLETE).title("§aDone").subtitle("§7well played")
+        Notifier.get().notify(player, Notification.of(core, NotifyKind.COMPLETE).title("§aDone").subtitle("§7well played")
                 .duration(Duration.ofSeconds(2)).channels("title").build());
         TestClock.advance(Duration.ofMillis(QueuedHudChannel.TICK_MILLIS));
         TestClock.runDue();
@@ -71,50 +74,50 @@ class HudChannelsTest {
 
     @Test
     void aBossBarShowsItsProgressAndUpdatesInPlace() {
-        Notifier.get().notify(player, Notification.of(NotifyKind.TRACKED).id("quest").text("§eLogs").progress(0.25f).channels("boss-bar").build());
-        Notifier.get().notify(player, Notification.of(NotifyKind.TRACKED).id("quest").text("§eLogs").progress(0.5f).channels("boss-bar").build());
+        Notifier.get().notify(player, Notification.of(core, NotifyKind.TRACKED).id("quest").text("§eLogs").progress(0.25f).channels("boss-bar").build());
+        Notifier.get().notify(player, Notification.of(core, NotifyKind.TRACKED).id("quest").text("§eLogs").progress(0.5f).channels("boss-bar").build());
 
-        TestHud.HudCall shown = hud.getBossBar(player, "quest");
+        TestHud.HudCall shown = hud.getBossBar(player, "evernifecore:quest");
         assertNotNull(shown);
-        assertEquals(Arrays.<Object>asList("quest", 0.5f, BossBarColor.PURPLE), shown.extras);
+        assertEquals(Arrays.<Object>asList("evernifecore:quest", 0.5f, BossBarColor.PURPLE), shown.extras);
     }
 
     @Test
     void aBossBarWithADurationHidesWhenItRunsOutButNotWhenItWasShownAgain() {
-        Notifier.get().notify(player, Notification.of(NotifyKind.PROGRESS).id("xp").text("§a+10").duration(Duration.ofSeconds(3)).channels("boss-bar").build());
+        Notifier.get().notify(player, Notification.of(core, NotifyKind.PROGRESS).id("xp").text("§a+10").duration(Duration.ofSeconds(3)).channels("boss-bar").build());
         TestClock.advance(Duration.ofSeconds(2));
-        Notifier.get().notify(player, Notification.of(NotifyKind.PROGRESS).id("xp").text("§a+20").duration(Duration.ofSeconds(3)).channels("boss-bar").build());
+        Notifier.get().notify(player, Notification.of(core, NotifyKind.PROGRESS).id("xp").text("§a+20").duration(Duration.ofSeconds(3)).channels("boss-bar").build());
 
         TestClock.advance(Duration.ofSeconds(1));
         TestClock.runDue();
-        assertNotNull(hud.getBossBar(player, "xp"), "the first timer belongs to a bar that was shown again since");
+        assertNotNull(hud.getBossBar(player, "evernifecore:xp"), "the first timer belongs to a bar that was shown again since");
 
         TestClock.advance(Duration.ofSeconds(2));
         TestClock.runDue();
-        assertNull(hud.getBossBar(player, "xp"), "the second one runs out three seconds after it was shown");
+        assertNull(hud.getBossBar(player, "evernifecore:xp"), "the second one runs out three seconds after it was shown");
     }
 
     @Test
     void theTrackerShowsCountedLinesAndHidesOnClear() {
         List<TrackerLine> lines = Arrays.asList(TrackerLine.of(FancyText.of("logs"), 3, 10), TrackerLine.of(FancyText.of("return")));
-        Notifier.get().notify(player, Notification.of(NotifyKind.TRACKED).id("quest").title("Lumberjack").trackerLines(lines).channels("tracker").build());
+        Notifier.get().notify(player, Notification.of(core, NotifyKind.TRACKED).id("quest").title("Lumberjack").trackerLines(lines).channels("tracker").build());
 
-        Notifier.get().clear(player, "quest");
+        Notifier.get().clear(player, core, "quest");
 
         assertEquals(2, hud.getTrackerCalls().size());
-        assertEquals(Arrays.<Object>asList("quest", lines), hud.getTrackerCalls().get(0).extras);
+        assertEquals(Arrays.<Object>asList("evernifecore:quest", lines), hud.getTrackerCalls().get(0).extras);
         assertEquals("Lumberjack", hud.getTrackerCalls().get(0).text);
         assertEquals("hide", hud.getTrackerCalls().get(1).action);
     }
 
     @Test
     void theSidebarHasOneSlotAndTheToastTakesItsStyleFromTheKind() {
-        Notifier.get().notify(player, Notification.of(NotifyKind.INFO).id("a").title("Stats").lines(Arrays.asList(FancyText.of("kills: 3"))).channels("sidebar").build());
-        Notifier.get().notify(player, Notification.of(NotifyKind.INFO).id("b").title("Other").channels("sidebar").build());
-        Notifier.get().clear(player, "a");
+        Notifier.get().notify(player, Notification.of(core, NotifyKind.INFO).id("a").title("Stats").lines(Arrays.asList(FancyText.of("kills: 3"))).channels("sidebar").build());
+        Notifier.get().notify(player, Notification.of(core, NotifyKind.INFO).id("b").title("Other").channels("sidebar").build());
+        Notifier.get().clear(player, core, "a");
         assertEquals(2, hud.getSidebarCalls().size(), "clearing an id that lost the slot leaves the sidebar alone: " + hud.getSidebarCalls());
 
-        Notifier.get().notify(player, Notification.of(NotifyKind.DENY).text("§cno").channels("toast").build());
+        Notifier.get().notify(player, Notification.of(core, NotifyKind.DENY).text("§cno").channels("toast").build());
         assertEquals(Arrays.<Object>asList("", ToastStyle.DANGER), hud.getToastCalls().get(0).extras);
     }
 }

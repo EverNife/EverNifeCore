@@ -14,8 +14,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * A channel whose notifications stay on screen under their id until cleared (a boss bar, the tracker, the sidebar):
- * the same id shows again in place. It remembers what it shows each player, and on which {@link IHudAccess}, so a
+ * A channel whose notifications stay on screen under their {@link Notification#getHandle() handle} until cleared (a
+ * boss bar, the tracker, the sidebar): the same handle shows again in place, and the platform gets the handle as the id. It remembers what it shows each player, and on which {@link IHudAccess}, so a
  * clear, a quit or a timed hide takes it off the platform that showed it.
  */
 public abstract class HandleHudChannel implements NotifyChannel {
@@ -49,7 +49,7 @@ public abstract class HandleHudChannel implements NotifyChannel {
     @Override
     public void deliver(FPlayer player, Notification notification) {
         IHudAccess hud = EverNifeCore.getPlatform().getHud();
-        String id = notification.getIdOrAnonymous();
+        String id = notification.getHandle();
         Handle handle = new Handle(player, hud);
         Map<String, Handle> handles = shown.computeIfAbsent(player.getUniqueId(), ignored -> new ConcurrentHashMap<>());
         if (singleSlot()) {

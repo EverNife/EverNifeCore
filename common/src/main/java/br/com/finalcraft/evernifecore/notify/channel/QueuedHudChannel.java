@@ -84,10 +84,10 @@ public abstract class QueuedHudChannel implements NotifyChannel {
     }
 
     @Override
-    public void clear(FPlayer player, String id) {
+    public void clear(FPlayer player, String handle) {
         PlayerQueue queue = queues.get(player.getUniqueId());
         if (queue != null) {
-            queue.remove(id);
+            queue.remove(handle);
         }
     }
 
@@ -173,7 +173,7 @@ public abstract class QueuedHudChannel implements NotifyChannel {
             if (closed) {
                 return false;
             }
-            entries.removeIf(queued -> queued.notification.getIdOrAnonymous().equals(entry.notification.getIdOrAnonymous()));
+            entries.removeIf(queued -> queued.notification.getHandle().equals(entry.notification.getHandle()));
             entries.offer(entry);
             showHead();
             if (!ticking && !closed) {
@@ -183,8 +183,8 @@ public abstract class QueuedHudChannel implements NotifyChannel {
             return true;
         }
 
-        synchronized void remove(String id) {
-            if (!closed && entries.removeIf(queued -> queued.notification.getIdOrAnonymous().equals(id))) {
+        synchronized void remove(String handle) {
+            if (!closed && entries.removeIf(queued -> queued.notification.getHandle().equals(handle))) {
                 showHead();
             }
         }

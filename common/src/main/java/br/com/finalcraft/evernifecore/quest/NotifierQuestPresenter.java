@@ -19,8 +19,10 @@ import br.com.finalcraft.evernifecore.waypoint.Waypoints;
  * Every engine's default {@link QuestPresenter}, over the {@link Notifier}: progress as a {@link NotifyKind#PROGRESS}
  * notification (the shipped chain starts at the {@link ActionBarChannel}), completion as {@link NotifyKind#COMPLETE}
  * with the level-up sound (the {@link TitleChannel} plus sound), and the tracked quest as a {@link NotifyKind#TRACKED}
- * notification carrying the stage's progress (the {@link BossBarChannel} first), kept up to date while it moves. The
- * admin's {@code Settings.Notify.chains} decide the channels; the presenter only says what kind of moment it is.
+ * notification carrying the stage's progress (the {@link BossBarChannel} first), kept up to date while it moves. Every
+ * notification belongs to the engine's owner, so its {@code NotifyProfile} decides the channels; the presenter only
+ * says what kind of moment it is. The ids name the moment and the quest; the owner already keeps them apart from
+ * another plugin's.
  *
  * <p>For the tracked quest, every objective of the current stage with a place ({@link ObjectiveType#targetOf}) gets a
  * {@link Waypoint}; it goes when the objective, the stage or the quest ends, or the player stops tracking.</p>
@@ -29,7 +31,7 @@ public class NotifierQuestPresenter implements QuestPresenter {
 
     @Override
     public void onProgress(FPlayer viewer, QuestEngine engine, QuestDefinition definition, QuestState state, Objective objective) {
-        Notifier.get().notify(viewer, Notification.of(NotifyKind.PROGRESS).id("quest-progress:" + definition.getId())
+        Notifier.get().notify(viewer, Notification.of(engine.getOwner(), NotifyKind.PROGRESS).id("progress:" + definition.getId())
                 .text(definition.getName() + "§7: §f" + label(objective) + " §e" + state.getCount(objective.getId()) + "/" + objective.getGoal())
                 .build());
         refreshTracked(viewer, engine, definition, state);
@@ -51,14 +53,14 @@ public class NotifierQuestPresenter implements QuestPresenter {
 
     @Override
     public void onQuestComplete(FPlayer viewer, QuestEngine engine, QuestDefinition definition, QuestState state) {
-        Notifier.get().notify(viewer, Notification.of(NotifyKind.COMPLETE).id("quest-complete:" + definition.getId())
+        Notifier.get().notify(viewer, Notification.of(engine.getOwner(), NotifyKind.COMPLETE).id("complete:" + definition.getId())
                 .title(definition.getName()).subtitle("§a✔").text("§a✔ " + definition.getName()).sound(HudSounds.LEVEL_UP).build());
         end(viewer, engine, definition);
     }
 
     @Override
     public void onQuestFail(FPlayer viewer, QuestEngine engine, QuestDefinition definition, QuestState state) {
-        Notifier.get().notify(viewer, Notification.of(NotifyKind.DENY).id("quest-fail:" + definition.getId())
+        Notifier.get().notify(viewer, Notification.of(engine.getOwner(), NotifyKind.DENY).id("fail:" + definition.getId())
                 .text("§c✘ " + definition.getName()).build());
         end(viewer, engine, definition);
     }
@@ -70,14 +72,14 @@ public class NotifierQuestPresenter implements QuestPresenter {
 
     @Override
     public void onTrack(FPlayer viewer, QuestEngine engine, QuestDefinition definition, QuestState state) {
-        Notifier.get().notify(viewer, tracked(definition, state));
+        Notifier.get().notify(viewer, tracked(engine, definition, state));
         hideWaypoints(viewer, engine, definition);
         showWaypoints(viewer, engine, definition, state);
     }
 
     @Override
     public void onUntrack(FPlayer viewer, QuestEngine engine, QuestId quest) {
-        Notifier.get().clear(viewer, trackedId(quest));
+        Notifier.get().clear(viewer, engine.getOwner(), trackedId(quest));
         QuestDefinition definition = engine.get(quest);
         if (definition != null) {
             hideWaypoints(viewer, engine, definition);
@@ -88,14 +90,14 @@ public class NotifierQuestPresenter implements QuestPresenter {
 
     private void end(FPlayer viewer, QuestEngine engine, QuestDefinition definition) {
         if (isTracked(viewer, engine, definition)) {
-            Notifier.get().clear(viewer, trackedId(definition.getId()));
+            Notifier.get().clear(viewer, engine.getOwner(), trackedId(definition.getId()));
         }
         hideWaypoints(viewer, engine, definition);
     }
 
     private void refreshTracked(FPlayer viewer, QuestEngine engine, QuestDefinition definition, QuestState state) {
         if (isTracked(viewer, engine, definition)) {
-            Notifier.get().notify(viewer, tracked(definition, state));
+            Notifier.get().notify(viewer, tracked(engine, definition, state));
         }
     }
 
@@ -103,13 +105,13 @@ public class NotifierQuestPresenter implements QuestPresenter {
         return definition.getId().equals(engine.getTracked(viewer.getUniqueId()));
     }
 
-    private static Notification tracked(QuestDefinition definition, QuestState state) {
-        return Notification.of(NotifyKind.TRACKED).id(trackedId(definition.getId())).title(definition.getName())
+    private static Notification tracked(QuestEngine engine, QuestDefinition definition, QuestState state) {
+        return Notification.of(engine.getOwner(), NotifyKind.TRACKED).id(trackedId(definition.getId())).title(definition.getName())
                 .text(definition.getName()).progress((float) definition.getStageProgress(state)).build();
     }
 
     private static String trackedId(QuestId quest) {
-        return "quest-tracked:" + quest;
+        return "tracked:" + quest;
     }
 
     private static String label(Objective objective) {

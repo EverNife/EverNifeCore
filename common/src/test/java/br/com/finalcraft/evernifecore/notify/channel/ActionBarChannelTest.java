@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.notify.channel;
 
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.notify.IHudAccess;
 import br.com.finalcraft.evernifecore.notify.Notification;
 import br.com.finalcraft.evernifecore.notify.NotifyKind;
@@ -40,6 +41,7 @@ class ActionBarChannelTest {
     Path dir;
 
     private ECoreTestWorld world;
+    private ECPluginData core;
     private TestHud hud;
     private final TestFPlayerSender player = new TestFPlayerSender("Steve");
     private boolean clockHeld;
@@ -47,7 +49,8 @@ class ActionBarChannelTest {
     private void serverWithActionBar(boolean supported, boolean testClock) {
         world = (supported ? Platforms.lenient() : Platforms.lenient().hudWithout(IHudAccess.Capability.ACTION_BAR)).install();
         hud = world.platform().getTestHud();
-        Notifier.get().registerStock(Plugins.fakeCore(dir.resolve("core").toFile()));
+        core = Plugins.fakeCore(dir.resolve("core").toFile());
+        Notifier.get().registerStock(core);
         if (testClock) {
             TestClock.acquire();
             clockHeld = true;
@@ -65,11 +68,11 @@ class ActionBarChannelTest {
         }
     }
 
-    private static Notification bar(String id, String text, int priority, Duration lasting) {
-        return Notification.of(NotifyKind.INFO).id(id).text(text).priority(priority).duration(lasting).channels("action-bar").build();
+    private Notification bar(String id, String text, int priority, Duration lasting) {
+        return Notification.of(core, NotifyKind.INFO).id(id).text(text).priority(priority).duration(lasting).channels("action-bar").build();
     }
 
-    private static Notification bar(String id, String text, int priority) {
+    private Notification bar(String id, String text, int priority) {
         return bar(id, text, priority, Duration.ofSeconds(30));
     }
 
@@ -95,7 +98,7 @@ class ActionBarChannelTest {
     void aServerWithoutAnActionBarIsNeverSentOneAndTheChainFallsToChat() {
         serverWithActionBar(false, true);
 
-        Notifier.get().notify(player, Notification.of(NotifyKind.INFO).text("§ewelcome").channels("action-bar", "chat").build());
+        Notifier.get().notify(player, Notification.of(core, NotifyKind.INFO).text("§ewelcome").channels("action-bar", "chat").build());
 
         assertTrue(hud.getActionBarCalls().isEmpty(), "a server that cannot show an action bar must not be handed one");
         assertEquals(1, player.getMessages().size(), "the next step of the chain, chat, took it: " + player.getMessages());
@@ -171,7 +174,7 @@ class ActionBarChannelTest {
         serverWithActionBar(true, true);
         Notifier.get().notify(player, bar("mana", "§9mana 40/40", 0));
 
-        Notifier.get().clear(player, "mana");
+        Notifier.get().clear(player, core, "mana");
 
         assertEquals("", lastTextOnScreen(), "an action bar goes away by being overwritten with nothing");
         assertTrue(channel().getQueued(player).isEmpty());
@@ -179,8 +182,8 @@ class ActionBarChannelTest {
 
     @Test
     void ticksAndSecondsAgreeOnHowLongTheyAre() {
-        Duration bySeconds = Notification.of(NotifyKind.INFO).duration(Duration.ofSeconds(1)).build().getDuration();
-        Duration byTicks = Notification.of(NotifyKind.INFO).ticks(20).build().getDuration();
+        Duration bySeconds = Notification.of(core, NotifyKind.INFO).duration(Duration.ofSeconds(1)).build().getDuration();
+        Duration byTicks = Notification.of(core, NotifyKind.INFO).ticks(20).build().getDuration();
 
         assertEquals(bySeconds, byTicks, "one second and twenty ticks are the same duration");
     }

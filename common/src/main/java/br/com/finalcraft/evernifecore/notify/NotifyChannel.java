@@ -23,8 +23,11 @@ public interface NotifyChannel {
     /** Delivers {@code notification} to {@code player}. Thread: any; the channel hops when it must. */
     void deliver(FPlayer player, Notification notification);
 
-    /** Drops what this channel shows {@code player} under {@code id} (a boss bar, a tracker, a queued action bar). Thread: any. */
-    default void clear(FPlayer player, String id) {
+    /**
+     * Drops what this channel shows {@code player} under {@code handle} ({@link Notification#getHandle()}): a boss bar,
+     * a tracker, a queued action bar. Thread: any.
+     */
+    default void clear(FPlayer player, String handle) {
     }
 
     /** The player left: forget whatever this channel kept for them. Thread: any. */

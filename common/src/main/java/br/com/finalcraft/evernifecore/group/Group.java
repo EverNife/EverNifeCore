@@ -335,7 +335,7 @@ public final class Group implements FlagHolder {
         }
         FPlayer online = reason == null ? null : online(uuid);
         if (online != null) {
-            Notifier.get().notify(online, Notification.of(NotifyKind.INFO).text(reason).build());
+            Notifier.get().notify(online, Notification.of(owner, NotifyKind.INFO).text(reason).build());
         }
         return true;
     }
@@ -448,7 +448,7 @@ public final class Group implements FlagHolder {
                 }
             }
             if (!to.isEmpty()) {
-                Notifier.get().notify(to, Notification.of(edge.getKind()).text(ctx.resolve(notice.getText())).build());
+                Notifier.get().notify(to, Notification.of(owner, edge.getKind()).text(ctx.resolve(notice.getText())).build());
             }
         }
     }

@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.notify;
 
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Logs;
@@ -25,13 +26,15 @@ class NotifierFallbackTest {
     Path dir;
 
     private ECoreTestWorld world;
+    private ECPluginData core;
     private TestHud hud;
     private final TestFPlayerSender player = new TestFPlayerSender("Steve");
 
     private void platform(String id, IHudAccess.Capability... missing) {
         world = Platforms.lenient().hudWithout(missing).platformProviderId(id).install();
         hud = world.platform().getTestHud();
-        Notifier.get().registerStock(Plugins.fakeCore(dir.resolve("core").toFile()));
+        core = Plugins.fakeCore(dir.resolve("core").toFile());
+        Notifier.get().registerStock(core);
     }
 
     @AfterEach
@@ -47,7 +50,7 @@ class NotifierFallbackTest {
     void completeWithoutATitleFallsToChatAndSound() {
         platform("minecraft", IHudAccess.Capability.TITLE);
 
-        Notifier.get().notify(player, Notification.of(NotifyKind.COMPLETE).text("§aquest done").sound(HudSounds.LEVEL_UP).build());
+        Notifier.get().notify(player, Notification.of(core, NotifyKind.COMPLETE).text("§aquest done").sound(HudSounds.LEVEL_UP).build());
 
         assertEquals(1, hud.getSoundCalls().size(), "the sound of chat+sound: " + hud.getSoundCalls());
         assertEquals(HudSounds.LEVEL_UP, hud.getSoundCalls().get(0).text);
@@ -61,7 +64,7 @@ class NotifierFallbackTest {
         platform("hytale", IHudAccess.Capability.BOSS_BAR, IHudAccess.Capability.ACTION_BAR,
                 IHudAccess.Capability.SIDEBAR, IHudAccess.Capability.COMPASS);
 
-        Notifier.get().notify(player, Notification.of(NotifyKind.TRACKED).id("quest-1").title("Lumberjack")
+        Notifier.get().notify(player, Notification.of(core, NotifyKind.TRACKED).id("quest-1").title("Lumberjack")
                 .trackerLines(Collections.singletonList(TrackerLine.of(FancyText.of("logs"), 3, 10)))
                 .build());
 
@@ -74,7 +77,7 @@ class NotifierFallbackTest {
     @Test
     void aChainWithNoSupportedStepDeliversNothingThrowsNothingAndLogsOnce() {
         platform("fallback-test", IHudAccess.Capability.TOAST, IHudAccess.Capability.BOSS_BAR);
-        Notification notification = Notification.of(NotifyKind.INFO).text("§eunseen").channels("toast", "boss-bar").build();
+        Notification notification = Notification.of(core, NotifyKind.INFO).text("§eunseen").channels("toast", "boss-bar").build();
 
         List<String> logged = Logs.capture(() -> {
             Notifier.get().notify(player, notification);

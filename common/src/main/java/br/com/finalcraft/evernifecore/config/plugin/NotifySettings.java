@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.config.plugin;
 
 import br.com.finalcraft.evernifecore.notify.NotifyKind;
+import br.com.finalcraft.evernifecore.notify.NotifyProfile;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.everyconfig.annotation.Comment;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -15,7 +16,8 @@ import java.util.Map;
 /**
  * The notification block a plugin keeps as the {@value #SECTION} section of its own {@code config.yml}: which channels
  * each {@link NotifyKind} goes through and how long it stays. A plugin binds it as a field of its settings bean (and may
- * extend it with keys of its own); keys are the {@link NotifyKind#getKey() kind keys}.
+ * extend it with keys of its own) and hands it to {@link NotifyProfile#register} at enable; keys are the
+ * {@link NotifyKind#getKey() kind keys}. Its defaults are also the built-in profile of a plugin that registers none.
  */
 public class NotifySettings {
 

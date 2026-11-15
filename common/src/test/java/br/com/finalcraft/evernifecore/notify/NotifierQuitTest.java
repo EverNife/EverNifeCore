@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.notify;
 
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.events.player.ECPlayerQuitEvent;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
@@ -35,6 +36,7 @@ class NotifierQuitTest {
     Path dir;
 
     private ECoreTestWorld world;
+    private ECPluginData core;
     private TestHud hud;
     private final TestFPlayerSender player = new TestFPlayerSender("Steve");
 
@@ -42,7 +44,8 @@ class NotifierQuitTest {
     void setup() {
         world = Platforms.lenient().install();
         hud = world.platform().getTestHud();
-        Notifier.get().registerStock(Plugins.fakeCore(dir.resolve("core").toFile()));
+        core = Plugins.fakeCore(dir.resolve("core").toFile());
+        Notifier.get().registerStock(core);
     }
 
     @AfterEach
@@ -53,12 +56,12 @@ class NotifierQuitTest {
 
     @Test
     void quittingHidesTheBossBarAndEmptiesTheQueues() {
-        Notifier.get().notify(player, Notification.of(NotifyKind.TRACKED).id("quest-1").text("Lumberjack").progress(0.3f)
+        Notifier.get().notify(player, Notification.of(core, NotifyKind.TRACKED).id("quest-1").text("Lumberjack").progress(0.3f)
                 .channels("boss-bar").build());
-        Notifier.get().notify(player, Notification.of(NotifyKind.INFO).text("§9mana").duration(Duration.ofSeconds(30))
+        Notifier.get().notify(player, Notification.of(core, NotifyKind.INFO).text("§9mana").duration(Duration.ofSeconds(30))
                 .channels("action-bar").build());
         assertFalse(hud.getBossBarCalls().isEmpty());
-        assertNotNull(hud.getBossBar(player, "quest-1"));
+        assertNotNull(hud.getBossBar(player, "evernifecore:quest-1"));
         ActionBarChannel actionBar = (ActionBarChannel) Notifier.get().find("action-bar").orElseThrow(AssertionError::new);
         assertEquals(1, actionBar.getQueued(player).size());
 
@@ -66,8 +69,8 @@ class NotifierQuitTest {
 
         TestHud.HudCall last = hud.getBossBarCalls().get(hud.getBossBarCalls().size() - 1);
         assertEquals("hide", last.action);
-        assertEquals("quest-1", last.extras.get(0));
-        assertNull(hud.getBossBar(player, "quest-1"));
+        assertEquals("evernifecore:quest-1", last.extras.get(0));
+        assertNull(hud.getBossBar(player, "evernifecore:quest-1"));
         assertTrue(actionBar.getQueued(player).isEmpty(), "the quit dropped the queue: " + actionBar.getQueued(player));
     }
 

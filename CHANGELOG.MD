@@ -24,7 +24,7 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   (`waypoints`), `RegionSettings` (`regions`), `ProvenanceSettings` (`provenance`), `CooldownSettings` (`cooldowns`) and
   `BoosterSettings` (`boosters`), each with its keys, comments and defaults (times as `FCTimeFrame`, `10s`). A plugin binds
   one as a field of its settings bean under `@Key(X.SECTION)` and may extend it with keys of its own; never a file per
-  block. Nothing reads them yet except boosters: the core's own keys stay where they were.
+  block. Nothing reads them yet except boosters and notify: the core's own keys stay where they were.
 - **`BoosterDomain.Builder.permission(prefix, BoosterSettings)`** reads the domain's factors from the `boosters` block
   (`boosters.domains.<name>.permission-factors`); no entry or an empty list leaves the domain with no permission booster.
   A plugin that kept its own factors key moves it under that block, and the admin rewrites the value there by hand.
@@ -202,6 +202,19 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `ECoreTestWorld` plays it.
 
 ### Changed
+
+#### Notifications
+
+- **A notification has an owner, and each plugin declares its own chains and durations.** `Notification.of(owner, kind)`
+  replaces `Notification.of(kind)`; the id is scoped to the owner, so two plugins showing the same id get two boss bars,
+  and `Notifier.clear(player, owner, id)` (was `clear(player, id)`) never drops another plugin's. A plugin hands its
+  `NotifySettings` block to `NotifyProfile.register(owner, settings)` at enable; registering again on reload replaces
+  it, and what is already on screen keeps the duration it was shown with. A plugin that registers none, the core
+  included, takes the built-in chains. A chain naming an unknown channel, or a key that is no kind, fails the
+  `register` naming the key. The core's `Settings.Notify.*` keys are gone (`ECSettings.getNotifyChain`,
+  `getNotifyDuration`, `loadNotifySettings`): the admin rewrites a customised chain or duration by hand under `notify:` in
+  the `config.yml` of each plugin that sends it, and deletes the old block from the core's. The default quest presenter's
+  ids lost their `quest-` prefix (`progress:<quest>`, `tracked:<quest>`, ...); `NotifyChannel.clear` gets the handle.
 
 #### Boosters
 
