@@ -18,6 +18,7 @@ public final class Waypoint {
     private final FancyText label;
     private final @Nullable Duration duration;
     private final @Nullable List<String> channels;
+    private final @Nullable Integer particlePathLength;
 
     private Waypoint(Builder builder) {
         this.id = builder.id;
@@ -25,6 +26,7 @@ public final class Waypoint {
         this.label = builder.label;
         this.duration = builder.duration;
         this.channels = builder.channels == null ? null : Collections.unmodifiableList(new ArrayList<>(builder.channels));
+        this.particlePathLength = builder.particlePathLength;
     }
 
     public static Builder of(WaypointId id, WaypointTarget target) {
@@ -49,9 +51,14 @@ public final class Waypoint {
         return duration;
     }
 
-    /** The channel names asked for; null = {@code Settings.Waypoint.channels}. */
+    /** The channel names asked for; null = the channels of the owner's {@link WaypointProfile}. */
     public @Nullable List<String> getChannels() {
         return channels;
+    }
+
+    /** How many points the particle path draws: the one set, else the one of the owner's {@link WaypointProfile}. */
+    public int getParticlePathLength() {
+        return particlePathLength != null ? particlePathLength : WaypointProfile.of(id).getParticlePathLength();
     }
 
     public static final class Builder {
@@ -61,6 +68,7 @@ public final class Waypoint {
         private FancyText label;
         private @Nullable Duration duration;
         private @Nullable List<String> channels;
+        private @Nullable Integer particlePathLength;
 
         private Builder(WaypointId id, WaypointTarget target) {
             this.id = Objects.requireNonNull(id, "id");
@@ -91,6 +99,15 @@ public final class Waypoint {
 
         public Builder channels(List<String> channels) {
             this.channels = new ArrayList<>(channels);
+            return this;
+        }
+
+        /** @throws IllegalArgumentException when {@code length} is below 1 */
+        public Builder particlePathLength(int length) {
+            if (length < 1) {
+                throw new IllegalArgumentException("A particle path of " + length + " points draws nothing: give it 1 or more.");
+            }
+            this.particlePathLength = length;
             return this;
         }
 

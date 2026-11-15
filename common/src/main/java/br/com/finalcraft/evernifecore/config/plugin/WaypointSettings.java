@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.config.plugin;
 
+import br.com.finalcraft.evernifecore.waypoint.WaypointProfile;
 import br.com.finalcraft.evernifecore.waypoint.Waypoints;
 import br.com.finalcraft.everyconfig.annotation.Comment;
 import br.com.finalcraft.everyconfig.annotation.Key;
@@ -11,8 +12,9 @@ import java.util.List;
 
 /**
  * The waypoint block a plugin keeps as the {@value #SECTION} section of its own {@code config.yml}: the channels its
- * waypoints point through and the length of the particle path. A plugin binds it as a field of its settings bean and
- * may extend it with keys of its own.
+ * waypoints point through and the length of the particle path, for the waypoints that set none. A plugin binds it as
+ * a field of its settings bean (and may extend it with keys of its own) and hands it to {@link WaypointProfile#register}
+ * at enable. Its defaults are also the built-in profile of a plugin that registers none.
  */
 public class WaypointSettings {
 

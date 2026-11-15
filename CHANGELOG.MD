@@ -24,7 +24,7 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   (`waypoints`), `RegionSettings` (`regions`), `ProvenanceSettings` (`provenance`), `CooldownSettings` (`cooldowns`) and
   `BoosterSettings` (`boosters`), each with its keys, comments and defaults (times as `FCTimeFrame`, `10s`). A plugin binds
   one as a field of its settings bean under `@Key(X.SECTION)` and may extend it with keys of its own; never a file per
-  block. Nothing reads them yet except boosters and notify: the core's own keys stay where they were.
+  block. Nothing reads them yet except boosters, notify and waypoints: the core's own keys stay where they were.
 - **`BoosterDomain.Builder.permission(prefix, BoosterSettings)`** reads the domain's factors from the `boosters` block
   (`boosters.domains.<name>.permission-factors`); no entry or an empty list leaves the domain with no permission booster.
   A plugin that kept its own factors key moves it under that block, and the admin rewrites the value there by hand.
@@ -215,6 +215,18 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `getNotifyDuration`, `loadNotifySettings`): the admin rewrites a customised chain or duration by hand under `notify:` in
   the `config.yml` of each plugin that sends it, and deletes the old block from the core's. The default quest presenter's
   ids lost their `quest-` prefix (`progress:<quest>`, `tracked:<quest>`, ...); `NotifyChannel.clear` gets the handle.
+
+#### Waypoints
+
+- **Each plugin declares the channels and the particle path length of its waypoints.** A plugin hands its
+  `WaypointSettings` block to `WaypointProfile.register(owner, settings)` at enable; a waypoint that sets no channels
+  takes the profile of the plugin its `WaypointId` names, and one that registers none, the core included, takes the
+  built-in `compass` + `particle-path` and 16 points. Registering again on reload replaces it; it leaves with the plugin.
+  A channel nobody registered fails the `register` naming the key. `Waypoint.Builder.particlePathLength(n)` sets the
+  length on one waypoint, and `ParticlePathWaypointChannel` reads it from the waypoint. The core's
+  `Settings.Waypoint.channels` and `Settings.Waypoint.particle-path-length` are gone (`ECSettings.WAYPOINT_CHANNELS`,
+  `WAYPOINT_PARTICLE_PATH_LENGTH`): the admin rewrites a customised value by hand under `waypoints:` in the `config.yml`
+  of each plugin that shows waypoints, and deletes the two keys from the core's. `Settings.Waypoint.refresh-ticks` stays.
 
 #### Boosters
 

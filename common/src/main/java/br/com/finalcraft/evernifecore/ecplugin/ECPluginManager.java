@@ -38,6 +38,7 @@ import br.com.finalcraft.evernifecore.screen.prompt.PromptRegistry;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.types.TypeRegistries;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
+import br.com.finalcraft.evernifecore.waypoint.WaypointProfile;
 import br.com.finalcraft.evernifecore.waypoint.Waypoints;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -195,7 +196,7 @@ public class ECPluginManager {
     /**
      * Takes back everything the core keeps for {@code plugin}: its managers closed (provenance, regions, groups,
      * quests, cooldowns, variables, boosters, values, contributions, audit, rankings, dialogues, screens), its
-     * registrations dropped (group kinds, prompts, menus, locale overlays, notify channels and profile, waypoints, npcs, flags,
+     * registrations dropped (group kinds, prompts, menus, locale overlays, notify channels and profile, waypoints and their profile, npcs, flags,
      * actor holders, currencies, destinations, types, multipliers, booster sources, event sources, usage watches,
      * listeners, commands, parsers, bus subscriptions). Every step is idempotent and runs even when an earlier one
      * threw - the failure goes to the plugin's log. {@code writePending} says whether the regions, groups and quests
@@ -231,6 +232,7 @@ public class ECPluginManager {
         step(plugin, "notify channels", () -> Notifier.get().closeOwnedBy(plugin));
         step(plugin, "notify profile", () -> NotifyProfile.unregister(plugin));
         step(plugin, "waypoints", () -> Waypoints.get().hideOwnedBy(plugin));
+        step(plugin, "waypoint profile", () -> WaypointProfile.unregister(plugin));
         step(plugin, "npcs", () -> Npcs.unregisterAll(plugin));
         step(plugin, "flags", () -> FlagRegistry.get().unregisterAll(plugin));
         step(plugin, "actor holders", () -> ActorHolders.unregisterAll(plugin));

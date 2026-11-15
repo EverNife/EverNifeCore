@@ -43,7 +43,7 @@ public final class Waypoints {
 
     /** The bare names of the core's channels; {@code hologram} and {@code web-map} are Bukkit's. */
     public static final List<String> STOCK_CHANNELS = Collections.unmodifiableList(Arrays.asList("compass", "particle-path"));
-    /** Every channel name the core or a platform of it registers - what {@code Settings.Waypoint.channels} may name. */
+    /** Every channel name the core or a platform of it registers - what a {@link WaypointProfile} may name bare. */
     public static final List<String> KNOWN_CHANNELS = Collections.unmodifiableList(Arrays.asList("compass", "particle-path", "hologram", "web-map"));
 
     private static final Waypoints INSTANCE = new Waypoints();
@@ -114,7 +114,7 @@ public final class Waypoints {
         return names;
     }
 
-    /** The waypoint's channels, else {@code Settings.Waypoint.channels}: the registered and supported ones, in order. */
+    /** The waypoint's channels, else its owner's {@link WaypointProfile}'s: the registered and supported ones, in order. */
     public List<WaypointChannel> resolve(Waypoint waypoint) {
         return resolve(channelNamesOf(waypoint));
     }
@@ -131,7 +131,7 @@ public final class Waypoints {
     }
 
     private static List<String> channelNamesOf(Waypoint waypoint) {
-        return waypoint.getChannels() != null ? waypoint.getChannels() : ECSettings.WAYPOINT_CHANNELS;
+        return waypoint.getChannels() != null ? waypoint.getChannels() : WaypointProfile.of(waypoint.getId()).getChannels();
     }
 
     /**
