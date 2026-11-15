@@ -42,10 +42,8 @@ import java.util.stream.Collectors;
 
 /**
  * The booster verbs a plugin mounts under its own command, over its own {@link BoosterDomain}s and {@link BoosterManager}:
- * <pre>{@code
- * @FinalCMD.Node(subcmd = {"boosters"}, permission = "duels.boosters")
- * private final BoosterCommandNode boosters = new BoosterCommandNode(ecPluginData, "duels.boosters");
- * }</pre>
+ * a field of its command class annotated {@code @FinalCMD.Node(subcmd = {"boosters"}, permission = "duels.boosters")}
+ * holds the node built with {@code (ecPluginData, "duels.boosters")}.
  * {@code give <player> <domain> <boost> <duration>} grants a booster ({@code 2} or {@code x2} multiplies by 2,
  * {@code +0.5} or {@code +50%} adds to the multiplier) through the plugin's manager, which audits it; {@code list [player]}
  * shows the active ones with their ids; {@code revoke <id>} takes one away; {@code explain <player> <domain>} prints the
