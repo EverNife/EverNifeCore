@@ -122,9 +122,9 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
             RegionGridOptions.setCurrent(RegionGridOptions.MINECRAFT);
         }
 
-        McDefaultOntimeManager.initialize();
-
         EverNifeCore.instance.onLoaderInstantiate(ECPluginManager.getOrCreateECorePluginData(this));
+
+        McDefaultOntimeManager.initialize(); //owned by the core's plugin data, so it needs it first
     }
 
     @Override

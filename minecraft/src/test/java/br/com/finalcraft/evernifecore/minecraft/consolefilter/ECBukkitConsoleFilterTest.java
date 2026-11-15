@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.consolefilter;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.consolefilter.ECConsoleFilter;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import org.apache.logging.log4j.core.Filter;
@@ -38,7 +39,7 @@ class ECBukkitConsoleFilterTest {
         assertEquals(Filter.Result.DENY, hook.filter(line("Steve issued server command: /ecdcmd 4f1c2b6e")));
         assertEquals(Filter.Result.NEUTRAL, hook.filter(line("Steve issued server command: /spawn")));
 
-        consoleFilter.setProvider(message -> message.contains("/spawn"));
+        consoleFilter.setProvider(EverNifeCore.getEcPluginData(), message -> message.contains("/spawn"));
 
         assertEquals(Filter.Result.DENY, hook.filter(line("Steve issued server command: /spawn")),
                 "a provider registered after the hook was installed is the one it asks");

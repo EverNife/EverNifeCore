@@ -459,6 +459,15 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   async reply that sends a core message does the same. `FinalCmdTestHarness.withSeparateCore(folder)` (test engine) gives
   a harness a core apart from its plugin, to test the two languages.
 
+#### Providers and utilities
+
+- **The server-wide slots remember who filled them and empty themselves when that plugin is released**:
+  `OntimeManager.setOntimeProvider(owner, provider)`, `ECConsoleFilter.global().setProvider(owner, provider)`,
+  `ECIgnores.setProvider(owner, kind, provider)` and the new `ECProviders.setSpawn(owner, spawn)`. A plugin no longer
+  takes them back in its shutdown: `OntimeManager.removeProvider`, `ECConsoleFilter.removeProvider` and
+  `ECIgnores.removeProvider` are gone (the release runs `unregister(owner)` / `unregisterAll(owner)` /
+  `unregisterSpawn(owner)`), and a plugin already replaced leaves its successor in place.
+
 #### Build and dependencies
 
 - **The test engine owns its temp folders**: `TestTempFolders` (`common-tests`) keeps one root per JVM,

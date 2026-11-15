@@ -7,7 +7,7 @@ import jakarta.annotation.Nullable;
 /**
  * The server spawn a spawn plugin defines - not a world's own spawn point, which the platform answers. The core
  * ships no implementation: the plugin that owns the spawn registers one with
- * {@code EverNifeCore.getProviders().getBaseProvider().register(ISpawnProvider.class, ...)}, and
+ * {@code EverNifeCore.getProviders().setSpawn(owner, ...)}, gone when that plugin is released, and
  * {@link SpawnPoints} falls back to the world spawn while none is registered.
  */
 public interface ISpawnProvider {

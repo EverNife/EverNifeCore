@@ -1,13 +1,15 @@
 package br.com.finalcraft.evernifecore.consolefilter;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import jakarta.annotation.Nullable;
 
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * The one {@link IConsoleFilterProvider} the server's console asks, answering
  * {@link IConsoleFilterProvider#CORE_COMMANDS} until a plugin (FinalConsoleFilter) replaces it. The core
- * owns the hook into the logging stack; a provider only decides.
+ * owns the hook into the logging stack; a provider only decides, and leaves with the plugin that set it.
  *
  * <p>On Bukkit the hook is a Log4j filter on the root logger, installed with the core. Hytale installs no
  * hook yet, so a provider registered there is never asked.</p>
@@ -17,6 +19,7 @@ public final class ECConsoleFilter {
     private static final ECConsoleFilter GLOBAL = new ECConsoleFilter();
 
     private final AtomicReference<IConsoleFilterProvider> provider = new AtomicReference<>(IConsoleFilterProvider.CORE_COMMANDS);
+    private volatile @Nullable ECPluginData owner;
 
     public static ECConsoleFilter global() {
         return GLOBAL;
@@ -46,12 +49,19 @@ public final class ECConsoleFilter {
         return provider.get() != IConsoleFilterProvider.CORE_COMMANDS;
     }
 
+    /** The plugin whose provider answers, null while the core's own does. */
+    public @Nullable ECPluginData getOwner() {
+        return owner;
+    }
+
     /**
-     * Makes {@code newProvider} the console's answer. To keep the core's own lines hidden as well, it can
-     * consult {@link IConsoleFilterProvider#CORE_COMMANDS} itself.
+     * Makes {@code newProvider}, owned by {@code owner}, the console's answer; it leaves on its own when {@code owner}
+     * is released. To keep the core's own lines hidden as well, it can consult
+     * {@link IConsoleFilterProvider#CORE_COMMANDS} itself.
      */
-    public void setProvider(IConsoleFilterProvider newProvider) {
+    public synchronized void setProvider(ECPluginData owner, IConsoleFilterProvider newProvider) {
         IConsoleFilterProvider previous = provider.getAndSet(newProvider);
+        this.owner = owner;
         EverNifeCore.getLog().info("[ECConsoleFilter] The console is now filtered by {}", newProvider.getClass().getName());
         if (previous != IConsoleFilterProvider.CORE_COMMANDS && previous != newProvider) {
             EverNifeCore.getLog().warning("[ECConsoleFilter] {} replaced {} - two plugins claim the console filter",
@@ -60,11 +70,15 @@ public final class ECConsoleFilter {
     }
 
     /**
-     * Puts the core's own answer back, only if {@code ownProvider} is still the one registered, so a
-     * disabling plugin never evicts its successor.
+     * Puts the core's own answer back, only if {@code owner} still owns the provider registered, so a plugin that was
+     * already replaced never evicts its successor. Run by the core when the plugin is released.
      */
-    public boolean removeProvider(IConsoleFilterProvider ownProvider) {
-        return ownProvider != IConsoleFilterProvider.CORE_COMMANDS
-                && provider.compareAndSet(ownProvider, IConsoleFilterProvider.CORE_COMMANDS);
+    public synchronized boolean unregister(ECPluginData owner) {
+        if (this.owner != owner) {
+            return false;
+        }
+        provider.set(IConsoleFilterProvider.CORE_COMMANDS);
+        this.owner = null;
+        return true;
     }
 }

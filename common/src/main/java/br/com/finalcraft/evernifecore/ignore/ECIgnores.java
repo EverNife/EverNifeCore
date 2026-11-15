@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.ignore;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 
 import java.util.Map;
 import java.util.UUID;
@@ -8,14 +9,15 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * One {@link IIgnoreProvider} per {@link IgnoreKind}, each possibly owned by a different plugin.
- * A kind nobody implements answers {@link IIgnoreProvider#NOBODY}.
+ * One {@link IIgnoreProvider} per {@link IgnoreKind}, each owned by the plugin that set it and gone when that plugin
+ * is released. A kind nobody implements answers {@link IIgnoreProvider#NOBODY}.
  */
 public final class ECIgnores {
 
     private static final ECIgnores GLOBAL = new ECIgnores();
 
     private final Map<IgnoreKind, IIgnoreProvider> providers = new ConcurrentHashMap<>();
+    private final Map<IgnoreKind, ECPluginData> owners = new ConcurrentHashMap<>();
 
     public static ECIgnores global() {
         return GLOBAL;
@@ -64,8 +66,10 @@ public final class ECIgnores {
         return providers.containsKey(kind);
     }
 
-    public void setProvider(IgnoreKind kind, IIgnoreProvider provider) {
+    /** Makes {@code provider}, owned by {@code owner}, the answer for {@code kind}; it leaves when {@code owner} is released. */
+    public synchronized void setProvider(ECPluginData owner, IgnoreKind kind, IIgnoreProvider provider) {
         IIgnoreProvider previous = providers.put(kind, provider);
+        owners.put(kind, owner);
         EverNifeCore.getLog().info("[ECIgnores] {} is now answered by {}", kind, provider.getClass().getName());
         if (previous != null && previous != provider) {
             EverNifeCore.getLog().warning("[ECIgnores] {} replaced {} - two plugins claim the same ignore kind",
@@ -73,8 +77,17 @@ public final class ECIgnores {
         }
     }
 
-    /** Removes {@code provider} only if it still owns {@code kind}, so a disabling plugin never evicts its successor. */
-    public boolean removeProvider(IgnoreKind kind, IIgnoreProvider provider) {
-        return providers.remove(kind, provider);
+    /**
+     * Removes every kind {@code owner} still owns, so a plugin that was already replaced never evicts its successor.
+     * Run by the core when the plugin is released.
+     */
+    public synchronized void unregisterAll(ECPluginData owner) {
+        owners.entrySet().removeIf(entry -> {
+            if (entry.getValue() != owner) {
+                return false;
+            }
+            providers.remove(entry.getKey());
+            return true;
+        });
     }
 }

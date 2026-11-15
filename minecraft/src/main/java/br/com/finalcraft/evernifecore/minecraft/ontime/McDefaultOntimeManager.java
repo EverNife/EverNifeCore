@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.ontime;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.ontime.IOntimeProvider;
@@ -16,7 +17,7 @@ public class McDefaultOntimeManager {
                         Statistic.PLAY_ONE_MINUTE :
                         Statistic.valueOf("PLAY_ONE_TICK");
 
-        OntimeManager.setOntimeProvider(new IOntimeProvider() {
+        OntimeManager.setOntimeProvider(EverNifeCore.getEcPluginData(), new IOntimeProvider() {
             @Override
             public long getOntime(IPlayerData playerData) {
                 OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerData.getUniqueId());

@@ -1,6 +1,14 @@
 package br.com.finalcraft.evernifecore.ignore;
 
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.testing.Plugins;
+import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.nio.file.Path;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -9,7 +17,23 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@ECoreTest
 public class ECIgnoresTest {
+
+    @TempDirNobodyCleans
+    Path dir;
+
+    private ECPluginData owner;
+
+    @BeforeEach
+    void setup() {
+        owner = Plugins.fakeOther("FakeIgnores", dir.resolve("ignores").toFile());
+    }
+
+    @AfterEach
+    void teardown() {
+        Plugins.forget("FakeIgnores");
+    }
 
     private static final UUID ALICE = UUID.randomUUID();
     private static final UUID BOB = UUID.randomUUID();
@@ -30,12 +54,12 @@ public class ECIgnoresTest {
     @Test
     void ignoringChatCoversPrivateMessagesButNotTheOtherWay() {
         ECIgnores chatOnly = new ECIgnores();
-        chatOnly.setProvider(IgnoreKind.CHAT, EVERYONE);
+        chatOnly.setProvider(owner, IgnoreKind.CHAT, EVERYONE);
         assertTrue(chatOnly.isIgnoring(ALICE, BOB, IgnoreKind.PRIVATE_MESSAGE));
         assertFalse(chatOnly.isIgnoring(ALICE, BOB, IgnoreKind.TELEPORT_REQUEST));
 
         ECIgnores privateOnly = new ECIgnores();
-        privateOnly.setProvider(IgnoreKind.PRIVATE_MESSAGE, EVERYONE);
+        privateOnly.setProvider(owner, IgnoreKind.PRIVATE_MESSAGE, EVERYONE);
         assertTrue(privateOnly.isIgnoring(ALICE, BOB, IgnoreKind.PRIVATE_MESSAGE));
         assertFalse(privateOnly.isIgnoring(ALICE, BOB, IgnoreKind.CHAT));
     }
@@ -43,7 +67,7 @@ public class ECIgnoresTest {
     @Test
     void theAnswerIsDirectional() {
         ECIgnores ignores = new ECIgnores();
-        ignores.setProvider(IgnoreKind.TELEPORT_REQUEST, (ignorer, ignored) -> ignorer.equals(ALICE) && ignored.equals(BOB));
+        ignores.setProvider(owner, IgnoreKind.TELEPORT_REQUEST, (ignorer, ignored) -> ignorer.equals(ALICE) && ignored.equals(BOB));
 
         assertTrue(ignores.isIgnoring(ALICE, BOB, IgnoreKind.TELEPORT_REQUEST));
         assertFalse(ignores.isIgnoring(BOB, ALICE, IgnoreKind.TELEPORT_REQUEST));
@@ -52,7 +76,7 @@ public class ECIgnoresTest {
     @Test
     void aPlayerNeverIgnoresThemselves() {
         ECIgnores ignores = new ECIgnores();
-        ignores.setProvider(IgnoreKind.CHAT, EVERYONE);
+        ignores.setProvider(owner, IgnoreKind.CHAT, EVERYONE);
 
         assertFalse(ignores.isIgnoring(ALICE, ALICE, IgnoreKind.CHAT));
     }
@@ -60,7 +84,7 @@ public class ECIgnoresTest {
     @Test
     void theAsyncAnswerDefaultsToTheSynchronousOne() {
         ECIgnores ignores = new ECIgnores();
-        ignores.setProvider(IgnoreKind.TELEPORT_REQUEST, (ignorer, ignored) -> ignorer.equals(ALICE));
+        ignores.setProvider(owner, IgnoreKind.TELEPORT_REQUEST, (ignorer, ignored) -> ignorer.equals(ALICE));
 
         assertTrue(ignores.isIgnoringAsync(ALICE, BOB, IgnoreKind.TELEPORT_REQUEST).join());
         assertFalse(ignores.isIgnoringAsync(BOB, ALICE, IgnoreKind.TELEPORT_REQUEST).join());
@@ -72,8 +96,8 @@ public class ECIgnoresTest {
     void theAsyncChainWaitsForTheBroaderKindBeforeAnsweringNo() {
         CompletableFuture<Boolean> chatAnswer = new CompletableFuture<>();
         ECIgnores ignores = new ECIgnores();
-        ignores.setProvider(IgnoreKind.PRIVATE_MESSAGE, (ignorer, ignored) -> false);
-        ignores.setProvider(IgnoreKind.CHAT, asyncOnly(chatAnswer));
+        ignores.setProvider(owner, IgnoreKind.PRIVATE_MESSAGE, (ignorer, ignored) -> false);
+        ignores.setProvider(owner, IgnoreKind.CHAT, asyncOnly(chatAnswer));
 
         CompletableFuture<Boolean> answer = ignores.isIgnoringAsync(ALICE, BOB, IgnoreKind.PRIVATE_MESSAGE);
         assertFalse(answer.isDone());
@@ -82,15 +106,15 @@ public class ECIgnoresTest {
         assertTrue(answer.join());
 
         ECIgnores notIgnoring = new ECIgnores();
-        notIgnoring.setProvider(IgnoreKind.CHAT, asyncOnly(CompletableFuture.completedFuture(false)));
+        notIgnoring.setProvider(owner, IgnoreKind.CHAT, asyncOnly(CompletableFuture.completedFuture(false)));
         assertFalse(notIgnoring.isIgnoringAsync(ALICE, BOB, IgnoreKind.PRIVATE_MESSAGE).join());
     }
 
     @Test
     void theAsyncChainStopsAtTheFirstYes() {
         ECIgnores ignores = new ECIgnores();
-        ignores.setProvider(IgnoreKind.PRIVATE_MESSAGE, EVERYONE);
-        ignores.setProvider(IgnoreKind.CHAT, asyncOnly(new CompletableFuture<>())); //never completes
+        ignores.setProvider(owner, IgnoreKind.PRIVATE_MESSAGE, EVERYONE);
+        ignores.setProvider(owner, IgnoreKind.CHAT, asyncOnly(new CompletableFuture<>())); //never completes
 
         assertTrue(ignores.isIgnoringAsync(ALICE, BOB, IgnoreKind.PRIVATE_MESSAGE).join());
     }
@@ -110,18 +134,23 @@ public class ECIgnoresTest {
     }
 
     @Test
-    void removingAReplacedProviderKeepsItsSuccessor() {
+    void releasingAReplacedOwnerKeepsItsSuccessor() {
         ECIgnores ignores = new ECIgnores();
-        IIgnoreProvider first = (ignorer, ignored) -> true;
-        IIgnoreProvider second = (ignorer, ignored) -> true;
+        ECPluginData successor = Plugins.fakeOther("FakeIgnoresNext", dir.resolve("next").toFile());
+        try {
+            IIgnoreProvider second = (ignorer, ignored) -> true;
+            ignores.setProvider(owner, IgnoreKind.CHAT, (ignorer, ignored) -> true);
+            ignores.setProvider(owner, IgnoreKind.TELEPORT_REQUEST, (ignorer, ignored) -> true);
+            ignores.setProvider(successor, IgnoreKind.CHAT, second);
 
-        ignores.setProvider(IgnoreKind.CHAT, first);
-        ignores.setProvider(IgnoreKind.CHAT, second);
+            ignores.unregisterAll(owner);
+            assertSame(second, ignores.getProvider(IgnoreKind.CHAT));
+            assertFalse(ignores.hasProvider(IgnoreKind.TELEPORT_REQUEST), "what the owner still held left with it");
 
-        assertFalse(ignores.removeProvider(IgnoreKind.CHAT, first));
-        assertSame(second, ignores.getProvider(IgnoreKind.CHAT));
-
-        assertTrue(ignores.removeProvider(IgnoreKind.CHAT, second));
-        assertFalse(ignores.hasProvider(IgnoreKind.CHAT));
+            ignores.unregisterAll(successor);
+            assertFalse(ignores.hasProvider(IgnoreKind.CHAT));
+        } finally {
+            Plugins.forget("FakeIgnoresNext");
+        }
     }
 }

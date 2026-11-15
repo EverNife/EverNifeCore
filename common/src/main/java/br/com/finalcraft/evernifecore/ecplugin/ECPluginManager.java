@@ -1,5 +1,8 @@
 package br.com.finalcraft.evernifecore.ecplugin;
 
+import br.com.finalcraft.evernifecore.consolefilter.ECConsoleFilter;
+import br.com.finalcraft.evernifecore.ignore.ECIgnores;
+import br.com.finalcraft.evernifecore.ontime.OntimeManager;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.EventSourceUsage;
@@ -196,7 +199,8 @@ public class ECPluginManager {
     /**
      * Takes back everything the core keeps for {@code plugin}: its managers closed (provenance, regions, groups,
      * quests, cooldowns, variables, boosters, values, contributions, audit, rankings, dialogues, screens), its
-     * registrations dropped (group kinds, prompts, menus, locale overlays, notify channels and profile, waypoints and their profile, npcs, flags,
+     * registrations dropped (group kinds, prompts, menus, locale overlays, notify channels and profile, waypoints and their profile,
+     * ontime, console filter, ignore and spawn providers, npcs, flags,
      * actor holders, currencies, destinations, types, multipliers, booster sources, event sources, usage watches,
      * listeners, commands, parsers, bus subscriptions). Every step is idempotent and runs even when an earlier one
      * threw - the failure goes to the plugin's log. {@code writePending} says whether the regions, groups and quests
@@ -233,6 +237,10 @@ public class ECPluginManager {
         step(plugin, "notify profile", () -> NotifyProfile.unregister(plugin));
         step(plugin, "waypoints", () -> Waypoints.get().hideOwnedBy(plugin));
         step(plugin, "waypoint profile", () -> WaypointProfile.unregister(plugin));
+        step(plugin, "ontime provider", () -> OntimeManager.unregister(plugin));
+        step(plugin, "console filter", () -> ECConsoleFilter.global().unregister(plugin));
+        step(plugin, "ignore providers", () -> ECIgnores.global().unregisterAll(plugin));
+        step(plugin, "spawn provider", () -> EverNifeCore.getProviders().unregisterSpawn(plugin));
         step(plugin, "npcs", () -> Npcs.unregisterAll(plugin));
         step(plugin, "flags", () -> FlagRegistry.get().unregisterAll(plugin));
         step(plugin, "actor holders", () -> ActorHolders.unregisterAll(plugin));
