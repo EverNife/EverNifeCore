@@ -127,8 +127,17 @@ public class LocaleMessageImp implements LocaleMessage {
     public FancyText getFancyText(FCommandSender sender){
         //A message this sender's language has no translation for still has to render something, so the
         //plugin default answers - which is also what the resolve itself falls back to.
-        FancyText perSender = getFancyText(FCLocaleManager.getLangOf(sender, this.plugin));
+        FancyText perSender = getFancyText(FCLocaleManager.getLangOf(sender, speaker()));
         return perSender != null ? perSender : getDefaultFancyText();
+    }
+
+    /**
+     * Whose language this message speaks: the plugin running on this thread ({@link LocaleScope}) when this is a message
+     * of EverNifeCore - a core text inside that plugin's feature - and its own plugin otherwise.
+     */
+    private ECPluginData speaker() {
+        ECPluginData running = LocaleScope.current();
+        return running != null && this.plugin == EverNifeCore.getEcPluginData() ? running : this.plugin;
     }
 
     @Override

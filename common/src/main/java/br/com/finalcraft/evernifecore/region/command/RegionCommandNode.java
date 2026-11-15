@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.region.command;
 
+import br.com.finalcraft.evernifecore.locale.LocaleScope;
 import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.NodeVerbAccess;
 import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.VerbPermissionBase;
 import br.com.finalcraft.evernifecore.EverNifeCore;
@@ -949,14 +950,14 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
                 refuse(sender, refused);
                 return;
             }
-            taking.whenComplete((file, error) -> {
+            taking.whenComplete(LocaleScope.carry((file, error) -> {
                 if (error != null) {
                     refuse(sender, error);
                     return;
                 }
                 TERRAIN_SNAPSHOT_TAKEN.addPlaceholder("region", region.getId()).addPlaceholder("file", file.getName())
                         .addPlaceholder("time", elapsed(start)).send(sender);
-            });
+            }));
         }
 
         @FinalCMD.SubCMD(subcmd = "snapshots", validation = NodeVerbAccess.class, locales = {
@@ -1019,14 +1020,14 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
                 refuse(sender, refused);
                 return;
             }
-            restoring.whenComplete((blocks, error) -> {
+            restoring.whenComplete(LocaleScope.carry((blocks, error) -> {
                 if (error != null) {
                     refuse(sender, error);
                     return;
                 }
                 TERRAIN_RESTORE_DONE.addPlaceholder("index", which).addPlaceholder("region", region.getId()).addPlaceholder("blocks", blocks)
                         .addPlaceholder("time", elapsed(start)).send(sender);
-            });
+            }));
         }
 
         @FinalCMD.SubCMD(subcmd = "undo", validation = NodeVerbAccess.class, locales = {
@@ -1049,14 +1050,14 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
                 refuse(sender, refused);
                 return;
             }
-            undoing.whenComplete((positions, error) -> {
+            undoing.whenComplete(LocaleScope.carry((positions, error) -> {
                 if (error != null) {
                     refuse(sender, error);
                     return;
                 }
                 TERRAIN_UNDO_DONE.addPlaceholder("region", region.getId()).addPlaceholder("blocks", positions)
                         .addPlaceholder("time", elapsed(start)).send(sender);
-            });
+            }));
         }
     }
 

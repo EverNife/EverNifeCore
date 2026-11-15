@@ -89,9 +89,10 @@ class QuestScreensTest {
 
     @Test
     void theJournalNamesTheStatusAndTheFilterInTheViewersLanguage() {
-        ECPluginData core = screens.getCore();
-        String before = core.getPluginLanguage();
-        Plugins.setLanguage(core, LocaleType.PT_BR);
+        //the core's texts on a plugin's screen speak that plugin's language; the viewer chose none
+        ECPluginData owner = quests.getOwner();
+        String before = owner.getPluginLanguage();
+        Plugins.setLanguage(owner, LocaleType.PT_BR);
         try {
             assertTrue(await(engine.start(quests.owner(alex), quests.id("walk"), QuestParams.NONE)).isSuccess());
             ScreenView view = open(ScreenKey.QUEST_JOURNAL, QuestJournalScreen.Request.of(engine, QuestStatus.ACTIVE));
@@ -112,7 +113,7 @@ class QuestScreensTest {
             every.close();
             screens.advanceTicks(2);
         } finally {
-            Plugins.setLanguage(core, before);
+            Plugins.setLanguage(owner, before);
         }
     }
 

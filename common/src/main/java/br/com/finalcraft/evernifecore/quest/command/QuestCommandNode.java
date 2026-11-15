@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.quest.command;
 
+import br.com.finalcraft.evernifecore.locale.LocaleScope;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.NodeVerbAccess;
@@ -233,13 +234,13 @@ public class QuestCommandNode implements VerbPermissionBase {
     })
     public void track(FPlayer player, @Arg("<quest>") String questText) {
         if (questText.equalsIgnoreCase("off")) {
-            engine.track(player, null).whenComplete((done, failure) -> {
+            engine.track(player, null).whenComplete(LocaleScope.carry((done, failure) -> {
                 if (failure != null) {
                     REFUSED.addPlaceholder("reason", reasonOf(failure)).send(player);
                 } else {
                     UNTRACKED.send(player);
                 }
-            });
+            }));
             return;
         }
         QuestDefinition quest;
@@ -253,13 +254,13 @@ public class QuestCommandNode implements VerbPermissionBase {
             return;
         }
         QuestId id = quest.getId();
-        engine.track(player, id).whenComplete((done, failure) -> {
+        engine.track(player, id).whenComplete(LocaleScope.carry((done, failure) -> {
             if (failure != null) {
                 REFUSED.addPlaceholder("reason", reasonOf(failure)).send(player);
             } else {
                 TRACKING.addPlaceholder("quest", id).send(player);
             }
-        });
+        }));
     }
 
     // ------------------------------------------------------------------
@@ -284,7 +285,7 @@ public class QuestCommandNode implements VerbPermissionBase {
     }
 
     private void reportStart(FCommandSender sender, QuestDefinition quest, FPlayer target, CompletableFuture<StartResult> started) {
-        started.whenComplete((result, failure) -> {
+        started.whenComplete(LocaleScope.carry((result, failure) -> {
             if (failure != null) {
                 REFUSED.addPlaceholder("reason", reasonOf(failure)).send(sender);
             } else if (!result.isSuccess()) {
@@ -293,7 +294,7 @@ public class QuestCommandNode implements VerbPermissionBase {
                 QUEST_DONE.addPlaceholder("quest", quest.getId()).addPlaceholder("action", result.getOutcome().name().toLowerCase(Locale.ROOT))
                         .addPlaceholder("owner", target.getName()).send(sender);
             }
-        });
+        }));
     }
 
     /** The engine's presenter rewrites the refusal when it wants to; else the core's text. */
@@ -308,13 +309,13 @@ public class QuestCommandNode implements VerbPermissionBase {
     }
 
     private static void report(FCommandSender sender, QuestId id, ProgressOwner owner, String action, CompletableFuture<Void> task) {
-        task.whenComplete((done, failure) -> {
+        task.whenComplete(LocaleScope.carry((done, failure) -> {
             if (failure != null) {
                 REFUSED.addPlaceholder("reason", reasonOf(failure)).send(sender);
             } else {
                 QUEST_DONE.addPlaceholder("quest", id).addPlaceholder("action", action).addPlaceholder("owner", owner).send(sender);
             }
-        });
+        }));
     }
 
     private static String reasonOf(Throwable failure) {

@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.screen;
 
+import br.com.finalcraft.evernifecore.locale.LocaleScope;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.EventSourceUsage;
@@ -455,7 +456,7 @@ public final class ScreenView {
         if (closed) {
             return;
         }
-        try {
+        try (LocaleScope ignored = LocaleScope.enter(screen.getOwner())) {
             if (layoutIconsDirty) {
                 renderLayoutIcons();
             }
@@ -669,7 +670,7 @@ public final class ScreenView {
         }
         markClickAccepted(now);
         ClickContext context = new ClickContext(this, nextClickToken(), slot, gesture, kind, cursor, painted.paint, painted.icon);
-        try {
+        try (LocaleScope ignored = LocaleScope.enter(screen.getOwner())) {
             painted.paint.getOnClick().accept(context);
         } catch (Throwable e) {
             EverNifeCore.getLog().severe("A screen click handler failed for [{}] on slot {}", viewerName, slot, e);

@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.screen;
 
+import br.com.finalcraft.evernifecore.locale.LocaleScope;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
@@ -506,9 +507,12 @@ public final class Screens {
             if (root) {
                 ScreenNavigation.root(view);
             }
-            view.start();
-            view.render();
-            view.commitNow();
+            //a core text drawn or sent while the screen opens speaks the language of the plugin that owns it
+            try (LocaleScope ignored = LocaleScope.enter(screen.getOwner())) {
+                view.start();
+                view.render();
+                view.commitNow();
+            }
             future.complete(view);
             ECEventBus.global().postIfListened(ScreenOpenEvent.class, () -> new ScreenOpenEvent(view));
         } catch (Throwable e) {

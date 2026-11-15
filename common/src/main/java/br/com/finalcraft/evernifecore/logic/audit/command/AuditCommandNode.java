@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.logic.audit.command;
 
+import br.com.finalcraft.evernifecore.locale.LocaleScope;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
@@ -138,7 +139,7 @@ public class AuditCommandNode {
     /** The page of {@code query} over {@code log}: what this node and {@code /ecore logic audit} both send. */
     public static void sendPage(FCommandSender sender, AuditLog log, AuditQuery query, int page) {
         String plugin = log.getPlugin().getMetaInfo().getName();
-        log.query(query).whenComplete((entries, failure) -> {
+        log.query(query).whenComplete(LocaleScope.carry((entries, failure) -> {
             if (failure != null) {
                 READ_FAILED.custom().addPlaceholder("plugin", plugin).addPlaceholder("reason", String.valueOf(failure.getMessage())).send(sender);
             } else if (entries.isEmpty()) {
@@ -146,7 +147,7 @@ public class AuditCommandNode {
             } else {
                 pageOf(entries).send(page, sender);
             }
-        });
+        }));
     }
 
     private static PageViewer<AuditEntry> pageOf(List<AuditEntry> entries) {

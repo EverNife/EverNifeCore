@@ -448,6 +448,13 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `all` - from what is loaded, never waiting for storage on the server thread.
 - **Unregistering a plugin's own command logs at debug**, not WARN: every stop takes each command and alias off the
   map, which broke any "WARN = 0" check over a whole log. Removing another plugin's or the server's command still warns.
+- **The core's texts speak the language of the plugin whose feature runs them**: the command dispatch (run, tab-complete,
+  help) and a screen's open, redraw and click enter `LocaleScope` with the owning plugin, and a message of EverNifeCore
+  sent inside it (a mounted core node, a core parser's refusal, the help, `FCMessageUtil`) resolves its language by that
+  plugin. A message of another plugin never changes, and the player's own choice (per-player locale) still wins. A reply
+  after a future carries the scope with `LocaleScope.carry(...)`, which the core's mountable nodes now use; a plugin's own
+  async reply that sends a core message does the same. `FinalCmdTestHarness.withSeparateCore(folder)` (test engine) gives
+  a harness a core apart from its plugin, to test the two languages.
 
 #### Build and dependencies
 

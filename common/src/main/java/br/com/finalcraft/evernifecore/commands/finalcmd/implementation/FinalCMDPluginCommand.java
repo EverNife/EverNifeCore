@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.implementation;
 
+import br.com.finalcraft.evernifecore.locale.LocaleScope;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.argumento.FlagedArgumento;
@@ -157,6 +158,12 @@ public class FinalCMDPluginCommand {
      * @return a list of possible values
      */
     public List<String> tabComplete(FCommandSender sender, String alias, String[] args) {
+        try (LocaleScope ignored = LocaleScope.enter(owningPlugin)) {
+            return complete(sender, alias, args);
+        }
+    }
+
+    private List<String> complete(FCommandSender sender, String alias, String[] args) {
         int index = args.length - 1;
         if (index < 0){
             return ImmutableList.of();

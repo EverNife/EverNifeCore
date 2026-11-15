@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.executor;
 
+import br.com.finalcraft.evernifecore.locale.LocaleScope;
 import br.com.finalcraft.evernifecore.action.ActionSupport;
 import br.com.finalcraft.evernifecore.action.Actions;
 import br.com.finalcraft.evernifecore.action.Actor;
@@ -92,6 +93,13 @@ public class FCDefaultExecutor {
      * makes the traversal a single pass.
      */
     public void onCommand(FCommandSender sender, String label, String[] args) {
+        //every core text of this dispatch (a mounted node, a parser's refusal, the help) speaks the owning plugin's language
+        try (LocaleScope ignored = LocaleScope.enter(finalCommand.getOwningPlugin())) {
+            dispatch(sender, label, args);
+        }
+    }
+
+    private void dispatch(FCommandSender sender, String label, String[] args) {
 
         CommandNode root = finalCommand.getRoot();
 

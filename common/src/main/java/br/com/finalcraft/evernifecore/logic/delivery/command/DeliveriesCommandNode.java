@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.logic.delivery.command;
 
+import br.com.finalcraft.evernifecore.locale.LocaleScope;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
@@ -92,15 +93,15 @@ public class DeliveriesCommandNode {
             @FCLocale(lang = LocaleType.PT_BR, text = "Abre suas entregas pendentes: clique numa para resgatar")
     })
     public void list(FPlayer player) {
-        Screens.open(player, ScreenKey.DELIVERIES, ScreenRequest.of(null)).whenComplete((view, refused) -> {
+        Screens.open(player, ScreenKey.DELIVERIES, ScreenRequest.of(null)).whenComplete(LocaleScope.carry((view, refused) -> {
             if (refused != null) {
                 say(player); //no renderer for this player (a platform without screens): the chat still lists them
             }
-        });
+        }));
     }
 
     private static void say(FPlayer player) {
-        Deliveries.get().listOf(player.getUniqueId()).whenComplete((deliveries, failure) -> {
+        Deliveries.get().listOf(player.getUniqueId()).whenComplete(LocaleScope.carry((deliveries, failure) -> {
             if (failure != null) {
                 READ_FAILED.addPlaceholder("reason", String.valueOf(failure.getMessage())).send(player);
                 return;
@@ -113,7 +114,7 @@ public class DeliveriesCommandNode {
             for (Delivery delivery : deliveries) {
                 line(delivery).send(player);
             }
-        });
+        }));
     }
 
     @FinalCMD.SubCMD(subcmd = "claim", locales = {
@@ -125,10 +126,10 @@ public class DeliveriesCommandNode {
             @FCLocale(lang = LocaleType.PT_BR, text = "O id que o list mostra (os primeiros caracteres bastam), ou all")
     }) String which) {
         if (which.equalsIgnoreCase("all")) {
-            Deliveries.get().claimAll(player).whenComplete((result, failure) -> report(player, result, failure));
+            Deliveries.get().claimAll(player).whenComplete(LocaleScope.carry((result, failure) -> report(player, result, failure)));
             return;
         }
-        Deliveries.get().listOf(player.getUniqueId()).whenComplete((deliveries, failure) -> {
+        Deliveries.get().listOf(player.getUniqueId()).whenComplete(LocaleScope.carry((deliveries, failure) -> {
             if (failure != null) {
                 READ_FAILED.addPlaceholder("reason", String.valueOf(failure.getMessage())).send(player);
                 return;
@@ -147,8 +148,8 @@ public class DeliveriesCommandNode {
                 AMBIGUOUS.custom().addPlaceholder("count", matching.size()).addPlaceholder("id", which).send(player);
                 return;
             }
-            Deliveries.get().claim(player, matching.get(0).getId()).whenComplete((result, error) -> report(player, result, error));
-        });
+            Deliveries.get().claim(player, matching.get(0).getId()).whenComplete(LocaleScope.carry((result, error) -> report(player, result, error)));
+        }));
     }
 
     private static void report(FPlayer player, @Nullable ClaimResult result, @Nullable Throwable failure) {

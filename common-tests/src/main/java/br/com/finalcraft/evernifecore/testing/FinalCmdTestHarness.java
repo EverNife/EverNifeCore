@@ -40,6 +40,7 @@ public class FinalCmdTestHarness implements AutoCloseable {
     public final ECPluginData ecPluginData;
 
     private final ECoreTestWorld world;
+    private boolean separateCore;
     private final ArgParserManager.RegistrySnapshot parserRegistry;
 
     public FinalCmdTestHarness(String namePrefix, Path dataFolder) {
@@ -143,6 +144,21 @@ public class FinalCmdTestHarness implements AutoCloseable {
         return this;
     }
 
+    /**
+     * Gives this harness a core apart from its plugin: a fake EverNifeCore over {@code coreFolder} becomes
+     * {@code EverNifeCore.getEcPluginData()} and owns the core's command texts, so the plugin and the core can speak two
+     * languages ({@link Plugins#setLanguage}). Without it the plugin doubles as the core. {@link #close()} removes it.
+     *
+     * @return the core
+     */
+    public ECPluginData withSeparateCore(Path coreFolder) {
+        ECPluginData core = Plugins.fakeCore(coreFolder.toFile());
+        separateCore = true;
+        world.withCorePluginData(core);
+        FCLocaleManager.loadLocale(core, FCMessageUtil.class, HelpContext.class, FCDefaultExecutor.class);
+        return core;
+    }
+
     /** Structural assertions over the tree {@code cmd} registered - see {@link TreeAssert}. */
     public TreeAssert tree(FinalCMDPluginCommand cmd) {
         return new TreeAssert(this, cmd);
@@ -152,6 +168,9 @@ public class FinalCmdTestHarness implements AutoCloseable {
     public void close() {
         ArgParserManager.restoreRegistry(parserRegistry);
         ECPluginManager.removePluginData(pluginName);
+        if (separateCore) {
+            Plugins.forget(Plugins.CORE);
+        }
         world.close();
     }
 }

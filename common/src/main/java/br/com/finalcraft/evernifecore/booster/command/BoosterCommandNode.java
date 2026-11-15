@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.booster.command;
 
+import br.com.finalcraft.evernifecore.locale.LocaleScope;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.booster.Booster;
 import br.com.finalcraft.evernifecore.booster.BoosterDomain;
@@ -157,13 +158,13 @@ public final class BoosterCommandNode implements VerbPermissionBase {
             BAD_FACTOR.addPlaceholder("factor", factor).send(sender);
             return;
         }
-        BoosterManager.of(plugin).grant(booster).whenComplete((kept, failure) -> {
+        BoosterManager.of(plugin).grant(booster).whenComplete(LocaleScope.carry((kept, failure) -> {
             if (failure != null) {
                 FAILED.addPlaceholder("reason", String.valueOf(failure.getMessage())).send(sender);
             } else {
                 GRANTED.addPlaceholder("booster", kept.toString()).addPlaceholder("id", kept.getId()).send(sender);
             }
-        });
+        }));
     }
 
     @FinalCMD.SubCMD(subcmd = "list", validation = NodeVerbAccess.class, locales = {
@@ -202,7 +203,7 @@ public final class BoosterCommandNode implements VerbPermissionBase {
             NO_SUCH_BOOSTER.addPlaceholder("id", id).addPlaceholder("plugin", pluginName()).send(sender);
             return;
         }
-        BoosterManager.of(plugin).revoke(boosterId).whenComplete((had, failure) -> {
+        BoosterManager.of(plugin).revoke(boosterId).whenComplete(LocaleScope.carry((had, failure) -> {
             if (failure != null) {
                 FAILED.addPlaceholder("reason", String.valueOf(failure.getMessage())).send(sender);
             } else if (had) {
@@ -210,7 +211,7 @@ public final class BoosterCommandNode implements VerbPermissionBase {
             } else {
                 NO_SUCH_BOOSTER.addPlaceholder("id", id).addPlaceholder("plugin", pluginName()).send(sender);
             }
-        });
+        }));
     }
 
     @FinalCMD.SubCMD(subcmd = "explain", validation = NodeVerbAccess.class, locales = {
@@ -232,7 +233,7 @@ public final class BoosterCommandNode implements VerbPermissionBase {
         }
         UUID playerId = player.getUniqueId();
         //an offline player's permission booster is read from memory: load it first, never on this thread
-        Boosters.loadPermissions(Collections.singletonList(domain), Collections.singletonList(playerId)).whenComplete((loaded, failure) -> {
+        Boosters.loadPermissions(Collections.singletonList(domain), Collections.singletonList(playerId)).whenComplete(LocaleScope.carry((loaded, failure) -> {
             BoosterResult result = domain.resolve(playerId);
             EXPLAIN_HEADER.addPlaceholder("player", player.getName()).addPlaceholder("domain", domain.getId())
                     .addPlaceholder("multiplier", result.getMultiplier().stripTrailingZeros().toPlainString()).send(sender);
@@ -240,7 +241,7 @@ public final class BoosterCommandNode implements VerbPermissionBase {
             for (int i = 1; i < lines.length; i++) { //the first line repeats the header
                 EXPLAIN_LINE.addPlaceholder("line", lines[i]).send(sender);
             }
-        });
+        }));
     }
 
     // ------------------------------------------------------------------
