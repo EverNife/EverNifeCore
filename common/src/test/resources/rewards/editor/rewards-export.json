@@ -361,7 +361,7 @@
         "category": null,
         "registered-by": "EverNifeCore",
         "aliases": [],
-        "description": "Gives the player an item through to: (the inventory by default); what does not fit waits as a pending delivery.",
+        "description": "Gives the player an item through to: (the inventory by default); what does not fit goes where overflow: says.",
         "platforms": [],
         "sources": [],
         "capabilities": [],
@@ -402,6 +402,15 @@
             "one-of": [],
             "nested": null,
             "description": "How long what did not fit waits to be claimed; without it, until claimed."
+          },
+          {
+            "name": "overflow",
+            "kind": "ID",
+            "required": false,
+            "default": "pending",
+            "one-of": [],
+            "nested": null,
+            "description": "Where what does not fit goes: pending (a delivery the player claims later), ground (dropped at the player's feet; a player who is not online gets it pending), or another delivery destination's id - a plugin's own decides in code, and what it hands back waits pending."
           }
         ]
       },

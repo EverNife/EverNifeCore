@@ -26,6 +26,7 @@ public final class TestInventory implements InventoryDestination {
     private final int slots;
     private final Map<UUID, List<ItemSpec>> byPlayer = new ConcurrentHashMap<>();
     private final Map<UUID, Integer> held = new ConcurrentHashMap<>();
+    private final Map<UUID, List<ItemSpec>> dropped = new ConcurrentHashMap<>();
 
     public TestInventory(int slots) {
         if (slots <= 0) {
@@ -135,6 +136,21 @@ public final class TestInventory implements InventoryDestination {
         return room;
     }
 
+    /** Records {@code item} at {@code player}'s feet ({@link #getDropped}); false, recording nothing, for a player who is offline. */
+    @Override
+    public synchronized boolean drop(FPlayer player, ItemSpec item) {
+        if (!player.isOnline()) {
+            return false;
+        }
+        dropped.computeIfAbsent(player.getUniqueId(), uuid -> new ArrayList<>()).add(item);
+        return true;
+    }
+
+    /** What {@link #drop} put at {@code player}'s feet, in order. */
+    public synchronized List<ItemSpec> getDropped(FPlayer player) {
+        return Collections.unmodifiableList(new ArrayList<>(dropped.getOrDefault(player.getUniqueId(), Collections.<ItemSpec>emptyList())));
+    }
+
     /** Makes the stack at {@code slot} (in {@link #getContents} order) the one {@code player} holds. */
     public synchronized void hold(FPlayer player, int slot) {
         held.put(player.getUniqueId(), slot);
@@ -157,6 +173,7 @@ public final class TestInventory implements InventoryDestination {
     public synchronized void clear(FPlayer player) {
         byPlayer.remove(player.getUniqueId());
         held.remove(player.getUniqueId());
+        dropped.remove(player.getUniqueId());
     }
 
     private List<ItemSpec> of(FPlayer player) {

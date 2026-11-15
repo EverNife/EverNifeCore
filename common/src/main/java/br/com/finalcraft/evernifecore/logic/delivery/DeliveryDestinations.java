@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.types.TypeDescriptor;
 import br.com.finalcraft.evernifecore.types.TypeRegistry;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,11 +33,24 @@ public final class DeliveryDestinations {
         return REGISTRY;
     }
 
-    /** The core's own destinations ({@code evernifecore:pending}), registered under {@code core} on enable. */
+    /** The core's own destinations ({@code evernifecore:pending}, {@code evernifecore:ground}), registered under {@code core} on enable. */
     public static void registerCore(ECPluginData core) {
         if (!REGISTRY.find(PendingDestination.ID).isPresent()) {
             register(core, PendingDestination.INSTANCE);
         }
+        if (!REGISTRY.find(GroundDestination.ID).isPresent()) {
+            register(core, GroundDestination.INSTANCE);
+        }
+    }
+
+    /** The registered ids, sorted - what a refusal of an unknown id lists. */
+    public static List<String> getIds() {
+        List<String> ids = new ArrayList<>();
+        for (TypeDescriptor<DeliveryDestination> descriptor : REGISTRY.getAll()) {
+            ids.add(descriptor.getKey());
+        }
+        Collections.sort(ids);
+        return ids;
     }
 
     /**

@@ -42,4 +42,11 @@ public interface InventoryDestination extends DeliveryDestination {
 
     /** How many of {@code item} fit in {@code player}'s main inventory right now, stacking onto equal stacks first. */
     int roomFor(FPlayer player, ItemSpec item);
+
+    /**
+     * Drops {@code item} at {@code player}'s feet, a full stack at a time, on the player's thread.
+     *
+     * @return false, dropping nothing, when the player is not online or the item does not exist on this platform
+     */
+    boolean drop(FPlayer player, ItemSpec item);
 }

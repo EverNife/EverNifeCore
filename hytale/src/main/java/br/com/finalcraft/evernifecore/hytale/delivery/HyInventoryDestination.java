@@ -9,6 +9,7 @@ import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
 import br.com.finalcraft.evernifecore.logic.delivery.InventoryDestination;
 import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.server.core.entity.ItemUtils;
 import com.hypixel.hytale.server.core.inventory.InventoryComponent;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.inventory.container.CombinedItemContainer;
@@ -39,24 +40,54 @@ public final class HyInventoryDestination implements InventoryDestination {
         if (!(player instanceof HytaleFPlayer)) {
             return item;
         }
-        ItemStack stack;
-        if (item.getNativeItem() != null) {
-            stack = item.getNativeItem().getItemStack();
-            stack = stack.withQuantity(item.getAmount());
-        } else if (item.getMaterialId().regionMatches(true, 0, PREFIX, 0, PREFIX.length())) {
-            stack = new ItemStack(item.getMaterialId().substring(PREFIX.length()), item.getAmount());
-        } else {
-            EverNifeCore.getLog().warning(item + " for " + player.getName() + " is not a hytale: item, so it stays pending. Name it"
-                    + " hytale:<item id> in the plugin's file.");
+        ItemStack toAdd = stackOf(player, item);
+        if (toAdd == null) {
             return item;
         }
-        ItemStack toAdd = stack;
         Integer left = onWorldThread((HytaleFPlayer) player, item.getAmount(), container -> {
             ItemStackTransaction added = container.addItemStack(toAdd);
             ItemStack remainder = added.getRemainder();
             return remainder == null || ItemStack.isEmpty(remainder) ? 0 : remainder.getQuantity();
         });
         return left == 0 ? null : item.withAmount(left);
+    }
+
+    @Override
+    public boolean drop(FPlayer player, ItemSpec item) {
+        if (!(player instanceof HytaleFPlayer)) {
+            return false;
+        }
+        HytaleFPlayer hytale = (HytaleFPlayer) player;
+        ItemStack stack = stackOf(player, item);
+        World world = hytale.getWorld();
+        if (stack == null || world == null) {
+            return false;
+        }
+        Supplier<Boolean> task = () -> {
+            Ref<EntityStore> entity = hytale.getPlayerRef() == null ? null : hytale.getPlayerRef().getReference();
+            if (entity == null || !entity.isValid()) {
+                return false;
+            }
+            int max = Math.max(1, stack.getItem().getMaxStack());
+            for (int remaining = item.getAmount(); remaining > 0; remaining -= max) {
+                ItemUtils.dropItem(entity, stack.withQuantity(Math.min(remaining, max)), entity.getStore());
+            }
+            return true;
+        };
+        return EverNifeCore.getPlatform().isWorldThread(world.getName()) ? task.get() : CompletableFuture.supplyAsync(task, world).join();
+    }
+
+    /** {@code item} as one Hytale stack of its whole amount, or null (logged) when it names no {@code hytale:} item. */
+    private static @Nullable ItemStack stackOf(FPlayer player, ItemSpec item) {
+        if (item.getNativeItem() != null) {
+            return item.getNativeItem().getItemStack().withQuantity(item.getAmount());
+        }
+        if (item.getMaterialId().regionMatches(true, 0, PREFIX, 0, PREFIX.length())) {
+            return new ItemStack(item.getMaterialId().substring(PREFIX.length()), item.getAmount());
+        }
+        EverNifeCore.getLog().warning(item + " for " + player.getName() + " is not a hytale: item, so it stays pending. Name it"
+                + " hytale:<item id> in the plugin's file.");
+        return null;
     }
 
     @Override

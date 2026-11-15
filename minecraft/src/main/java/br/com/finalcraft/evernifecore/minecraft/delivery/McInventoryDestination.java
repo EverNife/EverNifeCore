@@ -53,19 +53,46 @@ public final class McInventoryDestination implements InventoryDestination {
 
     /** Adds {@code item} a full stack at a time; how many did not fit. */
     private static int add(PlayerInventory inventory, ItemSpec item, @Nullable Material material) {
-        ItemStack template = item.getNativeItem() != null ? item.getNativeItem().getItemStack().clone() : build(item, material);
-        int remaining = item.getAmount();
         int left = 0;
-        while (remaining > 0) {
-            ItemStack stack = template.clone();
-            int amount = Math.min(remaining, Math.max(1, stack.getMaxStackSize()));
-            stack.setAmount(amount);
-            remaining -= amount;
+        for (ItemStack stack : stacksOf(item, material)) {
             for (ItemStack rest : inventory.addItem(stack).values()) {
                 left += rest.getAmount();
             }
         }
         return left;
+    }
+
+    /** {@code item} as full stacks, the last one holding the remainder. */
+    private static List<ItemStack> stacksOf(ItemSpec item, @Nullable Material material) {
+        ItemStack template = item.getNativeItem() != null ? item.getNativeItem().getItemStack().clone() : build(item, material);
+        List<ItemStack> stacks = new ArrayList<>();
+        int remaining = item.getAmount();
+        while (remaining > 0) {
+            ItemStack stack = template.clone();
+            int amount = Math.min(remaining, Math.max(1, stack.getMaxStackSize()));
+            stack.setAmount(amount);
+            remaining -= amount;
+            stacks.add(stack);
+        }
+        return stacks;
+    }
+
+    @Override
+    public boolean drop(FPlayer player, ItemSpec item) {
+        Player bukkit = bukkitOf(player);
+        Material material = materialOf(item.getMaterialId());
+        if (bukkit == null || (item.getNativeItem() == null && material == null)) {
+            return false;
+        }
+        return onMainThread(() -> {
+            if (!bukkit.isOnline()) {
+                return false;
+            }
+            for (ItemStack stack : stacksOf(item, material)) {
+                bukkit.getWorld().dropItem(bukkit.getLocation(), stack);
+            }
+            return true;
+        });
     }
 
     @Override

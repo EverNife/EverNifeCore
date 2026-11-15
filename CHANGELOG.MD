@@ -93,8 +93,19 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   store together, asked and told as a `PLUGIN` change (`false` when the store refuses). A button processes the area
   without closing the screen; writing the store alone is still undone by the next read-back.
 
+#### Deliveries
+
+- **`give-item` says where what does not fit goes**: `overflow: pending` (the default, a delivery claimed later),
+  `overflow: ground` (dropped at the player's feet; a player who is not online gets it pending) or any delivery
+  destination's id - a plugin registers its own `DeliveryDestination` and decides in code with the context (player,
+  caller, the item that did not fit); what it hands back waits pending. An `overflow:` nobody registered is refused on
+  load with the registered ids. The new `evernifecore:ground` destination is the core's, and `to: ground` sends a whole
+  item to the floor. `InventoryDestination.drop(player, item)` is new: each platform drops a full stack at a time on the
+  player's thread and answers false for a player who is not online. `DeliveryDestinations.getIds()` lists the ids.
+
 #### Testing
 
+- **`TestInventory.drop` records what lands at a player's feet** (`getDropped(player)`), refusing an offline player.
 - **A broadcast is observable in tests**: `Platforms.neutralChatAdapter()` broadcasts to the online players and the new
   `TestPlatform.getBroadcastConsole()` instead of nobody, and `TestLocaleMessage.broadcast()` sends to that audience
   instead of throwing.
@@ -345,6 +356,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 #### Deliveries
 
+- **What a `give-item` could not fit is never lost in silence**: when the deliveries store refuses it (the players' data
+  not loaded), the effect logs a warning and audits `DELIVERY_DISCARDED`; it used to vanish.
+- **A pending `money` keeps the number its texts show**: `PendingDestination.moneyNode` writes `1250`, not `1250.0`.
 - **A delivery keeps the variables of the context that kept it** (`Delivery.getVariables()`): an offline participant's
   `on-login` message or command claimed with `{stage}` and `{player}` raw, or with the login's name; the claim now
   resolves them with the scene's values and the participant's name, ahead of the claiming player's own.

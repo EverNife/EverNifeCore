@@ -60,7 +60,7 @@ public final class PendingDestination implements DeliveryDestination {
     public static JsonNode moneyNode(Currency currency, BigDecimal amount) {
         ObjectNode node = JsonNodeFactory.instance.objectNode();
         node.put("type", "evernifecore:money");
-        node.put("amount", amount.toPlainString());
+        node.put("amount", amount.stripTrailingZeros().toPlainString()); //1250, never 1250.0: the number the texts show
         node.put("currency", currency.getId());
         return node;
     }
