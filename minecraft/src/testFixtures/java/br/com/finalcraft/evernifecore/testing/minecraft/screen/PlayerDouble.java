@@ -75,6 +75,8 @@ public final class PlayerDouble {
     private PlayerInventory inventoryFace;
     private boolean online = true;
     private boolean refuseOpens = false;
+    private boolean closing = false;
+    private int inventoryResyncs = 0;
 
     PlayerDouble(String name, ScreenEventBus events, Function<Inventory, Inventory> serverWindowOver) {
         this(name, UUID.randomUUID(), events, serverWindowOver);
@@ -111,6 +113,14 @@ public final class PlayerDouble {
                 .on("openInventory", args -> open((Inventory) args[0]))
                 .on("closeInventory", args -> {
                     close();
+                    return null;
+                })
+                //a 1.7.10 client applies a resend of its own inventory only with no window in front of it: during
+                //the close event the server still resends the chest, which that client already closed
+                .on("updateInventory", args -> {
+                    if (openView == null) {
+                        inventoryResyncs++;
+                    }
                     return null;
                 })
                 .on("sendMessage", args -> {
@@ -271,6 +281,15 @@ public final class PlayerDouble {
     }
 
     /**
+     * How many times the server resent the player's own inventory with no window open - the only resend a 1.7.10
+     * client applies to it. An item given while a window is still in front of the player (inside its close event)
+     * reaches the client only through one of these.
+     */
+    public int getInventoryResyncs() {
+        return inventoryResyncs;
+    }
+
+    /**
      * The player's own inventory, laid out as on 1.9+: the 36 main slots, then armor (36-39) and the
      * off-hand (40), all of them read and written by index and answered together by {@code getContents};
      * the armor also by piece ({@code getHelmet}, {@code setBoots}, ...).
@@ -418,11 +437,20 @@ public final class PlayerDouble {
         return view;
     }
 
+    /** As a server does: the close event fires while the window is still the open one, and only then is it gone. */
     private void close() {
-        InventoryView closing = openView;
-        openView = null;
-        if (closing != null) {
-            events.fireClose(closing);
+        InventoryView window = openView;
+        if (window == null || closing) {
+            return;
+        }
+        closing = true;
+        try {
+            events.fireClose(window);
+        } finally {
+            closing = false;
+            if (openView == window) {
+                openView = null;
+            }
         }
     }
 

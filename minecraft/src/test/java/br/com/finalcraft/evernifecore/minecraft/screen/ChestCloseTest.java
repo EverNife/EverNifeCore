@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.minecraft.screen;
 
 import br.com.finalcraft.evernifecore.minecraft.inventory.GenericInventory;
+import br.com.finalcraft.evernifecore.minecraft.inventory.stored.StoredInventory;
+import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.testing.minecraft.screen.BukkitScreenWorld;
 import br.com.finalcraft.evernifecore.testing.minecraft.screen.PlayerDouble;
 import br.com.finalcraft.evernifecore.screen.ClickPolicy;
@@ -26,6 +28,7 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A screen that goes away takes its chest with it. The view is already released when the window is closed - what the
@@ -109,6 +112,26 @@ class ChestCloseTest {
 
         assertEquals(Material.DIAMOND, store.getItem(0).getType(), "the store read the area back");
         assertNull(player.getOpenView(), "and the window still offered the same diamonds to take");
+    }
+
+    @Test
+    void whatTheCloseGivesBackReachesTheClientOnceTheWindowIsGone() {
+        StoredInventory input = new StoredInventory(1);
+        Screen<Layout> screen = Screen.of(3).debounce(0);
+        screen.storage(Slots.of(4)).backedBy(input).policy(ClickPolicy.EDIT_ALL);
+        screen.onClose(close -> FCBukkitUtil.giveItemsTo(player.asPlayer(), input.getItem(0)));
+        world.open(screen, player);
+        world.getSurface().placeWithoutRecording(4, new ItemStack(Material.OAK_LOG, 5));
+        player.holding(new ItemStack(Material.DIRT, 2));
+
+        player.asPlayer().closeInventory();
+        world.advanceTicks(1);
+
+        //the cursor goes back while the window is read back, the logs in the handler that runs after it
+        assertEquals(Material.DIRT, player.getPlayerInventory().getItem(0).getType());
+        assertEquals(Material.OAK_LOG, player.getPlayerInventory().getItem(1).getType());
+        assertTrue(player.getInventoryResyncs() > 0, "but both were given inside the close event, while the chest was "
+                + "still the open window - a 1.7.10 client ignores that resend and shows its inventory without them");
     }
 
 }

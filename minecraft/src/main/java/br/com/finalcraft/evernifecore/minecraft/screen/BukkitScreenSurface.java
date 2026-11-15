@@ -242,7 +242,8 @@ public final class BukkitScreenSurface extends GridSurface {
 
     /**
      * Reads every area back into its store, last word (one area at a time: a store that throws costs its own contents
-     * and nothing else), gives back what the cursor holds, and lets the stores go.
+     * and nothing else), gives back what the cursor holds, and lets the stores go. A tick later the viewer's own
+     * inventory is resent, carrying whatever this close and the screen's {@code onClose} gave them.
      */
     @Override
     public void released(@Nonnull CloseReason reason) {
@@ -251,6 +252,17 @@ public final class BukkitScreenSurface extends GridSurface {
         }
         released = true;
         renderer.forget(this);
+        //a close event still has the chest as the open window, so a resend from inside it goes to the chest: a 1.7.10
+        //client, which already closed it, ignores that and never shows what was given back until it relogs. A
+        //disabled plugin schedules nothing, and a shutdown has no next tick to show it in
+        if (reason != CloseReason.SHUTDOWN) {
+            BukkitScreenScheduler.INSTANCE.later(1L, () -> {
+                Player player = viewer();
+                if (player != null) {
+                    player.updateInventory();
+                }
+            });
+        }
         if (storages.isEmpty()) {
             return;
         }

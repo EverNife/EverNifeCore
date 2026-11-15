@@ -97,6 +97,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **`Locales.retext(plugin, key, lang, text)`**: gives a registered locale message another text in one language, as an
   admin edit of the lang file would, until the returned `Retext` closes. `ScreenWorld` now loads the core locale
   messages its core screens draw.
+- **`PlayerDouble` closes as a server does**: the close event fires while the window is still the open one, and
+  `getInventoryResyncs()` counts the inventory resends made with no window open - the only ones a 1.7.10 client applies.
 
 #### Rewards
 
@@ -381,6 +383,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `ConfirmScreen.CANNOT_CONFIRM` and `QuestOfferScreen.NOT_STARTED` declared `%x%` keys, which never match, so the player
   read the `%delivered%` raw. The texts now read `${delivered}`, `${kept}`, `${missing}` and `${why}`; a language file
   written before this keeps the old text until it is edited.
+- **What a closing chest gives back shows on a 1.7.10 client**: the cursor's stack and whatever `onClose` hands over are
+  given inside the close event, while the chest is still the open window, and that client ignored the resend - the
+  items appeared only after a relog. The player's inventory is now resent a tick after the screen closes.
 
 #### Groups
 
