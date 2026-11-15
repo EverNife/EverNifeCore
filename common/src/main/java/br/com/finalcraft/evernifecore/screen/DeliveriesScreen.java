@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.screen;
 
+import br.com.finalcraft.evernifecore.economy.Currencies;
+import br.com.finalcraft.evernifecore.economy.Currency;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
@@ -10,9 +12,16 @@ import br.com.finalcraft.evernifecore.logic.delivery.Delivery;
 import br.com.finalcraft.evernifecore.logic.delivery.DeliveryIcon;
 import br.com.finalcraft.evernifecore.placeholder.replacer.Closures;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
+import br.com.finalcraft.evernifecore.time.Window;
+import br.com.finalcraft.evernifecore.types.TypeRegistry;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -22,10 +31,12 @@ import java.util.concurrent.CompletableFuture;
  * claims that delivery, the claim-all button claims every one; what still does not fit stays listed. The entries come
  * from storage, so the list fills a moment after the window opens.
  *
- * <p>The entry template reads {@code {plugin}}, {@code {reason}} and {@code {effects}} of its delivery. An entry draws the
- * item of its delivery's {@link DeliveryIcon}: a theme's is the {@code THEME_<NAME>} icon of the layout (each one a
- * Minecraft item with a Hytale candidate), a plugin's own is that item; either way under the entry's text. A delivery
- * without one draws the entry's own item.</p>
+ * <p>The entry template reads {@code {plugin}}, {@code {reason}}, {@code {created}}, {@code {expires}} ({@code -} for
+ * never) and {@code {effects}} (how many) of its delivery; a lore line citing {@code {effect}} repeats once per effect it
+ * still owes ({@code 36x minecraft:stone}, {@code $25.00}, {@code /spawn}). An entry draws the item of its delivery's
+ * {@link Delivery#getDrawnIcon()}: a theme's is the {@code THEME_<NAME>} icon of the layout (each one a Minecraft item with
+ * a Hytale candidate), an item is drawn as it is; either way under the entry's text. A delivery without one draws the
+ * entry's own item. The claim's answer goes to the chat with the screen open, and the page redraws from the store.</p>
  */
 public final class DeliveriesScreen extends Screen<DeliveriesScreen.DeliveriesLayout> {
 
@@ -36,7 +47,13 @@ public final class DeliveriesScreen extends Screen<DeliveriesScreen.DeliveriesLa
     private static final RegexReplacer<Delivery> ENTRY = new RegexReplacer<Delivery>(Closures.BRACKET)
             .addParser("plugin", delivery -> delivery.getOrigin().getPlugin())
             .addParser("reason", delivery -> delivery.getOrigin().getReason())
-            .addParser("effects", delivery -> delivery.getEffects().size());
+            .addParser("effects", delivery -> delivery.getEffects().size())
+            .addParser("created", delivery -> date(delivery.getCreatedAt()))
+            .addParser("expires", delivery -> delivery.getExpiresAt() == null ? "-" : date(delivery.getExpiresAt()));
+
+    private static String date(Instant when) {
+        return DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(Window.getServerZone()).format(when); //the zone is the config's, read now
+    }
 
     private final MutableState<List<Delivery>> pending = new MutableState<>(Collections.<Delivery>emptyList());
 
@@ -48,7 +65,7 @@ public final class DeliveriesScreen extends Screen<DeliveriesScreen.DeliveriesLa
                 .into(l -> l.ENTRY)
                 .pagedBy(l -> l.PREVIOUS, l -> l.NEXT)
                 .dependsOn(pending)
-                .render((delivery, icon) -> drawnAs(icon.addScope(ENTRY, delivery), delivery.getIcon(), layout))
+                .render((delivery, icon) -> drawnAs(listEffects(icon, delivery).addScope(ENTRY, delivery), delivery.getDrawnIcon(), layout))
                 .onClick((click, delivery) -> claim(click.getView(), Deliveries.get().claim(click.getViewer(), delivery.getId())));
         icon(l -> l.CLAIM_ALL)
                 .visibleWhen(() -> !pending.get().isEmpty())
@@ -91,6 +108,60 @@ public final class DeliveriesScreen extends Screen<DeliveriesScreen.DeliveriesLa
         return entry;
     }
 
+    /** {@code entry} with each lore line citing {@code {effect}} repeated once per effect of {@code delivery}, in every language. */
+    static Icon listEffects(Icon entry, Delivery delivery) {
+        List<String> effects = new ArrayList<>();
+        for (JsonNode effect : delivery.getEffects()) {
+            effects.add(describe(effect));
+        }
+        ItemSpec item = entry.getItem();
+        entry.setItem(item.withText(item.getDisplayName(), perEffect(item.getLore(), effects)));
+        IconLocale locale = entry.getLocale();
+        if (locale != null) {
+            IconLocale listed = locale.copy(); //the entry's copy shares the layout's blocks
+            for (String lang : locale.getLanguages()) {
+                listed.put(lang, perEffect(locale.get(lang), effects));
+            }
+            entry.setLocale(listed);
+        }
+        return entry;
+    }
+
+    private static List<String> perEffect(List<String> lines, List<String> effects) {
+        List<String> out = new ArrayList<>();
+        for (String line : lines) {
+            if (!line.contains("{effect}")) {
+                out.add(line);
+                continue;
+            }
+            for (String effect : effects) {
+                out.add(line.replace("{effect}", effect));
+            }
+        }
+        return out;
+    }
+
+    /** One effect as the player reads it: the core's by what they hand over, any other by its type. */
+    static String describe(JsonNode effect) {
+        String type = effect.path(TypeRegistry.TYPE_FIELD).asText(effect.size() == 1 ? effect.fieldNames().next() : "?");
+        switch (type.startsWith("evernifecore:") ? type.substring("evernifecore:".length()) : type) {
+            case "give-item":
+                return effect.path("amount").asText("1") + "x " + effect.path("item").asText("?");
+            case "money":
+                String amount = effect.path("amount").asText("?");
+                Currency currency = Currencies.find(effect.path("currency").asText("")).orElse(null);
+                try {
+                    return currency == null ? amount + " " + effect.path("currency").asText("") : currency.format(new BigDecimal(amount)).getText();
+                } catch (NumberFormatException template) {
+                    return amount + " " + currency.getId();
+                }
+            case "command":
+                return "/" + effect.path("command").asText("");
+            default:
+                return type;
+        }
+    }
+
     private void claim(ScreenView view, CompletableFuture<ClaimResult> claim) {
         claim.whenComplete((result, failed) -> {
             if (result != null && CLAIMED != null) {
@@ -112,8 +183,10 @@ public final class DeliveriesScreen extends Screen<DeliveriesScreen.DeliveriesLa
 
         @IconData(slot = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26})
         public Icon ENTRY = Icon.of("minecraft:chest")
-                .addLocale(LocaleType.EN_US, "§e{plugin}", "§7{reason}", "§7{effects} effect(s)", "", "§a ✎ Click to claim")
-                .addLocale(LocaleType.PT_BR, "§e{plugin}", "§7{reason}", "§7{effects} efeito(s)", "", "§a ✎ Clique para resgatar");
+                .addLocale(LocaleType.EN_US, "§e{plugin}", "§7{reason}", "§f• {effect}", "§8Since {created}", "§8Expires {expires}", "",
+                        "§a ✎ Click to claim")
+                .addLocale(LocaleType.PT_BR, "§e{plugin}", "§7{reason}", "§f• {effect}", "§8Desde {created}", "§8Expira {expires}", "",
+                        "§a ✎ Clique para resgatar");
 
         @IconData(slot = {27})
         public Icon PREVIOUS = DefaultIcons.previousPage();

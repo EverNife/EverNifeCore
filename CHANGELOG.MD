@@ -299,6 +299,14 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **`Rewards.pay` records each share's effects in the caller's `AuditLog`**, so a failed or skipped one is readable there.
 - **`Deliveries.enqueue(recipient, origin, policy, ttl, icon, effects)` and `keepFor(ctx, policy, ttl, icon, node)`**
   take the `@Nullable DeliveryIcon` the delivery is drawn with; the core's own leftovers pass none.
+- **`list` of `DeliveriesCommandNode` opens the deliveries screen**: click an entry to claim it, or claim everything;
+  the claim's answer goes to the chat with the screen open and the page redraws with what is still owed. Where no screen
+  opens for the player (no renderer) the chat lists them as before.
+- **The deliveries screen draws what each delivery owes**: a delivery kept without an icon draws its first effect's
+  (`Delivery.getDrawnIcon()`: a `give-item`'s own item, `THEME_MONEY` for `money`, `THEME_COMMAND` for `command`, the
+  entry's chest for anything else). `DeliveriesLayout.ENTRY` reads `{created}` and `{expires}` (`-` for never), and a lore
+  line citing `{effect}` repeats once per effect still owed (`36x minecraft:stone`, the currency's format, `/spawn`);
+  the default lore lists them instead of the `{effects}` count, which still reads.
 
 - **Everything the deliveries commands say is a core locale message**: `DeliveriesCommandNode` and
   `CoreDeliveriesCommands` (en_US, pt_BR), one message per sentence. `DeliveriesCommandNode.line(Delivery)` left the

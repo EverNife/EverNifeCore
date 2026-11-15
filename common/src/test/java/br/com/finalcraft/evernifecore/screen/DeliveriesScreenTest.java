@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.screen;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
+import br.com.finalcraft.evernifecore.item.ItemMatcher;
 import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.logic.Effect;
@@ -10,6 +11,7 @@ import br.com.finalcraft.evernifecore.logic.delivery.Delivery;
 import br.com.finalcraft.evernifecore.logic.delivery.DeliveryIcon;
 import br.com.finalcraft.evernifecore.logic.delivery.DeliveryOrigin;
 import br.com.finalcraft.evernifecore.logic.delivery.DeliveryPolicy;
+import br.com.finalcraft.evernifecore.logic.delivery.command.DeliveriesCommandNode;
 import br.com.finalcraft.evernifecore.testing.LogicWorld;
 import br.com.finalcraft.evernifecore.testing.RecordingSurface;
 import br.com.finalcraft.evernifecore.testing.ScreenWorld;
@@ -34,6 +36,7 @@ import java.util.Set;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -56,7 +59,7 @@ class DeliveriesScreenTest {
 
     @BeforeEach
     void setup() {
-        world = ScreenWorld.open(tempDir);
+        world = ScreenWorld.open(tempDir, platform -> platform.withInventory(1));
         alex = world.viewer("Alex");
         shop = LogicWorld.open("FakeShop", tempDir.resolve("shop"));
         deliveries = shop.deliveries();
@@ -92,12 +95,30 @@ class DeliveriesScreenTest {
     }
 
     private Delivery enqueue(String gift, String reason, DeliveryIcon icon) {
+        return enqueueNode(node("{'type': '" + GIFT + "', 'name': '" + gift + "'}"), reason, icon);
+    }
+
+    private Delivery enqueueNode(JsonNode effect, String reason, DeliveryIcon icon) {
         try {
             return deliveries.enqueue(alex.getUniqueId(), DeliveryOrigin.of("FakeShop", "test", reason), DeliveryPolicy.KEEP_SELF_CONTAINED,
-                    null, icon, Collections.singletonList(node("{'type': '" + GIFT + "', 'name': '" + gift + "'}"))).get(5, TimeUnit.SECONDS);
+                    null, icon, Collections.singletonList(effect)).get(5, TimeUnit.SECONDS);
         } catch (Exception failed) {
             throw new AssertionError(failed);
         }
+    }
+
+    /** Waits until the listed deliveries answer {@code test}, then for the redraw. */
+    private void settleUntil(ScreenView view, Predicate<List<Delivery>> test) {
+        long until = System.currentTimeMillis() + 5000;
+        DeliveriesScreen screen = (DeliveriesScreen) view.getScreen();
+        while (!test.test(screen.getPending()) && System.currentTimeMillis() < until) {
+            Thread.yield();
+        }
+        world.advanceTicks(2);
+    }
+
+    private static int stillOwed(List<Delivery> pending, int index) {
+        return pending.size() <= index ? -1 : pending.get(index).getEffects().get(0).path("amount").asInt();
     }
 
     private ScreenView open() {
@@ -193,6 +214,81 @@ class DeliveriesScreenTest {
         assertNull(surface(view).getSlot(0));
         assertNotNull(surface(view).getSlot(30), "the empty notice shows");
         assertNull(surface(view).getSlot(32), "and claim-all goes");
+        close(view);
+    }
+
+    @Test
+    void thirtyDeliveriesArePagedEachDrawnAsWhatItOwesWithItsOrigin() {
+        enqueueNode(node("{'type': 'evernifecore:give-item', 'item': 'minecraft:diamond', 'amount': 3}"), "refund", null);
+        enqueueNode(node("{'type': 'evernifecore:money', 'amount': '25', 'currency': 'fakeshop:gold'}"), "sale", null);
+        for (int i = 0; i < 28; i++) {
+            enqueue("gift" + i, "prize");
+        }
+
+        ScreenView view = open();
+        settle(view, 30);
+
+        ItemSpec diamond = surface(view).getSlot(0).getItem();
+        assertEquals("minecraft:diamond", diamond.getMaterialId(), "a give-item draws its own item");
+        assertEquals(3, diamond.getAmount());
+        assertEquals("§efakeshop", diamond.getDisplayName());
+        assertTrue(diamond.getLore().contains("§7refund"), diamond.getLore().toString());
+        assertTrue(diamond.getLore().contains("§f• 3x minecraft:diamond"), diamond.getLore().toString());
+        assertTrue(diamond.getLore().contains("§8Expires -"), diamond.getLore().toString());
+        assertTrue(diamond.getLore().stream().anyMatch(line -> line.matches("§8Since \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}")), diamond.getLore().toString());
+        ItemSpec money = surface(view).getSlot(1).getItem();
+        assertEquals("minecraft:gold_ingot", money.getMaterialId(), "a money draws the layout's THEME_MONEY item");
+        assertTrue(money.getLore().contains("§f• 25 fakeshop:gold"), money.getLore().toString());
+        assertNotNull(surface(view).getSlot(26), "the first page is full");
+
+        world.click(view, "deliveries#next", ClickGesture.PRIMARY);
+        world.advanceTicks(2);
+
+        assertNotNull(surface(view).getSlot(2), "the second page holds the last three");
+        assertNull(surface(view).getSlot(3));
+        close(view);
+    }
+
+    @Test
+    void aClickClaimsWhatFitsAndTheEntryRedrawsWithTheRest() {
+        enqueueNode(node("{'type': 'evernifecore:give-item', 'item': 'minecraft:stone', 'amount': 100}"), "refund", null);
+        ScreenView view = open();
+        settle(view, 1);
+
+        world.click(view, "deliveries#0", ClickGesture.PRIMARY);
+        settleUntil(view, pending -> stillOwed(pending, 0) == 36);
+
+        assertEquals(64, world.getPlatform().getTestInventory().count(alex, ItemMatcher.of("minecraft:stone")), "one slot took a stack");
+        ItemSpec rest = surface(view).getSlot(0).getItem();
+        assertEquals(36, rest.getAmount(), "the entry redraws with what is still owed");
+        assertTrue(rest.getLore().contains("§f• 36x minecraft:stone"), rest.getLore().toString());
+        close(view);
+    }
+
+    @Test
+    void claimAllHandsOutWhatFitsAndKeepsTheRestListed() {
+        enqueue("sword", "refund");
+        enqueueNode(node("{'type': 'evernifecore:give-item', 'item': 'minecraft:stone', 'amount': 100}"), "refund", null);
+        ScreenView view = open();
+        settle(view, 2);
+
+        world.click(view, "CLAIM_ALL", ClickGesture.PRIMARY);
+        settleUntil(view, pending -> pending.size() == 1 && stillOwed(pending, 0) == 36);
+
+        assertEquals(Collections.singletonList("sword"), given);
+        assertEquals(36, surface(view).getSlot(0).getItem().getAmount());
+        assertNull(surface(view).getSlot(1));
+        close(view);
+    }
+
+    @Test
+    void theListVerbOpensTheScreen() {
+        new DeliveriesCommandNode().list(alex);
+        world.advanceTicks(2);
+
+        ScreenView view = Screens.getOpenView(alex);
+        assertNotNull(view, "list opened a screen");
+        assertTrue(view.getScreen() instanceof DeliveriesScreen, view.getScreen().toString());
         close(view);
     }
 

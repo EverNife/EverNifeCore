@@ -13,6 +13,9 @@ import br.com.finalcraft.evernifecore.locale.SendCustom;
 import br.com.finalcraft.evernifecore.logic.delivery.ClaimResult;
 import br.com.finalcraft.evernifecore.logic.delivery.Deliveries;
 import br.com.finalcraft.evernifecore.logic.delivery.Delivery;
+import br.com.finalcraft.evernifecore.screen.ScreenKey;
+import br.com.finalcraft.evernifecore.screen.ScreenRequest;
+import br.com.finalcraft.evernifecore.screen.Screens;
 import br.com.finalcraft.evernifecore.time.ECClock;
 import br.com.finalcraft.evernifecore.util.FCStringUtil;
 import jakarta.annotation.Nonnull;
@@ -30,7 +33,8 @@ import java.util.concurrent.CompletableFuture;
  * @FinalCMD.Node(subcmd = "deliveries", permission = "myplugin.deliveries")
  * private final DeliveriesCommandNode deliveries = new DeliveriesCommandNode();
  * }</pre>
- * {@code list} shows them with origin, reason and age; {@code claim <id>|all} hands out what fits now. A delivery is
+ * {@code list} opens the deliveries screen ({@code ScreenKey.DELIVERIES}: click one to claim it, or claim them all), and
+ * where no screen opens says them in the chat with origin, reason and age; {@code claim <id>|all} hands out what fits now. A delivery is
  * named by its id or the first characters of it; tab completes the ids {@code list} shows, and {@code all}. Runs on the dispatching thread; the answer comes when the data does.
  */
 public class DeliveriesCommandNode {
@@ -84,10 +88,18 @@ public class DeliveriesCommandNode {
     private static LocaleMessage LINE_WITH_REASON_MAY_WAIT;
 
     @FinalCMD.SubCMD(subcmd = "list", locales = {
-            @FCLocale(lang = LocaleType.EN_US, text = "Your pending deliveries, with where they come from"),
-            @FCLocale(lang = LocaleType.PT_BR, text = "Suas entregas pendentes, com a origem")
+            @FCLocale(lang = LocaleType.EN_US, text = "Opens your pending deliveries: click one to claim it"),
+            @FCLocale(lang = LocaleType.PT_BR, text = "Abre suas entregas pendentes: clique numa para resgatar")
     })
     public void list(FPlayer player) {
+        Screens.open(player, ScreenKey.DELIVERIES, ScreenRequest.of(null)).whenComplete((view, refused) -> {
+            if (refused != null) {
+                say(player); //no renderer for this player (a platform without screens): the chat still lists them
+            }
+        });
+    }
+
+    private static void say(FPlayer player) {
         Deliveries.get().listOf(player.getUniqueId()).whenComplete((deliveries, failure) -> {
             if (failure != null) {
                 READ_FAILED.addPlaceholder("reason", String.valueOf(failure.getMessage())).send(player);

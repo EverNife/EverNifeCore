@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.logic.delivery;
 
+import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.logic.Effects;
 import br.com.finalcraft.evernifecore.types.TypeDescriptor;
 import br.com.finalcraft.evernifecore.types.TypeRegistry;
@@ -103,6 +104,35 @@ public final class Delivery {
     /** What the deliveries screen draws it with; null (a delivery kept before icons, or given none) draws the layout's entry item. */
     public @Nullable DeliveryIcon getIcon() {
         return icon;
+    }
+
+    /**
+     * What the deliveries screen draws it with: its own {@link #getIcon()}, else its first effect's - a {@code give-item}'s
+     * item (as many as it still owes, up to a stack), {@code MONEY} for a {@code money}, {@code COMMAND} for a
+     * {@code command}; null for any other effect, which draws the layout's entry item.
+     */
+    public @Nullable DeliveryIcon getDrawnIcon() {
+        if (icon != null || effects.isEmpty()) {
+            return icon;
+        }
+        JsonNode first = effects.get(0);
+        String type = isCoreEffect(first) ? first.path(TypeRegistry.TYPE_FIELD).asText("") : "";
+        switch (type.substring(type.indexOf(':') + 1)) {
+            case "give-item":
+                String item = first.path("item").asText("");
+                if (item.isEmpty() || item.contains("{")) {
+                    return null;
+                }
+                //a stack at most: the screen draws one slot, the lore says the whole amount
+                return DeliveryIcon.of(ItemSpec.of(item, Math.max(1, Math.min(64, first.path("amount").asInt(1))))
+                        .withData(first.path("data").asInt(-1)));
+            case "money":
+                return DeliveryIcon.of(DeliveryIcon.Theme.MONEY);
+            case "command":
+                return DeliveryIcon.of(DeliveryIcon.Theme.COMMAND);
+            default:
+                return null;
+        }
     }
 
     /** The raw effect nodes still owed, in order. */
