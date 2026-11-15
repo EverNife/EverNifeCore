@@ -7,7 +7,6 @@ import br.com.finalcraft.evernifecore.cooldown.CooldownRetention;
 import br.com.finalcraft.evernifecore.logic.RepeatPolicy;
 import br.com.finalcraft.evernifecore.time.ECClock;
 import br.com.finalcraft.evernifecore.playerdata.PDSection;
-import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.LinkedHashMap;
@@ -67,24 +66,5 @@ public class PlayerCooldownsLocal extends PDSection implements CooldownBucket {
         if (removed) {
             markDirty();
         }
-    }
-
-    /**
-     * Builds a player's local cooldown row out of a legacy v3 {@code Cooldown:} block - the adapter
-     * behind the {@code legacyYaml("Cooldown", ...)} registration that lets the first-boot import claim
-     * the block instead of leaving it forever pending. Each child key holds an {@code identifier}
-     * (optional, falling back to the key itself), a {@code timeStart} and a {@code timeDuration}; only
-     * persistent cooldowns were ever written to the v3 file, and the mutation clock did not exist, so
-     * {@code updatedAt} is the start.
-     */
-    public static PlayerCooldownsLocal fromLegacyYaml(ConfigSection cooldownBlock) {
-        PlayerCooldownsLocal section = new PlayerCooldownsLocal();
-        for (String key : cooldownBlock.getKeys()) {
-            String identifier = cooldownBlock.getString(key + ".identifier", key);
-            long timeStart = cooldownBlock.getLong(key + ".timeStart", 0L);
-            long timeDuration = cooldownBlock.getLong(key + ".timeDuration", 0L);
-            section.cooldowns.put(identifier, new CooldownEntry(timeStart, timeDuration, timeStart, true));
-        }
-        return section;
     }
 }

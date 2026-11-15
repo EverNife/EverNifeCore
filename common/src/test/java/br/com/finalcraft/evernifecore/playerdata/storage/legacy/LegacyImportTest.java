@@ -7,8 +7,6 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.everyconfig.config.Config;
-import br.com.finalcraft.evernifecore.cooldown.CooldownEntry;
-import br.com.finalcraft.evernifecore.cooldown.player.PlayerCooldownsLocal;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.playerdata.PDSection;
@@ -277,8 +275,7 @@ class LegacyImportTest {
         assertEquals(1600000000000L, converted.getFirstSeen());
         assertEquals(1700000000000L, converted.getLastSeen());
         assertEquals(1700000000000L, converted.getLastSaved(), "missing lastSaved must default to lastSeen");
-        //convertBase handles only the base block; the Cooldown: block is migrated by the
-        //PlayerCooldownsLocal legacyYaml adapter, not here
+        //convertBase handles only the base block, never the Cooldown: block
     }
 
     // ------------------------------------------------------------------
@@ -634,51 +631,6 @@ class LegacyImportTest {
         assertEquals(1, progress.getInt("files.pending"));
         assertEquals(0, progress.getInt("files.failed"));
         assertFalse(progress.getBoolean("complete"));
-    }
-
-    @Test
-    void theCooldownBlockIsClaimedByTheBuiltinLocalSectionAndMigrates() throws IOException {
-        //Cooldown is no longer a homeless root key: the framework's own PlayerCooldownsLocal claims it
-        //through a legacyYaml adapter, so a v3 Cooldown block migrates like any other section and its
-        //file is archived once done - where it used to block the migration forever.
-        writeLegacyYml("petrus.yml", String.join("\n",
-                "PlayerData:",
-                "  Username: Petrus",
-                "  UUID: " + PETRUS_UUID,
-                "  firstSeen: 1600000000000",
-                "  lastSeen: 1700000000000",
-                "  lastSaved: 1700000000001",
-                "Cooldown:",
-                "  test_kit:",
-                "    identifier: test_kit",
-                "    timeStart: 1600000000000",
-                "    timeDuration: 99999999",
-                "FinalJobs:",
-                "  level: 42",
-                "  job: miner",
-                ""));
-        registerJobsSectionWithAdapter();
-
-        PlayerController.initialize(writeStorageYml("storage.yml", ""));
-
-        assertEquals(0, ymlFiles(legacyFolder()).length,
-                "every root key now has an owner, so the file is drained");
-        assertEquals(1, ymlFiles(consolidatedPlayerData()).length);
-
-        Config progress = ConfigFactory.open(consolidatedMetadata());
-        assertEquals("DONE", progress.getString("sections.Cooldown.status"),
-                "Cooldown is claimed by the builtin local cooldown row, so it migrates");
-        assertEquals("DONE", progress.getString("sections.FinalJobs.status"));
-        assertTrue(progress.getBoolean("complete"));
-
-        //the cooldown itself reached the player's local cooldown row
-        PlayerCooldownsLocal cooldowns = PlayerController.getLoaded(PETRUS_UUID)
-                .getPDSection(PlayerCooldownsLocal.class).join();
-        CooldownEntry migrated = cooldowns.getPersistedCooldowns().get("test_kit");
-        assertNotNull(migrated, "the v3 cooldown must land in the player's local cooldown row");
-        assertEquals(1600000000000L, migrated.getTimeStart());
-        assertEquals(99999999L, migrated.getTimeDuration());
-        assertTrue(migrated.isPersist(), "only persistent cooldowns were ever written to a v3 file");
     }
 
     @Test

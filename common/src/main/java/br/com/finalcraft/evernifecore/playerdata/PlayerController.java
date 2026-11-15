@@ -766,9 +766,6 @@ public class PlayerController {
      * reload-surviving, so a player cooldown always has a storage route without every plugin
      * declaring one. The network reach is opted into at the call site, per cooldown, so both rows are
      * registered unconditionally.
-     *
-     * <p>Also called before the legacy import binds its adapters, so the local row's
-     * {@code legacyYaml("Cooldown", ...)} claim is in place when the importer scans a v3 file.</p>
      */
     void registerBuiltinSectionsOnce(){
         //guarded: start() runs BEFORE the fresh instance is published, so on a reload an unguarded
@@ -780,7 +777,6 @@ public class PlayerController {
                 .builder(EverNifeCore.getEcPluginData(), PlayerCooldownsLocal.class, "cooldowns")
                 .lifecycle(SectionLifecycle.ONLINE)
                 .description("Per-player cooldowns scoped to THIS server")
-                .legacyYaml("Cooldown", PlayerCooldownsLocal::fromLegacyYaml) // Import legacy data from EC v2
                 .build());
         }
 

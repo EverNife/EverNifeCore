@@ -1,24 +1,9 @@
 package br.com.finalcraft.evernifecore.cooldown;
 
-import br.com.finalcraft.evernifecore.cooldown.player.PlayerCooldownsLocal;
 import br.com.finalcraft.evernifecore.logic.RepeatPolicy;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.time.Window;
-import br.com.finalcraft.evernifecore.config.ConfigFactory;
-import br.com.finalcraft.evernifecore.config.ConfigFactory;
-import br.com.finalcraft.everyconfig.config.Config;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;import org.junit.jupiter.api.io.TempDir;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -158,19 +143,6 @@ class CooldownPolicyTest {
         map.remove("windowStart");
         map.remove("windowEnd");
         assertEquals(0, Cooldowns.fromConfigMap(map).getEntry().getUses(), "a file written before uses existed reads 0");
-    }
-
-    @Test
-    void theLegacyPlayerImportReadsNoUses(@TempDir Path dir) throws IOException {
-        Path file = dir.resolve("legacy.yml");
-        Files.write(file, "Cooldown:\n  kit:\n    timeStart: 1000\n    timeDuration: 5000\n".getBytes(StandardCharsets.UTF_8));
-        Config legacy = ConfigFactory.open(file.toFile());
-        PlayerCooldownsLocal section = PlayerCooldownsLocal.fromLegacyYaml(legacy.getConfigSection("Cooldown"));
-
-        CooldownEntry kit = section.getPersistedCooldowns().get("kit");
-        assertEquals(1000L, kit.getTimeStart());
-        assertEquals(0, kit.getUses());
-        assertEquals(0L, kit.getWindowStart());
     }
 
     @Test

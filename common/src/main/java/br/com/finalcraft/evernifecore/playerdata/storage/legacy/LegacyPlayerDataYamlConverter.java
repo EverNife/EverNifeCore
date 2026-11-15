@@ -21,11 +21,8 @@ import java.util.UUID;
  *   lastSaved: 1700000000001
  * </pre>
  *
- * <p>This handles ONLY the base block. Every other root key - the legacy {@code Cooldown:} block
- * included - is migrated by the section it belongs to, through the {@code legacyYaml(rootKey, adapter)}
- * binding routing in {@link LegacyPlayerDataImporter}. The {@code Cooldown:} block is claimed by the
- * framework's own {@code PlayerCooldownsLocal} row, so it migrates like any other section and its file
- * is archived once done.</p>
+ * <p>This handles ONLY the base block. Every other root key is migrated by the section it belongs to,
+ * through the {@code legacyYaml(rootKey, adapter)} binding routing in {@link LegacyPlayerDataImporter}.</p>
  */
 public final class LegacyPlayerDataYamlConverter {
 
@@ -43,8 +40,8 @@ public final class LegacyPlayerDataYamlConverter {
         long lastSeen = legacyConfig.getLong("PlayerData.lastSeen", now);
         long lastSaved = legacyConfig.getLong("PlayerData.lastSaved", lastSeen);
 
-        //Only the base block is converted here; the Cooldown: block (and every other section key) is
-        //migrated by its own section's legacyYaml adapter - for Cooldown, PlayerCooldownsLocal.
+        //Only the base block is converted here; every other section key is migrated by its own
+        //section's legacyYaml adapter.
         return new PlayerData(uuid, name, firstSeen, lastSeen, lastSaved);
     }
 }

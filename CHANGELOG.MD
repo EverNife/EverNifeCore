@@ -257,6 +257,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **Cooldown retention per plugin**: `CooldownRetention.configure(owner, CooldownSettings)` applies the plugin's
   `cooldowns.retention-days` and `retention-overrides` to its own counters only; `Settings.Cooldown.RETENTION_DAYS` stays the
   server's default (`CooldownRetention.setDefaultDays`) and `Settings.Cooldown.RETENTION_OVERRIDES` is gone.
+- **The legacy PlayerData import no longer claims the `Cooldown:` block** (`PlayerCooldownsLocal.fromLegacyYaml` is gone): it
+  is a root key like any other, migrated only by a section that registers `legacyYaml("Cooldown", ...)`.
 - **`/eccooldown` names a cooldown by its full key** `<Plugin>#<id>` (`reset`, `resetplayer`, `set`, `setplayer`), completing
   the plugin part; an unknown plugin is refused with the list of loaded ones.
 
