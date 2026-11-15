@@ -3,6 +3,9 @@ package br.com.finalcraft.evernifecore.logic.delivery.command;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.ArgParserString;
+import br.com.finalcraft.evernifecore.commands.finalcmd.tab.ITabParser.TabContext;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
@@ -11,12 +14,15 @@ import br.com.finalcraft.evernifecore.logic.delivery.ClaimResult;
 import br.com.finalcraft.evernifecore.logic.delivery.Deliveries;
 import br.com.finalcraft.evernifecore.logic.delivery.Delivery;
 import br.com.finalcraft.evernifecore.time.ECClock;
+import br.com.finalcraft.evernifecore.util.FCStringUtil;
+import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * The pending deliveries of the player who runs it, as a plugin mounts it under its own command:
@@ -25,7 +31,7 @@ import java.util.Locale;
  * private final DeliveriesCommandNode deliveries = new DeliveriesCommandNode();
  * }</pre>
  * {@code list} shows them with origin, reason and age; {@code claim <id>|all} hands out what fits now. A delivery is
- * named by its id or the first characters of it. Runs on the dispatching thread; the answer comes when the data does.
+ * named by its id or the first characters of it; tab completes the ids {@code list} shows, and {@code all}. Runs on the dispatching thread; the answer comes when the data does.
  */
 public class DeliveriesCommandNode {
 
@@ -102,7 +108,10 @@ public class DeliveriesCommandNode {
             @FCLocale(lang = LocaleType.EN_US, text = "Claim one pending delivery by its id, or all of them"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Resgata uma entrega pendente pelo id, ou todas")
     })
-    public void claim(FPlayer player, @Arg("<id>") String which) {
+    public void claim(FPlayer player, @Arg(value = "<id>", parser = PendingId.class, locales = {
+            @FCLocale(lang = LocaleType.EN_US, text = "The id list shows (its first characters are enough), or all"),
+            @FCLocale(lang = LocaleType.PT_BR, text = "O id que o list mostra (os primeiros caracteres bastam), ou all")
+    }) String which) {
         if (which.equalsIgnoreCase("all")) {
             Deliveries.get().claimAll(player).whenComplete((result, failure) -> report(player, result, failure));
             return;
@@ -151,10 +160,15 @@ public class DeliveriesCommandNode {
                 ? (delivery.isSelfContained() ? LINE : LINE_MAY_WAIT)
                 : (delivery.isSelfContained() ? LINE_WITH_REASON : LINE_WITH_REASON_MAY_WAIT);
         return message.custom()
-                .addPlaceholder("id", delivery.getId().toString().substring(0, 8))
+                .addPlaceholder("id", shortId(delivery))
                 .addPlaceholder("plugin", delivery.getOrigin().getPlugin())
                 .addPlaceholder("reason", reason)
                 .addPlaceholder("age", age(Duration.between(delivery.getCreatedAt(), ECClock.now())));
+    }
+
+    /** The id as {@code list} shows it and {@code claim} completes it. */
+    private static String shortId(Delivery delivery) {
+        return delivery.getId().toString().substring(0, 8);
     }
 
     private static String age(Duration age) {
@@ -163,5 +177,31 @@ public class DeliveriesCommandNode {
             return minutes + "m";
         }
         return minutes < 60 * 24 ? (minutes / 60) + "h" : (minutes / (60 * 24)) + "d";
+    }
+
+    /** A pending delivery of the player who completes it, by the id {@code list} shows, or {@code all}. */
+    public static final class PendingId extends ArgParserString {
+
+        public PendingId(ArgInfo argInfo) {
+            super(argInfo);
+        }
+
+        @Override
+        public @Nonnull List<String> tabComplete(TabContext tabContext) {
+            List<String> ids = new ArrayList<>();
+            ids.add("all");
+            FPlayer player = tabContext.getPlayer();
+            if (player != null) {
+                //tab runs on the server thread once per keystroke: answer from what is loaded, never wait for storage
+                CompletableFuture<List<Delivery>> pending = Deliveries.get().listOf(player.getUniqueId());
+                if (pending.isDone() && !pending.isCompletedExceptionally()) {
+                    for (Delivery delivery : pending.join()) {
+                        ids.add(shortId(delivery));
+                    }
+                }
+            }
+            ids.removeIf(id -> !FCStringUtil.startsWithIgnoreCase(id, tabContext.getLastWord()));
+            return ids;
+        }
     }
 }

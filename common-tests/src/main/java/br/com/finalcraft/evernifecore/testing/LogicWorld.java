@@ -24,6 +24,7 @@ import br.com.finalcraft.evernifecore.logic.reward.core.CoreRewardPieces;
 import br.com.finalcraft.evernifecore.logic.value.Contributions;
 import br.com.finalcraft.evernifecore.logic.value.DynamicValues;
 import br.com.finalcraft.evernifecore.playerdata.PDSection;
+import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
 
@@ -144,13 +145,28 @@ public final class LogicWorld implements AutoCloseable {
      * @throws IllegalStateException on the first call while a strict platform has no list of online players yet
      */
     public synchronized Deliveries deliveries() {
+        bootPlayerData();
+        return Deliveries.get();
+    }
+
+    /**
+     * Logs {@code player} into the PlayerData layer {@link #deliveries()} boots (booting it on the first call), so the
+     * player is one the server knows: a {@code PlayerData} argument finds them by name and completes them, also after
+     * {@link #quit}. Call it after {@link #player}.
+     */
+    public PlayerData login(TestFPlayerSender player) {
+        bootPlayerData();
+        return PlayerController.handleLogin(player.getUniqueId(), player.getName()).join();
+    }
+
+    private synchronized void bootPlayerData() {
         if (playerData == null) {
             try {
                 platform().getOnlinePlayers();
             } catch (PlatformNotConfiguredException none) {
-                throw new IllegalStateException("deliveries() boots the PlayerData layer, which reads the platform's online players, and"
-                        + " none were set yet: call player(\"Alex\") first (or install the platform with Platforms.strict().onlinePlayers(...)),"
-                        + " then deliveries(), then run the effects.", none);
+                throw new IllegalStateException("deliveries() and login() boot the PlayerData layer, which reads the platform's online players,"
+                        + " and none were set yet: call player(\"Alex\") first (or install the platform with Platforms.strict().onlinePlayers(...)),"
+                        + " then deliveries() or login(alex), then run the effects.", none);
             }
             Path folder = dataFolder.resolve("playerdata");
             try {
@@ -160,7 +176,6 @@ public final class LogicWorld implements AutoCloseable {
             }
             playerData = PlayerDataWorld.with(Storages.memory()).boot(folder);
         }
-        return Deliveries.get();
     }
 
     /**

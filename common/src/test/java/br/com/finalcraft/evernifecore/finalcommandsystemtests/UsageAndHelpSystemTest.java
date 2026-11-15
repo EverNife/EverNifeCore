@@ -11,6 +11,8 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgMo
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpWords;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
+import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
+import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.testing.TestCommandSender;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
@@ -24,7 +26,11 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -183,6 +189,62 @@ class UsageAndHelpSystemTest {
         assertTrue(hover.contains("The value to use"));
         //this subcommand has no description of its own, and an absent one renders as nothing, not as "null"
         assertFalse(hover.contains("null"), hover);
+    }
+
+    // ------------------------------------------------------------------
+    // every @Arg describes itself in each language of the help line, and the line sent back on a
+    // wrong usage carries the same descriptions
+    // ------------------------------------------------------------------
+
+    @FinalCMD(aliases = "argdescriptions")
+    public static class ArgDescriptionsCmd {
+        @FinalCMD.SubCMD(subcmd = "give", locales = {
+                @FCLocale(lang = LocaleType.EN_US, text = "Grant a booster"),
+                @FCLocale(lang = LocaleType.PT_BR, text = "Concede um booster")
+        })
+        public void give(FCommandSender sender,
+                         @Arg(value = "<player>", locales = {
+                                 @FCLocale(lang = LocaleType.EN_US, text = "Who receives it"),
+                                 @FCLocale(lang = LocaleType.PT_BR, text = "Quem recebe")
+                         }) String player,
+                         @Arg(value = "<factor>", locales = {
+                                 @FCLocale(lang = LocaleType.EN_US, text = "2 multiplies by 2"),
+                                 @FCLocale(lang = LocaleType.PT_BR, text = "2 multiplica por 2")
+                         }) String factor) {}
+    }
+
+    @Test
+    void eachArgumentIsDescribedOnTheHelpLineInEnglishAndPortuguese() {
+        FinalCMDPluginCommand command = newHarness().register(new ArgDescriptionsCmd());
+        LocaleMessage line = command.getRoot().getChild("give").getHelpLineTemplate().getLocaleMessage();
+
+        String english = hoversOf(line.getFancyText("EN_US"));
+        String portuguese = hoversOf(line.getFancyText("PT_BR"));
+
+        assertTrue(english.contains("<player>") && english.contains("Who receives it"), english);
+        assertTrue(english.contains("<factor>") && english.contains("2 multiplies by 2"), english);
+        assertTrue(portuguese.contains("<player>") && portuguese.contains("Quem recebe"), portuguese);
+        assertTrue(portuguese.contains("<factor>") && portuguese.contains("2 multiplica por 2"), portuguese);
+        assertFalse(portuguese.contains("Who receives it"), portuguese);
+    }
+
+    @Test
+    void aWrongUsageAnswersWithTheLineThatDescribesEachArgument() {
+        FinalCMDPluginCommand command = newHarness().register(new ArgDescriptionsCmd());
+        TestCommandSender sender = new TestCommandSender("console");
+
+        harness.dispatch(command, sender, "give Ana");
+
+        String hover = sender.hoverTextOfMessageContaining("argdescriptions give");
+        assertNotNull(hover, sender.getMessages().toString());
+        assertTrue(hover.contains("Who receives it"), hover);
+        assertTrue(hover.contains("2 multiplies by 2"), hover);
+    }
+
+    private static String hoversOf(FancyText text) {
+        assertNotNull(text);
+        List<FancyText> parts = text instanceof FancyFormatter ? ((FancyFormatter) text).getFancyTextList() : Collections.singletonList(text);
+        return parts.stream().map(FancyText::getHoverText).filter(Objects::nonNull).collect(Collectors.joining("\n"));
     }
 
     // ------------------------------------------------------------------

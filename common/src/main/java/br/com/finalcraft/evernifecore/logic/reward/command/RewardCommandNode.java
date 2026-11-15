@@ -198,8 +198,12 @@ public final class RewardCommandNode implements VerbPermissionBase {
             @FCLocale(lang = LocaleType.EN_US, text = "Show what the rewards of a phase would pay on the occasion's sample, applying nothing"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Mostra o que os prêmios de uma fase pagariam na amostra da ocasião, sem aplicar nada")
     })
-    public void simulate(FCommandSender sender, @Arg(value = "<occasion>", parser = OccasionName.class) String occasionId,
-                         @Arg("<phase>") Integer phase) {
+    public void simulate(FCommandSender sender, @Arg(value = "<occasion>", parser = OccasionName.class, locales = {
+                            @FCLocale(lang = LocaleType.EN_US, text = "An occasion this plugin mounted on the node"),
+                            @FCLocale(lang = LocaleType.PT_BR, text = "Uma ocasião que este plugin montou no nó")}) String occasionId,
+                         @Arg(value = "<phase>", locales = {
+                            @FCLocale(lang = LocaleType.EN_US, text = "The phase to simulate, a whole number (the stage, the wave...)"),
+                            @FCLocale(lang = LocaleType.PT_BR, text = "A fase a simular, um número inteiro (o estágio, a onda...)")}) Integer phase) {
         Mounted mounted;
         synchronized (this) {
             mounted = occasions.get(occasionId.trim().toLowerCase(Locale.ROOT));

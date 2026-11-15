@@ -85,8 +85,16 @@ public class AuditCommandNode {
             @FCLocale(lang = LocaleType.EN_US, text = "The audit log, newest first: --player, --since 2h, --kind, --page"),
             @FCLocale(lang = LocaleType.PT_BR, text = "O log de auditoria, do mais novo: --player, --since 2h, --kind, --page")
     })
-    public void root(FCommandSender sender, @Arg.Flag("--player") String player, @Arg.Flag("--since") FCTimeFrame since,
-                     @Arg.Flag("--kind") String kind, @Arg.Flag("--page") Integer page) {
+    public void root(FCommandSender sender, @Arg.Flag(value = "--player", locales = {
+                            @FCLocale(lang = LocaleType.EN_US, text = "A player, by name or UUID"),
+                            @FCLocale(lang = LocaleType.PT_BR, text = "Um jogador, pelo nome ou UUID")}) String player, @Arg.Flag(value = "--since", locales = {
+                            @FCLocale(lang = LocaleType.EN_US, text = "How far back: 30m, 2h, 7d"),
+                            @FCLocale(lang = LocaleType.PT_BR, text = "Até quando atrás: 30m, 2h, 7d")}) FCTimeFrame since,
+                     @Arg.Flag(value = "--kind", locales = {
+                            @FCLocale(lang = LocaleType.EN_US, text = "One kind of entry: transfer, gate-paid..."),
+                            @FCLocale(lang = LocaleType.PT_BR, text = "Um tipo de linha: transfer, gate-paid...")}) String kind, @Arg.Flag(value = "--page", locales = {
+                            @FCLocale(lang = LocaleType.EN_US, text = "Which page, from 1"),
+                            @FCLocale(lang = LocaleType.PT_BR, text = "Qual página, a partir de 1")}) Integer page) {
         view(sender, player, since, kind, page);
     }
 
@@ -94,8 +102,16 @@ public class AuditCommandNode {
             @FCLocale(lang = LocaleType.EN_US, text = "The audit log, newest first, of a player, since a time ago, of one kind"),
             @FCLocale(lang = LocaleType.PT_BR, text = "O log de auditoria, do mais novo, de um jogador, desde um tempo atrás, de um tipo")
     })
-    public void view(FCommandSender sender, @Arg("[player]") String player, @Arg("[since]") FCTimeFrame since, @Arg("[kind]") String kind,
-                     @Arg("[page]") Integer page) {
+    public void view(FCommandSender sender, @Arg(value = "[player]", locales = {
+                            @FCLocale(lang = LocaleType.EN_US, text = "A player, by name or UUID"),
+                            @FCLocale(lang = LocaleType.PT_BR, text = "Um jogador, pelo nome ou UUID")}) String player, @Arg(value = "[since]", locales = {
+                            @FCLocale(lang = LocaleType.EN_US, text = "How far back: 30m, 2h, 7d"),
+                            @FCLocale(lang = LocaleType.PT_BR, text = "Até quando atrás: 30m, 2h, 7d")}) FCTimeFrame since, @Arg(value = "[kind]", locales = {
+                            @FCLocale(lang = LocaleType.EN_US, text = "One kind of entry: transfer, gate-paid..."),
+                            @FCLocale(lang = LocaleType.PT_BR, text = "Um tipo de linha: transfer, gate-paid...")}) String kind,
+                     @Arg(value = "[page]", locales = {
+                            @FCLocale(lang = LocaleType.EN_US, text = "Which page, from 1"),
+                            @FCLocale(lang = LocaleType.PT_BR, text = "Qual página, a partir de 1")}) Integer page) {
         AuditQuery query = new AuditQuery().limit(VIEW_LIMIT);
         if (player != null) {
             UUID uuid = playerId(player);

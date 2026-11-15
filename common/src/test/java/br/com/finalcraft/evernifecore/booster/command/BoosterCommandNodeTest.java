@@ -23,6 +23,8 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -73,6 +75,7 @@ class BoosterCommandNodeTest {
         win = BoosterDomain.of(duels.getOwner(), "win").join(BoosterJoin.sumBonus()).permission("fakeduels.booster.win", 2).register();
         BoosterDomain.of(arena.getOwner(), "wave").register();
         ana = duels.player("Ana");
+        duels.login(ana);
         cmd = harness.register(new Duel_Cmd(new BoosterCommandNode(duels.getOwner(), BASE)));
         admin = Senders.console("admin").grant(BASE).grant(BASE + ".give").grant(BASE + ".list").grant(BASE + ".revoke").grant(BASE + ".explain");
     }
@@ -143,10 +146,10 @@ class BoosterCommandNodeTest {
 
     @Test
     void explainLoadsAnOfflinePlayersPermissionsFirst() {
-        UUID cris = UUID.randomUUID();
+        UUID cris = offline("Cris");
         harness.platform.useTestOfflinePermissions().grant(cris, "fakeduels.booster.win.2");
 
-        harness.dispatch(cmd, admin, "boosters explain " + cris + " win");
+        harness.dispatch(cmd, admin, "boosters explain Cris win");
 
         waitFor(() -> admin.anyMessageContains("x2"), admin);
         assertTrue(admin.getMessages().stream().noneMatch(line -> line.contains("not read")), admin.getMessages().toString());
@@ -162,7 +165,59 @@ class BoosterCommandNodeTest {
         assertTrue(arena.boosters().getAll().isEmpty(), "nothing granted on the other plugin either");
     }
 
+    @Test
+    void anUnknownPlayerIsRefusedAndNothingIsGranted() {
+        harness.dispatch(cmd, admin, "boosters give Ghost win 2 1h");
+
+        assertTrue(admin.anyMessageContains("Ghost"), admin.getMessages().toString());
+        assertTrue(duels.boosters().getAll().isEmpty());
+    }
+
+    @Test
+    void givePlayerCompletesAKnownOfflinePlayer() {
+        offline("Cris");
+
+        List<String> offered = harness.tab(cmd, admin, "boosters", "give", "");
+
+        assertTrue(offered.contains("Cris"), offered.toString());
+        assertTrue(offered.contains("Ana"), offered.toString());
+    }
+
+    @Test
+    void theDomainCompletesOnlyThisPluginsDomainsWholeAndShort() {
+        List<String> offered = harness.tab(cmd, admin, "boosters", "explain", "Ana", "");
+
+        assertEquals(Arrays.asList("fakeduels:win", "win"), offered);
+        assertEquals(Collections.singletonList("win"), harness.tab(cmd, admin, "boosters", "give", "Ana", "w"));
+    }
+
+    @Test
+    void theShortDomainNameGrants() {
+        harness.dispatch(cmd, admin, "boosters give Ana win x3 1h");
+
+        List<Booster> active = duels.boosters().getActive(ProgressOwner.player(ana.getUniqueId()));
+        assertEquals(1, active.size(), active.toString());
+        assertEquals("fakeduels:win", active.get(0).getDomainId());
+    }
+
+    @Test
+    void aFactorThatIsNoNumberIsRefusedTeachingBothForms() {
+        harness.dispatch(cmd, admin, "boosters give Ana win double 1h");
+
+        String said = String.join("\n", admin.getMessages());
+        assertTrue(said.contains("double") && said.contains("+50%"), said);
+        assertTrue(duels.boosters().getAll().isEmpty());
+    }
+
     // ------------------------------------------------------------------
+
+    /** A player the server has seen and who is offline now. */
+    private UUID offline(String name) {
+        TestFPlayerSender player = duels.player(name);
+        duels.login(player);
+        duels.quit(player);
+        return player.getUniqueId();
+    }
 
     private Booster grantAna() throws Exception {
         CompletableFuture<Booster> granted = duels.boosters().grant(Booster.on(win).factor(2).forOwner(ProgressOwner.player(ana.getUniqueId())).build());

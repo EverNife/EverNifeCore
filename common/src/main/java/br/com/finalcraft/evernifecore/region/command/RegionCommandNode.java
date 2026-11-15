@@ -263,7 +263,9 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
             @FCLocale(lang = LocaleType.EN_US, text = "Start selecting an area with the selection tool"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Começa a selecionar uma área com a ferramenta de seleção")
     })
-    public void select(FPlayer player, CommandPath path, @Arg(value = "[shape]", context = "cuboid|polygon") String shape) {
+    public void select(FPlayer player, CommandPath path, @Arg(value = "[shape]", context = "cuboid|polygon", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "cuboid (two corners, the default) or polygon (points and a height range)"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "cuboid (dois cantos, o padrão) ou polygon (pontos e uma faixa de altura)")}) String shape) {
         SelectionSpec spec = shape == null ? selectionSpec
                 : shape.equalsIgnoreCase("polygon") ? copyShape(SelectionSpec.polygon()) : copyShape(SelectionSpec.cuboid());
         String defineCommand = nodeCommand(path) + " define";
@@ -279,7 +281,9 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
             @FCLocale(lang = LocaleType.EN_US, text = "Create a region over your selection; -f accepts an overlap"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Cria uma região sobre a sua seleção; -f aceita sobreposição")
     })
-    public void define(FPlayer player, CommandPath path, @Arg("<name>") String name,
+    public void define(FPlayer player, CommandPath path, @Arg(value = "<name>", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "The name of the new region"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "O nome da nova região")}) String name,
                        @Arg.Flag(value = "--force", aliases = {"-f"}) Boolean force) {
         if (!manager.isLoaded()) {
             REGIONS_NOT_LOADED.send(player);
@@ -308,7 +312,9 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
             @FCLocale(lang = LocaleType.EN_US, text = "Give a region the shape of your selection; -f accepts an overlap"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Dá à região a forma da sua seleção; -f aceita sobreposição")
     })
-    public void redefine(FPlayer player, CommandPath path, @Arg("<region>") Region region,
+    public void redefine(FPlayer player, CommandPath path, @Arg(value = "<region>", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "The region: an owner:name id, or the bare name of a region of this command"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "A região: um id dono:nome, ou o nome de uma região deste comando")}) Region region,
                          @Arg.Flag(value = "--force", aliases = {"-f"}) Boolean force) {
         if (!requireWritable(player, region)) {
             return;
@@ -341,7 +347,9 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
             @FCLocale(lang = LocaleType.EN_US, text = "Remove a region; --cascade takes its children too, --orphan keeps them"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Remove uma região; --cascade leva as filhas junto, --orphan as mantém")
     })
-    public void remove(FCommandSender sender, @Arg("<region>") Region region,
+    public void remove(FCommandSender sender, @Arg(value = "<region>", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "The region: an owner:name id, or the bare name of a region of this command"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "A região: um id dono:nome, ou o nome de uma região deste comando")}) Region region,
                        @Arg.Flag("--cascade") Boolean cascade, @Arg.Flag("--orphan") Boolean orphan) {
         if (!requireWritable(sender, region)) {
             return;
@@ -366,7 +374,9 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
             @FCLocale(lang = LocaleType.EN_US, text = "Everything a region holds"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Tudo o que uma região guarda")
     })
-    public void info(FCommandSender sender, @Arg("<region>") Region region) {
+    public void info(FCommandSender sender, @Arg(value = "<region>", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "The region: an owner:name id, or the bare name of a region of this command"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "A região: um id dono:nome, ou o nome de uma região deste comando")}) Region region) {
         CoreRegionCommands.sendInfo(sender, region);
     }
 
@@ -374,7 +384,9 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
             @FCLocale(lang = LocaleType.EN_US, text = "The regions of this command, optionally of one world"),
             @FCLocale(lang = LocaleType.PT_BR, text = "As regiões deste comando, opcionalmente de um mundo")
     })
-    public void list(FCommandSender sender, @Arg("[world]") String world) {
+    public void list(FCommandSender sender, @Arg(value = "[world]", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "Only the regions of this world; every world when left out"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "Só as regiões deste mundo; todos quando omitido")}) String world) {
         CoreRegionCommands.getListPage(manager.getOwner().getMetaInfo().getName(), world).send(sender);
     }
 
@@ -382,9 +394,15 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
             @FCLocale(lang = LocaleType.EN_US, text = "Set, replace or clear (-) a flag of a region; -t gives the value a time to live, --mode add|set, -p <priority> and --lock place it among the layers, --fs k=v or {json} sets how it acts"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Define, troca ou limpa (-) uma flag da região; -t dá prazo ao valor, --mode add|set, -p <prioridade> e --lock o situam entre as camadas, --fs k=v ou {json} define como ela age")
     })
-    public void flag(FCommandSender sender, @Arg("<region>") Region region,
-                     @Arg(value = "<flag>", parser = ArgParserRegionFlag.OrShortcut.class) String flagName,
-                     @Arg(value = "[value...]", parser = ArgParserFlagValue.class) String valueText,
+    public void flag(FCommandSender sender, @Arg(value = "<region>", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "The region: an owner:name id, or the bare name of a region of this command"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "A região: um id dono:nome, ou o nome de uma região deste comando")}) Region region,
+                     @Arg(value = "<flag>", parser = ArgParserRegionFlag.OrShortcut.class, locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "A flag key (deny-break), or deny-build for break and place together"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "Uma chave de flag (deny-break), ou deny-build para quebrar e colocar juntos")}) String flagName,
+                     @Arg(value = "[value...]", parser = ArgParserFlagValue.class, locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "The value the flag takes; - clears it"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "O valor que a flag recebe; - a limpa")}) String valueText,
                      @Arg.Flag(value = "--ttl", aliases = {"-t"}, insideTail = true) FCTimeFrame ttl,
                      @Arg.Flag(value = "--mode", insideTail = true) String mode,
                      @Arg.Flag(value = "--priority", aliases = {"-p"}, insideTail = true) Integer priority,
@@ -435,8 +453,14 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
             @FCLocale(lang = LocaleType.EN_US, text = "How a flag acts in this region: field=value overrides the server's settings, - drops the override"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Como uma flag age nesta região: campo=valor sobrepõe as settings do servidor, - remove a sobreposição")
     })
-    public void settings(FCommandSender sender, @Arg("<region>") Region region, @Arg("<flag>") Flag<?> flag,
-                         @Arg(value = "[settings...]", parser = ArgParserFlagValue.Settings.class) String settingsText) {
+    public void settings(FCommandSender sender, @Arg(value = "<region>", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "The region: an owner:name id, or the bare name of a region of this command"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "A região: um id dono:nome, ou o nome de uma região deste comando")}) Region region, @Arg(value = "<flag>", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "A flag key (deny-break)"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "Uma chave de flag (deny-break)")}) Flag<?> flag,
+                         @Arg(value = "[settings...]", parser = ArgParserFlagValue.Settings.class, locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "field=value pairs that override the server's settings; - drops the override"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "pares campo=valor que sobrescrevem as do servidor; - tira a sobrescrita")}) String settingsText) {
         if (settingsText.isEmpty()) {
             sendSettings(sender, region, flag);
             return;
@@ -468,7 +492,11 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
             @FCLocale(lang = LocaleType.EN_US, text = "Set the priority of a region"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Define a prioridade de uma região")
     })
-    public void priority(FCommandSender sender, @Arg("<region>") Region region, @Arg("<priority>") Integer priority) {
+    public void priority(FCommandSender sender, @Arg(value = "<region>", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "The region: an owner:name id, or the bare name of a region of this command"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "A região: um id dono:nome, ou o nome de uma região deste comando")}) Region region, @Arg(value = "<priority>", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "A whole number; the higher one wins where they overlap"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "Um número inteiro; o maior vence onde se sobrepõem")}) Integer priority) {
         if (!requireWritable(sender, region)) {
             return;
         }
@@ -480,7 +508,11 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
             @FCLocale(lang = LocaleType.EN_US, text = "Set the name players read for a region, colors and spaces kept; no text clears it"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Define o nome que os jogadores leem para a região, com cor e espaço; sem texto limpa")
     })
-    public void displayName(FCommandSender sender, @Arg("<region>") Region region, @Arg("[name...]") String name) {
+    public void displayName(FCommandSender sender, @Arg(value = "<region>", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "The region: an owner:name id, or the bare name of a region of this command"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "A região: um id dono:nome, ou o nome de uma região deste comando")}) Region region, @Arg(value = "[name...]", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "The name players read, colors and spaces kept; nothing clears it"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "O nome que os jogadores leem, com cores e espaços; nada o limpa")}) String name) {
         if (!requireWritable(sender, region)) {
             return;
         }
@@ -493,7 +525,11 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
             @FCLocale(lang = LocaleType.EN_US, text = "Set the description of a region, colors and spaces kept; no text clears it"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Define a descrição da região, com cor e espaço; sem texto limpa")
     })
-    public void description(FCommandSender sender, @Arg("<region>") Region region, @Arg("[text...]") String text) {
+    public void description(FCommandSender sender, @Arg(value = "<region>", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "The region: an owner:name id, or the bare name of a region of this command"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "A região: um id dono:nome, ou o nome de uma região deste comando")}) Region region, @Arg(value = "[text...]", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "The description, colors and spaces kept; nothing clears it"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "A descrição, com cores e espaços; nada a limpa")}) String text) {
         if (!requireWritable(sender, region)) {
             return;
         }
@@ -506,7 +542,11 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
             @FCLocale(lang = LocaleType.EN_US, text = "Show, set or clear (-) the parent of a region"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Mostra, define ou limpa (-) o pai de uma região")
     })
-    public void parent(FCommandSender sender, @Arg("<region>") Region region, @Arg("[parent]") String parentText) {
+    public void parent(FCommandSender sender, @Arg(value = "<region>", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "The region: an owner:name id, or the bare name of a region of this command"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "A região: um id dono:nome, ou o nome de uma região deste comando")}) Region region, @Arg(value = "[parent]", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "The parent region; - clears it, nothing shows it"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "A região pai; - a limpa, nada a mostra")}) String parentText) {
         if (parentText == null) {
             Region parent = region.getParent();
             REGION_DONE.addPlaceholder("region", region.getId()).addPlaceholder("action", "has parent " + (parent == null ? "-" : parent.getId())).send(sender);
@@ -536,7 +576,9 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
             @FCLocale(lang = LocaleType.EN_US, text = "Teleport to a region's teleport-point, or to the top of its center"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Teleporta para o teleport-point da região, ou para o topo do centro dela")
     })
-    public void tp(FPlayer player, @Arg("<region>") Region region) {
+    public void tp(FPlayer player, @Arg(value = "<region>", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "The region: an owner:name id, or the bare name of a region of this command"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "A região: um id dono:nome, ou o nome de uma região deste comando")}) Region region) {
         WorldLocPos destination = getTeleportPoint(region);
         if (destination == null) {
             REFUSED.addPlaceholder("reason", "Region " + region.getId() + " covers its whole world, so it has no center - give it a teleport-point flag.")
@@ -551,7 +593,9 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
             @FCLocale(lang = LocaleType.EN_US, text = "Draw the outline of a region for a few seconds"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Desenha o contorno de uma região por alguns segundos")
     })
-    public void view(FPlayer player, @Arg("<region>") Region region) {
+    public void view(FPlayer player, @Arg(value = "<region>", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "The region: an owner:name id, or the bare name of a region of this command"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "A região: um id dono:nome, ou o nome de uma região deste comando")}) Region region) {
         if (!RegionVisualizer.get().isEnabled()) {
             VISUALIZER_OFF.send(player);
             return;
@@ -564,8 +608,14 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
             @FCLocale(lang = LocaleType.EN_US, text = "Add or remove a tag of a region"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Adiciona ou remove uma tag de uma região")
     })
-    public void tag(FCommandSender sender, @Arg("<region>") Region region, @Arg(value = "<action>", context = "add|remove") String action,
-                    @Arg("<tag>") String tag) {
+    public void tag(FCommandSender sender, @Arg(value = "<region>", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "The region: an owner:name id, or the bare name of a region of this command"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "A região: um id dono:nome, ou o nome de uma região deste comando")}) Region region, @Arg(value = "<action>", context = "add|remove", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "add or remove"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "add (adiciona) ou remove (tira)")}) String action,
+                    @Arg(value = "<tag>", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "A free word the plugin reads"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "Uma palavra livre que o plugin lê")}) String tag) {
         if (!requireWritable(sender, region)) {
             return;
         }
@@ -657,7 +707,11 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
         }
 
         @FinalCMD.Capture
-        public @Nullable GroupTarget capture(FCommandSender sender, @Arg("<region>") Region region, @Arg("<group>") String group) {
+        public @Nullable GroupTarget capture(FCommandSender sender, @Arg(value = "<region>", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "The region: an owner:name id, or the bare name of a region of this command"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "A região: um id dono:nome, ou o nome de uma região deste comando")}) Region region, @Arg(value = "<group>", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "The name of a group of the region"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "O nome de um grupo da região")}) String group) {
             try {
                 return new GroupTarget(region, RegionId.requireName("group", group));
             } catch (IllegalArgumentException invalid) {
@@ -670,7 +724,9 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
                 @FCLocale(lang = LocaleType.EN_US, text = "Add a member (online name or UUID); -t makes it temporary"),
                 @FCLocale(lang = LocaleType.PT_BR, text = "Adiciona um membro (nome online ou UUID); -t o torna temporário")
         })
-        public void add(FCommandSender sender, @Arg.NodeCaptured GroupTarget target, @Arg(value = "<player>", parser = MemberName.class) String player,
+        public void add(FCommandSender sender, @Arg.NodeCaptured GroupTarget target, @Arg(value = "<player>", parser = MemberName.class, locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "A player: an online name or a UUID"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "Um jogador: nome online ou UUID")}) String player,
                         @Arg.Flag(value = "--ttl", aliases = {"-t"}) FCTimeFrame ttl) {
             if (!requireWritable(sender, target.region)) {
                 return;
@@ -689,7 +745,9 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
                 @FCLocale(lang = LocaleType.EN_US, text = "Remove a member (online name or UUID)"),
                 @FCLocale(lang = LocaleType.PT_BR, text = "Remove um membro (nome online ou UUID)")
         })
-        public void remove(FCommandSender sender, @Arg.NodeCaptured GroupTarget target, @Arg(value = "<player>", parser = MemberName.class) String player) {
+        public void remove(FCommandSender sender, @Arg.NodeCaptured GroupTarget target, @Arg(value = "<player>", parser = MemberName.class, locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "A player: an online name or a UUID"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "Um jogador: nome online ou UUID")}) String player) {
             if (!requireWritable(sender, target.region)) {
                 return;
             }
@@ -704,8 +762,12 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
                 @FCLocale(lang = LocaleType.PT_BR, text = "Define ou limpa (-) uma flag para os membros do grupo; -t dá prazo ao valor, --mode add|set, -p <prioridade> e --lock o situam entre as camadas")
         })
         public void flag(FCommandSender sender, @Arg.NodeCaptured GroupTarget target,
-                         @Arg(value = "<flag>", parser = ArgParserRegionFlag.OrShortcut.class) String flagName,
-                         @Arg(value = "[value...]", parser = ArgParserFlagValue.class) String valueText,
+                         @Arg(value = "<flag>", parser = ArgParserRegionFlag.OrShortcut.class, locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "A flag key (deny-break), or deny-build for break and place together"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "Uma chave de flag (deny-break), ou deny-build para quebrar e colocar juntos")}) String flagName,
+                         @Arg(value = "[value...]", parser = ArgParserFlagValue.class, locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "The value the flag takes; - clears it"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "O valor que a flag recebe; - a limpa")}) String valueText,
                          @Arg.Flag(value = "--ttl", aliases = {"-t"}, insideTail = true) FCTimeFrame ttl,
                          @Arg.Flag(value = "--mode", insideTail = true) String mode,
                          @Arg.Flag(value = "--priority", aliases = {"-p"}, insideTail = true) Integer priority,
@@ -751,7 +813,9 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
                 @FCLocale(lang = LocaleType.EN_US, text = "Set the priority of a group among the region's groups"),
                 @FCLocale(lang = LocaleType.PT_BR, text = "Define a prioridade do grupo entre os grupos da região")
         })
-        public void priority(FCommandSender sender, @Arg.NodeCaptured GroupTarget target, @Arg("<priority>") Integer priority) {
+        public void priority(FCommandSender sender, @Arg.NodeCaptured GroupTarget target, @Arg(value = "<priority>", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "A whole number; the higher one wins where they overlap"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "Um número inteiro; o maior vence onde se sobrepõem")}) Integer priority) {
             if (!requireWritable(sender, target.region)) {
                 return;
             }
@@ -763,7 +827,9 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
                 @FCLocale(lang = LocaleType.EN_US, text = "Make holders of a permission members of the group, or clear it (-)"),
                 @FCLocale(lang = LocaleType.PT_BR, text = "Torna membros do grupo quem tem uma permissão, ou a limpa (-)")
         })
-        public void permission(FCommandSender sender, @Arg.NodeCaptured GroupTarget target, @Arg("<permission>") String permission) {
+        public void permission(FCommandSender sender, @Arg.NodeCaptured GroupTarget target, @Arg(value = "<permission>", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "A permission node; - clears it"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "Um nó de permissão; - o limpa")}) String permission) {
             if (!requireWritable(sender, target.region)) {
                 return;
             }
@@ -776,7 +842,9 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
                 @FCLocale(lang = LocaleType.EN_US, text = "Hand the lead of the group to a member, or clear it (-)"),
                 @FCLocale(lang = LocaleType.PT_BR, text = "Passa a liderança do grupo a um membro, ou a limpa (-)")
         })
-        public void leader(FCommandSender sender, @Arg.NodeCaptured GroupTarget target, @Arg(value = "<player>", parser = MemberName.class) String player) {
+        public void leader(FCommandSender sender, @Arg.NodeCaptured GroupTarget target, @Arg(value = "<player>", parser = MemberName.class, locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "A player: an online name or a UUID"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "Um jogador: nome online ou UUID")}) String player) {
             if (!requireWritable(sender, target.region)) {
                 return;
             }
@@ -801,8 +869,12 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
                 @FCLocale(lang = LocaleType.EN_US, text = "Give a member a role (a free tag in a region's group), or clear their roles (-)"),
                 @FCLocale(lang = LocaleType.PT_BR, text = "Dá um papel a um membro (uma marca livre no grupo de uma região), ou limpa os papéis dele (-)")
         })
-        public void role(FCommandSender sender, @Arg.NodeCaptured GroupTarget target, @Arg(value = "<player>", parser = MemberName.class) String player,
-                         @Arg("<role>") String role) {
+        public void role(FCommandSender sender, @Arg.NodeCaptured GroupTarget target, @Arg(value = "<player>", parser = MemberName.class, locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "A player: an online name or a UUID"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "Um jogador: nome online ou UUID")}) String player,
+                         @Arg(value = "<role>", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "A free tag for the member; - clears their roles"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "Uma marca livre para o membro; - limpa os papéis dele")}) String role) {
             if (!requireWritable(sender, target.region)) {
                 return;
             }
@@ -853,7 +925,9 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
         }
 
         @FinalCMD.Capture
-        public Region capture(@Arg("<region>") Region region) {
+        public Region capture(@Arg(value = "<region>", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "The region: an owner:name id, or the bare name of a region of this command"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "A região: um id dono:nome, ou o nome de uma região deste comando")}) Region region) {
             return region;
         }
 
@@ -907,7 +981,9 @@ public class RegionCommandNode implements RegionScope, VerbPermissionBase {
                 @FCLocale(lang = LocaleType.EN_US, text = "Put a snapshot back (0 = the newest); without --confirm it only says which"),
                 @FCLocale(lang = LocaleType.PT_BR, text = "Restaura um snapshot (0 = o mais novo); sem --confirm só diz qual seria")
         })
-        public void restore(FCommandSender sender, @Arg.NodeCaptured Region region, @Arg("[index]") Integer index,
+        public void restore(FCommandSender sender, @Arg.NodeCaptured Region region, @Arg(value = "[index]", locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "Which snapshot, as snapshots numbers them; 0, the newest, when left out"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "Qual snapshot, como o snapshots os numera; 0, o mais novo, quando omitido")}) Integer index,
                             @Arg.Flag("--confirm") Boolean confirm) {
             if (!requireWritable(sender, region)) {
                 return;

@@ -217,9 +217,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - The `boosters` region flag names a domain (`on=duels:win factor=1.5`); an entry that is not `<plugin>:<domain>` is
   refused, one naming an undeclared domain boosts nothing. A `Booster` in a config writes `on: <plugin>:<domain>`.
 - **`BoosterCommandNode(plugin[, permissionBase])`**, mounted by a plugin under its own command (the core mounts it
-  nowhere): `give <player> <domain> <boost> <duration>` (`2`/`x2` a factor, `+0.5`/`+50%` a bonus) grants through the
+  nowhere): `give <player> <domain> <factor> <duration>` (`2`/`x2` multiplies, `+0.5`/`+50%` a bonus) grants through the
   plugin's `BoosterManager`, which audits it; `list [player]`, `revoke <id>` and `explain <player> <domain>` (the
-  multiplier, each parcel and what could not be read). Only the plugin's own domains are taken; `<base>.<verb>` per verb.
+  multiplier, each parcel and what could not be read). `<player>` is a `PlayerData` (any player the server has seen,
+  completed offline too); `<domain>` is one of the plugin's own, whole or short (`win`), and completes both ways;
+  every argument describes itself on the help line. `<base>.<verb>` per verb.
 - **A permission booster counts for an offline player** without blocking the server thread: `IPlatform.getOfflinePermissions()`
   (`IOfflinePermissions`: `isSupported`, `isLoaded`, `load`, `holds`) reads LuckPerms' in-memory users on Bukkit (none
   without LuckPerms) and the permissions module on Hytale. A boosted reward step loads its offline candidates first
@@ -342,6 +344,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 #### Commands
 
+- **The mountable nodes describe every argument on the help line**, en_US and pt_BR, through `@Arg(locales = ...)`:
+  `BoosterCommandNode`, `DeliveriesCommandNode`, `RewardCommandNode`, `RegionCommandNode` and `AuditCommandNode`
+  (its flags too). The description shows when hovering the argument on the help and on the line a wrong usage sends back.
+- **`claim <id>` of `DeliveriesCommandNode` completes the ids `list` shows** of the player's own pending deliveries, and
+  `all` - from what is loaded, never waiting for storage on the server thread.
 - **Unregistering a plugin's own command logs at debug**, not WARN: every stop takes each command and alias off the
   map, which broke any "WARN = 0" check over a whole log. Removing another plugin's or the server's command still warns.
 
