@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * What {@code plugins/EverNifeCore/commands/<PluginName>.yml} may do to a command tree: nothing at all
+ * What {@code plugins/<PluginName>/commands.yml} may do to a command tree: nothing at all
  * while the feature is off, and - once on - seed every path, prune a branch, or rename its aliases.
  * <p>
  * Everything is asserted over the engine's own reference tree, so what is pinned here is the behaviour
@@ -69,7 +69,7 @@ class CommandRegistryFileSystemTest {
     }
 
     private Path registryFile() {
-        return tempDir.resolve("commands").resolve(harness.pluginName + ".yml");
+        return tempDir.resolve("commands.yml");
     }
 
     /** Writes an admin's edit straight into the registry file, as if they had opened it in an editor. */
@@ -289,26 +289,20 @@ class CommandRegistryFileSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // The legacy file
+    // Where the file lives
     // ------------------------------------------------------------------
 
     @Test
-    void theOldCommandsYamlIsNeitherReadNorTouchedAndSaysSoOnce() {
+    void theFileIsBornInThePluginsFolderAndNothingInTheCores() {
         FinalCmdTestHarness h = newHarness(true);
-        Config legacy = ConfigFactory.open(tempDir.resolve("commands.yml"));
-        legacy.setValue("Commands." + h.pluginName + ".reftree.enabled", false);
-        legacy.save();
-        byte[] before = bytesOf(tempDir.resolve("commands.yml"));
+        Path coreFolder = tempDir.resolve("core");
+        h.withSeparateCore(coreFolder);
 
-        FinalCMDPluginCommand command = h.register(Commands.referenceTree());
+        h.register(Commands.referenceTree());
 
-        assertNotNull(command, "the old file is not read, so its 'enabled: false' cannot disable anything");
-        assertArrayEquals(before, bytesOf(tempDir.resolve("commands.yml")), "the old file must be left untouched");
-
-        List<String> notices = h.platform.getInfoMessages().stream()
-                .filter(line -> line.contains("commands.yml") && line.contains("no longer read"))
-                .collect(java.util.stream.Collectors.toList());
-        assertEquals(1, notices.size(), "exactly one line about the old file: " + notices);
+        assertTrue(Files.exists(registryFile()), "the plugin's commands.yml is in the plugin's own folder");
+        assertFalse(Files.exists(coreFolder.resolve("commands")), "nothing goes to a commands/ folder of the core");
+        assertFalse(Files.exists(coreFolder.resolve("commands.yml")), "nor to a file of the core");
     }
 
     // ------------------------------------------------------------------

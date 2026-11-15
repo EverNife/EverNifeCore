@@ -1,6 +1,5 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.implementation;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.commands.finalcmd.tree.CommandNode;
 import br.com.finalcraft.evernifecore.commands.finalcmd.tree.CommandPath;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
@@ -9,14 +8,13 @@ import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.everyconfig.config.Config;
 import jakarta.annotation.Nonnull;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 /**
- * One plugin's command registry file - {@code plugins/EverNifeCore/commands/<PluginName>.yml} - where
- * an admin may disable a command or hand it extra aliases.
+ * One plugin's command registry file - {@code plugins/<PluginName>/commands.yml}, in the plugin's own
+ * folder - where an admin may disable a command or hand it extra aliases.
  * <p>
  * It only exists while {@code Settings.Commands.REGISTRY_FILES_ENABLED} is on: with the feature off
  * nothing here is ever instantiated, so no file is opened, seeded or saved and the annotations are the
@@ -24,20 +22,10 @@ import java.util.List;
  */
 final class CommandRegistryFile {
 
-    /** Sub-folder of EverNifeCore's own data folder that holds one file per plugin. */
-    static final String FOLDER = "commands";
-
-    /** The single, server-wide file of the 2.x era - never read, never migrated, never deleted. */
-    private static final String LEGACY_FILE = "commands.yml";
+    /** The file's name in the owning plugin's data folder. */
+    static final String FILE_NAME = "commands.yml";
 
     private static final String ROOT_KEY = "commands";
-
-    /**
-     * The core's plugin data the legacy notice was already given for. Keyed by instance rather than a
-     * plain flag so the line comes out once per boot and not once per JVM, which is also what makes it
-     * observable to a test that boots its own core.
-     */
-    private static ECPluginData legacyNoticeGivenFor;
 
     private final Config config;
     private final String fileName;
@@ -52,11 +40,7 @@ final class CommandRegistryFile {
 
     /** Opens (creating on first use) the registry file of {@code owningPlugin}. */
     static CommandRegistryFile of(@Nonnull ECPluginData owningPlugin) {
-        ECPluginData coreData = EverNifeCore.getEcPluginData();
-        noticeTheLegacyFileOnce(coreData);
-
-        String fileName = FOLDER + "/" + owningPlugin.getMetaInfo().getName() + ".yml";
-        return new CommandRegistryFile(ConfigFactory.open(coreData, fileName), fileName);
+        return new CommandRegistryFile(ConfigFactory.open(owningPlugin, FILE_NAME), owningPlugin.getMetaInfo().getName() + "/" + FILE_NAME);
     }
 
     /**
@@ -171,24 +155,6 @@ final class CommandRegistryFile {
             entry.append(".nodes.").append(literal);
         }
         return entry.toString();
-    }
-
-    /**
-     * Tells the admin, once, that the old server-wide file stopped being read. Translating it is a
-     * hand job on purpose: it may name plugins that are no longer installed, and writing entries for a
-     * plugin that never registers would leave ghosts nobody can trace back.
-     */
-    private static void noticeTheLegacyFileOnce(ECPluginData coreData) {
-        if (legacyNoticeGivenFor == coreData) {
-            return;
-        }
-        legacyNoticeGivenFor = coreData;
-
-        File legacyFile = new File(coreData.getMetaInfo().getDataFolder(), LEGACY_FILE);
-        if (legacyFile.exists()) {
-            EverNifeCore.getLog().info("The old '" + LEGACY_FILE + "' is no longer read - every command is now configured in '"
-                    + FOLDER + "/<PluginName>.yml'. The old file was left untouched; move what you still want and delete it.");
-        }
     }
 
     /** What the file says about one node: whether it stays, and which extra labels it answers to. */

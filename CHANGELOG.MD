@@ -448,6 +448,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `all` - from what is loaded, never waiting for storage on the server thread.
 - **Unregistering a plugin's own command logs at debug**, not WARN: every stop takes each command and alias off the
   map, which broke any "WARN = 0" check over a whole log. Removing another plugin's or the server's command still warns.
+- **A plugin's command registry file is `plugins/<Plugin>/commands.yml`**, in its own folder; the switch
+  (`Settings.Commands.REGISTRY_FILES_ENABLED`) stays in the core's `config.yml`. The core no longer reads nor mentions
+  `plugins/EverNifeCore/commands/`.
 - **The core's texts speak the language of the plugin whose feature runs them**: the command dispatch (run, tab-complete,
   help) and a screen's open, redraw and click enter `LocaleScope` with the owning plugin, and a message of EverNifeCore
   sent inside it (a mounted core node, a core parser's refusal, the help, `FCMessageUtil`) resolves its language by that

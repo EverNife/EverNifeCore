@@ -118,7 +118,7 @@ public class ECSettings {
 
         COMMAND_REGISTRY_FILES_ENABLED = ConfigManager.getMainConfig().getOrSetValueIfAbsent(
                 "Settings.Commands.REGISTRY_FILES_ENABLED", false,
-                "Set to 'true' to generate plugins/EverNifeCore/commands/<PluginName>.yml, where each" +
+                "Set to 'true' to generate plugins/<PluginName>/commands.yml for every plugin, where each" +
                         "\ncommand and sub-command can be disabled or given extra aliases. While 'false' nothing is" +
                         "\nread or written and the annotations are the only source of truth."
         );
