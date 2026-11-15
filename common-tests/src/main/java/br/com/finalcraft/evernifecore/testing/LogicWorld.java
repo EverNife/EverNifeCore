@@ -138,10 +138,20 @@ public final class LogicWorld implements AutoCloseable {
 
     /**
      * The pending deliveries, kept in the {@code deliveries} section of an in-memory PlayerData layer booted on the first
-     * call and torn down at {@link #close()}: {@code Deliveries.get()}.
+     * call and torn down at {@link #close()}: {@code Deliveries.get()}. Call it after {@link #player} and before the first
+     * effect that may keep something pending - a {@code give-item} whose rest finds no store audits it as lost.
+     *
+     * @throws IllegalStateException on the first call while a strict platform has no list of online players yet
      */
     public synchronized Deliveries deliveries() {
         if (playerData == null) {
+            try {
+                platform().getOnlinePlayers();
+            } catch (PlatformNotConfiguredException none) {
+                throw new IllegalStateException("deliveries() boots the PlayerData layer, which reads the platform's online players, and"
+                        + " none were set yet: call player(\"Alex\") first (or install the platform with Platforms.strict().onlinePlayers(...)),"
+                        + " then deliveries(), then run the effects.", none);
+            }
             Path folder = dataFolder.resolve("playerdata");
             try {
                 Files.createDirectories(folder);

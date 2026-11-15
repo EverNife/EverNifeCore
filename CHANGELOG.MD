@@ -106,6 +106,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 #### Testing
 
 - **`TestInventory.drop` records what lands at a player's feet** (`getDropped(player)`), refusing an offline player.
+- **`LogicWorld.deliveries()` called before any player is refused** with what to call first, instead of the platform's
+  `getOnlinePlayers` refusal from deep inside the PlayerData boot.
 - **A broadcast is observable in tests**: `Platforms.neutralChatAdapter()` broadcasts to the online players and the new
   `TestPlatform.getBroadcastConsole()` instead of nobody, and `TestLocaleMessage.broadcast()` sends to that audience
   instead of throwing.
