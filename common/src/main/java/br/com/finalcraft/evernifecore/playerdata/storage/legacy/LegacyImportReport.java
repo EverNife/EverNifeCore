@@ -162,6 +162,10 @@ public final class LegacyImportReport {
                 .append(count(SectionStatus.DONE)).append(" with adapter, ")
                 .append(count(SectionStatus.PENDING_NO_ADAPTER)).append(" without adapter, ")
                 .append(count(SectionStatus.EMPTY)).append(" empty");
+        int discarded = count(SectionStatus.DISCARDED);
+        if (discarded > 0) {
+            sb.append(", ").append(discarded).append(" discarded");
+        }
         int failed = count(SectionStatus.FAILED);
         if (failed > 0) {
             sb.append(", ").append(failed).append(" failed");
@@ -232,6 +236,9 @@ public final class LegacyImportReport {
         }
         if (progress.getStatus() == SectionStatus.EMPTY) {
             return "empty in every file - nothing to migrate";
+        }
+        if (progress.getStatus() == SectionStatus.DISCARDED) {
+            return "dropped - 3.x keeps nothing of this block";
         }
         //a section registered without an ECPluginData reports no owner at all
         String owner = progress.getOwner().isEmpty() ? "unknown plugin" : progress.getOwner();

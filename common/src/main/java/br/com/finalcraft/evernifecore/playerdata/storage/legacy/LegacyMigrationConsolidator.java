@@ -209,6 +209,9 @@ final class LegacyMigrationConsolidator {
         if (progress.getStatus() == SectionStatus.EMPTY) {
             return "(empty)";
         }
+        if (progress.getStatus() == SectionStatus.DISCARDED) {
+            return "(discarded)";
+        }
         String owner = progress.getOwner().isEmpty() ? "unknown plugin" : progress.getOwner();
         String pdSection = progress.getPdSection().isEmpty() ? "?" : progress.getPdSection();
         return pdSection + " (" + owner + ")";

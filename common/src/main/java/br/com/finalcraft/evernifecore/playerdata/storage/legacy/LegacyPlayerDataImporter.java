@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -55,6 +56,9 @@ public final class LegacyPlayerDataImporter {
 
     /** The base block of a legacy file - the importer converts it itself, no adapter involved. */
     private static final String BASE_ROOT_KEY = "PlayerData";
+
+    /** 2.x root keys of the core whose data 3.x does not carry over: claimed so the file archives, then dropped. */
+    private static final Set<String> DISCARDED_ROOT_KEYS = Collections.singleton("Cooldown");
 
     private final File legacyFolder;
     private final File importedFolder;
@@ -209,6 +213,7 @@ public final class LegacyPlayerDataImporter {
     private Set<String> mappedRootKeys() {
         Set<String> mapped = new HashSet<>();
         mapped.add(BASE_ROOT_KEY);
+        mapped.addAll(DISCARDED_ROOT_KEYS);
         for (PDSectionBinding<PDSection> binding : adapterBindings) {
             mapped.add(binding.getConfiguration().getLegacyYamlRootKey());
         }
@@ -413,6 +418,8 @@ public final class LegacyPlayerDataImporter {
                 status = LegacyMigrationMetadata.SectionStatus.FAILED; //louder than "no adapter yet"
             } else if (!rootKeysWithContent.contains(rootKey)) {
                 status = LegacyMigrationMetadata.SectionStatus.EMPTY;
+            } else if (DISCARDED_ROOT_KEYS.contains(rootKey) && !bindingByRootKey.containsKey(rootKey)) {
+                status = LegacyMigrationMetadata.SectionStatus.DISCARDED;
             } else if (mappedRootKeys.contains(rootKey)) {
                 status = LegacyMigrationMetadata.SectionStatus.DONE;
             } else {

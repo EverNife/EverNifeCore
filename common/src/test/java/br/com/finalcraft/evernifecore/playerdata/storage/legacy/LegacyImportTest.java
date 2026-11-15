@@ -634,6 +634,29 @@ class LegacyImportTest {
     }
 
     @Test
+    void theCoreDropsThe2xCooldownBlockSoTheFileArchives() throws IOException {
+        writeLegacyYml("petrus.yml", String.join("\n",
+                "PlayerData:",
+                "  Username: Petrus",
+                "  UUID: " + PETRUS_UUID,
+                "  firstSeen: 1600000000000",
+                "  lastSeen: 1700000000000",
+                "  lastSaved: 1700000000001",
+                "Cooldown:",
+                "  test_kit:",
+                "    timeStart: 1600000000000",
+                "    timeDuration: 99999999",
+                ""));
+
+        PlayerController.initialize(writeStorageYml("storage.yml", ""));
+
+        assertEquals(0, ymlFiles(legacyFolder()).length, "the Cooldown block no longer holds the file back");
+        Config progress = ConfigFactory.open(consolidatedMetadata());
+        assertEquals("DISCARDED", progress.getString("sections.Cooldown.status"));
+        assertTrue(progress.getBoolean("complete"));
+    }
+
+    @Test
     void anEmptyRootKeyNeedsNoAdapterAndBlocksNothing() throws IOException {
         writeLegacyYml("petrus.yml", String.join("\n",
                 "PlayerData:",

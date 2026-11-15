@@ -56,7 +56,9 @@ public final class LegacyMigrationMetadata {
         /** Present but empty in every file of the run - nothing to migrate, never blocks. */
         EMPTY,
         /** Had an adapter, but its data could not be saved. */
-        FAILED
+        FAILED,
+        /** A 2.x block of the core itself that 3.x keeps nothing of - claimed and dropped, never blocks. */
+        DISCARDED
     }
 
     /** What happened to one root key across a whole run. */
