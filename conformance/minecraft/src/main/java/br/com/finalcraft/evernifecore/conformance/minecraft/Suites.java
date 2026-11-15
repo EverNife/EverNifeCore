@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.conformance.minecraft;
 
 import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ActionsSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.BoostersSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.CommandsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.DeliveriesSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.EventsSuite;
@@ -68,6 +69,7 @@ public final class Suites {
                 new GroupsSuite(plugin),
                 new NpcsSuite(),
                 new QuestsSuite(plugin),
-                rewards);
+                rewards,
+                new BoostersSuite(plugin));
     }
 }

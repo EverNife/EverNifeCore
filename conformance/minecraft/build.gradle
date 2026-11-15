@@ -25,6 +25,12 @@ repositories {
         metadataSources { artifact() }
         content { includeGroup 'worldedit-bukkit' }
     }
+    ivy {
+        url = 'https://cdn.modrinth.com/data/Vebnzrzj/versions/'
+        patternLayout { artifact '[module]/[organisation]-[revision].[ext]' }
+        metadataSources { artifact() }
+        content { includeGroup 'LuckPerms-Bukkit' }
+    }
     // exclusive: the root's unfiltered JitPack would otherwise be asked first for this com.github group. POM only:
     // the Gradle metadata gives runtime the -dev jar (MCP names); a server loads the reobfuscated main artifact.
     exclusiveContent {
@@ -46,6 +52,8 @@ configurations {
     matrixPlaceholderApi { transitive = false }
     // The WorldEdit Forge mod the matrix driver routes into crucible-1.7.10's mods/, beside the plugin.
     matrixWorldEditForge { transitive = false }
+    // The LuckPerms plugin the matrix driver routes into paper-1.21.1, for the boosters suite's offline permissions.
+    matrixLuckPerms { transitive = false }
 }
 
 // The WorldEdit plugin the matrix driver routes into each Bukkit flavor, by its game version.
@@ -77,6 +85,7 @@ dependencies {
     compileOnly libs.nbtapi
     compileOnly libs.ecnmsutils
     compileOnly libs.spigot.api
+    compileOnly libs.luckperms.api
     // The core's WorldEdit wrappers and the server's WorldEdit; only API that WorldEdit 6 and 7 share is called.
     compileOnly project(':minecraft:modules:VersionedPlugins')
     compileOnly(libs.worldedit7.core) { transitive = false }
@@ -85,6 +94,7 @@ dependencies {
     conformanceChecks project(':common-tests')
     matrixPlaceholderApi libs.placeholderapi
     matrixWorldEditForge libs.matrix.worldedit.gtnh
+    matrixLuckPerms libs.matrix.luckperms
 
     testImplementation project(':common-tests')
     testImplementation libs.spigot.api
@@ -129,6 +139,12 @@ def matrixPlaceholderApiJar = tasks.register('matrixPlaceholderApiJar', Copy) {
     rename { 'PlaceholderAPI.jar' }
 }
 
+def matrixLuckPermsJar = tasks.register('matrixLuckPermsJar', Copy) {
+    from configurations.matrixLuckPerms
+    into layout.buildDirectory.dir('matrix')
+    rename { 'LuckPerms.jar' }
+}
+
 def matrixWorldEditForgeJar = tasks.register('matrixWorldEditForgeJar', Copy) {
     from configurations.matrixWorldEditForge
     into layout.buildDirectory.dir('matrix')
@@ -138,6 +154,7 @@ def matrixWorldEditForgeJar = tasks.register('matrixWorldEditForgeJar', Copy) {
 tasks.named('shadowJar') {
     dependsOn matrixPlaceholderApiJar
     dependsOn matrixWorldEditForgeJar
+    dependsOn matrixLuckPermsJar
     dependsOn matrixWorldEditJars
 }
 

@@ -32,6 +32,8 @@ from typing import Callable, Dict, List, Optional, Tuple
 REPO_ROOT = Path(__file__).resolve().parents[2]
 # Copied there by :conformance:minecraft:shadowJar from a public repository (version in libs.versions.toml)
 DEFAULT_PAPI = str(REPO_ROOT / "conformance/minecraft/build/matrix/PlaceholderAPI.jar")
+# The same task copies LuckPerms-Bukkit there as LuckPerms.jar, routed only into --luckperms-flavors
+DEFAULT_LUCKPERMS = str(REPO_ROOT / "conformance/minecraft/build/matrix/LuckPerms.jar")
 # The same task copies the WorldEdit plugin for each game version there as WorldEdit-<version>.jar
 DEFAULT_WORLDEDIT_DIR = str(REPO_ROOT / "conformance/minecraft/build/matrix")
 # The mctf CLI and the framework root (its final-artifacts/ carries the companion mods); machine-local paths
@@ -586,6 +588,8 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
         routes = [{"from": [a.core_jar], "to": "plugins"}, {"from": [a.ecc_jar], "to": "plugins"}]
         if flavor in a.papi_flavors:
             routes.append({"from": [a.papi_jar], "to": "plugins"})
+        if flavor in a.luckperms_flavors:
+            routes.append({"from": [a.luckperms_jar], "to": "plugins"})
         routes.append({"from": [worldedit_jar(a, mc)], "to": "plugins"})
         if worldedit_forge_jar(a, mc):
             routes.append({"from": [worldedit_forge_jar(a, mc)], "to": "mods"})
@@ -607,7 +611,8 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
         enabled = (boot.get("plugins") or {}).get("enabled") or []
         if routed_but_not_enabled(enabled, [PLUGIN_ID]):
             raise FlavorFailed("%s not enabled; plugins=%s" % (PLUGIN_ID, boot.get("plugins")))
-        dead = routed_but_not_enabled(enabled, ["WorldEdit"] + (["PlaceholderAPI"] if flavor in a.papi_flavors else []))
+        dead = routed_but_not_enabled(enabled, ["WorldEdit"] + (["PlaceholderAPI"] if flavor in a.papi_flavors else [])
+                                      + (["LuckPerms"] if flavor in a.luckperms_flavors else []))
         if dead:
             r.problems.append("routed but not enabled: %s; not_enabled=%s" % (dead, (boot.get("plugins") or {}).get("not_enabled")))
         if boot.get("linkage_errors"):
@@ -871,6 +876,8 @@ def main(argv=None) -> int:
     p.add_argument("--papi-jar", default=DEFAULT_PAPI, help="PlaceholderAPI jar routed into --papi-flavors")
     p.add_argument("--worldedit-dir", default=DEFAULT_WORLDEDIT_DIR, help="where WorldEdit-<game version>.jar is, per Bukkit flavor")
     p.add_argument("--papi-flavors", default="paper-1.21.1", help="comma-separated flavors that get PlaceholderAPI")
+    p.add_argument("--luckperms-jar", default=DEFAULT_LUCKPERMS, help="LuckPerms jar routed into --luckperms-flavors")
+    p.add_argument("--luckperms-flavors", default="paper-1.21.1", help="comma-separated flavors that get LuckPerms")
     p.add_argument("--out", default="build/conformance", help="output dir, relative to the repo root")
     p.add_argument("--parallel", type=int, default=0,
                    help="how many flavors run at once (default: all of them; 1 = one after the other)")
@@ -878,6 +885,7 @@ def main(argv=None) -> int:
     p.add_argument("--dry-run", action="store_true", help="print the planned mctf calls, call nothing, write nothing")
     a = p.parse_args(argv)
     a.papi_flavors = {f.strip() for f in a.papi_flavors.split(",") if f.strip()}
+    a.luckperms_flavors = {f.strip() for f in a.luckperms_flavors.split(",") if f.strip()}
     flavors = [f.strip() for f in a.flavors.split(",") if f.strip()]
     unknown = [f for f in flavors if f not in CLIENT_FOR and f not in HYTALE]
     if unknown:
@@ -895,7 +903,7 @@ def main(argv=None) -> int:
         minecraft = [f for f in flavors if f not in HYTALE]
         needed = [cli] + ([a.core_jar, a.ecc_jar] if minecraft else []) \
             + ([a.hytale_core_jar, a.hytale_ecc_jar] if len(minecraft) < len(flavors) else []) \
-            + ([a.papi_jar] if a.papi_flavors & set(flavors) else [])             + [worldedit_jar(a, f.split("-", 1)[1]) for f in minecraft]             + [j for j in (worldedit_forge_jar(a, f.split("-", 1)[1]) for f in minecraft) if j]
+            + ([a.papi_jar] if a.papi_flavors & set(flavors) else [])             + ([a.luckperms_jar] if a.luckperms_flavors & set(flavors) else [])             + [worldedit_jar(a, f.split("-", 1)[1]) for f in minecraft]             + [j for j in (worldedit_forge_jar(a, f.split("-", 1)[1]) for f in minecraft) if j]
         missing = [n for n in needed if not Path(n).is_file()]
         if missing:
             print("missing: %s (the jars come from ./gradlew :minecraft:shadowJar :conformance:minecraft:shadowJar,"
