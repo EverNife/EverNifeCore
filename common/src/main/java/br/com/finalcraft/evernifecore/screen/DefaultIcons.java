@@ -9,9 +9,12 @@ import br.com.finalcraft.evernifecore.locale.LocaleType;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
 
 /**
@@ -19,8 +22,9 @@ import java.util.Locale;
  * range this framework runs on.
  *
  * <p>Two things are recovered here that a plugin should not have to write again. The material chain:
- * each button names a floor that exists everywhere and then the better items above it, so the same jar
- * shows a spectral arrow on 1.12+, a mod's own icon on a modpack that has one, and redstone on 1.7.10.
+ * each button names a floor that exists everywhere, and the server may put better items above it
+ * ({@code Screens.default-icons.<button>} in the core's config, see {@link #setServerCandidates}), so the same jar
+ * shows a modpack's own icon where the server named one, a spectral arrow on 1.12+ and redstone on 1.7.10.
  * And the text: the buttons carry {@code pt_BR} and {@code en_US} out of the box, so what a player
  * reads follows the player, and the admin still sees both blocks in the generated yml.</p>
  */
@@ -113,46 +117,65 @@ public final class DefaultIcons {
 
     @Nonnull
     public static Icon previousPage() {
-        return localized(Icon.of(item("EVERNIFEWORLDRPG_CUSTOMICON:1"), item("EVERPOKEUTILS_BACK"),
-                item("PIXELMON_TRADE_HOLDER_LEFT"), item("minecraft:spectral_arrow"), item("minecraft:redstone")), PREVIOUS_PAGE);
+        return localized(icon("previous-page", item("minecraft:spectral_arrow"), item("minecraft:redstone")), PREVIOUS_PAGE);
     }
 
     @Nonnull
     public static Icon nextPage() {
-        return localized(Icon.of(item("EVERNIFEWORLDRPG_CUSTOMICON:2"), item("EVERPOKEUTILS_FORWARD"),
-                item("PIXELMON_TRADE_HOLDER_RIGHT"), item("minecraft:spectral_arrow"), item("minecraft:redstone")), NEXT_PAGE);
+        return localized(icon("next-page", item("minecraft:spectral_arrow"), item("minecraft:redstone")), NEXT_PAGE);
     }
 
     @Nonnull
     public static Icon back() {
-        return localized(Icon.of(item("EVERNIFEWORLDRPG_CUSTOMICON:1"), item("EVERPOKEUTILS_BACK"),
-                item("minecraft:spectral_arrow"), item("minecraft:redstone")), BACK_BUTTON);
+        return localized(icon("back", item("minecraft:spectral_arrow"), item("minecraft:redstone")), BACK_BUTTON);
     }
 
     @Nonnull
     public static Icon confirm() {
-        return localized(Icon.of(item("EVERNIFEWORLDRPG_CUSTOMICON:13"), item("EVERPOKEUTILS_POSITIVO"),
-                wool(Color.LIME)), CONFIRM_BUTTON);
+        return localized(icon("confirm", wool(Color.LIME)), CONFIRM_BUTTON);
     }
 
     @Nonnull
     public static Icon deny() {
-        return localized(Icon.of(item("EVERNIFEWORLDRPG_CUSTOMICON:12"), item("EVERPOKEUTILS_NEGATIVO"),
-                wool(Color.RED)), DENY_BUTTON);
+        return localized(icon("deny", wool(Color.RED)), DENY_BUTTON);
     }
 
     @Nonnull
     public static Icon info() {
-        return localized(Icon.of(item("EVERNIFEWORLDRPG_CUSTOMICON:20"), item("EVERPOKEUTILS_CARTAZ"),
-                item("minecraft:paper")), INFORMATION_BUTTON);
+        return localized(icon("info", item("minecraft:paper")), INFORMATION_BUTTON);
     }
 
     @Nonnull
     public static Icon wrench() {
-        return localized(Icon.of(item("minecraft:anvil")), WRENCH_BUTTON);
+        return localized(icon("wrench", item("minecraft:anvil")), WRENCH_BUTTON);
     }
 
-    //the mod items first: a renderer draws the first candidate its server knows, the vanilla item being the last resort
+    /** The buttons whose item the server may change, by their key under {@code Screens.default-icons}. */
+    public static final List<String> BUTTONS = Collections.unmodifiableList(Arrays.asList(
+            "previous-page", "next-page", "back", "confirm", "deny", "info", "wrench"));
+
+    private static volatile Map<String, List<String>> serverCandidates = Collections.emptyMap();
+
+    /**
+     * The items the server prefers for each button ({@code Screens.default-icons.<button>} of the core's config), tried
+     * in order before the vanilla one; a button without an entry draws the vanilla item. Read with the core's config.
+     */
+    public static void setServerCandidates(@Nonnull Map<String, List<String>> candidatesByButton) {
+        Map<String, List<String>> copy = new HashMap<>();
+        candidatesByButton.forEach((button, ids) -> copy.put(button, Collections.unmodifiableList(new ArrayList<>(ids))));
+        serverCandidates = Collections.unmodifiableMap(copy);
+    }
+
+    //the server's candidates first: a renderer draws the first one its server knows, the vanilla item being the last resort
+    private static Icon icon(String button, ItemSpec... vanilla) {
+        List<ItemSpec> chain = new ArrayList<>();
+        for (String id : serverCandidates.getOrDefault(button, Collections.<String>emptyList())) {
+            chain.add(item(id));
+        }
+        chain.addAll(Arrays.asList(vanilla));
+        return Icon.of(chain.get(0), chain.subList(1, chain.size()).toArray(new ItemSpec[0]));
+    }
+
     private static ItemSpec item(String id) {
         return ItemSpec.of(id, 1);
     }

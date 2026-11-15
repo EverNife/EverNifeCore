@@ -473,6 +473,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `FCHytaleUtil.giveItemsTo(player, ItemOverflow, items)` replace the `boolean dropIfExceeded` form - `DROP_AND_WARN`
   (the default of the form without it), `DROP`, `DISCARD`. The core key
   `Settings.FCBukkitUtil.warnWhenPlayersCannotReceiveItensOnItsInventory` is gone.
+- **`DefaultIcons` embeds only the vanilla item**; the items of a modpack come from `Screens.default-icons.<button>` of
+  the core's `config.yml` (`previous-page`, `next-page`, `back`, `confirm`, `deny`, `info`, `wrench`), tried before the
+  vanilla one.
 
 #### Build and dependencies
 

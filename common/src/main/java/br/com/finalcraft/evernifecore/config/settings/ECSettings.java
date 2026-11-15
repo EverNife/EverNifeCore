@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.config.settings;
 
+import br.com.finalcraft.evernifecore.screen.DefaultIcons;
 import br.com.finalcraft.evernifecore.action.EventSourceUsage;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpWords;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
@@ -14,7 +15,10 @@ import br.com.finalcraft.everylibs.util.FCTimeUtil;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ECSettings {
 
@@ -22,9 +26,6 @@ public class ECSettings {
     public static String ZONE_ID_OF_DAY_OF_TODAY;
     public static DateTimeFormatter SIMPLE_DATE_FORMAT = FCTimeUtil.FORMATTER_DATE_REVERSE;
     public static DateTimeFormatter DATE_FORMAT_WITH_HOURS = FCTimeUtil.FORMATTER_DATETIME_REVERSE;
-
-    //Guis
-    public static int DEFAULT_GUI_UPDATE_TIME = 2;
 
     //Locale
     public static boolean PER_PLAYER_LOCALE = false;
@@ -139,6 +140,8 @@ public class ECSettings {
         applyRegionSettings();
         loadWaypointSettings(ConfigManager.getMainConfig());
 
+        loadDefaultIconSettings(ConfigManager.getMainConfig());
+
         if (ConfigManager.getMainConfig().hasNewSeededDefaults()){
             ConfigManager.getMainConfig().save();
             ConfigManager.getMainConfig().clearNewSeededDefaults();
@@ -206,6 +209,18 @@ public class ECSettings {
                 "How often, in ticks (20 = 1 s), every shown waypoint reads its target again and redraws."
         );
         WAYPOINT_REFRESH_TICKS = Math.max(1, refreshTicks);
+    }
+
+    /** Reads {@code Screens.default-icons.<button>} of {@code config} into {@link DefaultIcons}, seeding empty lists when absent. */
+    public static void loadDefaultIconSettings(Config config){
+        Map<String, List<String>> candidates = new LinkedHashMap<>();
+        for (String button : DefaultIcons.BUTTONS) {
+            candidates.put(button, config.getOrSetValueIfAbsent("Screens.default-icons." + button, new ArrayList<String>()));
+        }
+        config.setComment("Screens.default-icons", "The items EverNifeCore's stock buttons are drawn with, tried in order before the vanilla one:" +
+                "\n<button>: [\"MYMOD_BACK\", \"minecraft:spectral_arrow\"]. The first item the server knows wins; an empty list" +
+                "\ndraws the vanilla item. A reload of EverNifeCore applies a change to the screens opened after it.");
+        DefaultIcons.setServerCandidates(candidates);
     }
 
     /** A time key: written readable ({@code 3m}), read in that form or as ISO-8601. */
