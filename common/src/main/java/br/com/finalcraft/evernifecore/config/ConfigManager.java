@@ -1,7 +1,9 @@
 package br.com.finalcraft.evernifecore.config;
 
 import br.com.finalcraft.evernifecore.booster.command.BoosterCommandNode;
+import br.com.finalcraft.evernifecore.quest.NotifierQuestPresenter;
 import br.com.finalcraft.evernifecore.quest.command.ArgParserQuest;
+import br.com.finalcraft.evernifecore.quest.command.CoreQuestCommands;
 import br.com.finalcraft.evernifecore.quest.command.QuestCommandNode;
 import br.com.finalcraft.evernifecore.quest.screen.QuestJournalScreen;
 import br.com.finalcraft.evernifecore.quest.screen.QuestOfferScreen;
@@ -73,6 +75,8 @@ public class ConfigManager {
             DeliveriesScreen.class,
             RankingScreen.class,
             QuestCommandNode.class,
+            CoreQuestCommands.class,
+            NotifierQuestPresenter.class,
             ArgParserQuest.class,
             QuestOfferScreen.class,
             QuestJournalScreen.class,

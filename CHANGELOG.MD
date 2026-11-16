@@ -437,6 +437,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   (`§8{missing}`), where the server restyles it.
 - **`QuestEngine.addDefinitionCheck(owner, check)`** (breaking): a definition check has an owner and leaves with it; closing
   the returned handle still removes it earlier.
+- **Every quest text of the core is in its lang files**: the default presenter's progress line, completion and failure
+  (`NotifierQuestPresenter.PROGRESS`, `COMPLETED_MARK`, `COMPLETED`, `FAILED`, spoken in the language of the plugin that
+  owns the engine), the lines of `/ecore quest <player>` (`CoreQuestCommands.*`, PT_BR translated) and the `list`/`info`
+  lines of `QuestCommandNode`. The English output is the same as before; an admin can now recolour or reword each line.
+  A test that drives the default presenter or these verbs outside the boot loads the class
+  (`FCLocaleManager.loadLocale`), or reads `[quest text not loaded]` from the presenter.
 
 #### Menus and shops
 

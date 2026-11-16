@@ -1,6 +1,10 @@
 package br.com.finalcraft.evernifecore.quest;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.LocaleMessage;
+import br.com.finalcraft.evernifecore.locale.LocaleScope;
+import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.notify.HudSounds;
 import br.com.finalcraft.evernifecore.notify.Notification;
@@ -29,10 +33,30 @@ import br.com.finalcraft.evernifecore.waypoint.Waypoints;
  */
 public class NotifierQuestPresenter implements QuestPresenter {
 
+    @FCLocale(lang = LocaleType.EN_US, text = "${quest}§7: §f${objective} §e${count}/${goal}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "${quest}§7: §f${objective} §e${count}/${goal}")
+    private static LocaleMessage PROGRESS;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§a✔")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§a✔")
+    private static LocaleMessage COMPLETED_MARK;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§a✔ ${quest}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§a✔ ${quest}")
+    private static LocaleMessage COMPLETED;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§c✘ ${quest}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§c✘ ${quest}")
+    private static LocaleMessage FAILED;
+
+    //what a text reads when nothing loaded the core locales above (the boot does, in ConfigManager.initialize)
+    private static final String NOT_LOADED = "[quest text not loaded]";
+
     @Override
     public void onProgress(FPlayer viewer, QuestEngine engine, QuestDefinition definition, QuestState state, Objective objective) {
         Notifier.get().notify(viewer, Notification.of(engine.getOwner(), NotifyKind.PROGRESS).id("progress:" + definition.getId())
-                .text(definition.getName() + "§7: §f" + label(objective) + " §e" + state.getCount(objective.getId()) + "/" + objective.getGoal())
+                .text(text(viewer, engine, PROGRESS, "quest", definition.getName(), "objective", label(objective),
+                        "count", state.getCount(objective.getId()), "goal", objective.getGoal()))
                 .build());
         refreshTracked(viewer, engine, definition, state);
     }
@@ -54,14 +78,15 @@ public class NotifierQuestPresenter implements QuestPresenter {
     @Override
     public void onQuestComplete(FPlayer viewer, QuestEngine engine, QuestDefinition definition, QuestState state) {
         Notifier.get().notify(viewer, Notification.of(engine.getOwner(), NotifyKind.COMPLETE).id("complete:" + definition.getId())
-                .title(definition.getName()).subtitle("§a✔").text("§a✔ " + definition.getName()).sound(HudSounds.LEVEL_UP).build());
+                .title(definition.getName()).subtitle(text(viewer, engine, COMPLETED_MARK))
+                .text(text(viewer, engine, COMPLETED, "quest", definition.getName())).sound(HudSounds.LEVEL_UP).build());
         end(viewer, engine, definition);
     }
 
     @Override
     public void onQuestFail(FPlayer viewer, QuestEngine engine, QuestDefinition definition, QuestState state) {
         Notifier.get().notify(viewer, Notification.of(engine.getOwner(), NotifyKind.DENY).id("fail:" + definition.getId())
-                .text("§c✘ " + definition.getName()).build());
+                .text(text(viewer, engine, FAILED, "quest", definition.getName())).build());
         end(viewer, engine, definition);
     }
 
@@ -108,6 +133,24 @@ public class NotifierQuestPresenter implements QuestPresenter {
     private static Notification tracked(QuestEngine engine, QuestDefinition definition, QuestState state) {
         return Notification.of(engine.getOwner(), NotifyKind.TRACKED).id(trackedId(definition.getId())).title(definition.getName())
                 .text(definition.getName()).progress((float) definition.getStageProgress(state)).build();
+    }
+
+    /**
+     * {@code message} for {@code viewer}, each {@code key, value} pair filled in: a core text inside the engine owner's
+     * feature, so it speaks that plugin's language (or the viewer's own choice).
+     */
+    private static String text(FPlayer viewer, QuestEngine engine, LocaleMessage message, Object... keysAndValues) {
+        if (message == null) {
+            return NOT_LOADED;
+        }
+        String text;
+        try (LocaleScope ignored = LocaleScope.enter(engine.getOwner())) {
+            text = message.getFancyText(viewer).getText();
+        }
+        for (int i = 0; i + 1 < keysAndValues.length; i += 2) {
+            text = text.replace("${" + keysAndValues[i] + "}", String.valueOf(keysAndValues[i + 1]));
+        }
+        return text;
     }
 
     private static String trackedId(QuestId quest) {

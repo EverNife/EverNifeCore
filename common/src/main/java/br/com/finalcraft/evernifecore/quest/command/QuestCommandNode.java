@@ -55,6 +55,34 @@ public class QuestCommandNode implements VerbPermissionBase {
     @FCLocale(lang = LocaleType.PT_BR, text = "§6Quests de §e${player}§6 (${filter}): §e${count}")
     public static LocaleMessage LIST_HEADER;
 
+    @FCLocale(lang = LocaleType.EN_US, text = "§7 - §e${id}§7 (${name}): §f${status}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7 - §e${id}§7 (${name}): §f${status}")
+    public static LocaleMessage LIST_LINE;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§6Quest §e${quest}§6: §f${name}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§6Quest §e${quest}§6: §f${name}")
+    public static LocaleMessage INFO_HEADER;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§6Quest §e${quest}§6: §f${name}§7 - ${description}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§6Quest §e${quest}§6: §f${name}§7 - ${description}")
+    public static LocaleMessage INFO_HEADER_DESCRIBED;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§7 status: §f${status}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7 status: §f${status}")
+    public static LocaleMessage INFO_STATUS;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§7   stage §e${stage}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7   estágio §e${stage}")
+    public static LocaleMessage INFO_STAGE;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§a > stage §e${stage}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§a > estágio §e${stage}")
+    public static LocaleMessage INFO_STAGE_CURRENT;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§7     - ${objective}: §f${count}/${goal}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7     - ${objective}: §f${count}/${goal}")
+    public static LocaleMessage INFO_OBJECTIVE;
+
     @FCLocale(lang = LocaleType.EN_US, text = "§a§l ▶ §aTracking §e${quest}§a.")
     @FCLocale(lang = LocaleType.PT_BR, text = "§a§l ▶ §aAcompanhando §e${quest}§a.")
     public static LocaleMessage TRACKING;
@@ -109,7 +137,8 @@ public class QuestCommandNode implements VerbPermissionBase {
         LIST_HEADER.addPlaceholder("player", target.getName()).addPlaceholder("filter", status == null ? "all" : status.name())
                 .addPlaceholder("count", shown.size()).send(sender);
         for (Map.Entry<QuestDefinition, QuestStatus> line : shown.entrySet()) {
-            sender.sendMessage("§7 - §e" + line.getKey().getId().getName() + "§7 (" + line.getKey().getName() + "): §f" + line.getValue());
+            LIST_LINE.addPlaceholder("id", line.getKey().getId().getName()).addPlaceholder("name", line.getKey().getName())
+                    .addPlaceholder("status", line.getValue()).send(sender);
         }
     }
 
@@ -118,24 +147,26 @@ public class QuestCommandNode implements VerbPermissionBase {
             @FCLocale(lang = LocaleType.PT_BR, text = "Os estágios e objetivos de uma quest, e onde você está nela")
     })
     public void info(FCommandSender sender, @Arg("<quest>") QuestDefinition quest) {
-        sender.sendMessage("§6Quest §e" + quest.getId() + "§6: §f" + quest.getName() + (quest.getDescription().isEmpty() ? "" : "§7 - " + quest.getDescription()));
+        (quest.getDescription().isEmpty() ? INFO_HEADER.custom() : INFO_HEADER_DESCRIBED.addPlaceholder("description", quest.getDescription()))
+                .addPlaceholder("quest", quest.getId()).addPlaceholder("name", quest.getName()).send(sender);
         Optional<QuestState> state = Optional.empty();
         if (sender.isPlayer()) {
             ProgressOwner owner = engine.getOwnerFor(sender.getUniqueId(), quest.getId());
             if (owner != null) {
                 state = engine.getState(owner, quest.getId());
-                sender.sendMessage("§7 status: §f" + engine.getStatus(owner, quest.getId()));
+                INFO_STATUS.addPlaceholder("status", engine.getStatus(owner, quest.getId())).send(sender);
             }
         }
         for (Stage stage : quest.getStages()) {
             boolean current = state.isPresent() && stage.getId().equals(state.get().getStageId());
-            sender.sendMessage((current ? "§a > " : "§7   ") + "stage §e" + stage.getId());
+            (current ? INFO_STAGE_CURRENT : INFO_STAGE).addPlaceholder("stage", stage.getId()).send(sender);
             for (Objective objective : stage.getObjectives().getObjectives()) {
                 if (objective.isHidden()) {
                     continue;
                 }
                 long count = state.map(found -> found.getCount(objective.getId())).orElse(0L);
-                sender.sendMessage("§7     - " + objective.getId() + ": §f" + count + "/" + objective.getGoal());
+                INFO_OBJECTIVE.addPlaceholder("objective", objective.getId()).addPlaceholder("count", count)
+                        .addPlaceholder("goal", objective.getGoal()).send(sender);
             }
         }
     }
