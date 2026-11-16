@@ -484,6 +484,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   exit, and the next one deletes roots older than 1 hour. A plugin gets this by recompiling, with no build setting. The
   `Test` tasks of this repository still point `java.io.tmpdir` at their own `build/tmp/<task>`, emptied before each run.
 - **Hytale Server 0.7.6** (`hytale-server` in the catalog). No code change; a walked-over pickup still raises no event.
+- **EveryDatabase 1.5.2**: the release that carries the optimistic lock of the memory and file backends, so a clean
+  build gets it from `maven.petrus.dev` instead of only from a local `publishToMavenLocal`.
 
 ### Fixed
 
