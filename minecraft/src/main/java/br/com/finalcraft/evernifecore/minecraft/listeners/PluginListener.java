@@ -7,11 +7,9 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.minecraft.autoupdater.SpigotUpdateChecker;
-import br.com.finalcraft.evernifecore.minecraft.integration.placeholders.McPAPIIntegration;
 import br.com.finalcraft.evernifecore.minecraft.metrics.Metrics;
 import br.com.finalcraft.evernifecore.minecraft.protection.ProtectionAll;
 import br.com.finalcraft.evernifecore.minecraft.protection.integration.ProtectionHandler;
-import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -103,18 +101,7 @@ public class PluginListener implements ECListener {
             ProtectionAll.getInstance().unregister(builtIn);
         }
 
-        //unregister the plugin's PDSections BEFORE its ECPluginData is dropped: a runtime-disabled
-        //plugin must not leave bindings pinning its classes/classloader (and a later re-enable
-        //re-registers with a fresh Class object, which would collide with the stale claim)
-        ECPluginData ecPluginData = ECPluginManager.getECPluginsMap().get(pluginName);
-        if (ecPluginData != null){
-            PlayerController.unregisterPDSections(ecPluginData);
-            ProtectionAll.getInstance().unregisterAll(ecPluginData);
-        }
-
-        //its expansion would keep answering from the disabled instance, and a re-enable registers a second one
-        McPAPIIntegration.unregisterAll(pluginName);
-
+        //its sections, protection handlers and placeholder expansions leave with it (ECPluginManager and McPlatform)
         ECPluginManager.removePluginData(pluginName);
     }
 }

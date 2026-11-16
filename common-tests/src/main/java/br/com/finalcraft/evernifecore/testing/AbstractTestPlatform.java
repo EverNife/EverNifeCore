@@ -105,6 +105,11 @@ public abstract class AbstractTestPlatform implements IPlatform {
         throw notConfigured("unregisterCommand", "Platforms.strict().capturingCommands()");
     }
 
+    /** A release, not behaviour a test configures: a double keeps nothing for a plugin, so it has nothing to take back. */
+    @Override
+    public void releasePluginRegistrations(ECPluginData plugin) {
+    }
+
     @Override
     public void registerECListener(ECPluginData ecPluginData, ECListener listener) {
         throw notConfigured("registerECListener", "Platforms.strict().ignoringListeners()");

@@ -3,11 +3,14 @@ package br.com.finalcraft.evernifecore.testing;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.notify.IHudAccess;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -27,6 +30,20 @@ class PlatformConformanceTest {
     void aLenientDoubleConforms() {
         assertEquals(0, PlatformConformance.check(Platforms.lenient().build()).size(),
                 PlatformConformance.summarize(Platforms.lenient().build()));
+    }
+
+    @Test
+    void releasingAPluginTwiceIsSafeOnTheStrictAndTheLenientDouble(@TempDir Path dir) {
+        try (ECoreTestWorld ignored = Platforms.lenient().install()) {
+            ECPluginData nothing = Plugins.fakePluginData("ReleasedTwice", dir.toFile());
+            try {
+                assertEquals(0, PlatformConformance.checkRelease(Platforms.lenient().build(), nothing).size());
+                assertEquals(0, PlatformConformance.checkRelease(Platforms.strict().build(), nothing).size(),
+                        "a release is no behaviour a test configures, so even the strict double answers it");
+            } finally {
+                Plugins.forget("ReleasedTwice");
+            }
+        }
     }
 
     @Test

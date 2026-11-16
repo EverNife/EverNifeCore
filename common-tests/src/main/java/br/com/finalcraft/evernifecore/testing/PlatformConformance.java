@@ -329,6 +329,28 @@ public final class PlatformConformance {
         return Collections.unmodifiableList(failures);
     }
 
+    /**
+     * Whether releasing a plugin twice is safe: {@link IPlatform#releasePluginRegistrations(ECPluginData)} is one step of
+     * every plugin's release, which runs again on the safety net, so a second call (and a call for a plugin that
+     * registered nothing) must not throw.
+     *
+     * @param registeredNothing plugin data that owns no platform registration - releasing it must not take anything real away
+     * @return one line per violation, empty when the platform conforms
+     */
+    public static List<String> checkRelease(IPlatform platform, final ECPluginData registeredNothing) {
+        List<String> failures = new ArrayList<String>();
+        for (int round = 1; round <= 2; round++) {
+            call(platform, "releasePluginRegistrations (call " + round + ")", failures, new Call<Object>() {
+                @Override
+                public Object run(IPlatform target) {
+                    target.releasePluginRegistrations(registeredNothing);
+                    return null;
+                }
+            });
+        }
+        return Collections.unmodifiableList(failures);
+    }
+
     /** Runs the whole suite and returns a single line fit for a console command. */
     public static String summarize(IPlatform platform) {
         List<String> failures = check(platform);

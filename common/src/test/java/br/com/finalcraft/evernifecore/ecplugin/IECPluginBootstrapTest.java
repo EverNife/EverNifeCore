@@ -12,6 +12,8 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManage
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseCall;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.playerdata.PDSection;
+import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 import jakarta.annotation.Nonnull;
 import org.junit.jupiter.api.AfterEach;
@@ -215,6 +217,32 @@ class IECPluginBootstrapTest {
         assertFalse(ActorHolders.all().contains(party), "the provider left with the plugin's data");
     }
 
+    @Test
+    void shutdownLeavesNoPluginDataBehind() {
+        RecordingBootstrap boot = new RecordingBootstrap(pluginData("BootLeaves"));
+
+        boot.runECPluginShutdown();
+
+        assertFalse(ECPluginManager.getECPluginsMap().containsKey("BootLeaves"), "the plugin is still in the registry after its shutdown");
+    }
+
+    public static class TeardownSection extends PDSection {
+    }
+
+    @Test
+    void aSectionOfThePluginAnswersInsideItsTeardownAndIsGoneAfterIt() {
+        ECPluginData data = pluginData("BootSections");
+        PlayerController.registerPDSectionCfg(data, TeardownSection.class, "teardownsection");
+        RecordingBootstrap boot = new RecordingBootstrap(data);
+        boot.watchedSection = TeardownSection.class;
+
+        boot.runECPluginShutdown();
+
+        assertTrue(boot.watchedSectionAtMainShutdown, "the plugin's own teardown can no longer reach its section");
+        assertFalse(PlayerController.getConfiguredPDSections().containsKey(TeardownSection.class),
+                "the section outlived the plugin's shutdown");
+    }
+
     // ------------------------------------------------------------------
     // fakes
     // ------------------------------------------------------------------
@@ -227,6 +255,8 @@ class IECPluginBootstrapTest {
         Runnable firstTick;
         int registeredCountAtMainShutdown = -1;
         boolean failInShutdown;
+        Class<?> watchedSection;
+        boolean watchedSectionAtMainShutdown;
 
         RecordingBootstrap(ECPluginData data) {
             this.data = data;
@@ -266,6 +296,7 @@ class IECPluginBootstrapTest {
             order.add("shutdown");
             //snapshot taken in the main teardown: proves the pre-shutdown already unregistered them
             registeredCountAtMainShutdown = ECListener.getRegistered(data).size();
+            watchedSectionAtMainShutdown = watchedSection != null && PlayerController.getConfiguredPDSections().containsKey(watchedSection);
             if (failInShutdown) throw new IllegalStateException("teardown failed");
         }
 

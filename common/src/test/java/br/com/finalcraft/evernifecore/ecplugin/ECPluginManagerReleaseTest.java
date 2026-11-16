@@ -1,6 +1,10 @@
 package br.com.finalcraft.evernifecore.ecplugin;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
+import br.com.finalcraft.evernifecore.playerdata.PDSection;
+import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.booster.BoosterManager;
 import br.com.finalcraft.evernifecore.booster.Boosters;
@@ -30,11 +34,15 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -75,6 +83,47 @@ class ECPluginManagerReleaseTest {
         assertTrue(FlagRegistry.get().getByOwner(vip).isEmpty(), "the flags are still registered");
         assertFalse(flag.isRegistered());
         assertNull(ArgParserManager.getParser(vip, Probe.class), "the parser is still registered");
+    }
+
+    public static class VipSection extends PDSection {
+    }
+
+    @Test
+    void removePluginDataUnregistersTheSectionsOfThePlugin() {
+        ECPluginData vip = Plugins.fakePluginData("FakeVip", tempDir.resolve("FakeVip").toFile());
+        PlayerController.registerPDSectionCfg(vip, VipSection.class, "vipsection");
+
+        ECPluginManager.removePluginData("FakeVip");
+
+        assertFalse(PlayerController.getConfiguredPDSections().containsKey(VipSection.class),
+                "the section is still registered after its plugin left");
+    }
+
+    @Test
+    void releasingAPluginAsksThePlatformForWhatItKeepsOutsideCommon() {
+        ECPluginData vip = Plugins.fakePluginData("FakeVip", tempDir.resolve("FakeVip").toFile());
+        IPlatform original = EverNifeCore.getPlatform();
+        List<ECPluginData> released = new ArrayList<>();
+        IPlatform recording = (IPlatform) Proxy.newProxyInstance(IPlatform.class.getClassLoader(), new Class<?>[]{IPlatform.class},
+                (proxy, method, args) -> {
+                    if (method.getName().equals("releasePluginRegistrations")) {
+                        released.add((ECPluginData) args[0]);
+                        return null;
+                    }
+                    try {
+                        return method.invoke(original, args);
+                    } catch (InvocationTargetException e) {
+                        throw e.getCause();
+                    }
+                });
+        EverNifeCore.getProviders().getBaseProvider().register(IPlatform.class, recording);
+        try {
+            ECPluginManager.removePluginData("FakeVip");
+        } finally {
+            EverNifeCore.getProviders().getBaseProvider().register(IPlatform.class, original);
+        }
+
+        assertEquals(Collections.singletonList(vip), released);
     }
 
     @Test

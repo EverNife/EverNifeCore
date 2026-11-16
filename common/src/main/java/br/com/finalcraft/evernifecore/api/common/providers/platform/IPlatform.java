@@ -168,6 +168,13 @@ public interface IPlatform {
     public void registerArgParsers();
 
     /**
+     * Takes back what this platform keeps for {@code plugin} outside {@code common} (extra inventories, item parts,
+     * protection handlers, placeholder expansions, ...). The core calls it as one step of releasing a plugin; it
+     * must be idempotent and must not throw for a plugin that registered nothing.
+     */
+    public void releasePluginRegistrations(ECPluginData plugin);
+
+    /**
      * Stops the WHOLE server (not just this plugin), the way the platform's own stop command does -
      * worlds and data get their normal save path. Used when continuing to run would corrupt state,
      * e.g. a storage backend that holds player data is unreachable at boot.

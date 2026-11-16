@@ -822,8 +822,9 @@ public class PlayerController {
     /**
      * Unregisters every PDSection the given plugin registered: flushes each section's dirty cells,
      * drops the binding (cache + collection claim released) and removes the schema-migration steps
-     * of those classes. MUST be called when the plugin is disabled at runtime, or a re-enabled
-     * plugin's re-registration (new classloader, new Class object) duplicates the collection claim.
+     * of those classes, so a re-enabled plugin (new classloader, new Class object) claims its
+     * collections afresh. The core calls it as the plugin leaves the registry
+     * ({@code ECPluginManager.removePluginData}); a plugin never needs to.
      *
      * <p><b>What it can and cannot release.</b> This drops the plugin's entry from the per-plugin
      * registry map, which is the core's own hold on those classes. It is not by itself enough to let

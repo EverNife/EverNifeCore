@@ -489,6 +489,16 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+#### Plugin lifecycle
+
+- **A plugin leaves the registry at the end of its own shutdown.** `runECPluginShutdown` ends with
+  `ECPluginManager.removePluginData`, so no `ECPluginData` is left behind under the plugin's name (on Hytale nothing removed
+  it at all), and `removePluginData` now unregisters the plugin's player data sections as its last step - they answer
+  through the plugin's whole teardown, on both platforms. What a platform keeps for a plugin outside `common` (protection
+  handlers and PlaceholderAPI expansions on Bukkit) is released through the new `IPlatform.releasePluginRegistrations`,
+  one more step of the same release. A plugin implementing `IECPluginBootstrap` directly has to call
+  `runECPluginShutdown()` from its disable, or it never leaves the registry.
+
 #### Deliveries
 
 - **What a `give-item` could not fit is never lost in silence**: when the deliveries store refuses it (the players' data

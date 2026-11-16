@@ -97,10 +97,10 @@ public interface IECPluginBootstrap {
     /**
      * Optional shutdown extras that run BEFORE the shared teardown. The default takes back everything the core keeps
      * for this plugin, writing its regions, groups and quests while its storage is still open: managers, registrations,
-     * listeners, commands, argument parsers and bus subscriptions - so nothing still reaches the plugin when
-     * {@link #onECPluginShutdown()} closes the resources those touch. It is the same set
-     * {@link ECPluginManager#removePluginData(String)} takes back for a plugin that leaves without this hook; each
-     * step runs even when an earlier one threw, and the failure goes to the plugin's log.
+     * listeners, commands, argument parsers, platform registrations and bus subscriptions - so nothing still
+     * reaches the plugin when {@link #onECPluginShutdown()} closes the resources those touch. Its player data
+     * sections stay until {@link #runECPluginShutdown()} ends. Each step runs even when an earlier one threw, and
+     * the failure goes to the plugin's log.
      *
      * <p>An override REPLACES that cleanup, so it has to ask for it back: {@code super.onECPluginShutdownPre()} from
      * a subclass of a base that already implements this interface ({@code ECBukkitPlugin}, {@code ECHytalePlugin}),
@@ -190,9 +190,12 @@ public interface IECPluginBootstrap {
     /**
      * The shutdown entry point invoked by the platform bridge: Pre -&gt; main -&gt; Post teardown
      * (the Pre default unregisters this plugin's listeners before the main teardown closes resources),
-     * then the file loggers this plugin opened and left open, and finally this instance itself - which
-     * is why a plugin's own teardown can still reach it. A step that throws does not skip the steps
-     * after it; the failure is rethrown once they ran.
+     * then the file loggers this plugin opened and left open, then the plugin leaves the registry
+     * ({@link ECPluginManager#removePluginData(String)}: its player data sections and whatever is still
+     * registered), and finally this instance itself - which is why a plugin's own teardown can still reach
+     * it, its sections included. A step that throws does not skip the steps after it; the failure is
+     * rethrown once they ran. A plugin that implements this interface directly has to call this from its
+     * own disable, or it never leaves the registry.
      */
     public default void runECPluginShutdown(){
         try {
@@ -206,11 +209,14 @@ public interface IECPluginBootstrap {
                 onECPluginShutdownPost();
             }
         } finally {
-            //after the last hook: a plugin writes its closing lines during its own teardown
-            getPluginData().closeOpenFileLoggers();
-
-            //last of all, so the plugin's own teardown can still reach itself through its accessor
-            ECBootstrap.unpublish(this);
+            try {
+                //after the last hook: a plugin writes its closing lines during its own teardown
+                getPluginData().closeOpenFileLoggers();
+                ECPluginManager.removePluginData(getPluginData().getMetaInfo().getName());
+            } finally {
+                //last of all, so the plugin's own teardown can still reach itself through its accessor
+                ECBootstrap.unpublish(this);
+            }
         }
     }
 

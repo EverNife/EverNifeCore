@@ -467,6 +467,10 @@ public class HyPlatform implements IPlatform {
     }
 
     @Override
+    public void releasePluginRegistrations(ECPluginData plugin) {
+    }
+
+    @Override
     public void shutdown(String reason) {
         EverNifeCore.getLog().severe("Shutting the server down: " + reason);
         //exit code 1 so a wrapper/panel can tell this apart from a clean stop

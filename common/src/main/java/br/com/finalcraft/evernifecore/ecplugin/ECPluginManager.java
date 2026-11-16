@@ -9,6 +9,7 @@ import br.com.finalcraft.evernifecore.action.EventSourceUsage;
 import br.com.finalcraft.evernifecore.action.provenance.ProvenanceTracker;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
+import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.api.events.reload.ECPluginReloadEvent;
 import br.com.finalcraft.evernifecore.booster.BoosterManager;
 import br.com.finalcraft.evernifecore.booster.Boosters;
@@ -32,6 +33,7 @@ import br.com.finalcraft.evernifecore.logic.value.DynamicValues;
 import br.com.finalcraft.evernifecore.menu.MenuRegistry;
 import br.com.finalcraft.evernifecore.notify.Notifier;
 import br.com.finalcraft.evernifecore.notify.NotifyProfile;
+import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.npc.Npcs;
 import br.com.finalcraft.evernifecore.quest.QuestEngine;
 import br.com.finalcraft.evernifecore.ranking.RankedLists;
@@ -166,10 +168,12 @@ public class ECPluginManager {
      * ({@link IECPluginBootstrap#clearCachedPluginData()}). Asked for again afterwards, the plugin
      * gets fresh data - the same answer it got before it was ever registered.
      *
-     * <p>It is also the plugin's way out when it leaves without its shutdown hook (the platform calls it on
-     * disable, for any plugin): it takes back the same set {@link IECPluginBootstrap#onECPluginShutdownPre()}
-     * does, discarding what the regions, groups and quests still had to write, since the plugin's storage is
-     * gone by then.</p>
+     * <p>It is how a plugin leaves: {@link IECPluginBootstrap#runECPluginShutdown()} calls it once the plugin's own
+     * teardown is over, and the platform calls it for a plugin that leaves without that hook. Whatever
+     * {@link #releaseEverythingOf} still finds is taken back and the regions, groups and quests discard what they
+     * had to write (nothing writes once the plugin is past its teardown); then its player data sections are
+     * unregistered ({@link PlayerController#unregisterPDSections(ECPluginData)}). Idempotent: an unknown name is a
+     * no-op.</p>
      */
     public static synchronized void removePluginData(String pluginName){
         ECPluginData removed = EVERNIFECORE_PLUGINS_MAP.remove(pluginName);
@@ -178,6 +182,8 @@ public class ECPluginManager {
         }
 
         releaseEverythingOf(removed, false);
+        //last: the plugin's own teardown may still read and write its sections
+        step(removed, "player data sections", () -> PlayerController.unregisterPDSections(removed));
 
         //by value, not by removed.getPlugin(): a plugin re-instantiated at runtime leaves two objects
         //answering to one name, and both were handed this very data
@@ -202,6 +208,7 @@ public class ECPluginManager {
      * registrations dropped (group kinds, prompts, menus, locale overlays, notify channels and profile, waypoints and their profile,
      * ontime, console filter, ignore and spawn providers, npcs, flags,
      * actor holders, currencies, destinations, types, multipliers, booster sources, event sources, usage watches,
+     * what the platform keeps outside common ({@link IPlatform#releasePluginRegistrations(ECPluginData)}),
      * listeners, commands, parsers, bus subscriptions). Every step is idempotent and runs even when an earlier one
      * threw - the failure goes to the plugin's log. {@code writePending} says whether the regions, groups and quests
      * write what is pending (the plugin's storage is still open) or discard it.
@@ -250,6 +257,10 @@ public class ECPluginManager {
         step(plugin, "booster sources and domains", () -> Boosters.unregisterAll(plugin));
         step(plugin, "event sources", () -> EventSource.unregisterAll(plugin));
         step(plugin, "event source watches", () -> EventSourceUsage.stopAll(plugin));
+        step(plugin, "platform registrations", () -> {
+            IPlatform platform = EverNifeCore.getProviders().getPlatformOrNull();
+            if (platform != null) platform.releasePluginRegistrations(plugin);
+        });
         step(plugin, "listeners", () -> ECListener.unregisterAll(plugin));
         //only when there is one: the first touch of FinalCMDManager registers the platform's parsers
         step(plugin, "commands", () -> {

@@ -23,6 +23,7 @@ import br.com.finalcraft.evernifecore.minecraft.integration.McOfflinePermissions
 import br.com.finalcraft.evernifecore.minecraft.integration.placeholders.McPAPIIntegration;
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
 import br.com.finalcraft.evernifecore.minecraft.notify.McHudAccess;
+import br.com.finalcraft.evernifecore.minecraft.protection.ProtectionAll;
 import br.com.finalcraft.evernifecore.minecraft.region.McPlayerStateAccess;
 import br.com.finalcraft.evernifecore.minecraft.region.selection.McSelectionItems;
 import br.com.finalcraft.evernifecore.minecraft.region.terrain.McTerrainAccess;
@@ -459,6 +460,13 @@ public class McPlatform implements IPlatform {
     @Override
     public void registerArgParsers() {
         registerArgParsersOnce.run();
+    }
+
+    @Override
+    public void releasePluginRegistrations(ECPluginData plugin) {
+        ProtectionAll.getInstance().unregisterAll(plugin);
+        //its expansion would keep answering from the disabled instance, and a re-enable registers a second one
+        McPAPIIntegration.unregisterAll(plugin.getMetaInfo().getName());
     }
 
     @Override
