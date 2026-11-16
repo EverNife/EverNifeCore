@@ -125,8 +125,9 @@ public final class CommandTreeScanner {
         }
 
         //Load this class's (and its superclasses') static LocaleMessage fields, mirroring the
-        //method scan above, which also walks up to Object
-        loadClassLocales(owningPlugin, executor.getClass());
+        //method scan above, which also walks up to Object. They belong to the jar that ships the class, as a
+        //mounted node's do: a library class registered by two plugins keeps one message instead of the last one's
+        loadClassLocales(ECPluginManager.getProvidingPlugin(executor.getClass()), executor.getClass());
 
         if (finalCMDMainMethods.size() == 1){ //Check for SubCommands, maybe this @FinalCMD is in the Class
             Tuple<FinalCMD, Method> tuple = finalCMDMainMethods.get(0);

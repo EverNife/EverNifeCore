@@ -514,6 +514,16 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+#### Commands
+
+- **A command class registered as a root loads its static texts into the plugin that ships it**, as a mounted node
+  already did: two plugins registering one library's command class share one `LocaleMessage`, owned by the library,
+  instead of the second registrant overwriting the first one's.
+- **Bukkit: unregistering a plugin's own command also takes `<plugin>:<label>`** (and `<plugin>:<alias>`) off the
+  command map. A command turned off or an alias dropped in `commands.yml` stopped answering by its plain label but kept
+  answering, and tab-completing, as `/<plugin>:<label>` until a restart. Taking another plugin's label (the core over
+  `/list`) still leaves `<other>:list` in place.
+
 #### Plugin lifecycle
 
 - **A plugin leaves the registry at the end of its own shutdown.** `runECPluginShutdown` ends with

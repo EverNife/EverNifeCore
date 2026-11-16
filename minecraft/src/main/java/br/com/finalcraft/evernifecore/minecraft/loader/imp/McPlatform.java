@@ -187,20 +187,11 @@ public class McPlatform implements IPlatform {
                 existingCommand.unregister(commandMap1);
             }
 
-            mapOfCommands.remove(commandName);
-
-            Set<String> extrasMinecraftAliases = new HashSet<>();
-            for (Map.Entry<String, Command> entry : mapOfCommands.entrySet()) {
-                if (entry.getValue().equals(existingCommand)){
-                    if (entry.getKey().startsWith("minecraft:")){
-                        extrasMinecraftAliases.add(entry.getKey());
-                    }
-                }
-            }
-
-            for (String extrasMinecraftAlias : extrasMinecraftAliases) {
-                //Needed to remove forge/minecraft commands like 'minecraft:some_command'
-                mapOfCommands.remove(extrasMinecraftAlias);
+            boolean own = removalLevel(existingCommand, notifyPlugin) == ECLogLevel.DEBUG;
+            List<String> extrasMinecraftAliases = new ArrayList<>();
+            List<String> namespacedKeys = new ArrayList<>();
+            for (String removed : removeFromKnownCommands(mapOfCommands, commandName, existingCommand, own)) {
+                (removed.startsWith("minecraft:") ? extrasMinecraftAliases : namespacedKeys).add(removed);
             }
 
             String originalPlugin = "BUKKIT/MINECRAFT";
@@ -222,6 +213,9 @@ public class McPlatform implements IPlatform {
             for (String extrasMinecraftAlias : extrasMinecraftAliases) {
                 report.accept("Removing extra related Minecraft command: " + extrasMinecraftAlias);
             }
+            for (String namespacedKey : namespacedKeys) {
+                log.debug("Removing the namespaced form: " + namespacedKey);
+            }
 
             existingCommand.unregister(getCommandMap());
 
@@ -229,6 +223,30 @@ public class McPlatform implements IPlatform {
             EverNifeCore.getLog().warning("Failed to UNREGISTER command [" +  commandName + "]");
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Takes {@code label} off the known commands together with the keys that reach the same command under another
+     * spelling: its {@code minecraft:} copies (forge/vanilla) and, only for the plugin's {@code own} command, the
+     * {@code <plugin>:<label>} key the command map adds on register. Another plugin's namespaced key stays: it is the
+     * admin's way back to the command the core took the plain label from.
+     *
+     * @return the extra keys removed
+     */
+    static List<String> removeFromKnownCommands(Map<String, Command> known, String label, Command command, boolean own) {
+        known.remove(label);
+        String namespacedSuffix = ":" + label;
+        List<String> extras = new ArrayList<>();
+        for (Map.Entry<String, Command> entry : known.entrySet()) {
+            String key = entry.getKey();
+            if (entry.getValue() == command && (key.startsWith("minecraft:") || (own && key.endsWith(namespacedSuffix)))) {
+                extras.add(key);
+            }
+        }
+        for (String extra : extras) {
+            known.remove(extra);
+        }
+        return extras;
     }
 
     /** DEBUG when the plugin takes its own command off the map (every stop does it), WARNING when it takes another's. */
