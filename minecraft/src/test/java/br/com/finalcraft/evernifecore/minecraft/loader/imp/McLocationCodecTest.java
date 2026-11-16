@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.loader.imp;
 
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
+import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
@@ -13,11 +14,17 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * An optional location - a spawn point nobody set yet - reads as {@code null} instead of taking the
@@ -52,6 +59,43 @@ class McLocationCodecTest {
     @Test
     void anAbsentLocationReadsAsNull() {
         assertNull(open().getValue("Spawn", Location.class));
+    }
+
+    private Config written(String yaml) throws Exception {
+        Files.write(tempDir.resolve("locations.yml"), yaml.getBytes(StandardCharsets.UTF_8));
+        return open();
+    }
+
+    @Test
+    void aLocationWithoutYFailsNamingY() throws Exception {
+        Config config = written("Spawn:\n  worldName: world\n  x: 10\n  z: 3\n");
+
+        Throwable thrown;
+        try (ItemWorld ignored = ItemWorld.withMetadata(MCDetailedVersion.v1_21_R1)) {
+            thrown = assertThrows(Throwable.class, () -> config.getValue("Spawn", Location.class));
+        }
+
+        assertFalse(thrown instanceof NullPointerException, "a missing coordinate reads as a bare NullPointerException");
+        assertTrue(messagesOf(thrown).contains("'y'"), messagesOf(thrown));
+    }
+
+    @Test
+    void aLocationWithoutYawAndPitchFacesZero() throws Exception {
+        try (ItemWorld ignored = ItemWorld.withMetadata(MCDetailedVersion.v1_21_R1)) {
+            Location spawn = written("Spawn:\n  worldName: world\n  x: 10\n  y: 64\n  z: 3\n").getValue("Spawn", Location.class);
+
+            assertEquals(64, spawn.getY());
+            assertEquals(0f, spawn.getYaw());
+            assertEquals(0f, spawn.getPitch());
+        }
+    }
+
+    private static String messagesOf(Throwable thrown) {
+        StringBuilder all = new StringBuilder();
+        for (Throwable cause = thrown; cause != null; cause = cause.getCause()) {
+            all.append(cause).append(" | ");
+        }
+        return all.toString();
     }
 
     @Test

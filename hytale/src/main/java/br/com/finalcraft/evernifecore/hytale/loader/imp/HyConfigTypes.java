@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.hytale.loader.imp;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.config.factory.PositionNodes;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.hytale.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.hytale.itemstack.ComparableItem;
@@ -75,7 +76,7 @@ public final class HyConfigTypes {
         ConfigFactory.register(Vector3d.class).jackson(
                 mapSerializer(v -> vec3(v.x(), v.y(), v.z())),
                 objectDeserializer(Vector3d.class, node -> new Vector3d(
-                        node.get("x").asDouble(), node.get("y").asDouble(), node.get("z").asDouble()))
+                        PositionNodes.requireNumber(node, "x"), PositionNodes.requireNumber(node, "y"), PositionNodes.requireNumber(node, "z")))
         ).asCompactElement(
                 v -> v.x() + " " + v.y() + " " + v.z(),
                 s -> { String[] p = coords(s); return new Vector3d(
@@ -85,7 +86,7 @@ public final class HyConfigTypes {
         ConfigFactory.register(Vector3i.class).jackson(
                 mapSerializer(v -> vec3(v.x(), v.y(), v.z())),
                 objectDeserializer(Vector3i.class, node -> new Vector3i(
-                        node.get("x").asInt(), node.get("y").asInt(), node.get("z").asInt()))
+                        (int) PositionNodes.requireNumber(node, "x"), (int) PositionNodes.requireNumber(node, "y"), (int) PositionNodes.requireNumber(node, "z")))
         ).asCompactElement(
                 v -> v.x() + " " + v.y() + " " + v.z(),
                 s -> { String[] p = coords(s); return new Vector3i(
@@ -95,8 +96,8 @@ public final class HyConfigTypes {
         ConfigFactory.register(Vector3f.class).jackson(
                 mapSerializer(v -> vec3(v.x(), v.y(), v.z())),
                 objectDeserializer(Vector3f.class, node -> new Vector3f(
-                        (float) node.get("x").asDouble(), (float) node.get("y").asDouble(),
-                        (float) node.get("z").asDouble()))
+                        (float) PositionNodes.requireNumber(node, "x"), (float) PositionNodes.requireNumber(node, "y"),
+                        (float) PositionNodes.requireNumber(node, "z")))
         ).asCompactElement(
                 v -> v.x() + " " + v.y() + " " + v.z(),
                 s -> { String[] p = coords(s); return new Vector3f(
@@ -106,8 +107,8 @@ public final class HyConfigTypes {
         ConfigFactory.register(Rotation3f.class).jackson(
                 mapSerializer(v -> vec3(v.x(), v.y(), v.z())),
                 objectDeserializer(Rotation3f.class, node -> new Rotation3f(
-                        (float) node.get("x").asDouble(), (float) node.get("y").asDouble(),
-                        (float) node.get("z").asDouble()))
+                        (float) PositionNodes.requireNumber(node, "x"), (float) PositionNodes.requireNumber(node, "y"),
+                        (float) PositionNodes.requireNumber(node, "z")))
         ).asCompactElement(
                 v -> v.x() + " " + v.y() + " " + v.z(),
                 s -> { String[] p = coords(s); return new Rotation3f(
@@ -122,7 +123,7 @@ public final class HyConfigTypes {
                     return map;
                 }),
                 objectDeserializer(Vector2d.class, node -> new Vector2d(
-                        node.get("x").asDouble(), node.get("y").asDouble()))
+                        PositionNodes.requireNumber(node, "x"), PositionNodes.requireNumber(node, "y")))
         ).asCompactElement(
                 v -> v.x() + " " + v.y(),
                 s -> { String[] p = coords(s); return new Vector2d(

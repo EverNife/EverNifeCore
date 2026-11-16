@@ -8,6 +8,7 @@ import br.com.finalcraft.everyconfig.codec.Codec;
 import br.com.finalcraft.everyconfig.codec.CodecRegistry;
 import br.com.finalcraft.everyconfig.codec.jackson.*;
 import br.com.finalcraft.everyconfig.config.Config;
+import br.com.finalcraft.everyconfig.config.LoadStatus;
 import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import br.com.finalcraft.everyconfig.io.BackStore;
 import br.com.finalcraft.everyconfig.selfdescribe.CompactElementCodec;
@@ -154,7 +155,7 @@ public final class ConfigFactory {
         final File dataFolder = plugin.getMetaInfo().getDataFolder();
         dataFolder.mkdirs(); // a real plugin ensures its data folder exists before writing
         final File file = new File(dataFolder, fileName);
-        final Config config = Config.open(file.toPath(), codecForFile(fileName));
+        final Config config = reportUnreadable(plugin, Config.open(file.toPath(), codecForFile(fileName)), file.getName());
         config.setHeader(standardHeader(plugin));
         return config;
     }
@@ -164,7 +165,7 @@ public final class ConfigFactory {
         final File dataFolder = plugin.getMetaInfo().getDataFolder();
         dataFolder.mkdirs();
         final File file = new File(dataFolder, fileName);
-        final Config config = Config.open(file.toPath(), codec);
+        final Config config = reportUnreadable(plugin, Config.open(file.toPath(), codec), file.getName());
         config.setHeader(standardHeader(plugin));
         return config;
     }
@@ -259,6 +260,7 @@ public final class ConfigFactory {
     public static Config open(final ECPluginData plugin, final File file) {
         final Config config = open(file);
         if (plugin != null) {
+            reportUnreadable(plugin, config, file.getName());
             config.setHeader(standardHeader(plugin));
         }
         return config;
@@ -268,7 +270,20 @@ public final class ConfigFactory {
     public static Config open(final ECPluginData plugin, final Path path) {
         final Config config = open(path);
         if (plugin != null) {
+            reportUnreadable(plugin, config, fileNameOf(path));
             config.setHeader(standardHeader(plugin));
+        }
+        return config;
+    }
+
+    /**
+     * A file EveryConfig could not parse was moved aside to {@code <name>.bak} and opened empty, so the plugin runs on
+     * its defaults: say so on the plugin's log, once per open, or the admin never learns why the settings vanished.
+     */
+    private static Config reportUnreadable(final ECPluginData plugin, final Config config, final String fileName) {
+        if (config.lastLoadStatus() == LoadStatus.PARSE_FAILED_BACKED_UP) {
+            plugin.getLog().warning("{} could not be read (broken YAML), so it was moved to {}.bak and {} is running on its defaults."
+                    + " Fix the .bak, put it back under the original name and reload.", fileName, fileName, plugin.getMetaInfo().getName());
         }
         return config;
     }

@@ -74,9 +74,9 @@ final class CFPositionFamily {
                     BlockPos.class,
                     BlockPos::deserialize,
                     node -> new BlockPos(
-                        node.get("x").asInt(),
-                        node.get("y").asInt(),
-                        node.get("z").asInt())
+                        (int) PositionNodes.requireNumber(node, "x"),
+                        (int) PositionNodes.requireNumber(node, "y"),
+                        (int) PositionNodes.requireNumber(node, "z"))
                 )
         ).asCompactElement(BlockPos::serialize, BlockPos::deserialize);
     }
@@ -94,9 +94,9 @@ final class CFPositionFamily {
                     MutableBlockPos.class,
                     MutableBlockPos::deserialize,
                     node -> new MutableBlockPos(
-                        node.get("x").asInt(),
-                        node.get("y").asInt(),
-                        node.get("z").asInt())
+                        (int) PositionNodes.requireNumber(node, "x"),
+                        (int) PositionNodes.requireNumber(node, "y"),
+                        (int) PositionNodes.requireNumber(node, "z"))
                 )
         ).asCompactElement(MutableBlockPos::serialize, MutableBlockPos::deserialize);
     }
@@ -115,9 +115,9 @@ final class CFPositionFamily {
                     WorldBlockPos.class,
                     WorldBlockPos::deserialize,
                     node -> new WorldBlockPos(
-                        node.get("x").asInt(),
-                        node.get("y").asInt(),
-                        node.get("z").asInt(),
+                        (int) PositionNodes.requireNumber(node, "x"),
+                        (int) PositionNodes.requireNumber(node, "y"),
+                        (int) PositionNodes.requireNumber(node, "z"),
                         stringOrNull(node.get("worldName")))
                 )
         ).asCompactElement(WorldBlockPos::serialize, WorldBlockPos::deserialize);
@@ -138,9 +138,9 @@ final class CFPositionFamily {
                     LocPos.class,
                     LocPos::deserialize,
                     node -> new LocPos(
-                        node.get("x").asDouble(),
-                        node.get("y").asDouble(),
-                        node.get("z").asDouble())
+                        PositionNodes.requireNumber(node, "x"),
+                        PositionNodes.requireNumber(node, "y"),
+                        PositionNodes.requireNumber(node, "z"))
                 )
         ).asCompactElement(LocPos::serialize, LocPos::deserialize);
     }
@@ -158,9 +158,9 @@ final class CFPositionFamily {
                     MutableLocPos.class,
                     MutableLocPos::deserialize,
                     node -> new MutableLocPos(
-                        node.get("x").asDouble(),
-                        node.get("y").asDouble(),
-                        node.get("z").asDouble())
+                        PositionNodes.requireNumber(node, "x"),
+                        PositionNodes.requireNumber(node, "y"),
+                        PositionNodes.requireNumber(node, "z"))
                 )
         ).asCompactElement(MutableLocPos::serialize, MutableLocPos::deserialize);
     }
@@ -179,9 +179,9 @@ final class CFPositionFamily {
                     WorldLocPos.class,
                     WorldLocPos::deserialize,
                     node -> new WorldLocPos(
-                        node.get("x").asDouble(),
-                        node.get("y").asDouble(),
-                        node.get("z").asDouble(),
+                        PositionNodes.requireNumber(node, "x"),
+                        PositionNodes.requireNumber(node, "y"),
+                        PositionNodes.requireNumber(node, "z"),
                         stringOrNull(node.get("worldName")))
                 )
         ).asCompactElement(WorldLocPos::serialize, WorldLocPos::deserialize);
@@ -201,8 +201,8 @@ final class CFPositionFamily {
                     ChunkPos.class,
                     ChunkPos::deserialize,
                     node -> new ChunkPos(
-                        node.get("x").asInt(),
-                        node.get("z").asInt())
+                        (int) PositionNodes.requireNumber(node, "x"),
+                        (int) PositionNodes.requireNumber(node, "z"))
                 )
         ).asCompactElement(ChunkPos::serialize, ChunkPos::deserialize);
     }
@@ -219,8 +219,8 @@ final class CFPositionFamily {
                     MutableChunkPos.class,
                     MutableChunkPos::deserialize,
                     node -> new MutableChunkPos(
-                        node.get("x").asInt(),
-                        node.get("z").asInt())
+                        (int) PositionNodes.requireNumber(node, "x"),
+                        (int) PositionNodes.requireNumber(node, "z"))
                 )
         ).asCompactElement(MutableChunkPos::serialize, MutableChunkPos::deserialize);
     }
@@ -238,7 +238,7 @@ final class CFPositionFamily {
                     WorldChunkPos.class,
                     WorldChunkPos::deserialize,
                     node -> new WorldChunkPos(
-                        node.get("x").asInt(), node.get("z").asInt(),
+                        (int) PositionNodes.requireNumber(node, "x"), (int) PositionNodes.requireNumber(node, "z"),
                         stringOrNull(node.get("worldName")))
                 )
         ).asCompactElement(WorldChunkPos::serialize, WorldChunkPos::deserialize);
@@ -258,7 +258,7 @@ final class CFPositionFamily {
                     RegionPos.class,
                     RegionPos::deserialize,
                     node -> new RegionPos(
-                        node.get("x").asInt(), node.get("z").asInt())
+                        (int) PositionNodes.requireNumber(node, "x"), (int) PositionNodes.requireNumber(node, "z"))
                 )
         ).asCompactElement(RegionPos::serialize, RegionPos::deserialize);
     }
@@ -275,7 +275,7 @@ final class CFPositionFamily {
                     MutableRegionPos.class,
                     MutableRegionPos::deserialize,
                     node -> new MutableRegionPos(
-                        node.get("x").asInt(), node.get("z").asInt())
+                        (int) PositionNodes.requireNumber(node, "x"), (int) PositionNodes.requireNumber(node, "z"))
                 )
         ).asCompactElement(MutableRegionPos::serialize, MutableRegionPos::deserialize);
     }
@@ -293,8 +293,8 @@ final class CFPositionFamily {
                     WorldRegionPos.class,
                     WorldRegionPos::deserialize,
                     node -> new WorldRegionPos(
-                        node.get("x").asInt(),
-                        node.get("z").asInt(),
+                        (int) PositionNodes.requireNumber(node, "x"),
+                        (int) PositionNodes.requireNumber(node, "z"),
                         stringOrNull(node.get("worldName")))
                 )
         ).asCompactElement(WorldRegionPos::serialize, WorldRegionPos::deserialize);

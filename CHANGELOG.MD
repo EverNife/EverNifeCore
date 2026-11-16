@@ -520,6 +520,16 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Fixed
 
+#### Configuration
+
+- **A plugin's file that cannot be parsed is reported**: EveryConfig moves it to `<name>.bak` and opens it empty, and
+  every `ConfigFactory.open` that takes the plugin now logs one WARNING on the plugin's log naming the file and the
+  `.bak`, instead of the plugin silently running on its defaults.
+- **A position written by hand with a coordinate missing names it**: `Location` (Bukkit), every position of
+  `CFPositionFamily` and the Hytale vectors read their coordinates through `PositionNodes.requireNumber`, so
+  `spawn: {worldName: world, x: 10}` fails naming `y` and showing the entry instead of throwing a bare
+  `NullPointerException`. A `Location`'s missing `yaw`/`pitch` read as `0`.
+
 #### Commands
 
 - **A command class registered as a root loads its static texts into the plugin that ships it**, as a mounted node

@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.loader.imp;
 
 import br.com.finalcraft.everyconfig.config.section.ConfigSection;
+import br.com.finalcraft.evernifecore.config.factory.PositionNodes;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.minecraft.inventory.invitem.InvItem;
@@ -107,11 +108,12 @@ public final class McConfigTypes {
                         }
                         return new Location(
                                 Bukkit.getWorld(stringOrNull(node.get("worldName"))),
-                                node.get("x").asDouble(),
-                                node.get("y").asDouble(),
-                                node.get("z").asDouble(),
-                                (float) node.get("yaw").asDouble(),
-                                (float) node.get("pitch").asDouble()
+                                PositionNodes.requireNumber(node, "x"),
+                                PositionNodes.requireNumber(node, "y"),
+                                PositionNodes.requireNumber(node, "z"),
+                                //a hand-written spawn rarely carries a facing
+                                (float) PositionNodes.numberOr(node, "yaw", 0),
+                                (float) PositionNodes.numberOr(node, "pitch", 0)
                         );
                     }
                 }
