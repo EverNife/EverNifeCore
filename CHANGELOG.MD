@@ -520,6 +520,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   handlers and PlaceholderAPI expansions on Bukkit) is released through the new `IPlatform.releasePluginRegistrations`,
   one more step of the same release. A plugin implementing `IECPluginBootstrap` directly has to call
   `runECPluginShutdown()` from its disable, or it never leaves the registry.
+- **Bukkit: a plugin that runs its own shutdown no longer loses its pending regions, groups and quests on a stop.**
+  Bukkit posts `PluginDisableEvent` before `onDisable`, and the core forgot the plugin on that event: what it still had to
+  write was discarded while its storage was open, and `onDisable` then built a fresh `ECPluginData` that stayed in the
+  registry. The event now forgets only a plugin that is not an `IECPluginBootstrap` (and takes back the core's built-in
+  protection handler for any); a bootstrap plugin forgets itself at the end of `runECPluginShutdown`. Seen on Paper and
+  Arclight 1.21.1, Mohist 1.16.5 and Crucible 1.7.10.
 
 #### Deliveries
 

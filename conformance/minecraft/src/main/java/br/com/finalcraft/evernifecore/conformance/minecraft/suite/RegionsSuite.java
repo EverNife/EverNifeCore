@@ -61,12 +61,14 @@ import org.bukkit.plugin.RegisteredListener;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 import java.util.List;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import java.util.function.Consumer;
@@ -92,6 +94,8 @@ public final class RegionsSuite implements ConformanceSuite {
 
     private static final String TOKEN_FILE = "regions.token";
     private static final String PERSISTED = "ecc-persist";
+    private static final String PENDING_TOKEN_FILE = "regions-pending.token";
+    private static final String PENDING_AT_STOP = "ecc-pending-at-stop";
     private static final String PERSISTED_MESSAGE = "ECC deny message";
     private static final Duration PERSISTED_INTERVAL = Duration.ofMillis(1234);
     private static final long TIMEOUT_MILLIS = 10_000L;
@@ -162,12 +166,15 @@ public final class RegionsSuite implements ConformanceSuite {
         //read here, not in the run half: the throws come after it, or they leave the drop listener up through its idle time and item-drop-listener-follows-need finds it on
         List<ConformanceCase> cases = new ArrayList<>(RealDropCases.cases(ctx));
         cases.add(ConformanceCase.later("write", () -> write(ctx)));
+        //last of the half: from here no region of this plugin flushes until the server stops
+        cases.add(ConformanceCase.later("pending-at-stop-write", () -> writePendingAtStop(ctx)));
         return cases;
     }
 
     @Override
     public List<ConformanceCase> getReadCases(ConformanceContext ctx) {
-        return Collections.singletonList(ConformanceCase.later("read", () -> read(ctx)));
+        return Arrays.asList(ConformanceCase.later("read", () -> read(ctx)),
+                ConformanceCase.later("pending-at-stop-read", () -> readPendingAtStop(ctx)));
     }
 
     private Verdict coreFlagsRegistered() {
@@ -627,6 +634,48 @@ public final class RegionsSuite implements ConformanceSuite {
             regions.remove(region);
             return Verdict.of(ok, "read " + region.getId() + " deny-message='" + message + "' ownTriggerInterval=" + intervalMillis
                     + "ms (expected " + expected + ", '" + PERSISTED_MESSAGE + "', " + PERSISTED_INTERVAL.toMillis() + "ms)");
+        }).exceptionally(thrown -> Verdict.fail(Verdict.describe(thrown)));
+        return PlayerCases.within(answer, TIMEOUT_MILLIS);
+    }
+
+    /**
+     * A region still waiting for its write when the server stops: the stop has to write it. Bukkit posts the plugin's
+     * disable event before its {@code onDisable}, so a core that forgot the plugin on the event discarded it. The flush
+     * delay goes to an hour first, so nothing but the stop writes it.
+     */
+    private CompletableFuture<Verdict> writePendingAtStop(ConformanceContext ctx) throws Exception {
+        Region old = regions.get(PENDING_AT_STOP);
+        if (old != null) {
+            regions.remove(old);
+            regions.flush().get(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
+        }
+        Method delay = RegionManager.class.getDeclaredMethod("setFlushDelayMillis", long.class);
+        delay.setAccessible(true);
+        delay.invoke(null, TimeUnit.HOURS.toMillis(1));
+        World world = Bukkit.getWorlds().get(0);
+        CreationResult created = regions.create(PENDING_AT_STOP, world.getName(), CuboidShape.of(BlockPos.of(110, 0, 110), BlockPos.of(111, 1, 111)));
+        if (created.getRegion() == null) {
+            return CompletableFuture.completedFuture(Verdict.fail(PENDING_AT_STOP + " refused: " + created.getRefusal()));
+        }
+        Files.write(new File(ctx.getDataFolder(), PENDING_TOKEN_FILE).toPath(), created.getRegion().getId().toString().getBytes(StandardCharsets.UTF_8));
+        return CompletableFuture.completedFuture(Verdict.pass("created " + created.getRegion().getId() + ", left pending for the stop to write"));
+    }
+
+    private CompletableFuture<Verdict> readPendingAtStop(ConformanceContext ctx) throws Exception {
+        File file = new File(ctx.getDataFolder(), PENDING_TOKEN_FILE);
+        if (!file.isFile()) {
+            return CompletableFuture.completedFuture(Verdict.fail("no " + PENDING_TOKEN_FILE + " - the write half never ran here"));
+        }
+        String expected = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8).trim();
+        CompletableFuture<Verdict> answer = loaded.thenApply(done -> {
+            Region region = regions.get(PENDING_AT_STOP);
+            if (region == null) {
+                return Verdict.fail(expected + " was pending when the server stopped and is not in the index after the restart:"
+                        + " the stop discarded it instead of writing it");
+            }
+            boolean same = expected.equals(region.getId().toString());
+            regions.remove(region);
+            return Verdict.of(same, "read " + region.getId() + " (expected " + expected + ")");
         }).exceptionally(thrown -> Verdict.fail(Verdict.describe(thrown)));
         return PlayerCases.within(answer, TIMEOUT_MILLIS);
     }

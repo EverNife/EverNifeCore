@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
+import br.com.finalcraft.evernifecore.ecplugin.IECPluginBootstrap;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.minecraft.autoupdater.SpigotUpdateChecker;
@@ -85,23 +86,33 @@ public class PluginListener implements ECListener {
         }
     }
 
+    /**
+     * Bukkit posts this BEFORE it calls the plugin's {@code onDisable}. A plugin that runs its own shutdown
+     * ({@link IECPluginBootstrap#runECPluginShutdown()}) still needs its storage-backed state then, and forgets itself at
+     * the end of it; any other plugin is forgotten here. The core's built-in protection handler for the plugin leaves
+     * either way.
+     */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPluginDisable(PluginDisableEvent event) {
-        /*
-         * This will remove the data from this plugin if it was a ECPlugin
-         *
-         * Will remove data Like "TabCompletion" and "Localization" from the memory cache
-         */
-        forget(event.getPlugin().getName());
+        String pluginName = event.getPlugin().getName();
+        forgetBuiltInProtection(pluginName);
+        ECPluginData ecPluginData = ECPluginManager.getECPluginsMap().get(pluginName);
+        if (ecPluginData == null || !(ecPluginData.getPlugin() instanceof IECPluginBootstrap)) {
+            ECPluginManager.removePluginData(pluginName);
+        }
     }
 
+    /** A plugin dead before this listener: its shutdown, if it had one, is already over. */
     private void forget(String pluginName) {
+        forgetBuiltInProtection(pluginName);
+        //its sections, protection handlers and placeholder expansions leave with it (ECPluginManager and McPlatform)
+        ECPluginManager.removePluginData(pluginName);
+    }
+
+    private void forgetBuiltInProtection(String pluginName) {
         ProtectionHandler builtIn = builtInProtections.remove(pluginName);
         if (builtIn != null) {
             ProtectionAll.getInstance().unregister(builtIn);
         }
-
-        //its sections, protection handlers and placeholder expansions leave with it (ECPluginManager and McPlatform)
-        ECPluginManager.removePluginData(pluginName);
     }
 }
