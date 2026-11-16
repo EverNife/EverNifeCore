@@ -16,6 +16,15 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ## [Unreleased]
 
+## [3.0.1-alpha.72] - 2026-11-15
+
+Every rule a plugin owns now lives with that plugin. Notifications, waypoints, regions, provenance, cooldowns, boosters,
+commands, provider slots and every registry (extra inventories, inv items, item parts, quest checks, dynamic command links)
+take their owner, read that plugin's own `config.yml` blocks and leave when it does; the core's texts speak the language of
+the plugin whose feature runs them. Rewards gain tables, scenes and phases; deliveries carry icons and survive what a full
+inventory could not take. On Bukkit, a plugin that runs its own shutdown no longer loses its pending regions, groups and
+quests on a stop. Builds on EveryDatabase 1.5.2, EveryConfig 1.4.4 and Hytale Server 0.7.6.
+
 ### Added
 
 #### Plugin config blocks
