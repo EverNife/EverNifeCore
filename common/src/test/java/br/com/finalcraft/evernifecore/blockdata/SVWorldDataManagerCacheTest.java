@@ -290,21 +290,21 @@ class SVWorldDataManagerCacheTest extends BlockStoreTestBase {
         writer.close();
     }
 
-    /** Makes one stored chunk unreadable - the grid sentinel is left alone, it is not a chunk. */
+    /** Makes alice's stored chunk unreadable - picked by content, since the walk order differs between file systems. */
     private void corruptOneStoredChunk(Path dataFolder) throws IOException {
         try (Stream<Path> stored = Files.walk(dataFolder)) {
             Path victim = stored.filter(Files::isRegularFile)
-                    .filter(file -> !holdsTheSentinel(file))
+                    .filter(file -> holds(file, "alice"))
                     .findFirst()
-                    .orElseThrow(() -> new AssertionError("no chunk was stored under " + dataFolder));
+                    .orElseThrow(() -> new AssertionError("no chunk holding alice was stored under " + dataFolder));
             //an unterminated flow collection: a syntax error, so nothing about the payload's shape matters
             Files.write(victim, "{ unterminated: [flow, collection".getBytes(StandardCharsets.UTF_8));
         }
     }
 
-    private static boolean holdsTheSentinel(Path file) {
+    private static boolean holds(Path file, String text) {
         try {
-            return new String(Files.readAllBytes(file), StandardCharsets.UTF_8).contains("gridChunkSize");
+            return new String(Files.readAllBytes(file), StandardCharsets.UTF_8).contains(text);
         } catch (IOException unreadable) {
             throw new UncheckedIOException("could not read " + file, unreadable);
         }
