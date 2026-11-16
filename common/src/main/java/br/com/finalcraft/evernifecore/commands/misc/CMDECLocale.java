@@ -52,7 +52,7 @@ public class CMDECLocale {
                 boolean isThisSelected = ecplugin.getPluginLanguage().equals(localeType);
                 return FancyText.of((isThisSelected ? "§a§l" : "") +  "[" + localeType + "]§7")
                     .setHover(isThisSelected ? "§aThis locale is already selected!" : "Click to Change Locale to: " + localeType)
-                    .setClickCommand(isThisSelected ? null : FCCommandUtil.dynamicCommand(() -> {
+                    .setClickCommand(isThisSelected ? null : FCCommandUtil.dynamicCommand(EverNifeCore.getEcPluginData(), () -> {
                         FCServerUtil.makeConsoleExecuteCommand(label + " set " + ecplugin.getMetaInfo().getName() + " " + localeType);
                         this.list(sender, label); //Send this command again
                     }));

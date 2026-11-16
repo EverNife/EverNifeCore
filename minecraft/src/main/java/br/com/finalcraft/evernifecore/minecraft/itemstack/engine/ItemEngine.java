@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.itemstack.engine;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartAmount;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartComponents;
@@ -35,6 +36,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
@@ -85,6 +87,17 @@ public final class ItemEngine {
         }
     }
 
+    /**
+     * Internal: drops the parts {@code owner} registered on the engine of this JVM - part of releasing that plugin. No
+     * engine yet means nothing to drop, and no probe is paid for it.
+     */
+    public static void releaseOwnedBy(@Nonnull ECPluginData owner) {
+        ItemEngine engine = current;
+        if (engine != null) {
+            engine.unregisterAll(owner);
+        }
+    }
+
     /** Drops the installed engine, so the next {@link #get()} probes the real machine again. */
     public static void uninstall() {
         synchronized (ItemEngine.class) {
@@ -97,35 +110,35 @@ public final class ItemEngine {
     public static ItemEngine bootstrap(@Nonnull ItemRuntime runtime) {
         ItemEngine engine = new ItemEngine(runtime);
 
-        engine.register(PartRegistration.of(StandardParts.TYPE, ItemRequirement.base(),
+        engine.add(null, PartRegistration.of(StandardParts.TYPE, ItemRequirement.base(),
                 new String[]{"id", "material", "identifier"}, ItemDataPartMaterial::new));
-        engine.register(PartRegistration.of(StandardParts.DURABILITY,
+        engine.add(null, PartRegistration.of(StandardParts.DURABILITY,
                 ItemRequirement.base().with(ItemProbe.ITEM_META),
                 new String[]{"damage", "subid"}, ItemDataPartDurability::new));
-        engine.register(PartRegistration.of(StandardParts.AMOUNT, ItemRequirement.base(),
+        engine.add(null, PartRegistration.of(StandardParts.AMOUNT, ItemRequirement.base(),
                 new String[]{"number"}, ItemDataPartAmount::new));
-        engine.register(PartRegistration.of(StandardParts.CUSTOM_MODEL_DATA,
+        engine.add(null, PartRegistration.of(StandardParts.CUSTOM_MODEL_DATA,
                 ItemRequirement.atLeast(MCDetailedVersion.v1_14_R1).with(ItemProbe.ITEM_META),
                 new String[]{}, ItemDataPartCustomModelData::new)
                 .orWrite("On older servers, write it through the 'nbt:' hatch: nbt:{CustomModelData:1042}"));
-        engine.register(PartRegistration.of(StandardParts.HIDE_FLAGS,
+        engine.add(null, PartRegistration.of(StandardParts.HIDE_FLAGS,
                 ItemRequirement.atLeast(MCDetailedVersion.v1_8_R1).with(ItemProbe.ITEM_META),
                 new String[]{"itemflag", "hideflag", "flag", "itemflags", "flags"},
                 ItemDataPartItemflags::new));
-        engine.register(PartRegistration.of(StandardParts.NAME,
+        engine.add(null, PartRegistration.of(StandardParts.NAME,
                 ItemRequirement.base().with(ItemProbe.ITEM_META),
                 new String[]{"text", "title"}, ItemDataPartName::new));
-        engine.register(PartRegistration.of(StandardParts.LORE,
+        engine.add(null, PartRegistration.of(StandardParts.LORE,
                 ItemRequirement.base().with(ItemProbe.ITEM_META),
                 new String[]{"description"}, ItemDataPartLore::new));
-        engine.register(PartRegistration.of(StandardParts.NBT,
+        engine.add(null, PartRegistration.of(StandardParts.NBT,
                 ItemRequirement.base().with(ItemProbe.NBT, ItemProbe.SNBT_IO),
                 new String[]{"rawnbt"}, () -> new ItemDataPartNBT(engine)));
-        engine.register(PartRegistration.of(StandardParts.COMPONENTS,
+        engine.add(null, PartRegistration.of(StandardParts.COMPONENTS,
                 ItemRequirement.atLeast(MCDetailedVersion.v1_20_R4).with(ItemProbe.COMPONENTS),
                 new String[]{}, ItemDataPartComponents::new)
                 .orWrite("Components arrived in 1.20.5; below it the same data lives under 'nbt:'."));
-        engine.register(PartRegistration.of(StandardParts.ENCHANT,
+        engine.add(null, PartRegistration.of(StandardParts.ENCHANT,
                 ItemRequirement.atLeast(MCDetailedVersion.v1_13_R1).with(ItemProbe.ENCHANT_REGISTRY),
                 new String[]{}, ItemDataPartEnchantment::new)
                 .orWrite("On older servers, write it through the 'nbt:' hatch:"
@@ -155,11 +168,27 @@ public final class ItemEngine {
     // -----------------------------------------------------------------------------------------------------------------
 
     /**
-     * Adds a part to this engine, negotiating its requirement against the runtime once, here.
+     * Adds a part to this engine for {@code owner}, negotiating its requirement against the runtime once, here. The part
+     * leaves when its owner does ({@link #unregisterAll(ECPluginData)}).
      *
      * @throws IllegalArgumentException when a spelling is already taken or is a reserved shape
      */
-    public void register(@Nonnull PartRegistration registration) {
+    public void register(@Nonnull ECPluginData owner, @Nonnull PartRegistration registration) {
+        Objects.requireNonNull(owner, "'owner' cannot be null when registering an item part!");
+        add(owner, registration);
+    }
+
+    /**
+     * Drops every part {@code owner} registered; the core calls it as that plugin leaves. The parts this engine ships
+     * with have no owner and always stay.
+     */
+    public void unregisterAll(@Nonnull ECPluginData owner) {
+        parts.removeIf(part -> part.getOwner() == owner);
+    }
+
+    //the parts this engine ships with come in with no owner: the core's own release must not take them, since a core
+    //enabled again in the same JVM keeps this engine and would find it empty
+    private synchronized void add(@Nullable ECPluginData owner, @Nonnull PartRegistration registration) {
         for (String spelling : registration.getSpellings()) {
             if (spelling.isEmpty()) {
                 throw new IllegalArgumentException("An item-data key cannot be empty. Give the part a key "
@@ -180,7 +209,7 @@ public final class ItemEngine {
                         + registration.getKey() + "'.");
             }
         }
-        parts.add(new RegisteredPart(registration, runtime));
+        parts.add(new RegisteredPart(owner, registration, runtime));
     }
 
     /** The part a spelling reaches - active or refused - or {@code null} when nothing answers to it. */

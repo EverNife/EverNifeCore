@@ -17,6 +17,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
 import br.com.finalcraft.evernifecore.cooldown.Cooldowns;
 import br.com.finalcraft.evernifecore.dialogue.Dialogues;
+import br.com.finalcraft.evernifecore.dynamiccommand.DynamicCommandManager;
 import br.com.finalcraft.evernifecore.economy.Currencies;
 import br.com.finalcraft.evernifecore.flag.ActorHolders;
 import br.com.finalcraft.evernifecore.flag.FlagRegistry;
@@ -204,7 +205,7 @@ public class ECPluginManager {
 
     /**
      * Takes back everything the core keeps for {@code plugin}: its managers closed (provenance, regions, groups,
-     * quests, cooldowns, variables, boosters, values, contributions, audit, rankings, dialogues, screens), its
+     * quests, cooldowns, dynamic command links, variables, boosters, values, contributions, audit, rankings, dialogues, screens), its
      * registrations dropped (group kinds, prompts, menus, locale overlays, notify channels and profile, waypoints and their profile,
      * ontime, console filter, ignore and spawn providers, npcs, flags,
      * actor holders, currencies, destinations, types, multipliers, booster sources, event sources, usage watches,
@@ -224,10 +225,12 @@ public class ECPluginManager {
         });
         step(plugin, "quests", () -> {
             if (writePending) QuestEngine.closeOwnedBy(plugin); else QuestEngine.discardOwnedBy(plugin);
+            QuestEngine.removeDefinitionChecksOf(plugin);
         });
         step(plugin, "group kinds", () -> GroupLookup.get().unregisterAll(plugin));
         step(plugin, "group network", () -> Groups.unregisterNetwork(plugin));
         step(plugin, "cooldowns", () -> Cooldowns.closeOwnedBy(plugin));
+        step(plugin, "dynamic commands", () -> DynamicCommandManager.closeOwnedBy(plugin));
         step(plugin, "custom variables", () -> CustomVariables.closeOwnedBy(plugin));
         step(plugin, "boosters", () -> BoosterManager.closeOwnedBy(plugin));
         step(plugin, "dynamic values", () -> DynamicValues.closeOwnedBy(plugin));

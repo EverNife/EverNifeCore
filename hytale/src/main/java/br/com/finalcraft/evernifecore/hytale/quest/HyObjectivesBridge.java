@@ -100,7 +100,7 @@ public final class HyObjectivesBridge extends TickingSystem<EntityStore> {
         if (!REGISTERED.compareAndSet(false, true)) {
             return false;
         }
-        QuestEngine.addDefinitionCheck(HyNativeObjectiveSpec::require);
+        QuestEngine.addDefinitionCheck(EverNifeCore.getEcPluginData(), HyNativeObjectiveSpec::require);
         plugin.getEntityStoreRegistry().registerSystem(INSTANCE);
         return true;
     }

@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.dynamiccommand;
 
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.util.collection.SelfExpiringMap;
+import jakarta.annotation.Nullable;
 
 import java.util.Map;
 import java.util.UUID;
@@ -15,7 +17,7 @@ public class DynamicCommandManager {
     // cooldown still gates execution.
     private static final long LINK_TTL_MILLIS = TimeUnit.MINUTES.toMillis(30);
 
-    public static Map<UUID, DynamicCommand> DYNAMIC_COMMANDS = new SelfExpiringMap<>(LINK_TTL_MILLIS);
+    private static final Map<UUID, DynamicCommand> DYNAMIC_COMMANDS = new SelfExpiringMap<>(LINK_TTL_MILLIS);
 
     /**
      * Creates a Command String that will execute this runnable when the command
@@ -25,12 +27,26 @@ public class DynamicCommandManager {
      *
      * @return The Command link to this dynamicCommand, like "/${label} UUID"
      */
-    public static String scheduleDynamicCommand(DynamicCommand dynamicCommand){
+    public static synchronized String scheduleDynamicCommand(DynamicCommand dynamicCommand){
         DYNAMIC_COMMANDS.put(
                 dynamicCommand.getUuid(),
                 dynamicCommand
         );
         return "/ecdcmd " + dynamicCommand.getUuid().toString();
+    }
+
+    /** The link scheduled under {@code id}, or {@code null} when there is none (never made, expired, used up or its plugin left). */
+    public static synchronized @Nullable DynamicCommand find(UUID id) {
+        return DYNAMIC_COMMANDS.get(id);
+    }
+
+    public static synchronized void remove(UUID id) {
+        DYNAMIC_COMMANDS.remove(id);
+    }
+
+    /** Internal: drops every link {@code owner} made - part of releasing that plugin, so no click runs a closure of a plugin that left. */
+    public static synchronized void closeOwnedBy(ECPluginData owner) {
+        DYNAMIC_COMMANDS.values().removeIf(command -> command.getOwner() == owner);
     }
 
 }

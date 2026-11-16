@@ -4,7 +4,6 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.hytale.itemdatapart.datapart.*;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import jakarta.annotation.Nonnull;
-import jakarta.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,7 +29,7 @@ public abstract class ItemDataPart {
     public static ItemDataPart MAX_DURABILITY   = registerType(new ItemDataPartMaxDurability());
     public static ItemDataPart QUANTITY         = registerType(new ItemDataPartQuantity());
 
-    public static @Nullable <DP extends ItemDataPart> DP registerType(@Nonnull DP type) {
+    private static <DP extends ItemDataPart> DP registerType(@Nonnull DP type) {
         REGISTERED.add(type);
         return type;
     }

@@ -206,6 +206,21 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+#### Hytale
+
+- **`ItemDataPart.registerType` is private** on Hytale: the parts the class ships with are the whole set; no plugin
+  registered one.
+
+#### Items
+
+- **Extra inventories, inv items and item parts have an owner** (breaking): `ExtraInvManager.registerFactory(owner, factory)`
+  (Bukkit and Hytale), `InvItemManager.register(owner, invItem)` and `ItemEngine.register(owner, registration)`. Each leaves
+  when its plugin does (`IPlatform.releasePluginRegistrations`), with no call from the plugin. A second plugin registering
+  an extra inventory id, or an inv item id or material, that another one holds gets an `IllegalStateException` naming both;
+  the same plugin registering again (a reload) replaces its own. `InvItemManager.INVITEM_MAP`/`INVITEM_ID_MAP` are private
+  now - read through `InvItemManager.of(...)`. The parts the `ItemEngine` ships with have no owner and never leave
+  (`RegisteredPart.getOwner()` is null for them).
+
 #### Notifications
 
 - **A notification has an owner, and each plugin declares its own chains and durations.** `Notification.of(owner, kind)`
@@ -420,6 +435,8 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `QuestStatus`) and `QuestJournalScreen.FILTER.ALL`, en_US and pt_BR.
 - **The quest offer's `{missing}` is plain text**: the grey it carried is now on `QuestOfferLayout.ACCEPT`'s lore
   (`§8{missing}`), where the server restyles it.
+- **`QuestEngine.addDefinitionCheck(owner, check)`** (breaking): a definition check has an owner and leaves with it; closing
+  the returned handle still removes it earlier.
 
 #### Menus and shops
 
@@ -457,6 +474,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   after a future carries the scope with `LocaleScope.carry(...)`, which the core's mountable nodes now use; a plugin's own
   async reply that sends a core message does the same. `FinalCmdTestHarness.withSeparateCore(folder)` (test engine) gives
   a harness a core apart from its plugin, to test the two languages.
+- **A `DynamicCommand` link has an owner** (breaking): `DynamicCommand.builder(owner)` and
+  `FCCommandUtil.dynamicCommand(owner, runnable, ...)`. The link stops working when that plugin leaves (a click answers the
+  usual "this UUID has no command"), instead of running a closure of a disabled plugin for up to 30 minutes, and the core
+  texts its action sends speak that plugin's language. `DynamicCommandManager.DYNAMIC_COMMANDS` is private; read it through
+  `find(uuid)` / `remove(uuid)`.
 
 #### Providers and utilities
 

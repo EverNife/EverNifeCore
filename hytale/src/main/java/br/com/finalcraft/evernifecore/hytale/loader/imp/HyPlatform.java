@@ -13,6 +13,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDP
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventHandler;
 import br.com.finalcraft.evernifecore.eventbus.ECEventPriority;
+import br.com.finalcraft.evernifecore.hytale.inventory.extrainvs.ExtraInvManager;
 import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.hytale.commands.finalcmd.HytaleArgParsers;
 import br.com.finalcraft.evernifecore.hytale.commands.finalcmd.implementation.HyFinalCMDPluginCommand;
@@ -468,6 +469,7 @@ public class HyPlatform implements IPlatform {
 
     @Override
     public void releasePluginRegistrations(ECPluginData plugin) {
+        ExtraInvManager.unregisterAll(plugin);
     }
 
     @Override

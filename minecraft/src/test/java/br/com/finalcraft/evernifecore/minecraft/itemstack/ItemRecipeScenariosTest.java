@@ -1,6 +1,10 @@
 package br.com.finalcraft.evernifecore.minecraft.itemstack;
 
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
+import br.com.finalcraft.evernifecore.testing.Platforms;
+import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.BuiltItem;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemDescription;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
@@ -21,7 +25,9 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -43,6 +49,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * is missing a capability says which one, and that a mistake in a file costs one line.</p>
  */
 class ItemRecipeScenariosTest {
+
+    @TempDir
+    Path tempDir;
 
     // -----------------------------------------------------------------------------------------------------------------
     //  1. A long chain, built and read back, with nothing lost on the way
@@ -191,8 +200,10 @@ class ItemRecipeScenariosTest {
 
     @Test
     void aPartThatBreaksIsReportedAsADefectWhileTheOthersStillDescribeTheItem() {
-        try (ItemWorld world = ItemWorld.withMetadata(MCDetailedVersion.v1_21_R1)) {
-            world.getEngine().register(PartRegistration.of("brokenpart", ItemRequirement.base(),
+        try (ECoreTestWorld core = Platforms.lenient().install();
+             ItemWorld world = ItemWorld.withMetadata(MCDetailedVersion.v1_21_R1)) {
+            ECPluginData owner = Plugins.fakePluginData("BrokenParts", tempDir.resolve("BrokenParts").toFile());
+            world.getEngine().register(owner, PartRegistration.of("brokenpart", ItemRequirement.base(),
                     new String[]{}, PartThatBreaksWhenRead::new));
 
             ItemStack named = FCItemFactory.from(Material.PAPER).displayName("&fCarta").build();

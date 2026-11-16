@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.itemstack.engine;
 
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.PartRefusal;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRuntime;
@@ -16,12 +17,14 @@ import jakarta.annotation.Nullable;
  */
 public final class RegisteredPart {
 
+    private final ECPluginData owner;
     private final PartRegistration registration;
     private final ItemDataPart<?> part;
     private final String refusal;
     private final boolean belowFloor;
 
-    RegisteredPart(@Nonnull PartRegistration registration, @Nonnull ItemRuntime runtime) {
+    RegisteredPart(@Nullable ECPluginData owner, @Nonnull PartRegistration registration, @Nonnull ItemRuntime runtime) {
+        this.owner = owner;
         this.registration = registration;
         String gap = registration.getRequirement().explain(runtime);
         this.belowFloor = !registration.getRequirement().meetsFloor(runtime);
@@ -33,6 +36,12 @@ public final class RegisteredPart {
             this.part = null;
             this.refusal = registration.getHint() == null ? gap : gap + ". " + registration.getHint();
         }
+    }
+
+    /** The plugin that registered this part, or {@code null} for a part the engine ships with (never released). */
+    @Nullable
+    public ECPluginData getOwner() {
+        return owner;
     }
 
     @Nonnull

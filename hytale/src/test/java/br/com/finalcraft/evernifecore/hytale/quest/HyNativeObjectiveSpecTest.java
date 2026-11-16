@@ -33,7 +33,7 @@ class HyNativeObjectiveSpecTest {
     void open() {
         world = Platforms.lenient().mainThreadInline().install();
         quests = QuestWorld.open("FakeQuests", tempDir.resolve("quests"));
-        check = QuestEngine.addDefinitionCheck(HyNativeObjectiveSpec::require);
+        check = QuestEngine.addDefinitionCheck(quests.getOwner(), HyNativeObjectiveSpec::require);
     }
 
     @AfterEach

@@ -63,6 +63,7 @@ import br.com.finalcraft.evernifecore.time.ECClock;
 import br.com.finalcraft.evernifecore.time.ECScheduler;
 import br.com.finalcraft.evernifecore.time.Window;
 import br.com.finalcraft.everydatabase.query.ScanRow;
+import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
 import java.math.BigDecimal;
@@ -129,7 +130,17 @@ public final class QuestEngine {
     private static final int MAX_STAGE_HOPS = 64;
 
     private static final Map<ECPluginData, QuestEngine> ENGINES = new ConcurrentHashMap<>();
-    private static final List<Consumer<QuestDefinition>> DEFINITION_CHECKS = new CopyOnWriteArrayList<>();
+    private static final List<DefinitionCheck> DEFINITION_CHECKS = new CopyOnWriteArrayList<>();
+
+    private static final class DefinitionCheck {
+        final ECPluginData owner;
+        final Consumer<QuestDefinition> check;
+
+        DefinitionCheck(ECPluginData owner, Consumer<QuestDefinition> check) {
+            this.owner = owner;
+            this.check = check;
+        }
+    }
     /** One lock per owner for every engine: a read of another engine's state of the same owner re-enters it. */
     private static final Map<ProgressOwner, ReentrantLock> LANES = new ConcurrentHashMap<>();
     /** The lanes this thread holds, and the effects and rewards waiting for it to let go of the last one. */
@@ -641,16 +652,23 @@ public final class QuestEngine {
     /**
      * Adds a check every engine runs on each definition it registers, before it takes any; a check refuses by throwing an
      * {@link IllegalArgumentException} that teaches. A platform uses it for what only it can tell (what its native
-     * quest system expresses). Closing the handle removes the check. Any thread.
+     * quest system expresses). The check leaves when {@code owner} does, or when the handle is closed. Any thread.
      */
-    public static AutoCloseable addDefinitionCheck(Consumer<QuestDefinition> check) {
-        DEFINITION_CHECKS.add(check);
-        return () -> DEFINITION_CHECKS.remove(check);
+    public static AutoCloseable addDefinitionCheck(@Nonnull ECPluginData owner, @Nonnull Consumer<QuestDefinition> check) {
+        Objects.requireNonNull(owner, "'owner' cannot be null when adding a quest definition check!");
+        DefinitionCheck added = new DefinitionCheck(owner, check);
+        DEFINITION_CHECKS.add(added);
+        return () -> DEFINITION_CHECKS.remove(added);
+    }
+
+    /** Internal: drops every definition check {@code owner} added - part of releasing that plugin. */
+    public static void removeDefinitionChecksOf(ECPluginData owner) {
+        DEFINITION_CHECKS.removeIf(added -> added.owner == owner);
     }
 
     private void validate(QuestDefinition definition) {
-        for (Consumer<QuestDefinition> check : DEFINITION_CHECKS) {
-            check.accept(definition);
+        for (DefinitionCheck added : DEFINITION_CHECKS) {
+            added.check.accept(definition);
         }
         Map<String, String> firstValues = new LinkedHashMap<>();
         for (Map.Entry<String, QuestDefinition.Param> param : definition.getParams().entrySet()) {

@@ -2,15 +2,23 @@ package br.com.finalcraft.evernifecore.dynamiccommand;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import jakarta.annotation.Nonnull;
 import org.apache.commons.lang3.Validate;
 
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+/**
+ * A one-off command behind a clickable link ({@code /ecdcmd <uuid>}), owned by the plugin that made it: the link stops
+ * working when that plugin leaves, and its action runs in that plugin's language.
+ */
 public class DynamicCommand {
 
+    private final ECPluginData owner;
     private final UUID uuid;
     private final String identifier;
     private final Cooldown cooldown;
@@ -19,13 +27,20 @@ public class DynamicCommand {
     private final Function<Context, Boolean> shouldRemove;
     private int runs = 0;
 
-    public DynamicCommand(UUID uuid, String identifier, Cooldown cooldown, Consumer<Context> action, Function<Context, Boolean> shouldRun, Function<Context, Boolean> shouldRemove) {
+    public DynamicCommand(@Nonnull ECPluginData owner, UUID uuid, String identifier, Cooldown cooldown, Consumer<Context> action, Function<Context, Boolean> shouldRun, Function<Context, Boolean> shouldRemove) {
+        this.owner = Objects.requireNonNull(owner, "'owner' cannot be null for a DynamicCommand!");
         this.uuid = uuid;
         this.identifier = identifier;
         this.cooldown = cooldown;
         this.action = action;
         this.shouldRun = shouldRun;
         this.shouldRemove = shouldRemove;
+    }
+
+    /** The plugin that made this link; it leaves with that plugin. */
+    @Nonnull
+    public ECPluginData getOwner() {
+        return owner;
     }
 
     public UUID getUuid() {
@@ -64,11 +79,13 @@ public class DynamicCommand {
         this.runs++;
     }
 
-    public static Builder builder(){
-        return new Builder();
+    /** A builder for a link owned by {@code owner}. */
+    public static Builder builder(@Nonnull ECPluginData owner){
+        return new Builder(owner);
     }
 
     public static class Builder {
+        private final ECPluginData owner;
         private UUID uuid;
         private String identifier;
         private Cooldown cooldown;
@@ -76,7 +93,8 @@ public class DynamicCommand {
         private Function<Context, Boolean> shouldRun;
         private Function<Context, Boolean> shouldRemove;
 
-        protected Builder() {
+        protected Builder(@Nonnull ECPluginData owner) {
+            this.owner = Objects.requireNonNull(owner, "'owner' cannot be null for a DynamicCommand!");
             this.uuid = UUID.randomUUID();
             this.identifier = "";
             this.cooldown = Cooldown.inMemory("");
@@ -128,7 +146,7 @@ public class DynamicCommand {
 
         public DynamicCommand createDynamicCommand() {
             Validate.notNull(action, "Action cannot be null");
-            return new DynamicCommand(uuid, identifier, cooldown, action, shouldRun, shouldRemove);
+            return new DynamicCommand(owner, uuid, identifier, cooldown, action, shouldRun, shouldRemove);
         }
     }
 

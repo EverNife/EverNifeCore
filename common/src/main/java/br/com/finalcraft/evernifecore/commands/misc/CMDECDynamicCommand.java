@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.dynamiccommand.DynamicCommand;
 import br.com.finalcraft.evernifecore.dynamiccommand.DynamicCommandManager;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
+import br.com.finalcraft.evernifecore.locale.LocaleScope;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 
@@ -33,7 +34,7 @@ public class CMDECDynamicCommand {
             return;
         }
 
-        DynamicCommand cmd = DynamicCommandManager.DYNAMIC_COMMANDS.get(cmdIdentifier);
+        DynamicCommand cmd = DynamicCommandManager.find(cmdIdentifier);
 
         if (cmd == null){
             UUID_HAS_NO_COMMAND.send(sender);
@@ -51,10 +52,13 @@ public class CMDECDynamicCommand {
 
         cmd.incrementRun();
 
-        cmd.runAction(sender);
+        //the core texts the action sends speak the language of the plugin that made the link
+        try (LocaleScope ignored = LocaleScope.enter(cmd.getOwner())) {
+            cmd.runAction(sender);
+        }
 
         if (cmd.shouldRemove(sender)){
-            DynamicCommandManager.DYNAMIC_COMMANDS.remove(cmdIdentifier);
+            DynamicCommandManager.remove(cmdIdentifier);
         }
     }
 

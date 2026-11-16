@@ -21,6 +21,9 @@ import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.implementation
 import br.com.finalcraft.evernifecore.minecraft.eventbus.McECEventHandlers;
 import br.com.finalcraft.evernifecore.minecraft.integration.McOfflinePermissions;
 import br.com.finalcraft.evernifecore.minecraft.integration.placeholders.McPAPIIntegration;
+import br.com.finalcraft.evernifecore.minecraft.inventory.extrainvs.ExtraInvManager;
+import br.com.finalcraft.evernifecore.minecraft.inventory.invitem.InvItemManager;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
 import br.com.finalcraft.evernifecore.minecraft.notify.McHudAccess;
 import br.com.finalcraft.evernifecore.minecraft.protection.ProtectionAll;
@@ -464,6 +467,9 @@ public class McPlatform implements IPlatform {
 
     @Override
     public void releasePluginRegistrations(ECPluginData plugin) {
+        ExtraInvManager.unregisterAll(plugin);
+        InvItemManager.unregisterAll(plugin);
+        ItemEngine.releaseOwnedBy(plugin);
         ProtectionAll.getInstance().unregisterAll(plugin);
         //its expansion would keep answering from the disabled instance, and a re-enable registers a second one
         McPAPIIntegration.unregisterAll(plugin.getMetaInfo().getName());
