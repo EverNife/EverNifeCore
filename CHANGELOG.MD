@@ -508,6 +508,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **Hytale Server 0.7.6** (`hytale-server` in the catalog). No code change; a walked-over pickup still raises no event.
 - **EveryDatabase 1.5.2**: the release that carries the optimistic lock of the memory and file backends, so a clean
   build gets it from `maven.petrus.dev` instead of only from a local `publishToMavenLocal`.
+- **EveryConfig 1.4.4**: `getValue(path, Object.class)` answers by the node's shape - a `List` for a sequence, the value for
+  a scalar, a `Map` for a map, `null` when absent - where 1.4.3 handed back an empty map for a sequence and a scalar. A
+  plugin reading an old value only to learn its shape can now ask for `Object.class`.
 
 ### Fixed
 
